@@ -118,6 +118,33 @@ Each check uses model quota for two short turns in a temporary directory. It lis
 models, starts a headless session, closes it, and resumes the same session to verify
 that conversation history survived. It does not dispatch tasks or test the merge pipeline.
 
+To check the complete headless Director → Worker → Merge Steward pipeline:
+
+```bash
+bun scripts/check-agent-orchestration.ts codex
+bun scripts/check-agent-orchestration.ts claude-code
+```
+
+The argument selects the worker provider; the other provider creates and reviews
+the task. Each run uses production orchestration services in a temporary project
+with a local bare Git origin. The agents fix a failing arithmetic implementation,
+run immutable acceptance tests, complete the task and merge it. The check verifies
+the agent identities used by the CLI, passing tests from both worker and steward,
+the merged commit on the local origin, worktree cleanup and session termination.
+It uses model quota and requires authenticated Codex and Claude Code providers,
+Bun, Node.js, npm and Git. Failed runs retain their temporary workspace and logs;
+set `SF_KEEP_TEST_WORKSPACE=1` to retain successful runs too.
+
+Both provider arrangements passed on macOS with Codex CLI 0.157.0 and Claude
+Agent SDK 0.3.282. This covers headless local merges; interactive terminal
+conversations, GitHub approval workflows and Windows/Linux execution still need
+separate live checks. The fixture uses absolute CLI paths to avoid accidentally
+testing a different global `sf` installation after a login shell resets `PATH`.
+
+Codex receives `SF_ENTITY_ID`, the workspace root and explicit environment
+overrides per thread, including resumed sessions, so agents sharing an app-server
+keep their own task identity.
+
 The September 2026 compatibility update was checked on macOS with Codex CLI
 0.154.0 and Claude Agent SDK 0.3.282. Claude interactive sessions use the separately
 installed `claude` CLI; headless sessions use the SDK's bundled executable unless a

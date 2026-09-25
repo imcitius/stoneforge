@@ -168,6 +168,15 @@ export class CodexHeadlessProvider implements HeadlessProvider {
     });
 
     let threadId: string;
+    // The app-server is shared, but tool environments belong to each thread.
+    // In particular SF_ENTITY_ID must never come from another agent's session.
+    const environment = {
+      ...options.environmentVariables,
+      ...(options.stoneforgeRoot ? { STONEFORGE_ROOT: options.stoneforgeRoot } : {}),
+    };
+    const threadConfig = Object.keys(environment).length
+      ? { config: { 'shell_environment_policy.set': environment } }
+      : {};
 
     try {
       if (options.resumeSessionId) {
@@ -178,6 +187,7 @@ export class CodexHeadlessProvider implements HeadlessProvider {
           cwd: options.workingDirectory,
           approvalPolicy: 'never',
           sandbox: 'danger-full-access',
+          ...threadConfig,
         });
         threadId = result.thread.id;
 
@@ -200,6 +210,7 @@ export class CodexHeadlessProvider implements HeadlessProvider {
           cwd: options.workingDirectory,
           approvalPolicy: 'never',
           sandbox: 'danger-full-access',
+          ...threadConfig,
         });
 
         if (!result?.thread?.id) {

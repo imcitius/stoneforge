@@ -118,6 +118,29 @@ describe('Codex app-server compatibility', () => {
     } }, threadId)).toMatchObject([{ type: 'result', subtype: 'interrupted' }]);
   });
 
+  it('isolates agent tool environments on a shared server, including resume', async () => {
+    const provider = new CodexHeadlessProvider();
+    const worker = await provider.spawn({
+      workingDirectory: '/worktrees/worker', stoneforgeRoot: '/project-a',
+      environmentVariables: { SF_ENTITY_ID: 'worker-a', PATH: '/custom/bin', STONEFORGE_ROOT: '/wrong' },
+    });
+    const steward = await provider.spawn({
+      workingDirectory: '/worktrees/steward', stoneforgeRoot: '/project-b', resumeSessionId: threadId,
+      environmentVariables: { SF_ENTITY_ID: 'steward-b' },
+    });
+    expect(client.thread.start).toHaveBeenCalledWith(expect.objectContaining({
+      config: { 'shell_environment_policy.set': {
+        SF_ENTITY_ID: 'worker-a', PATH: '/custom/bin', STONEFORGE_ROOT: '/project-a',
+      } },
+    }));
+    expect(client.thread.resume).toHaveBeenCalledWith(expect.objectContaining({
+      config: { 'shell_environment_policy.set': { SF_ENTITY_ID: 'steward-b', STONEFORGE_ROOT: '/project-b' } },
+    }));
+    worker.close();
+    steward.close();
+    await Bun.sleep(0);
+  });
+
   it('distinguishes retry notifications from terminal errors', () => {
     const mapper = new CodexEventMapper();
     const params = { threadId, error: { message: 'connection lost' }, willRetry: true };

@@ -46,6 +46,7 @@ export interface CodexClient {
       cwd?: string;
       approvalPolicy?: string;
       sandbox?: string;
+      config?: Record<string, unknown>;
     }): Promise<{ thread: { id: string } }>;
     resume(params: {
       threadId: string;
@@ -53,6 +54,7 @@ export interface CodexClient {
       cwd?: string;
       approvalPolicy?: string;
       sandbox?: string;
+      config?: Record<string, unknown>;
     }): Promise<{ thread: { id: string } }>;
     read(params: { threadId: string }): Promise<{ thread: { id: string } }>;
   };
