@@ -9,6 +9,7 @@
 
 import { spawn as cpSpawn } from 'node:child_process';
 import { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk';
+import { buildClaudeSpawnEnv } from './env.js';
 import type { Query as SDKQuery, SDKMessage, SDKUserMessage, Options as SDKOptions, SpawnOptions, SpawnedProcess } from '@anthropic-ai/claude-agent-sdk';
 import type {
   HeadlessProvider,
@@ -123,12 +124,9 @@ class ClaudeHeadlessSession implements HeadlessSession {
     if (this.closed) return;
     this.closed = true;
     this.inputQueue.close();
-    // Interrupt the SDK query to abort the running API request and break the
-    // async iterator in createMessageIterator(). Without this, the underlying
-    // agent process continues executing even after the session is "closed".
-    this.sdkQuery.interrupt().catch(() => {
-      // Ignore errors — the query may already be finished
-    });
+    // interrupt() only cancels the current turn; close() also releases the
+    // subprocess and MCP transports, including when the session is idle.
+    this.sdkQuery.close();
   }
 
   getSessionId(): ProviderSessionId | undefined {
@@ -328,15 +326,12 @@ export class ClaudeHeadlessProvider implements HeadlessProvider {
   async spawn(options: HeadlessSpawnOptions): Promise<HeadlessSession> {
     const initialPrompt = options.initialPrompt ?? 'You are an AI agent. Await further instructions.';
 
-    // Build environment
-    const env: Record<string, string> = {
-      ...(process.env as Record<string, string>),
-      CLAUDECODE: '1',
-      ...options.environmentVariables,
-    };
-    if (options.stoneforgeRoot) {
-      env.STONEFORGE_ROOT = options.stoneforgeRoot;
-    }
+    // Build environment via shared helper that strips CLAUDECODE
+    // (see env.ts for why this matters).
+    const env = buildClaudeSpawnEnv(process.env, {
+      overrides: options.environmentVariables,
+      stoneforgeRoot: options.stoneforgeRoot,
+    });
 
     // Create input queue for streaming input mode
     const inputQueue = new SDKInputQueue();

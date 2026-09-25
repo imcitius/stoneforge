@@ -30,6 +30,9 @@ class CodexHeadlessSession implements HeadlessSession {
   private messageQueue: AsyncQueue<AgentMessage>;
   private unsubscribe: (() => void) | null;
   private closed = false;
+  private activeTurnId: string | undefined;
+  private completedTurnId: string | undefined;
+  private pendingTurnStart: Promise<void> | undefined;
 
   constructor(client: CodexClient, threadId: string) {
     this.client = client;
@@ -39,6 +42,14 @@ class CodexHeadlessSession implements HeadlessSession {
 
     // Subscribe to notifications and filter/map by thread ID
     this.unsubscribe = client.onNotification((method, params) => {
+      const turnParams = params as { threadId?: string; turn?: { id?: string } } | undefined;
+      if (turnParams?.threadId === this.threadId && turnParams.turn?.id) {
+        if (method === 'turn/started') this.activeTurnId = turnParams.turn.id;
+        if (method === 'turn/completed') {
+          this.completedTurnId = turnParams.turn.id;
+          if (this.activeTurnId === turnParams.turn.id) this.activeTurnId = undefined;
+        }
+      }
       if (this.closed) return;
 
       const notification = { method, params: params as any };
@@ -54,10 +65,16 @@ class CodexHeadlessSession implements HeadlessSession {
     if (this.closed) return;
 
     // Fire-and-forget: start a new turn on the thread
-    this.client.turn
+    const pending = this.client.turn
       .start({
         threadId: this.threadId,
         input: [{ type: 'text' as const, text: content }],
+      })
+      .then(({ turn }) => {
+        // Completion can arrive before the turn/start response.
+        if (turn.id !== this.completedTurnId && (!turn.status || turn.status === 'inProgress')) {
+          this.activeTurnId = turn.id;
+        }
       })
       .catch((error) => {
         this.messageQueue.push({
@@ -66,6 +83,10 @@ class CodexHeadlessSession implements HeadlessSession {
           raw: error,
         });
       });
+    this.pendingTurnStart = pending;
+    void pending.finally(() => {
+      if (this.pendingTurnStart === pending) this.pendingTurnStart = undefined;
+    });
   }
 
   [Symbol.asyncIterator](): AsyncIterator<AgentMessage> {
@@ -73,7 +94,10 @@ class CodexHeadlessSession implements HeadlessSession {
   }
 
   async interrupt(): Promise<void> {
-    await this.client.turn.interrupt({ threadId: this.threadId });
+    await this.pendingTurnStart;
+    if (this.activeTurnId) {
+      await this.client.turn.interrupt({ threadId: this.threadId, turnId: this.activeTurnId });
+    }
   }
 
   close(): void {
@@ -84,6 +108,9 @@ class CodexHeadlessSession implements HeadlessSession {
     // Without this, the agent continues executing even after close().
     this.interrupt().catch(() => {
       // Ignore errors — the turn may already be finished
+    }).finally(() => {
+      // Keep the shared server alive until cancellation has been acknowledged.
+      serverManager.release();
     });
 
     // Flush any remaining buffered text
@@ -94,7 +121,6 @@ class CodexHeadlessSession implements HeadlessSession {
     this.messageQueue.close();
     this.unsubscribe?.();
     this.unsubscribe = null;
-    serverManager.release();
   }
 
   /** Injects a synthetic system init message */
@@ -142,6 +168,15 @@ export class CodexHeadlessProvider implements HeadlessProvider {
     });
 
     let threadId: string;
+    // The app-server is shared, but tool environments belong to each thread.
+    // In particular SF_ENTITY_ID must never come from another agent's session.
+    const environment = {
+      ...options.environmentVariables,
+      ...(options.stoneforgeRoot ? { STONEFORGE_ROOT: options.stoneforgeRoot } : {}),
+    };
+    const threadConfig = Object.keys(environment).length
+      ? { config: { 'shell_environment_policy.set': environment } }
+      : {};
 
     try {
       if (options.resumeSessionId) {
@@ -152,6 +187,7 @@ export class CodexHeadlessProvider implements HeadlessProvider {
           cwd: options.workingDirectory,
           approvalPolicy: 'never',
           sandbox: 'danger-full-access',
+          ...threadConfig,
         });
         threadId = result.thread.id;
 
@@ -174,6 +210,7 @@ export class CodexHeadlessProvider implements HeadlessProvider {
           cwd: options.workingDirectory,
           approvalPolicy: 'never',
           sandbox: 'danger-full-access',
+          ...threadConfig,
         });
 
         if (!result?.thread?.id) {

@@ -584,7 +584,11 @@ export class SpawnerServiceImpl implements SpawnerService {
     // Handle provider interactive sessions
     if (session.interactiveSession) {
       if (graceful) {
-        session.interactiveSession.write('exit\r');
+        if (session.interactiveSession.requestExit) {
+          session.interactiveSession.requestExit();
+        } else {
+          session.interactiveSession.write('exit\r');
+        }
 
         await new Promise<void>((resolve) => {
           const timeout = setTimeout(() => {
@@ -968,6 +972,7 @@ export class SpawnerServiceImpl implements SpawnerService {
     headlessSession: HeadlessSession
   ): Promise<void> {
     let resumeErrorDetected = false;
+    let providerErrorDetected = false;
     try {
       for await (const message of headlessSession) {
         if (session.status === 'terminated') {
@@ -1010,6 +1015,15 @@ export class SpawnerServiceImpl implements SpawnerService {
           }
         }
 
+        // Terminal provider errors (including failed Codex turns) must release
+        // the session. The provider's streaming queue can otherwise stay open
+        // forever, leaving the worker occupied after a failed request.
+        if (message.type === 'error') {
+          providerErrorDetected = true;
+          headlessSession.close();
+          break;
+        }
+
         // Detect agent completion: when we receive a 'result' message that is
         // NOT an error, the agent has finished its work. For headless sessions
         // using streaming input mode (stewards, ephemeral workers), the SDK
@@ -1036,7 +1050,7 @@ export class SpawnerServiceImpl implements SpawnerService {
       if (!session.endedAt) {
         session.endedAt = createTimestamp();
       }
-      session.events.emit('exit', resumeErrorDetected ? 1 : 0, null);
+      session.events.emit('exit', resumeErrorDetected || providerErrorDetected ? 1 : 0, null);
       if (session.status === 'terminated') {
         this.scheduleTerminatedSessionCleanup(session.id);
       }

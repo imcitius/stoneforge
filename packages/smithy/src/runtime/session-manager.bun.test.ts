@@ -531,6 +531,29 @@ describe('SessionManager', () => {
   });
 
   describe('stopSession', () => {
+    test('preserves the resume ID discovered during graceful shutdown in session history', async () => {
+      const originalSpawn = spawner.spawn.bind(spawner);
+      spawner.spawn = async (...args) => {
+        const result = await originalSpawn(...args);
+        return { ...result, session: { ...result.session, providerSessionId: undefined } };
+      };
+      const originalTerminate = spawner.terminate.bind(spawner);
+      const resumeId = '019e1277-6206-74e1-bb66-bbd8e9534628';
+      spawner.terminate = async (id, graceful) => {
+        spawner._mockEmitters.get(id)?.emit('provider-session-id', resumeId);
+        await originalTerminate(id, graceful);
+      };
+      const { session } = await sessionManager.startSession(testAgentId, { mode: 'interactive' });
+      expect(session.providerSessionId).toBeUndefined();
+      await sessionManager.stopSession(session.id);
+      const history = await sessionManager.getSessionHistory(testAgentId);
+      expect(history).toHaveLength(1);
+      expect(history[0].providerSessionId).toBe(resumeId);
+      expect(history[0].status).toBe('terminated');
+      const agent = await registry.getAgent(testAgentId);
+      expect((agent?.metadata?.agent as AgentMetadata).sessionStatus).toBe('idle');
+    });
+
     test('stops a running session', async () => {
       const { session } = await sessionManager.startSession(testAgentId);
 

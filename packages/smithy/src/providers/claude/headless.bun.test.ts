@@ -20,6 +20,11 @@ import type { Options as SDKOptions, SpawnOptions } from '@anthropic-ai/claude-a
  * We mock the SDK to capture these instead of actually spawning.
  */
 let capturedSdkOptions: SDKOptions | undefined;
+const closeQuery = mock(() => {});
+const interruptQuery = mock(async () => {});
+const supportedModels = mock(async () => [
+  { value: 'sonnet', displayName: 'Sonnet', description: 'Sonnet · Current model' },
+]);
 
 /**
  * Captured child_process.spawn calls: [command, args, options].
@@ -57,8 +62,9 @@ mock.module('@anthropic-ai/claude-agent-sdk', () => ({
     })();
     // Add required Query methods
     Object.assign(gen, {
-      interrupt: mock(async () => {}),
-      close: mock(() => {}),
+      interrupt: interruptQuery,
+      close: closeQuery,
+      supportedModels,
       streamInput: mock(async () => {}),
     });
     return gen;
@@ -73,9 +79,37 @@ describe('ClaudeHeadlessProvider', () => {
   beforeEach(() => {
     capturedSdkOptions = undefined;
     capturedSpawnCalls = [];
+    closeQuery.mockClear();
+    interruptQuery.mockClear();
   });
 
   describe('spawn() model passthrough', () => {
+    it('closes the SDK process exactly once instead of only interrupting its turn', async () => {
+      const { ClaudeHeadlessProvider } = await import('./headless.js');
+      const session = await new ClaudeHeadlessProvider().spawn({ workingDirectory: '/test/dir' });
+      await session.interrupt();
+      expect(interruptQuery).toHaveBeenCalledTimes(1);
+      expect(closeQuery).not.toHaveBeenCalled();
+      session.close();
+      session.close();
+      expect(closeQuery).toHaveBeenCalledTimes(1);
+      expect(interruptQuery).toHaveBeenCalledTimes(1);
+    });
+
+    it('discovers models with a sanitized environment and closes the temporary query', async () => {
+      const { ClaudeAgentProvider } = await import('./index.js');
+      const previous = process.env.CLAUDECODE;
+      process.env.CLAUDECODE = '1';
+      try {
+        const models = await new ClaudeAgentProvider().listModels();
+        expect(models).toMatchObject([{ id: 'sonnet', displayName: 'Sonnet', isDefault: true }]);
+        expect(capturedSdkOptions?.env?.CLAUDECODE).toBeUndefined();
+        expect(closeQuery).toHaveBeenCalledTimes(1);
+      } finally {
+        if (previous === undefined) delete process.env.CLAUDECODE;
+        else process.env.CLAUDECODE = previous;
+      }
+    });
     it('should include model in SDK options when provided', async () => {
       const { ClaudeHeadlessProvider } = await import('./headless.js');
       const provider = new ClaudeHeadlessProvider();
@@ -349,6 +383,52 @@ describe('ClaudeHeadlessProvider', () => {
       const { ClaudeHeadlessProvider } = await import('./headless.js');
       const provider = new ClaudeHeadlessProvider('/usr/local/bin/claude-dev');
       expect(provider.name).toBe('claude-headless');
+    });
+  });
+
+  describe('CLAUDECODE env handling', () => {
+    // Regression test for the nested-session refusal: if CLAUDECODE is set
+    // in the parent process env (e.g., stoneforge is invoked from inside
+    // an existing Claude Code session), it must NOT be propagated to the
+    // spawned claude subprocess. Modern claude versions read CLAUDECODE
+    // and refuse to start, exiting 1, which the spawner surfaces as the
+    // cryptic "Session exited before init" error.
+    it('strips CLAUDECODE from the spawned env even when present in process.env', async () => {
+      const { ClaudeHeadlessProvider } = await import('./headless.js');
+      const provider = new ClaudeHeadlessProvider();
+
+      const previous = process.env.CLAUDECODE;
+      process.env.CLAUDECODE = '1';
+      try {
+        const session = await provider.spawn({ workingDirectory: '/test/dir' });
+        session.close();
+
+        expect(capturedSdkOptions).toBeDefined();
+        const env = capturedSdkOptions!.env as Record<string, string> | undefined;
+        expect(env).toBeDefined();
+        expect(env!.CLAUDECODE).toBeUndefined();
+      } finally {
+        if (previous === undefined) {
+          delete process.env.CLAUDECODE;
+        } else {
+          process.env.CLAUDECODE = previous;
+        }
+      }
+    });
+
+    it('strips CLAUDECODE even when caller passes it via environmentVariables', async () => {
+      const { ClaudeHeadlessProvider } = await import('./headless.js');
+      const provider = new ClaudeHeadlessProvider();
+
+      const session = await provider.spawn({
+        workingDirectory: '/test/dir',
+        environmentVariables: { CLAUDECODE: '1', OTHER_VAR: 'keep-me' },
+      });
+      session.close();
+
+      const env = capturedSdkOptions!.env as Record<string, string> | undefined;
+      expect(env!.CLAUDECODE).toBeUndefined();
+      expect(env!.OTHER_VAR).toBe('keep-me');
     });
   });
 });

@@ -11,6 +11,7 @@
 
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { EventEmitter } from 'node:events';
+import { AsyncQueue } from '../providers/opencode/async-queue.js';
 import type { EntityId, Timestamp } from '@stoneforge/core';
 import { createTimestamp } from '@stoneforge/core';
 import {
@@ -97,10 +98,92 @@ describe('SpawnerService', () => {
   });
 
   describe('terminate', () => {
+    test('closes failed headless sessions and reports a non-zero exit', async () => {
+      const queue = new AsyncQueue<AgentMessage>();
+      let closes = 0;
+      const provider: AgentProvider = {
+        name: 'failed-turn-provider',
+        headless: createMockHeadlessProvider(() => ({
+          sendMessage() {},
+          async interrupt() {},
+          close() { closes++; queue.close(); },
+          [Symbol.asyncIterator]: () => queue[Symbol.asyncIterator](),
+        })),
+        interactive: { name: 'unused', async spawn() { throw new Error('unused'); }, async isAvailable() { return true; } },
+        async isAvailable() { return true; },
+        getInstallInstructions() { return ''; },
+        async listModels() { return []; },
+      };
+      queue.push({ type: 'system', subtype: 'init', sessionId: 'provider-session', raw: {} });
+      const service = new SpawnerServiceImpl({ provider, workingDirectory: '/tmp', timeout: 1000 });
+      const { session, events } = await service.spawn(testAgentId, 'worker', { mode: 'headless' });
+      const exited = new Promise<number>(resolve => events.once('exit', resolve));
+      queue.push({ type: 'error', content: 'Codex turn failed', raw: {} });
+      expect(await exited).toBe(1);
+      expect(closes).toBe(1);
+      expect(service.getSession(session.id)?.status).toBe('terminated');
+      expect(service.listActiveSessions()).toHaveLength(0);
+    });
+
     test('throws error for non-existent session', async () => {
       await expect(spawnerService.terminate('nonexistent-session')).rejects.toThrow(
         'Session not found'
       );
+    });
+
+    test('uses provider-specific requestExit for graceful interactive termination', async () => {
+      let exitCallback: ((code: number, signal?: number) => void) | undefined;
+      const writes: string[] = [];
+
+      const interactiveProvider: InteractiveProvider = {
+        name: 'mock-interactive',
+        spawn: async (): Promise<InteractiveSession> => ({
+          pid: 12345,
+          write: (data: string) => {
+            writes.push(data);
+          },
+          requestExit: () => {
+            writes.push('requestExit');
+            exitCallback?.(0);
+          },
+          resize: () => {},
+          kill: () => {
+            writes.push('kill');
+          },
+          onData: () => {},
+          onExit: (callback: (code: number, signal?: number) => void) => {
+            exitCallback = callback;
+          },
+          getSessionId: () => undefined,
+        }),
+        isAvailable: async () => true,
+      };
+
+      const provider: AgentProvider = {
+        name: 'mock-provider',
+        headless: createMockHeadlessProvider(createImmediateExitHeadlessSession),
+        interactive: interactiveProvider,
+        isAvailable: async () => true,
+        getInstallInstructions: () => 'No install needed for mock',
+        listModels: async (): Promise<ModelInfo[]> => [],
+      };
+
+      const service = new SpawnerServiceImpl({
+        provider,
+        workingDirectory: '/tmp',
+        timeout: 1000,
+      });
+
+      const result = await service.spawn(testAgentId, 'director', {
+        mode: 'interactive',
+      });
+
+      await service.terminate(result.session.id, true);
+
+      expect(writes).toContain('requestExit');
+      expect(writes).not.toContain('exit\r');
+      expect(writes).not.toContain('kill');
+      expect(service.getSession(result.session.id)?.status).toBe('terminated');
     });
   });
 

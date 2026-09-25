@@ -21,6 +21,7 @@ interface CodexCommandExecution {
   command?: string;
   cwd?: string;
   stdout?: string;
+  aggregatedOutput?: string | null;
   exitCode?: number;
   status?: string;
 }
@@ -51,6 +52,8 @@ type CodexItem = CodexCommandExecution | CodexFileChange | CodexMcpToolCall | Co
 /** Codex notification params shape */
 export interface CodexNotificationParams {
   threadId?: string;
+  turn?: { id?: string; status?: string; error?: { message?: string } | null };
+  willRetry?: boolean;
   item?: CodexItem;
   delta?: string;
   itemId?: string;
@@ -113,6 +116,10 @@ export class CodexEventMapper {
       case 'item/fileChange/outputDelta':
         return this.handleOutputDelta(notification);
 
+      case 'error':
+        // Retriable errors are intermediate server state, not task failures.
+        return notification.params?.willRetry ? [] : this.handleServerError(notification);
+
       case 'codex/event/error':
         return this.handleServerError(notification);
 
@@ -149,7 +156,8 @@ export class CodexEventMapper {
   private handleServerError(notification: CodexNotification): AgentMessage[] {
     const params = notification.params as Record<string, unknown> | undefined;
     const msg = params?.msg as Record<string, unknown> | undefined;
-    const errorMessage = (msg?.message as string)
+    const errorMessage = (params?.error ? this.extractErrorMessage(params.error) : undefined)
+      ?? (msg?.message as string)
       ?? (params?.message as string)
       ?? 'Unknown codex server error';
 
@@ -307,7 +315,7 @@ export class CodexEventMapper {
 
       let content = '';
       if (item.type === 'commandExecution') {
-        content = buffered ?? item.stdout ?? `exit code: ${item.exitCode ?? 0}`;
+        content = item.aggregatedOutput ?? buffered ?? item.stdout ?? `exit code: ${item.exitCode ?? 0}`;
       } else if (item.type === 'fileChange') {
         content = buffered ?? item.content ?? '';
       } else if (item.type === 'mcpToolCall') {
@@ -327,10 +335,10 @@ export class CodexEventMapper {
 
   private handleTurnCompleted(notification: CodexNotification): AgentMessage[] {
     const messages = this.flushPendingText();
-    const status = notification.params?.status;
+    const status = notification.params?.turn?.status ?? notification.params?.status;
 
     if (status === 'failed') {
-      const errorMsg = this.extractErrorMessage(notification.params?.error);
+      const errorMsg = this.extractErrorMessage(notification.params?.turn?.error ?? notification.params?.error);
       messages.push({
         type: 'error',
         content: errorMsg,
