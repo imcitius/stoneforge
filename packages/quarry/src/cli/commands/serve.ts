@@ -269,9 +269,19 @@ function hasDashboardMarker(): boolean {
  * was previously opened and skips opening a new one. Stale markers
  * (>24h) are cleaned up by hasDashboardMarker() instead.
  */
-function registerMarkerCleanup(): void {
-  process.on('SIGINT', () => { process.exit(0); });
-  process.on('SIGTERM', () => { process.exit(0); });
+function registerMarkerCleanup(close?: () => Promise<void>): void {
+  let stopping = false;
+  const stop = () => {
+    if (stopping) return;
+    stopping = true;
+    const timeout = setTimeout(() => process.exit(1), 45_000);
+    void Promise.resolve().then(() => close?.()).then(
+      () => { clearTimeout(timeout); process.exit(0); },
+      (error) => { console.error('Server shutdown failed:', error); clearTimeout(timeout); process.exit(1); },
+    );
+  };
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
 }
 
 /**
@@ -466,8 +476,10 @@ async function startSmithy(options: GlobalOptions): Promise<CommandResult> {
     }
     // Always write marker so future restarts know a tab was opened
     writeDashboardMarker();
-    registerMarkerCleanup();
   }
+  const close = result && typeof result === 'object' && 'close' in result
+    ? (result as { close: () => Promise<void> }).close : undefined;
+  registerMarkerCleanup(close);
   return await new Promise<never>(() => {});
 }
 

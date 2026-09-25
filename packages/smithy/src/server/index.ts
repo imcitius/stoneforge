@@ -58,6 +58,9 @@ import { createLspRoutes } from './routes/lsp.js';
 import { initializeBroadcaster } from '@stoneforge/shared-routes';
 import { registerStaticMiddleware } from './static.js';
 import { getEventsClientCount } from './events-websocket.js';
+import type { ServerStartOptions } from './server.js';
+import { resolve } from 'node:path';
+import { acquireWorkspaceLock } from './workspace-lock.js';
 
 const logger = createLogger('orchestrator');
 
@@ -68,6 +71,11 @@ export interface SmithyServerOptions {
   projectRoot?: string;
   webRoot?: string;
   corsOrigins?: string[];
+  /** Desktop supplies its transport guard before opening the listener. */
+  authorize?: ServerStartOptions['authorize'];
+  identity?: { projectId: string; instanceId: string; protocolVersion: number };
+  autoResume?: boolean;
+  autoStartDaemon?: boolean;
 }
 
 export interface SmithyServerResult {
@@ -79,9 +87,10 @@ export interface SmithyServerResult {
   daemonStatus: 'running' | 'disabled' | 'no-git' | 'stopped-by-user';
   /** Check if any dashboard clients are connected via WebSocket */
   hasConnectedClients: () => boolean;
+  close: () => Promise<void>;
 }
 
-export async function startSmithyServer(options: SmithyServerOptions = {}): Promise<SmithyServerResult> {
+async function startUnlockedSmithyServer(options: SmithyServerOptions = {}): Promise<SmithyServerResult> {
   logger.info('Log level: ' + getLogLevel());
   const port = options.port ?? DEFAULT_PORT;
   const host = options.host ?? DEFAULT_HOST;
@@ -102,7 +111,7 @@ export async function startSmithyServer(options: SmithyServerOptions = {}): Prom
   const directors = await services.agentRegistry.getDirectors();
   for (const dir of directors) {
     const meta = getAgentMetadata(dir);
-    if (meta?.sessionStatus === 'running' && meta?.sessionId) {
+    if (options.autoResume !== false && meta?.sessionStatus === 'running' && meta?.sessionId) {
       directorResumes.push({ agent: dir, sessionId: meta.sessionId });
       logger.debug(`Director ${dir.name} was running with session ${meta.sessionId} before restart`);
     }
@@ -118,6 +127,9 @@ export async function startSmithyServer(options: SmithyServerOptions = {}): Prom
   }
 
   const app = new Hono();
+  if (options.identity) {
+    app.get('/api/desktop/identity', (c) => c.json({ ...options.identity, projectRoot, pid: process.pid }));
+  }
 
   app.use(
     '*',
@@ -183,7 +195,11 @@ export async function startSmithyServer(options: SmithyServerOptions = {}): Prom
   const broadcaster = initializeBroadcaster(services.api);
   await broadcaster.start();
 
-  const actualPort = await startServer(app, services, lspManager, { port, host });
+  let closeTransport: (() => Promise<void>) | undefined;
+  const actualPort = await startServer(app, services, lspManager, {
+    port, host, authorize: options.authorize,
+    onListening: (handle) => { closeTransport = handle.close; },
+  });
 
   // If the server bound to a different port, update CORS origins dynamically.
   // Hono's cors middleware evaluates the origin list at request time, so mutating
@@ -232,7 +248,7 @@ export async function startSmithyServer(options: SmithyServerOptions = {}): Prom
   // Auto-start dispatch daemon based on persisted state and environment variable
   // Priority: DAEMON_AUTO_START=false disables auto-start entirely
   // Otherwise, check persisted state (remembers if user stopped it via UI/API)
-  const envDisabled = process.env.DAEMON_AUTO_START === 'false';
+  const envDisabled = options.autoStartDaemon === false || process.env.DAEMON_AUTO_START === 'false';
   const persistedShouldRun = shouldDaemonAutoStart();
 
   let daemonStatus: SmithyServerResult['daemonStatus'];
@@ -256,7 +272,7 @@ export async function startSmithyServer(options: SmithyServerOptions = {}): Prom
   // Conditionally start external sync daemon
   // The daemon is only created when externalSync.enabled AND a provider has a token.
   // If the daemon object exists, start it.
-  if (services.externalSyncDaemon) {
+  if (services.externalSyncDaemon && options.autoStartDaemon !== false) {
     services.externalSyncDaemon.start().catch((err: Error) => {
       logger.error('Failed to start external sync daemon:', err);
     });
@@ -267,5 +283,47 @@ export async function startSmithyServer(options: SmithyServerOptions = {}): Prom
   const allAgents = await services.agentRegistry.listAgents();
   const agentCount = allAgents.length;
 
-  return { services, port: actualPort, agentCount, daemonStatus, hasConnectedClients: () => getEventsClientCount() > 0 };
+  let closing: Promise<void> | undefined;
+  const close = (): Promise<void> => closing ??= (async () => {
+    const failures: unknown[] = [];
+    const attempt = async (operation: () => unknown) => {
+      try { await operation(); } catch (error) { failures.push(error); }
+    };
+    // Every cleanup runs even when another service fails to shut down.
+    await attempt(() => closeTransport?.());
+    await attempt(() => services.dispatchDaemon?.stop());
+    await attempt(() => services.stewardScheduler.stop());
+    await attempt(() => services.externalSyncDaemon?.stop());
+    for (const session of services.sessionManager.listSessions()) {
+      if (session.status === 'running' || session.status === 'starting' || session.status === 'suspended') {
+        await attempt(() => services.sessionManager.stopSession(session.id, { graceful: true, reason: 'Server shutdown' }));
+      }
+    }
+    // Covers partially started sessions that have not reached SessionManager yet.
+    for (const session of services.spawnerService.listActiveSessions()) {
+      await attempt(() => services.spawnerService.terminate(session.id, false));
+    }
+    await attempt(() => lspManager.stopAll());
+    broadcaster.stop();
+    services.autoExportService.stop();
+    await attempt(() => services.syncService.export({ outputDir: resolve(projectRoot, '.stoneforge/sync'), full: false }));
+    await attempt(() => services.storageBackend.close());
+    if (failures.length) throw new AggregateError(failures, 'Server shutdown failed');
+  })();
+  return { services, port: actualPort, agentCount, daemonStatus, hasConnectedClients: () => getEventsClientCount() > 0, close };
+}
+
+/** One server owns each database, including standalone CLI and Desktop launches. */
+export async function startSmithyServer(options: SmithyServerOptions = {}): Promise<SmithyServerResult> {
+  const releaseLock = acquireWorkspaceLock(options.dbPath ?? DEFAULT_DB_PATH);
+  process.once('exit', releaseLock);
+  const release = () => { process.removeListener('exit', releaseLock); releaseLock(); };
+  try {
+    const result = await startUnlockedSmithyServer(options);
+    let closing: Promise<void> | undefined;
+    return { ...result, close: () => closing ??= result.close().finally(release) };
+  } catch (error) {
+    release();
+    throw error;
+  }
 }

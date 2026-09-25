@@ -1,0 +1,102 @@
+# Stoneforge Desktop — macOS technical preview
+
+A single window for existing local Stoneforge workspaces. Each project has an
+independent Node backend, browser session and dashboard. Switching projects keeps
+its agents running. The app ships Node 22.23.3, SQLite, PTY and the existing web UI.
+Codex and Claude Code must already be installed and authenticated on the Mac.
+
+This is the first implementation slice of [the desktop plan](../../docs/plans/desktop-workspaces.md),
+not the completed daily-use release. See [verification and remaining work](../../docs/plans/desktop-spike.md).
+
+## Build and run
+
+From the repository root, on macOS arm64:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm --filter @stoneforge/smithy... build
+pnpm --filter @stoneforge/smithy-web build:web
+pnpm --filter @stoneforge/desktop build
+pnpm --filter @stoneforge/desktop package:mac
+open 'apps/desktop/dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.app'
+```
+
+Packaging builds/checks native SQLite against the bundled Node ABI. Native files
+and the Node executable live outside ASAR. The bundle can be moved independently
+of the checkout. Packaging currently produces an unsigned local `.app`; external
+distribution and notarization are a later step. Intel builds are not verified.
+
+For development, rebuild the workspace SQLite addon for the pinned runtime first:
+
+```sh
+PATH="$PWD/apps/desktop/node_modules/node/bin:$PATH" pnpm --filter @stoneforge/storage rebuild better-sqlite3
+pnpm --filter @stoneforge/desktop dev
+```
+
+## Use
+
+1. Stop the project's previous `sf serve` instance.
+2. Choose **Add project** and select its initialized workspace directory.
+3. Select projects in the sidebar. Start agents using the existing dashboard.
+   Opening a project does not resume directors or start its dispatch daemon.
+4. **Stop**, **Restart**, **Logs**, and **Remove** apply to the selected project.
+   Remove only removes registration; project files remain.
+5. Closing the window keeps the application running. Quit asks before stopping
+   running project servers and their agents.
+
+The registry is `projects.json` in Electron's application userData directory.
+Project databases, JSONL exports, prompts and worktrees remain in their workspace.
+Runtime logs are capped at 128 KB per project and persisted under `userData/logs`;
+the Logs dialog shows the last 10 KB from the current run.
+
+## Ownership and recovery
+
+New Desktop and `sf serve` share `.stoneforge/server.lock`. On macOS, startup also
+checks existing database holders with `lsof` to catch old servers without locks.
+It never attaches to or kills an unrelated process. Start/stop and normal parent
+exit release the lock. A hard-killed backend can leave a stale lock: read its
+`owner.json`, check the recorded process and any remaining agents, and only after
+verifying no server/agents still own that workspace remove the `server.lock`
+directory. Automatic stale-lock recovery is intentionally not implemented yet;
+a dead or reused PID alone is insufficient proof of ownership.
+
+The secret travels through parent/child IPC, not the command line or registry.
+HTTP, SSE and all WebSocket upgrades require the project and instance identity.
+The main process injects headers only into that project's endpoint. Each project
+renderer is sandboxed, has no Node integration, and gets no desktop IPC bridge.
+The shell's bridge validates sender/frame and accepts only the defined commands.
+External navigation and permission requests are denied in the preview.
+
+This is process/data isolation, not an OS filesystem sandbox for CLI agents.
+Provider accounts and their account limits remain shared.
+
+## Verification
+
+```sh
+pnpm typecheck
+pnpm --filter @stoneforge/desktop build
+pnpm --filter @stoneforge/desktop test
+bun test packages/smithy/src/server/server.bun.test.ts packages/quarry/src/cli/commands/serve.bun.test.ts
+node apps/desktop/scripts/check-app.mjs
+node apps/desktop/scripts/check-launch-services.mjs
+```
+
+`check-app.mjs` uses the workspace's Playwright installation to verify the actual
+packaged Electron views, HTTP/WS/SSE authentication, isolated storage and project
+switching. `check-launch-services.mjs` launches through macOS LaunchServices with
+a minimal PATH and a Unicode workspace path, and checks parent-loss cleanup.
+Both use temporary fixtures and a separate app-data directory. Diagnostics stay
+in the printed temporary directory. `DESKTOP_APP` can select a relocated bundle.
+
+Opt-in provider validation makes real API calls through the packaged terminal:
+
+```sh
+node apps/desktop/scripts/check-app.mjs --live
+# Or validate Claude alone:
+node apps/desktop/scripts/check-app.mjs --claude-only
+```
+
+It starts Claude and Codex in separate temporary projects, accepts trust only for
+those generated fixtures, observes output with xterm's terminal emulator, tests
+resize, and stops the sessions. It does not change provider credentials. A 401
+from a provider is a failed live check, not a successful desktop test.

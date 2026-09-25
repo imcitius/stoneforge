@@ -1,0 +1,158 @@
+import { app, BrowserWindow, WebContentsView, session, ipcMain, dialog, Menu } from 'electron';
+import { createRequire } from 'node:module';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { ProjectManager, type Instance } from './manager.js';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const root = app.isPackaged ? process.resourcesPath : resolve(here, '../../..');
+const backend = app.isPackaged ? join(root, 'backend') : join(root, 'packages/smithy');
+const nodePath = app.isPackaged ? join(root, 'runtime/node') : require.resolve('node/bin/node');
+if (process.env.STONEFORGE_DESKTOP_TEST_DATA) app.setPath('userData', process.env.STONEFORGE_DESKTOP_TEST_DATA);
+let manager: ProjectManager;
+let window: BrowserWindow;
+let active: string | undefined;
+let quitting = false;
+const views = new Map<string, { view: WebContentsView; instance: Instance }>();
+const shellURL = pathToFileURL(join(here, 'shell.html')).href;
+
+if (!app.requestSingleInstanceLock()) app.quit();
+else {
+  app.on('second-instance', () => { window?.show(); window?.focus(); });
+  void app.whenReady().then(boot).catch(async (error) => {
+    dialog.showErrorBox('Stoneforge could not start', String(error)); app.exit(1);
+  });
+}
+
+function snapshot() { return { projects: manager.list(), active }; }
+function update(): void {
+  if (window && !window.isDestroyed()) window.webContents.send('desktop:state', snapshot());
+}
+function layout(): void {
+  const [width, height] = window.getContentSize();
+  for (const [id, { view }] of views) {
+    view.setVisible(id === active && manager.projects.get(id)?.state === 'ready');
+    view.setBounds({ x: 240, y: 64, width: Math.max(0, width - 240), height: Math.max(0, height - 64) });
+  }
+}
+function dispose(id: string): void {
+  const entry = views.get(id);
+  if (!entry) return;
+  views.delete(id);
+  window.contentView.removeChildView(entry.view);
+  entry.view.webContents.close();
+}
+async function openProject(id: string): Promise<void> {
+  if (!manager.projects.has(id)) throw new Error('Unknown project');
+  active = id; layout(); update();
+  const instance = await manager.start(id);
+  let entry = views.get(id);
+  if (entry && entry.instance !== instance) { dispose(id); entry = undefined; }
+  if (!entry) {
+    const partition = session.fromPartition(`persist:stoneforge-${id}`);
+    partition.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+    partition.setPermissionCheckHandler(() => false);
+    partition.webRequest.onBeforeRequest((details, callback) => {
+      const url = new URL(details.url);
+      const allowed = ['http:', 'ws:'].includes(url.protocol) && url.host === new URL(instance.endpoint!).host;
+      // Block stale connections before they can reach a newly reused port.
+      callback({ cancel: !allowed || manager.instances.get(id) !== instance || manager.projects.get(id)?.state !== 'ready' });
+    });
+    partition.webRequest.onBeforeSendHeaders((details, callback) => {
+      const headers = { ...details.requestHeaders };
+      if (new URL(details.url).host === new URL(instance.endpoint!).host && manager.instances.get(id) === instance) {
+        Object.assign(headers, manager.headers(instance));
+      }
+      callback({ requestHeaders: headers });
+    });
+    const view = new WebContentsView({ webPreferences: {
+      session: partition, nodeIntegration: false, contextIsolation: true, sandbox: true,
+      backgroundThrottling: false,
+    } });
+    view.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    view.webContents.on('will-navigate', (event, url) => {
+      if (new URL(url).origin !== instance.endpoint) event.preventDefault();
+    });
+    view.webContents.on('render-process-gone', () => { dispose(id); update(); });
+    views.set(id, { view, instance });
+    window.contentView.addChildView(view);
+    layout();
+    await view.webContents.loadURL(instance.endpoint!);
+  }
+  layout(); update();
+}
+
+async function boot(): Promise<void> {
+  manager = new ProjectManager({
+    dataDir: app.getPath('userData'), node: nodePath,
+    entry: join(backend, 'dist/server/managed.js'), webRoot: join(backend, 'web'),
+    binDir: app.isPackaged ? join(root, 'runtime') : join(here, '../scripts/bin'),
+  });
+  await manager.load();
+  window = new BrowserWindow({
+    width: 1440, height: 940, minWidth: 960, minHeight: 640,
+    title: 'Stoneforge Desktop', backgroundColor: '#0f172a',
+    webPreferences: { preload: join(here, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
+  });
+  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  window.webContents.on('will-navigate', (event) => event.preventDefault());
+  window.on('resize', layout);
+  window.on('close', (event) => { if (!quitting) { event.preventDefault(); window.hide(); } });
+  app.on('activate', () => window.show());
+  app.on('before-quit', (event) => {
+    if (quitting) return;
+    event.preventDefault();
+    void (async () => {
+      if (manager.instances.size) {
+        const answer = await dialog.showMessageBox(window, {
+          type: 'question', message: 'Quit Stoneforge?',
+          detail: 'Running agents and project servers will be stopped. Closing the window keeps them running.',
+          buttons: ['Keep running', 'Stop and quit'], defaultId: 0, cancelId: 0,
+        });
+        if (answer.response !== 1) return;
+      }
+      quitting = true;
+      await manager.close();
+      for (const id of views.keys()) dispose(id);
+      app.quit();
+    })().catch((error) => { quitting = false; dialog.showErrorBox('Could not quit', String(error)); });
+  });
+  manager.on('changed', () => { update(); layout(); });
+  manager.on('stopped', dispose);
+  ipcMain.handle('desktop:command', async (event, command: unknown, id?: unknown) => {
+    if (event.sender !== window.webContents || event.senderFrame?.url !== shellURL) throw new Error('Untrusted sender');
+    if (typeof command !== 'string') throw new Error('Invalid command');
+    if (command === 'list') return snapshot();
+    if (command === 'add') {
+      const result = await dialog.showOpenDialog(window, { properties: ['openDirectory'], title: 'Choose a Stoneforge project' });
+      if (!result.canceled && result.filePaths[0]) {
+        const project = await manager.add(result.filePaths[0]); await openProject(project.id);
+      }
+      return snapshot();
+    }
+    if (typeof id !== 'string' || !manager.projects.has(id)) throw new Error('Unknown project');
+    if (command === 'open') await openProject(id);
+    else if (command === 'stop' || command === 'restart' || command === 'remove') {
+      const answer = await dialog.showMessageBox(window, { type: 'question',
+        message: `${command === 'remove' ? 'Remove' : command === 'restart' ? 'Restart' : 'Stop'} ${manager.projects.get(id)!.name}?`,
+        detail: 'Its running agents will be stopped. Project files and worktrees will be preserved.',
+        buttons: ['Cancel', 'Continue'], defaultId: 0, cancelId: 0 });
+      if (answer.response !== 1) return snapshot();
+      await manager.stop(id);
+      if (command === 'restart') await openProject(id);
+      if (command === 'remove') { await manager.remove(id); if (active === id) active = undefined; }
+    } else if (command === 'logs') {
+      await dialog.showMessageBox(window, { message: manager.projects.get(id)!.name + ' — Logs', detail: manager.logs.get(id)?.slice(-10_000) || 'No logs yet', buttons: ['Close'] });
+    } else throw new Error('Unknown command');
+    update(); return snapshot();
+  });
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    { label: 'Stoneforge', submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'hide' }, { role: 'quit' }] },
+    { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
+  ]));
+  await window.loadURL(shellURL);
+  // Explicit paths are useful for local launches and the packaged integration fixture.
+  const paths = process.argv.filter((arg) => arg.startsWith('--project=')).map((arg) => arg.slice(10));
+  for (const path of paths) { const project = await manager.add(path); await openProject(project.id); }
+}

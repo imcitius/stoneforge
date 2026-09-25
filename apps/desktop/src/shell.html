@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'">
+<title>Stoneforge Desktop</title><link rel="stylesheet" href="shell.css"></head>
+<body><aside><header><strong>Stoneforge</strong><span>LOCAL PROJECTS</span></header>
+<button id="add">＋ Add project</button><nav aria-label="Projects" id="projects"></nav>
+<footer>macOS preview<br>Agents keep working when you switch.</footer></aside>
+<main><div id="toolbar"><div><strong id="name">Your workspace</strong><span id="path">Choose a project to begin</span></div>
+<div id="actions" hidden><button data-command="restart">Restart</button><button data-command="stop">Stop</button><button data-command="logs">Logs</button><button data-command="remove">Remove</button></div></div>
+<section id="empty"><h1>All your projects. One place.</h1><p>Open an existing Stoneforge workspace to access its tasks, agents and terminals.</p><button id="add-empty">Add project</button><p class="hint">Each project runs independently. Its files stay in their current location.</p></section>
+<section id="status" role="status" hidden></section><p id="error" role="alert" hidden></p></main>
+<script src="shell.js"></script></body></html>
