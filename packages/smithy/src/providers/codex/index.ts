@@ -10,7 +10,7 @@
 import type { AgentProvider, HeadlessProvider, InteractiveProvider, ModelInfo } from '../types.js';
 import { CodexHeadlessProvider } from './headless.js';
 import { CodexInteractiveProvider } from './interactive.js';
-import { serverManager } from './server-manager.js';
+import { serverManager, type CodexModelInfo } from './server-manager.js';
 
 export { CodexHeadlessProvider } from './headless.js';
 export { CodexInteractiveProvider } from './interactive.js';
@@ -49,15 +49,22 @@ export class CodexAgentProvider implements AgentProvider {
     // Acquire a temporary server client
     const client = await serverManager.acquire();
     try {
-      const response = await client.model.list({ limit: 50 });
-      // Handle both { models: [...] } and { data: [...] } response formats
-      const rawModels = response.models ?? (response as { data?: typeof response.models }).data ?? [];
-      // Map Codex model info to our ModelInfo type; mark the first model as default
+      const rawModels: CodexModelInfo[] = [];
+      let cursor: string | undefined;
+      do {
+        const response = await client.model.list({ limit: 50, ...(cursor ? { cursor } : {}) });
+        rawModels.push(...(response.data ?? response.models ?? []));
+        cursor = response.nextCursor ?? undefined;
+      } while (cursor);
+
+      // Modern servers supply the wire model ID, display name and default flag.
+      // Keep the legacy fallback for older app-server versions.
+      const hasDefaultMetadata = rawModels.some(model => typeof model.isDefault === 'boolean');
       return rawModels.map((model, index) => ({
-        id: model.id,
-        displayName: model.name ?? model.id,
+        id: model.model ?? model.id,
+        displayName: model.displayName ?? model.name ?? model.id,
         description: model.description,
-        ...(index === 0 ? { isDefault: true } : {}),
+        ...((hasDefaultMetadata ? model.isDefault : index === 0) ? { isDefault: true } : {}),
       }));
     } finally {
       serverManager.release();

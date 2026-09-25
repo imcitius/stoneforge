@@ -62,7 +62,7 @@ function createMockClient(options?: {
       read: mock(async () => ({ thread: { id: threadId } })),
     },
     turn: {
-      start: mock(async () => {}),
+      start: mock(async () => ({ turn: { id: 'turn-test', status: 'inProgress' } })),
       interrupt: mock(async () => {}),
     },
     onNotification(handler: NotificationHandler) {

@@ -1543,9 +1543,13 @@ export class SessionManagerImpl implements SessionManager {
         persisted: false,
       });
       // Persist session so providerSessionId survives a server restart
-      this.registry.updateAgentSession(session.agentId, providerSessionId, 'running').catch((err) => {
-        console.error(`[session-manager] Failed to persist providerSessionId for ${session.id}:`, err);
-      });
+      // Codex can reveal its resume ID during graceful shutdown. Do not mark
+      // an already stopped agent as running while recording that final ID.
+      if (current.status === 'running' || current.status === 'starting') {
+        this.registry.updateAgentSession(session.agentId, providerSessionId, 'running').catch((err) => {
+          console.error(`[session-manager] Failed to persist providerSessionId for ${session.id}:`, err);
+        });
+      }
       this.persistSession(session.id).catch((err) => {
         console.error(`[session-manager] Failed to persist session after providerSessionId for ${session.id}:`, err);
       });

@@ -12,6 +12,7 @@ import type { ModelInfo as SDKModelInfo } from '@anthropic-ai/claude-agent-sdk';
 import { ProviderError, type AgentProvider, type HeadlessProvider, type InteractiveProvider, type ModelInfo } from '../types.js';
 import { ClaudeHeadlessProvider } from './headless.js';
 import { ClaudeInteractiveProvider } from './interactive.js';
+import { buildClaudeSpawnEnv } from './env.js';
 
 export { ClaudeHeadlessProvider } from './headless.js';
 export { ClaudeInteractiveProvider } from './interactive.js';
@@ -47,6 +48,7 @@ export class ClaudeAgentProvider implements AgentProvider {
       queryInstance = sdkQuery({
         prompt: '',
         options: {
+          env: buildClaudeSpawnEnv(process.env),
           // Use bypassPermissions to avoid permission prompts
           permissionMode: 'bypassPermissions',
           allowDangerouslySkipPermissions: true,

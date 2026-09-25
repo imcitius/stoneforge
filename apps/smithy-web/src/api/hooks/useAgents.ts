@@ -222,23 +222,25 @@ export function useDirectors(): {
     })),
   });
 
-  const directors: DirectorInfo[] = (directorAgents ?? []).map((director, i) => {
-    const query = statusQueries[i];
-    const statusData = query?.data;
-    const history = statusData?.recentHistory ?? [];
-    const lastResumableSession = history.find((h) => hasValidProviderSessionIdForAgent(director, h)) ?? null;
+  const directors: DirectorInfo[] = useMemo(() => {
+    return (directorAgents ?? []).map((director, i) => {
+      const query = statusQueries[i];
+      const statusData = query?.data;
+      const history = statusData?.recentHistory ?? [];
+      const lastResumableSession = history.find((h) => hasValidProviderSessionIdForAgent(director, h)) ?? null;
 
-    return {
-      director,
-      hasActiveSession: statusData?.hasActiveSession ?? false,
-      activeSession: statusData?.activeSession ?? null,
-      recentHistory: history,
-      lastResumableSession,
-      hasResumableSession: lastResumableSession !== null,
-      isLoading: query?.isLoading ?? true,
-      error: (query?.error as Error) ?? null,
-    };
-  });
+      return {
+        director,
+        hasActiveSession: statusData?.hasActiveSession ?? false,
+        activeSession: statusData?.activeSession ?? null,
+        recentHistory: history,
+        lastResumableSession,
+        hasResumableSession: lastResumableSession !== null,
+        isLoading: query?.isLoading ?? true,
+        error: (query?.error as Error) ?? null,
+      };
+    });
+  }, [directorAgents, statusQueries]);
 
   const isLoading = agentsLoading || statusQueries.some(q => q.isLoading);
   const combinedError = agentsError ?? statusQueries.find(q => q.error)?.error ?? null;

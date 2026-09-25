@@ -14,7 +14,7 @@ Stoneforge supports multiple LLM providers. You can assign different providers t
 |----------|-------|----------|---------|
 | Claude Code | <ProviderBadge name="claude-code" color="#60a5fa" /> | `claude` | Yes |
 | OpenCode | <ProviderBadge name="opencode" color="#4ade80" /> | `opencode` | No |
-| OpenAI Codex | <ProviderBadge name="codex" color="#f59e0b" /> | Built-in (JSON-RPC over stdio) | No |
+| OpenAI Codex | <ProviderBadge name="codex" color="#f59e0b" /> | `codex` (app-server over stdio for headless sessions) | No |
 
 <Aside type="tip">
   You do **not** configure API keys in Stoneforge. Authentication is handled by the underlying provider CLI. If `claude` works in your terminal, it works with Stoneforge. Same for `opencode` and Codex.
@@ -82,13 +82,13 @@ You can specify which model an agent uses at several points:
 **At registration:**
 
 ```bash
-sf agent register e-worker-1 --role worker --provider claude-code --model claude-sonnet-4-20250514
+sf agent register e-worker-1 --role worker --provider claude-code --model sonnet
 ```
 
 **At session start** (one-time override):
 
 ```bash
-sf agent start <id> --model claude-opus-4-6
+sf agent start <id> --model opus
 ```
 
 **In the dashboard:** The Create Agent dialog has a model dropdown that dynamically loads available models from the selected provider.
@@ -97,9 +97,36 @@ sf agent start <id> --model claude-opus-4-6
 
 | Provider | Example model IDs |
 |----------|-------------------|
-| Claude Code | `claude-sonnet-4-20250514`, `claude-opus-4-6`, `claude-haiku-4-5-20251001` |
+| Claude Code | `sonnet`, `opus`, `haiku` (aliases resolved by Claude) |
 | OpenCode | Provider-configured model |
-| Codex | `o3`, `o4-mini` |
+| Codex | Select an ID returned by the installed CLI's model catalog |
+
+Model availability depends on the installed provider and its authenticated account.
+Stoneforge queries the providers rather than maintaining a fixed list of model IDs.
+For Codex, it follows catalog pagination and honors the server's default-model flag.
+
+## Checking provider compatibility
+
+From a source checkout, run these opt-in checks after authenticating the CLIs:
+
+```bash
+bun scripts/check-agent-compatibility.ts codex
+bun scripts/check-agent-compatibility.ts claude-code
+```
+
+Each check uses model quota for two short turns in a temporary directory. It lists
+models, starts a headless session, closes it, and resumes the same session to verify
+that conversation history survived. It does not dispatch tasks or test the merge pipeline.
+
+The September 2026 compatibility update was checked on macOS with Codex CLI
+0.154.0 and Claude Agent SDK 0.3.282. Claude interactive sessions use the separately
+installed `claude` CLI; headless sessions use the SDK's bundled executable unless a
+custom executable is configured.
+
+Codex interactive sessions use `--sandbox workspace-write`. Their resume ID is
+captured from the continuation footer on graceful exit. Stop them through Stoneforge
+to allow that footer to be recorded; force-killing a new session may leave no resume
+ID. Invalid IDs saved by older versions are rejected instead of passed to Codex.
 
 ## Default model per provider
 
@@ -196,7 +223,7 @@ Pool agent type configurations can include `provider` and `model` fields to crea
 
 ```bash
 sf pool create multi-model --size 6 \
-  -t worker:ephemeral:100:3:claude-code:claude-sonnet-4-20250514 \
+  -t worker:ephemeral:100:3:claude-code:sonnet \
   -t worker:ephemeral:80:3:opencode
 ```
 

@@ -22,14 +22,23 @@ import type { NotificationHandler } from './jsonrpc-client.js';
 /** Model information returned by the Codex app-server */
 export interface CodexModelInfo {
   id: string;
+  model?: string;
+  displayName?: string;
+  isDefault?: boolean;
   name?: string;
   description?: string;
+}
+
+export interface CodexModelList {
+  models?: CodexModelInfo[];
+  data?: CodexModelInfo[];
+  nextCursor?: string | null;
 }
 
 /** Typed facade over the JSON-RPC client for Codex app-server operations */
 export interface CodexClient {
   model: {
-    list(params?: { limit?: number }): Promise<{ models?: CodexModelInfo[]; data?: CodexModelInfo[] }>;
+    list(params?: { limit?: number; cursor?: string }): Promise<CodexModelList>;
   };
   thread: {
     start(params: {
@@ -51,8 +60,8 @@ export interface CodexClient {
     start(params: {
       threadId: string;
       input: Array<{ type: 'text'; text: string }>;
-    }): Promise<void>;
-    interrupt(params: { threadId: string }): Promise<void>;
+    }): Promise<{ turn: { id: string; status?: string } }>;
+    interrupt(params: { threadId: string; turnId: string }): Promise<void>;
   };
   onNotification(handler: NotificationHandler): () => void;
   respondToServer(id: number, result: unknown): void;
@@ -89,20 +98,15 @@ class CodexServerManager {
       return this.client;
     }
 
-    // Coalesce concurrent startup requests
-    if (this.startPromise) {
-      return this.startPromise;
-    }
-
-    this.startPromise = this.startServer(config);
-
+    // Each caller owns a reference, including callers sharing startup.
+    const startup = this.startPromise ??= this.startServer(config);
     try {
-      const client = await this.startPromise;
-      return client;
+      return await startup;
     } catch (error) {
-      this.refCount--;
-      this.startPromise = null;
+      this.refCount = Math.max(0, this.refCount - 1);
       throw error;
+    } finally {
+      if (this.startPromise === startup) this.startPromise = null;
     }
   }
 
@@ -139,7 +143,7 @@ class CodexServerManager {
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: config?.cwd,
       env,
-      shell: true, // Required for Windows: resolves codex.cmd/.bat shims via cmd.exe
+      shell: process.platform === 'win32', // Resolve .cmd/.bat shims only on Windows.
     });
 
     // Wait for the process to confirm stdio is ready, or fail with a
@@ -159,6 +163,8 @@ class CodexServerManager {
     }
 
     const rpcClient = new CodexJsonRpcClient(child.stdin, child.stdout);
+    this.process = child;
+    this.rpcClient = rpcClient;
 
     // Pipe stderr to debug logging
     child.stderr?.on('data', () => {
@@ -168,16 +174,29 @@ class CodexServerManager {
     // Monitor process exit
     child.on('exit', () => {
       rpcClient.close();
-      this.process = null;
-      this.rpcClient = null;
-      this.client = null;
-      this.startPromise = null;
+      // An old server may exit after a new one has already been acquired.
+      if (this.process === child) {
+        this.process = null;
+        this.rpcClient = null;
+        this.client = null;
+        this.startPromise = null;
+      }
     });
 
     // Send initialize handshake
-    await rpcClient.request('initialize', {
-      clientInfo: { name: 'stoneforge', title: 'Stoneforge', version: '0.1.0' },
-    });
+    try {
+      await rpcClient.request('initialize', {
+        clientInfo: { name: 'stoneforge', title: 'Stoneforge', version: '0.1.0' },
+      });
+    } catch (error) {
+      rpcClient.close();
+      child.kill();
+      if (this.process === child) {
+        this.process = null;
+        this.rpcClient = null;
+      }
+      throw error;
+    }
 
     // Send initialized notification
     rpcClient.notify('initialized');
@@ -188,9 +207,6 @@ class CodexServerManager {
         rpcClient.respond(id, { decision: 'accept' });
       }
     });
-
-    this.process = child;
-    this.rpcClient = rpcClient;
 
     // Build typed client facade
     const notificationHandlers = new Set<NotificationHandler>();
@@ -203,7 +219,7 @@ class CodexServerManager {
 
     const client: CodexClient = {
       model: {
-        list: (params) => rpcClient.request('model/list', params ?? {}) as Promise<{ models?: CodexModelInfo[]; data?: CodexModelInfo[] }>,
+        list: (params) => rpcClient.request('model/list', params ?? {}) as Promise<CodexModelList>,
       },
       thread: {
         start: (params) => rpcClient.request('thread/start', params) as Promise<{ thread: { id: string } }>,
@@ -211,7 +227,7 @@ class CodexServerManager {
         read: (params) => rpcClient.request('thread/read', params) as Promise<{ thread: { id: string } }>,
       },
       turn: {
-        start: (params) => rpcClient.request('turn/start', params) as Promise<void>,
+        start: (params) => rpcClient.request('turn/start', params) as ReturnType<CodexClient['turn']['start']>,
         interrupt: (params) => rpcClient.request('turn/interrupt', params) as Promise<void>,
       },
       onNotification: (handler) => {
@@ -223,7 +239,6 @@ class CodexServerManager {
     };
 
     this.client = client;
-    this.startPromise = null;
 
     return client;
   }
