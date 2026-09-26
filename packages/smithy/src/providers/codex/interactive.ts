@@ -193,7 +193,11 @@ export class CodexInteractiveProvider implements InteractiveProvider {
     const env: Record<string, string> = {
       ...(process.env as Record<string, string>),
       ...options.environmentVariables,
+      // This process renders in xterm.js, not in the parent server's log pipe.
+      TERM: 'xterm-256color',
+      COLORTERM: 'truecolor',
     };
+    delete env.NO_COLOR;
     if (options.stoneforgeRoot) {
       env.STONEFORGE_ROOT = options.stoneforgeRoot;
     }
@@ -205,7 +209,7 @@ export class CodexInteractiveProvider implements InteractiveProvider {
 
     // Build the CLI command string (simple args only — not the prompt).
     // Use `exec` so the CLI replaces the shell process.
-    const codexCommand = (process.platform === 'win32' ? '' : `export PATH=${shellQuote(env.PATH ?? '')}; exec `) + [shellQuote(this.executablePath), ...args].join(' ');
+    const codexCommand = (process.platform === 'win32' ? '' : `unset NO_COLOR; export TERM=xterm-256color COLORTERM=truecolor PATH=${shellQuote(env.PATH ?? '')}; exec `) + [shellQuote(this.executablePath), ...args].join(' ');
 
     // Spawn PTY using bash -l -c to run the command in a login shell.
     // When an initial prompt is provided, it's passed as a bash positional

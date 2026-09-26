@@ -86,6 +86,10 @@ login-shell overrides and shell snapshots for these sessions, and can write shar
 workspace data from worktrees. Provider login shells restore the supplied PATH
 after profile loading. `sf serve` inside a managed session reports the already
 running backend instead of launching another.
+Interactive Codex terminals advertise truecolor and clear inherited `NO_COLOR`,
+including after login-shell profiles, so a server started by an automation does
+not turn the director monochrome. This applies to newly started sessions; an
+adopted older server must be restarted to load the updated provider.
 Explicitly overriding agent environment or using another CLI version is outside
 this routing guarantee; this is not an OS sandbox.
 HTTP, SSE and all WebSocket upgrades require the project and instance identity.
