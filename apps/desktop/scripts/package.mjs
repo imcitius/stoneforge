@@ -16,7 +16,7 @@ const build = collectBuildInfo(root, version);
 await rm(stage, { recursive: true, force: true });
 await mkdir(bundle, { recursive: true });
 await mkdir(resources, { recursive: true });
-for (const name of ['main.js', 'manager.js', 'preload.cjs', 'shell.html', 'shell.css', 'shell.js']) {
+for (const name of ['main.js', 'manager.js', 'preload.cjs', 'shell.html', 'shell.css', 'shell.js', 'logs.js', 'logs-window.js', 'logs-preload.cjs']) {
   await cp(join(desktop, 'dist', name), join(bundle, name));
 }
 // The discovery module has only Node built-ins; copy it without pulling SDK/native code into Electron.
