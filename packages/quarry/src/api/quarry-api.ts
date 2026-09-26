@@ -4676,6 +4676,13 @@ export class QuarryAPIImpl implements QuarryAPI {
   // --------------------------------------------------------------------------
 
   async export(options?: ExportOptions): Promise<string | void> {
+    if (options?.includeEvents === true) {
+      throw new ValidationError(
+        'includeEvents:true is not supported: JSONL export contains elements and dependencies, not audit events',
+        ErrorCode.INVALID_INPUT,
+      );
+    }
+
     // Use SyncService for export functionality
     const { elements, dependencies } = this.syncService.exportToString({
       includeEphemeral: false, // API export excludes ephemeral by default
