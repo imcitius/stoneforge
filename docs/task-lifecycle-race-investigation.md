@@ -1295,3 +1295,52 @@ or unrelated implementation was changed. Target ancestry/diff checks pass.
 Only verification documentation changes after this gate. Independent review must
 name the exact final worker commit (or its subsequently synchronized replacement)
 before approved CLI local merge. No worker merge or installed/live changes.
+
+## CLI assignment failure cleanup — el-420pr
+
+Baseline is delivered local master `24df339`; it includes the reviewed el-2hrsm
+atomic explicit API, Spawner exact internal-ID termination and Claude cleanup
+retry. No pending branch is copied. The historical el-2hrsm caller report above
+remains baseline evidence; its CLI leak is addressed by this narrow follow-up.
+
+The preparation order is unchanged: spawn first, then explicit assignment. A
+successful spawn receipt gives this call its own internal session ID, so no
+preparation-order change is needed. Only assignment rejection enters cleanup.
+The CLI calls its own Spawner's `terminate(receipt.session.id, false)` once; it
+never resolves an agent's current session, uses a provider ID, retries assignment,
+or releases/rewrites task state. A throw after an assignment commit is ambiguous:
+keep that assignment and all metadata/events, and stop only this call's process.
+A successor with the same agent/provider ID remains untouched. Existing explicit
+reassignment policy, history retention and completion claims are unchanged.
+
+Force termination avoids waiting for provider interrupt before close. The existing
+Spawner confirms exit or rejects; an additional 10-second CLI deadline bounds a
+nonsettling cleanup promise. Timeout is not cancellation or proof of exit: cleanup
+may still settle later against its captured internal ID. Cleanup failure reports
+both the original assignment error first and a separate session-specific cleanup
+error, always exit1. Successful cleanup rethrows the original failure through the
+existing CLI formatter. No success output or stream begins after rejected assignment.
+Spawn failure before a receipt remains the Spawner's responsibility; CLI has no
+proven target to clean and neither assigns nor discovers another session.
+
+New subprocess regressions run the real source CLI/parser/output/API against
+isolated temporary SQLite, with child-only inert Spawner and API failure hooks.
+They cover CAS competitor, Human, closed/deferred, same-agent successor with reused
+provider ID, validation rejection, post-commit unknown outcome, cleanup throw,
+unconfirmed exit, permanently pending cleanup, spawn failure, no-task start,
+default/JSON/quiet success and failure, plus headless/interactive streaming.
+All rejection cases compare complete winning task and event snapshots. These mocks
+prove the caller boundary, not live provider termination; existing real Spawner
+mock-provider regressions separately verify the delivered termination contract.
+The older el-2hrsm CLI expectation now requires one own termination on rejection;
+its successful-assignment control still requires zero terminations.
+
+Evidence before production edits: **7 pass / 14 fail**, 105 assertions, real CLI
+suite21 tests, `/tmp/el-420pr-baseline.log`. Every cleanup case leaked; all7 normal
+start/stream/spawn-failure controls passed. Initial corrected CLI plus explicit API
+suites: **51/51,323 assertions**, `/tmp/el-420pr-focused.log`. Frozen install exit0,
+lock unchanged, `/tmp/el-420pr-install.log`. Required gate/final results follow.
+
+No live provider, session, daemon, installed application or maintenance operation
+is used. Independent exact-final steward review and approved CLI local delivery
+remain required; worker verification is not merge approval.
