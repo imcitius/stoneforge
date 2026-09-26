@@ -1374,3 +1374,24 @@ First required gate on `1fe94ea`: **191/191,exit0,317.12s**;
 `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dLG3kY/results.json`.
 During this run master advanced to delivered non-merge steward claim `4c29bb0`.
 Approved sync and final integrated verification follow; this first result is retained.
+
+### el-56khe final integrated worker verification
+
+Approved CLI sync with delivered steward claim `4c29bb0` produced `8cb6db3`.
+Only additive lifecycle-report text conflicted; both sections were preserved.
+HTTP implementation/tests were unchanged. Required integrated **pnpm check:merge:
+191/191,exit0,317.67s**, `/tmp/el-56khe-gate-integrated.log`; exact per-step results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-DEYYoI/results.json`.
+Five focused suites inside this gate: **237/237,1557 assertions** (HTTP48/API30/
+claim53/assignment37/completion69). Includes uncached workspace typecheck, Desktop
+source build, Smithy Node/Vitest and Desktop Node integration. First gate191/191
+and original baseline/intermediate fixture failures remain above.
+
+After this gate, approved CLI sync included delivered documentation-only master
+`24df339` (el-39znb). `git diff --exit-code 8cb6db3 HEAD -- packages apps scripts
+package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json` passed: tested code,
+tests, manifests and gate configuration are identical. No additional runtime gate
+was run for that documentation-only addition; ancestry and diff checks passed.
+Only this verification report changes afterward. Independent steward must review
+this exact final source/documentation commit before approved CLI local delivery.
+No worker merge approval, installed-app update or live-session maintenance is claimed.
