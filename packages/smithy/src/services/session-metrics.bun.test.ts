@@ -82,6 +82,25 @@ describe('session metrics ingestion and API', () => {
     expect(new CodexEventMapper(false).mapNotification(notification(9000, 400), 'thread-1')).toEqual([]);
   });
 
+  test('Codex cache writes stay disjoint from reads and uncached input through API aggregation', async () => {
+    const tracker = new SessionMetricsTracker('codex', 'fixture-model');
+    const mapper = new CodexEventMapper();
+    const event = notification(100, 10, 60);
+    const withWrites = { ...event, params: { ...event.params, tokenUsage: { ...event.params.tokenUsage,
+      total: { ...event.params.tokenUsage.total, cacheWriteInputTokens: 20 },
+    } } };
+    for (const update of [withWrites, withWrites]) {
+      for (const mapped of mapper.mapNotification(update, 'thread-1')) tracker.observe(mapped);
+      record('with-writes', tracker);
+    }
+    for (const query of ['groupBy=provider', 'groupBy=model', 'sessionId=with-writes']) {
+      expect((await metrics(query)).metrics[0]).toMatchObject({
+        totalInputTokens: 20, totalCacheReadTokens: 60, totalCacheCreationTokens: 20,
+        totalOutputTokens: 10, totalTokens: 30, usageStatus: 'available',
+      });
+    }
+  });
+
   test('Claude SDK usage survives the real spawner, including tool-only blocks and deduplication', async () => {
     const queue = new AsyncQueue<AgentMessage>();
     const provider: AgentProvider = {

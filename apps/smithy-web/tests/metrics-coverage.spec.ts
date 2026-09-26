@@ -110,3 +110,72 @@ for (const status of [200, 500]) {
     await expect(page.getByTestId('stat-estimated-cost').locator('.text-2xl')).toHaveText('unavailable');
   });
 }
+
+const cacheCases = [
+  { name: '80 of 100 Codex input', input: 20, read: 80, creation: 0, expected: '80%' },
+  { name: 'all cache', input: 0, read: 100, creation: 0, expected: '100%' },
+  { name: 'uncached only', input: 100, read: 0, creation: 0, expected: '0%' },
+  { name: 'measured empty input', input: 0, read: 0, creation: 0, expected: 'N/A (no input tokens)' },
+  { name: 'cache write contributes to denominator', input: 20, read: 60, creation: 20, expected: '60%' },
+  { name: 'cache write only', input: 0, read: 0, creation: 100, expected: '0%' },
+];
+
+for (const scenario of cacheCases) {
+  test(`cache rate card, model and total agree: ${scenario.name}`, async ({ page }) => {
+    await open(page, [metric({ totalInputTokens: scenario.input, totalCacheReadTokens: scenario.read,
+      totalCacheCreationTokens: scenario.creation, totalOutputTokens: 900 })]);
+    await expect(page.getByTestId('stat-cache-hit-rate').locator('.text-2xl')).toHaveText(scenario.expected);
+    const table = page.getByTestId('model-cost-breakdown');
+    await expect(table.locator('tbody tr td').nth(5)).toHaveText(scenario.expected);
+    await expect(table.locator('tfoot tr td').nth(5)).toHaveText(scenario.expected);
+  });
+}
+
+test('cache rates weight tokens across models instead of averaging percentages', async ({ page }, testInfo) => {
+  await open(page, [
+    metric({ group: 'cached-model', totalInputTokens: 20, totalCacheReadTokens: 80 }),
+    metric({ group: 'uncached-model', totalInputTokens: 900 }),
+  ]);
+  const table = page.getByTestId('model-cost-breakdown');
+  await expect(table.locator('tbody tr').nth(0).locator('td').nth(5)).toHaveText('80%');
+  await expect(table.locator('tbody tr').nth(1).locator('td').nth(5)).toHaveText('0%');
+  await expect(table.locator('tfoot tr td').nth(5)).toHaveText('8%');
+  await expect(page.getByTestId('stat-cache-hit-rate').locator('.text-2xl')).toHaveText('8%');
+  await page.getByTestId('provider-analytics').screenshot({ path: testInfo.outputPath('cache-weighted.png') });
+});
+
+for (const scenario of [
+  { name: 'partial observed', coverage: { usageStatus: 'partial' as const, sessionCount: 2, usageSessionCount: 1,
+    legacySessionCount: 0 }, expected: '80% (partial; recorded ratio)' },
+  { name: 'partial with legacy', coverage: { usageStatus: 'partial' as const, sessionCount: 2, usageSessionCount: 1,
+    legacySessionCount: 1 }, expected: 'unknown' },
+  { name: 'only legacy', coverage: { usageStatus: 'unknown' as const, usageSessionCount: 0,
+    legacySessionCount: 1 }, expected: 'unknown' },
+  { name: 'old server', coverage: { usageStatus: undefined, usageSessionCount: undefined,
+    legacySessionCount: undefined }, expected: 'unknown' },
+  { name: 'unavailable', coverage: { usageStatus: 'unavailable' as const, usageSessionCount: 0,
+    legacySessionCount: 0 }, expected: 'unavailable' },
+]) {
+  test(`cache ratio coverage: ${scenario.name}`, async ({ page }) => {
+    await open(page, [metric({ totalInputTokens: 20, totalCacheReadTokens: 80, ...scenario.coverage })]);
+    await expect(page.getByTestId('stat-cache-hit-rate').locator('.text-2xl')).toHaveText(scenario.expected);
+    const table = page.getByTestId('model-cost-breakdown');
+    await expect(table.locator('tbody tr td').nth(5)).toHaveText(scenario.expected);
+    await expect(table.locator('tfoot tr td').nth(5)).toHaveText(scenario.expected);
+  });
+}
+
+test('legacy mixed with measured groups makes both combined cache rates unknown', async ({ page }) => {
+  await open(page, [
+    metric({ group: 'measured', totalInputTokens: 20, totalCacheReadTokens: 80 }),
+    metric({ group: 'legacy', totalInputTokens: 100, totalCacheReadTokens: 80,
+      usageStatus: 'unknown', usageSessionCount: 0, legacySessionCount: 1 }),
+  ]);
+  const table = page.getByTestId('model-cost-breakdown');
+  await expect(table.locator('tbody tr').nth(0).locator('td').nth(5)).toHaveText('80%');
+  await expect(table.locator('tbody tr').nth(1).locator('td').nth(5)).toHaveText('unknown');
+  await expect(table.locator('tfoot tr td').nth(5)).toHaveText('unknown');
+  await expect(page.getByTestId('stat-cache-hit-rate').locator('.text-2xl')).toHaveText('unknown');
+  // Legacy counters still contribute to the unchanged public numeric token subtotal.
+  await expect(table.locator('tfoot tr td').nth(1)).toHaveText('120 (partial; recorded subtotal)');
+});

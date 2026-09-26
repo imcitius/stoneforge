@@ -44,7 +44,7 @@ import { useAllPlans } from '../../api/hooks/useAllElements';
 import { useMergeRequestCounts } from '../../api/hooks/useMergeRequests';
 import { useProviderMetrics } from '../../api/hooks/useProviderMetrics';
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { metricValue, summarizeMetrics, summarizeUsage, tokenTrend, usageCoverageText } from './coverage';
+import { cacheRateValue, metricValue, summarizeCacheRate, summarizeMetrics, summarizeUsage, tokenTrend, usageCoverageText } from './coverage';
 import type { Task } from '../../api/types';
 
 // ============================================================================
@@ -1113,7 +1113,7 @@ export function MetricsPage() {
           />
           <StatCard
             label="Cache Hit Rate"
-            value={providerValue(metricValue(`${providerSummary.cacheHitRate}%`, providerSummary.usageStatus, 'recorded ratio'))}
+            value={providerValue(cacheRateValue(providerSummary))}
             subtitle={`${metricValue(formatTokenCount(providerSummary.totalCacheReadTokens), providerSummary.usageStatus)} cache read tokens`}
             icon={Zap}
             iconColor="bg-[color-mix(in_srgb,#8b5cf6_15%,transparent)] text-[#8b5cf6]"
@@ -1206,15 +1206,13 @@ export function MetricsPage() {
                     <th className="text-right px-3 py-2 font-medium">Output</th>
                     <th className="text-right px-3 py-2 font-medium">Cache Read</th>
                     <th className="text-right px-3 py-2 font-medium">Cache Create</th>
-                    <th className="text-right px-3 py-2 font-medium">Cache %</th>
+                    <th className="text-right px-3 py-2 font-medium" title="Cache read / (uncached input + cache read + cache creation)">Cache %</th>
                     <th className="text-right px-3 py-2 font-medium">Cost</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
                   {modelMetrics.map((m) => {
-                    const cacheRate = m.totalInputTokens > 0
-                      ? Math.round((m.totalCacheReadTokens / m.totalInputTokens) * 100)
-                      : 0;
+                    const cacheRate = summarizeCacheRate([m]);
                     return (
                       <tr key={m.group} className="hover:bg-[var(--color-surface-hover)] text-[var(--color-text)]">
                         <td className="px-3 py-2 font-mono">{m.group}
@@ -1227,8 +1225,8 @@ export function MetricsPage() {
                         <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(m.totalCacheReadTokens), m.usageStatus)}</td>
                         <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(m.totalCacheCreationTokens), m.usageStatus)}</td>
                         <td className="text-right px-3 py-2 font-mono">
-                          <span className={cacheRate > 50 ? 'text-[var(--color-success)]' : cacheRate > 10 ? 'text-[var(--color-warning)]' : ''}>
-                            {metricValue(`${cacheRate}%`, m.usageStatus, 'recorded ratio')}
+                          <span className={(cacheRate.cacheHitRate ?? 0) > 50 ? 'text-[var(--color-success)]' : (cacheRate.cacheHitRate ?? 0) > 10 ? 'text-[var(--color-warning)]' : ''}>
+                            {cacheRateValue(cacheRate)}
                           </span>
                         </td>
                         <td className="text-right px-3 py-2 font-mono font-medium">{metricValue(formatCost(m.estimatedCost?.totalCost ?? 0), m.estimatedCost ? m.estimatedCostStatus : undefined, 'priced')}</td>
@@ -1243,7 +1241,7 @@ export function MetricsPage() {
                     <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(modelSummary.totalOutputTokens), modelSummary.usageStatus)}</td>
                     <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(modelSummary.totalCacheReadTokens), modelSummary.usageStatus)}</td>
                     <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(modelSummary.totalCacheCreationTokens), modelSummary.usageStatus)}</td>
-                    <td className="text-right px-3 py-2 font-mono">{metricValue(`${modelSummary.cacheHitRate}%`, modelSummary.usageStatus, 'recorded ratio')}</td>
+                    <td className="text-right px-3 py-2 font-mono">{cacheRateValue(modelSummary)}</td>
                     <td className="text-right px-3 py-2 font-mono">{metricValue(formatCost(modelSummary.estimatedCost), modelSummary.estimatedCostStatus, 'priced')}</td>
                   </tr>
                 </tfoot>
