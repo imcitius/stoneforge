@@ -43,6 +43,8 @@ import type { AgentRegistry } from './agent-registry.js';
  * Options for dispatching a task to an agent
  */
 export interface DispatchOptions {
+  /** Original ready/unassigned candidate version for automatic dispatch. */
+  claim?: AssignTaskOptions['claim'];
   /** Git branch for the task (auto-generated if not provided) */
   branch?: string;
   /** Worktree path for the task (auto-generated if not provided) */
@@ -245,6 +247,7 @@ export class DispatchServiceImpl implements DispatchService {
 
     // Assign the task using TaskAssignmentService
     const assignOptions: AssignTaskOptions = {
+      claim: options?.claim,
       branch: options?.branch,
       worktree: options?.worktree,
       sessionId: options?.sessionId,

@@ -208,9 +208,25 @@ interface CountRow {
 // Helper Functions
 // ============================================================================
 
-/**
- * Serialize an element to database format
- */
+// Shared by ready() candidate selection and transactional automatic claims.
+const DRAFT_PLAN_TASKS_SQL = `SELECT d.blocked_id FROM dependencies d
+         JOIN elements e ON d.blocker_id = e.id
+         WHERE d.type = 'parent-child'
+           AND e.deleted_at IS NULL
+           AND e.type = 'plan'
+           AND JSON_EXTRACT(e.data, '$.status') = 'draft'`;
+const BLOCKED_PLAN_TASKS_SQL = `SELECT d.blocked_id FROM dependencies d
+         JOIN blocked_cache bc ON d.blocker_id = bc.element_id
+         JOIN elements e ON d.blocker_id = e.id
+         WHERE d.type = 'parent-child'
+           AND e.deleted_at IS NULL
+           AND e.type = 'plan'`;
+function hasReadyTaskFields(task: Task, now: Date): boolean {
+  return (task.status === TaskStatusEnum.OPEN || task.status === TaskStatusEnum.IN_PROGRESS) &&
+    !(task.scheduledFor && new Date(task.scheduledFor) > now);
+}
+
+/** Serialize an element to database format. */
 function serializeElement(element: Element): {
   id: string;
   type: string;
@@ -1284,6 +1300,9 @@ export class QuarryAPIImpl implements QuarryAPI {
   }
 
   async update<T extends Element>(id: ElementId, updates: Partial<T>, options?: UpdateOptions): Promise<T> {
+    if (options?.requireReadyUnassigned && !options.expectedUpdatedAt) {
+      throw new ConflictError('Automatic claim requires a candidate version', ErrorCode.CONCURRENT_MODIFICATION);
+    }
     // Get the existing element
     const existing = await this.get<T>(id);
     if (!existing) {
@@ -1367,6 +1386,24 @@ export class QuarryAPIImpl implements QuarryAPI {
 
     // Update in a transaction
     this.backend.transaction((tx) => {
+      if (options?.requireReadyUnassigned) {
+        // The read and write share one SQLite transaction. Parent/dependency
+        // writers may not yet have published their cache; inspect source edges
+        // with the same blocking rules as the cache in addition to ready's view.
+        const row = tx.queryOne<{ data: string; type: string; deleted_at: string | null }>(
+          'SELECT data, type, deleted_at FROM elements WHERE id = ?', [id]
+        );
+        const candidate = row ? JSON.parse(row.data) as Task : undefined;
+        const unavailableParent = tx.queryOne<{ blocked_id: string }>(
+          `SELECT blocked_id FROM (${DRAFT_PLAN_TASKS_SQL} UNION ${BLOCKED_PLAN_TASKS_SQL}) WHERE blocked_id = ?`, [id]
+        );
+        if (!candidate || row?.type !== 'task' || row.deleted_at !== null ||
+            !hasReadyTaskFields(candidate, new Date()) || candidate.assignee ||
+            unavailableParent || this.blockedCache.isBlocked(id) ||
+            this.blockedCache.computeBlockingState(id, { freshParents: true })) {
+          throw new ConflictError(`Task is no longer ready and unassigned: ${id}`, ErrorCode.CONCURRENT_MODIFICATION, { elementId: id });
+        }
+      }
       // Update the element
       const result = tx.run(
         `UPDATE elements SET data = ?, content_hash = ?, updated_at = ?, deleted_at = ?
@@ -2492,12 +2529,7 @@ export class QuarryAPIImpl implements QuarryAPI {
     // Uses a single SQL join to find task IDs that are children of draft plans
     const draftPlanTaskIds = new Set(
       this.backend.query<{ blocked_id: string }>(
-        `SELECT d.blocked_id FROM dependencies d
-         JOIN elements e ON d.blocker_id = e.id
-         WHERE d.type = 'parent-child'
-           AND e.deleted_at IS NULL
-           AND e.type = 'plan'
-           AND JSON_EXTRACT(e.data, '$.status') = 'draft'`
+        DRAFT_PLAN_TASKS_SQL
       ).map((r) => r.blocked_id)
     );
 
@@ -2506,12 +2538,7 @@ export class QuarryAPIImpl implements QuarryAPI {
     // an extra safety net against edge cases in blocked cache invalidation.
     const blockedPlanTaskIds = new Set(
       this.backend.query<{ blocked_id: string }>(
-        `SELECT d.blocked_id FROM dependencies d
-         JOIN blocked_cache bc ON d.blocker_id = bc.element_id
-         JOIN elements e ON d.blocker_id = e.id
-         WHERE d.type = 'parent-child'
-           AND e.deleted_at IS NULL
-           AND e.type = 'plan'`
+        BLOCKED_PLAN_TASKS_SQL
       ).map((r) => r.blocked_id)
     );
 
@@ -2550,7 +2577,7 @@ export class QuarryAPIImpl implements QuarryAPI {
         return false;
       }
       // Not scheduled for future
-      if (task.scheduledFor && new Date(task.scheduledFor) > now) {
+      if (!hasReadyTaskFields(task, now)) {
         return false;
       }
       // Not a child of an ephemeral workflow (unless includeEphemeral is true)

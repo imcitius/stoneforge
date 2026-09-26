@@ -388,6 +388,199 @@ Independent steward review of the final commit and approved CLI local delivery
 remain pending; the implementation worker neither approves nor merges this work.
 Installed Desktop5f53cef, live daemon/sessions and completed el-1clm are unchanged.
 
+## Automatic dispatch claim — el-1q2vv, partial implementation / contract handoff
+
+**NOT ready for merge or task completion.** Worker el-4eqh is handing off for
+Director contract clarification under the task's explicit instruction to propose
+a concrete design before expanding the contract. Installed Desktop5f53cef,
+live daemons/sessions and closed maintenance el-1clm were not touched.
+
+Base is local master `f30b41ad841d1cea6ca5d274403baba950a85a0d`.
+Approved el-ptim artifact: all 299 hashes verified, `sf task sync el-1q2vv`
+exit 0; worktree/branch unchanged. Frozen pnpm install exit 0 (8.7s), lockfile
+unchanged; initial unbuilt-dist bin warnings retained in the log.
+
+Partial source implementation:
+
+- Daemon passes the original ready/unassigned candidate's updatedAt through
+  DispatchOptions.claim to assignment. Assignment checks unchanged version,
+  unassigned owner, OPEN/IN_PROGRESS and due scheduledFor, then commits via CAS.
+  Omitted claim continues to mean explicit reassignment; start-worker keeps it.
+- New automatic preparation uses a UUID in its Git agent-name namespace, so a
+  second attempt cannot invoke destructive createWorktree on the first path.
+  Existing/handoff worktrees are reused. Failed attempts retain worktrees:
+  deleting one after an async ownership check cannot safely exclude adoption by
+  a successor. No new automatic deletion is introduced.
+- Dispatch failure stops its exact internal session ID and conditionally releases
+  only the notification-error assignment receipt. This exposes the separate
+  SessionManager persistence problem below: **this cleanup is not fully safe yet**.
+- Post-dispatch session-history write uses the returned assignment snapshot and
+  CAS, rather than rereading and overwriting a successor.
+- Only the four D DEFECT cases were converted to rejection/preservation tests;
+  other labelled DEFECT evidence and positive controls remain intact.
+
+Actual verification of the partial implementation:
+
+- `bun test packages/smithy/src/services/task-lifecycle-race-evidence.bun.test.ts
+  packages/smithy/src/services/dispatch-daemon.bun.test.ts`: **216 pass, 2 existing
+  skips, 0 fail, 847 assertions**, 5.06s. Log `/tmp/el-1q2vv-initial.log`.
+- `pnpm --filter @stoneforge/smithy typecheck`: exit 0.
+- `git diff --check`: exit 0.
+- Required `pnpm check:merge` deliberately **not run yet**: acceptance is incomplete,
+  including new real Git/daemon simultaneous-claimant and explicit start-worker
+  controls. No independent approval, merge or application update is claimed.
+
+### Confirmed contract gaps and proposed narrow design
+
+Two deterministic reject/preserve probes are preserved as
+`docs/workspace/dispatch-claim-contract-probes.patch`. They assert the desired
+safe behavior, **not unsafe behavior as a passing norm**. Apply this patch in an
+isolated worktree, run the lifecycle evidence file with `bun test <file> -t SCOPE:`,
+then reverse the patch. It appends to the existing real temporary two-connection
+SQLite fixture. Session startup/termination use only an isolated spawner mock,
+with the real SessionManager and registry; there is no real provider invocation.
+
+1. **Parent-plan eligibility is not protected by the task timestamp.** Associate
+   a task with an ACTIVE parent, capture ready/unassigned candidate, then change
+   parent to DRAFT on the other connection. The task is absent from ready, its
+   updatedAt is unchanged, but the partial claim succeeds and notifies. Proposed
+   API: a task-only conditional update option (or dedicated Quarry claim method)
+   that checks original updatedAt plus ready/unassigned predicates in the *same
+   SQLite transaction* as the update. Include task status, owner, schedule,
+   blocked_cache, parent DRAFT and parent blocked state, matching
+   ready({includeEphemeral:true}). An extra asynchronous ready() check is not an
+   atomic fix. Keep manual assignment outside this predicate. Director must
+   confirm whether full ready eligibility is intended here or explicitly limit
+   this task to the four task-version D competitors.
+2. **Stopping by internal session ID alone does not preserve successor metadata.**
+   During spawner.terminate(old), start successor for the same agent. Its active
+   in-memory ID remains correct, but old stopSession calls updateAgentSession and
+   persistSession, restoring old provider ID and idle over successor running.
+   Proposed contract: persist a unique internal current-session identity at start;
+   stop/exit cleanup may update current agent fields only with that identity and
+   an atomic entity CAS. Historical session append must preserve successor fields
+   and history. No retry may substitute a new owner. Define legacy sessions without
+   internal identity explicitly. This is a SessionManager/registry contract change,
+   not something dispatch can fix by rereading current session or using provider ID.
+   Keep attempt-specific process termination; never terminate the current agent
+   session by lookup. Scope/legacy policy needs Director confirmation before edits.
+
+Refined probes: **0 pass / 2 fail as expected**, 6 assertions, 384ms;
+`/tmp/el-1q2vv-contract-probes-refined.log`. Original exploratory run is retained
+at `/tmp/el-1q2vv-contract-probes.log`: its first assertion incorrectly assumed a
+new blocks dependency leaves updatedAt unchanged (it actually changes it), and
+its spawner mock lacked getSession. Those harness/assumption failures were corrected
+before the above two findings were claimed. The final probe source is also at
+`/tmp/el-1q2vv-contract-probes.ts`. No retries of a merge gate occurred.
+
+After Director decision: finish the scoped atomic eligibility/session ownership
+contract, add real temporary Git daemon-boundary regressions for all four D
+competitors and both simultaneous claimants, verify unique notification and
+successor resource preservation, cover isolated startup/notification errors and
+positive automatic/explicit start-worker paths, then run `pnpm check:merge`.
+Commit/push final implementation, complete the task, obtain independent steward
+review of the exact final commit and use approved CLI local delivery after checks.
+This partial worker handoff is not an approval to merge.
+
+## Automatic dispatch claim — Director-approved continuation el-1q2vv
+
+The earlier partial handoff and its two failing probes above are historical
+baseline evidence. Director's decision in the task handoff history (18:54:10Z)
+approved both narrow extensions and the conservative legacy ownership policy.
+The probe patch is retained as historical source; do not apply it to this revision:
+the two desired-safety probes now live as passing REGRESSION tests in the lifecycle
+suite. Current-field equality excludes the intentionally appended old-session
+history; neighboring history must be preserved. Other DEFECT groups, controls and
+historical failures are retained for their separate fixes.
+
+Approved standalone el-ptim sync verified all 299 artifact hashes and synced
+against local master f30b41ad841d1cea6ca5d274403baba950a85a0d without conflicts.
+No pending worker branch was copied. Frozen pnpm install succeeded (3.2s), with
+unbuilt-dist bin-link warnings and no lockfile changes.
+
+### Final contracts
+
+- `UpdateOptions.requireReadyUnassigned` is a task-only conditional option requiring
+  an original `expectedUpdatedAt`. SQLite transaction reads current task type,
+  status, assignee, deletion, schedule and parent-plan availability before the CAS
+  write. Rejection rolls back task writes/events and occurs before notification.
+  `ready()` and claim share the draft/blocked-parent SQL and task status/due rules.
+  Ephemeral workflow children remain allowed for automatic dispatch.
+- Dependency/status writers publish blocked_cache after their primary transaction.
+  The claim also calls the existing blocking computation with fresh recursive
+  parent reads in its transaction, including blocks/awaits/parent-child semantics.
+  This closes the unpublished-cache interval without moving all writers into a
+  new transaction framework. Cyclic ancestry conservatively rejects. Existing
+  blocked-cache exclusions remain conservative; no eager cache mutation is done
+  by claim. Eligibility is guaranteed at commit, not indefinitely after it.
+- Dispatch carries the original candidate token across worktree and session
+  preparation. Explicit manual dispatch/start-worker still omit claim and retain
+  deliberate reassignment. Failed notification cleanup uses the delivered
+  `failed-dispatch` identity/version contract, without acquiring a newer owner.
+- Automatic new worktrees use a unique attempt namespace. Borrowed/handoff and
+  failed-preparation worktrees are retained, including after startup failure:
+  deleting after a separate ownership read could destroy an adopted worktree.
+  This trades possible unused directories for successor safety; no automatic
+  reclamation policy is claimed.
+- New SessionManager start/resume publishes additive `metadata.agent.currentSessionId`
+  (the unique internal spawn ID) together with provider ID/status via entity CAS
+  from the pre-spawn token. Concurrent local starts are reserved; competing
+  managers cannot both publish from one token. A publication or later startup
+  persistence failure terminates only its exact known process handle.
+- Stop, suspend, exit, provider-ID discovery and dead-session persistence only
+  change current registry fields for that internal ID, with entity CAS. A conflict
+  revokes permission to update current fields; bounded retry only merges that
+  session's historical entry into freshly read history. No new identity is adopted,
+  provider IDs may be reused on resume, and unrelated history is preserved within
+  the existing 20-entry bound. Double stop is idempotent.
+- Legacy absent/ambiguous internal identity never authorizes current-field cleanup.
+  Exactly known processes can stop; available history is merged with diagnostics
+  indicating incomplete current-field cleanup. No live history/session migration.
+  Public start/stop/resume signatures and provider `sessionId` meaning are unchanged.
+  Other callers of unconditional registry APIs and startup-wide reconciliation
+  retain their existing contracts: this is not a universal registry-writer fix.
+
+### Deterministic verification and limits
+
+`dispatch-claim.bun.test.ts` uses two real temporary SQLite connections and a new
+local Git repository/worktrees per test. Actual daemon assignment action,
+assignment/dispatch, SessionManager and registry execute; only process/provider
+handles are inert mocks. No daemon loop or live/paid provider starts. Boundaries
+are awaited callbacks/barriers, not sleeps or probabilistic stress.
+
+Coverage includes CLOSED/DEFERRED/Human/worker B, ACTIVE→DRAFT, blocked parent and
+future schedule after candidate read; parent DRAFT after Quarry's update snapshot;
+unpublished blocked-cache writer boundary; two simultaneous daemon claimants with
+exactly one assignment notification and surviving winning worktree/session; due
+unassigned success; explicit start-worker reassignment with real Git worktree;
+startup/provider and notification failures; old stop/exit during successor start;
+resumed provider-ID reuse; absent/ambiguous legacy identity; preserved neighboring
+history; same-session cleanup; two managers' publication CAS; double stop; startup
+persistence failure after publication.
+
+The initial new Git fixture runs failed because `system` is a reserved entity name,
+then because WorktreeManager.initWorkspace was omitted. Both harness failures are
+retained in `/tmp/el-1q2vv-claim{,-2}.log`. Corrected run: 13/13; expanded run: 21/21.
+A further desired-safety test exposed a process leak after startup persistence
+failure: baseline `/tmp/el-1q2vv-startup-negative.log` fails, then exact-handle
+cleanup fixes it. Subsequent focused SessionManager/lifecycle/claim run: 179 pass,
+0 fail, 663 assertions. Final expanded claim run: **24 pass / 0 fail, 93 assertions**, 4.22s. Final gate results follow below.
+
+The first full gate started before that last startup cleanup correction and final
+regressions; it completed **186/186, exit 0, 235.38s** and is retained as intermediate, not final-revision acceptance.
+No gate script, threshold or merge configuration changed. Final acceptance uses a
+separate complete gate after all source/test edits.
+
+Logs: `/tmp/el-1q2vv-{install-continued,continued-focused,session-daemon,claim-3,
+claim-4,startup-negative,final-focused,final-claim,gate,gate-final}.log`.
+Separate root build/lint/test, Playwright, packaged GUI, cross-platform and live
+providers are not run. Required gate includes its declared package/runtime checks.
+Installed Desktop5f53cef, live project processes and closed maintenance el-1clm
+are not test fixtures and were not changed. Remaining SDK assignment/start and
+completion groups remain separately scoped (el-2hrsm/el-2htch/el-20qt0).
+
+Independent steward review of the exact final commit and approved CLI local merge
+remain required after worker commit/push/completion; worker does not self-approve.
 ## Retention clarification — el-2y8n3
 
 See [task-session-retention.md](workspace/task-session-retention.md): append keeps
@@ -659,3 +852,97 @@ build/lint/test, browser/packaged GUI, cross-platform or real-provider coverage
 is claimed. Installed Desktop, agent processes, daemon, live project data and
 closed maintenance are not fixtures and were not modified. Exact-final-commit
 independent steward review and approved CLI local merge remain required.
+
+### el-1q2vv safe sync after delivered completion fix
+
+Checkpoint 5f03117 passed its complete gate: **186/186, exit 0, 214.59s**
+(`/tmp/el-1q2vv-gate-final.log`, results directory `stoneforge-merge-check-KUSXtg`).
+Local master then advanced to 3420c56198517a39d1219a2c1acfd0099d526429
+(el-20qt0 completion). Approved CLI sync merged all source/tests automatically;
+only this append-only report conflicted, resolved by preserving both full sections.
+Completion's delivered contracts and converted regression assertions are retained.
+Thus the earlier statement that completion is pending describes the pre-sync state.
+Final integrated checks and independent exact-commit review are recorded below.
+
+### el-1q2vv final integrated worker acceptance
+
+Source at integrated commit `5a42f08` (implementation `5f03117`, prior partial
+`12dd742`) includes delivered local master `3420c56`. Focused claim/lifecycle/
+completion protocol/Git suite: **189 pass, 0 fail, 992 assertions**, 24.32s.
+Complete **pnpm check:merge: 187/187, exit 0, 236.11s**, after all source/test edits
+and approved sync. Includes uncached workspace typecheck, Desktop build, all gate
+Bun files, Smithy Node/Vitest, Desktop Node and gate regression checks. Claim suite
+is **24/24**; existing skip cases remain, no gate/threshold changes.
+
+Logs: `/tmp/el-1q2vv-integrated-focused.log`, `/tmp/el-1q2vv-gate-integrated.log`.
+Every command/exit/duration and log is recorded in
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-5wSjK1/results.json`.
+`git diff --check` passes and local master is an ancestor. Only documentation is
+changed after this gate. Previous gate runs (186/186 at 235.38s and 214.59s),
+original safety failures and fixture failures are preserved above, not erased.
+
+Worker acceptance is complete; independent steward review of the final documentation
+commit plus exact implementation, and approved CLI local delivery after explicit
+checks, remain required. No manual PR/merge, installed app replacement or live
+provider/daemon/session testing was performed. Director's coordination of this
+worker's live task assignment is not a test fixture or application maintenance.
+
+### el-1q2vv steward rejection and cleanup retry correction
+
+Steward rejected `db20c9883cca7016f9764760c522ab21ccc75cb8` after a passing
+188/188 gate: `stopSession` treated in-memory `terminated` as completed cleanup.
+A transient persistence error left the registry running with no ended history;
+a second stop silently returned. The original independent evidence remains in
+shared reference el-4aqnn and `/tmp/el-1q2vv-review/stop-retry-regression.patch`.
+This worker reapplied that desired-safety probe and reproduced **0 pass / 1 fail**
+on db20c98 before the fix. It is now a permanent reject/preserve regression in
+`dispatch-claim.bun.test.ts`, not a characterization of acceptable behavior.
+
+SessionManager now records stop progress per captured internal session ID.
+Concurrent callers await the same operation and receive its failure. A later
+call retries incomplete cleanup; successful process termination is not repeated
+when only persistence failed. Completed stops are idempotent. Failed termination
+remains retryable through the same exact SpawnerService session ID. The original
+end timestamp/reason are retained. Stop progress is removed with the session's
+normal memory cleanup; an incomplete explicit stop cannot be evicted by that timer.
+Current registry fields still require the existing internal identity/entity CAS;
+retry never looks up or adopts a successor's session. History remains deduplicated.
+No API/format/schema, legacy ownership, gate or threshold changes were made.
+
+Four additional real temporary SQLite/Git + actual SessionManager/registry tests
+cover persistence failure/retry, concurrent successful stops, and concurrent
+persistence/termination failures followed by same-provider-ID successor startup.
+They assert both callers fail, own cleanup retries, unique ended history, and
+successor process/current fields/active mapping preservation. Spawner handles are
+inert mocks; there are no live agents, providers or task/daemon fixtures.
+
+Frozen install: exit0. Focused command:
+`bun test packages/smithy/src/services/dispatch-claim.bun.test.ts packages/smithy/src/services/task-lifecycle-race-evidence.bun.test.ts packages/smithy/src/runtime/session-manager.bun.test.ts packages/smithy/src/services/task-session-retention.bun.test.ts`
+passed **198/198, 715 assertions**, exit0, 17.61s; claim suite now28/28.
+Log: `/tmp/el-1q2vv-retry-focused-final.log`.
+An initial implementation incorrectly required persisted=true for all timer
+cleanup, failing an existing non-stop eviction control (197 pass/1 fail).
+The correction restricts the timer guard to explicit stop progress; the existing
+control is unchanged. A prematurely started full gate was interrupted (exit130)
+during typecheck, before this correction; it is not claimed as validation.
+
+Adjacent lower-level limitation: existing SpawnerImpl.terminate returns for
+`terminating` even after a provider close/kill throw. This exists on local master
+and is reported to Director in el-25s0e; it is not fixed or hidden by these
+SpawnerService-boundary tests. This change does not claim universal provider
+termination reliability. Other historical DEFECT groups, controls and completed
+handoff/completion/retention fixes remain intact.
+
+The assigned branch already includes the steward's approved local sync with
+master75b818a; ancestry/diff checks pass. Independent exact-final-commit review
+and explicit approved CLI local merge remain the steward's next steps. No manual
+PR/merge, installed Desktop update or maintenance/live session operation occurred.
+Separate root build/lint/test, browser/packaged GUI, standalone server suite,
+browser sql.js, cross-platform and real-provider tests are omitted.
+
+Final retry-correction gate: **pnpm check:merge188/188, exit0,239.48s**.
+Log `/tmp/el-1q2vv-retry-gate-final.log`; exact commands/exits and per-step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-06UZVT/results.json`.
+All final production/test edits were present; only this result documentation was
+added afterward. This supersedes neither the historical rejection nor omitted
+live-provider coverage. Independent exact-commit review remains required.

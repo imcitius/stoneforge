@@ -94,6 +94,8 @@ export interface CacheRebuildResult {
 export interface GateCheckOptions {
   /** Current time for timer gate checks (defaults to now) */
   currentTime?: Date;
+  /** Read authoritative parent dependencies, including before cache publication. */
+  freshParents?: boolean;
 }
 
 /**
@@ -395,8 +397,13 @@ export class BlockedCacheService {
    */
   computeBlockingState(
     elementId: ElementId,
-    options: GateCheckOptions = {}
+    options: GateCheckOptions = {},
+    ancestors: ReadonlySet<ElementId> = new Set()
   ): BlockingInfo | null {
+    if (ancestors.has(elementId)) {
+      return { elementId, blockedBy: elementId, reason: 'Cyclic parent dependency' };
+    }
+    const path = new Set(ancestors).add(elementId);
     // All blocking types now use consistent direction:
     // blocked_id = element that is waiting, blocker_id = element doing the blocking
     const blockingDeps = this.db.query<DependencyRow>(
@@ -423,7 +430,9 @@ export class BlockedCacheService {
 
         case DT.PARENT_CHILD:
           // Check if parent is blocked (transitive)
-          const parentBlocked = this.isBlocked(blockerId);
+          const parentBlocked = options.freshParents
+            ? this.computeBlockingState(blockerId, options, path)
+            : this.isBlocked(blockerId);
           if (parentBlocked) {
             return {
               elementId,

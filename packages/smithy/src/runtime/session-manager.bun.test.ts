@@ -11,7 +11,7 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { EventEmitter } from 'node:events';
 import type { EntityId, ChannelId } from '@stoneforge/core';
-import { createTimestamp, ElementType } from '@stoneforge/core';
+import { createTimestamp, ElementType, ConflictError, ErrorCode } from '@stoneforge/core';
 import type { QuarryAPI } from '@stoneforge/quarry';
 import type {
   SpawnerService,
@@ -333,8 +333,18 @@ function createMockAgentRegistry(agents: Map<EntityId, AgentEntity>): AgentRegis
   } as AgentRegistry;
 }
 
-function createMockApi(): QuarryAPI {
-  return {} as QuarryAPI;
+function createMockApi(agents: Map<EntityId, AgentEntity>): QuarryAPI {
+  return {
+    async update(id: EntityId, updates: Partial<AgentEntity>, options?: { expectedUpdatedAt?: string }) {
+      const current = agents.get(id)!;
+      if (options?.expectedUpdatedAt && current.updatedAt !== options.expectedUpdatedAt) {
+        throw new ConflictError('Changed entity', ErrorCode.CONCURRENT_MODIFICATION);
+      }
+      const updated = { ...current, ...updates, updatedAt: new Date(Date.parse(current.updatedAt) + 1).toISOString() } as AgentEntity;
+      agents.set(id, updated);
+      return updated;
+    },
+  } as unknown as QuarryAPI;
 }
 
 // ============================================================================
@@ -356,7 +366,7 @@ describe('SessionManager', () => {
 
     spawner = createMockSpawnerService();
     registry = createMockAgentRegistry(agents);
-    api = createMockApi();
+    api = createMockApi(agents);
     sessionManager = createSessionManager(spawner, api, registry);
   });
 
@@ -1406,7 +1416,7 @@ describe('SessionManager executable path tracking', () => {
 
     const spawner = createMockSpawnerService();
     const registry = createMockAgentRegistry(agents);
-    const api = createMockApi();
+    const api = createMockApi(agents);
     const sessionManager = createSessionManager(spawner, api, registry);
 
     await sessionManager.startSession(testAgentId, {
@@ -1444,7 +1454,7 @@ describe('SessionManager executable path tracking', () => {
 
     const spawner = createMockSpawnerService();
     const registry = createMockAgentRegistry(agents);
-    const api = createMockApi();
+    const api = createMockApi(agents);
     const sessionManager = createSessionManager(spawner, api, registry);
 
     await sessionManager.startSession(testAgentId2, {});
@@ -1459,7 +1469,7 @@ describe('SessionManager executable path tracking', () => {
 
     const spawner = createMockSpawnerService();
     const registry = createMockAgentRegistry(agents);
-    const api = createMockApi();
+    const api = createMockApi(agents);
     const sessionManager = createSessionManager(spawner, api, registry);
 
     await sessionManager.startSession(testAgentId, {});

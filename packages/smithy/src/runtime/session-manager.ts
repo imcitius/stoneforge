@@ -16,7 +16,7 @@
 
 import { EventEmitter } from 'node:events';
 import type { EntityId, Timestamp, MessageId, DocumentId } from '@stoneforge/core';
-import { createTimestamp } from '@stoneforge/core';
+import { createTimestamp, asElementId, ConflictError } from '@stoneforge/core';
 import type { QuarryAPI } from '@stoneforge/quarry';
 import type { AgentRole, WorkerMode } from '../types/agent.js';
 import type { AgentEntity } from '../api/orchestrator-api.js';
@@ -501,6 +501,13 @@ export class SessionManagerImpl implements SessionManager {
   private readonly sessionHistory: Map<EntityId, SessionHistoryEntry[]> = new Map();
   private readonly sessionCleanupFns: Map<string, () => void> = new Map(); // sessionId -> cleanup function
 
+  // A terminated status fences exit callbacks; it does not mean cleanup succeeded.
+  private readonly sessionStops = new Map<string, {
+    terminationComplete: boolean;
+    complete: boolean;
+    pending?: Promise<void>;
+  }>();
+  private readonly startingAgents = new Set<EntityId>();
   private operationLog: OperationLogService | undefined;
 
   constructor(
@@ -533,6 +540,16 @@ export class SessionManagerImpl implements SessionManager {
   // ----------------------------------------
 
   async startSession(
+    agentId: EntityId,
+    options?: StartSessionOptions
+  ): Promise<{ session: SessionRecord; events: EventEmitter }> {
+    if (this.startingAgents.has(agentId)) throw new Error(`Session startup already in progress for ${agentId}`);
+    this.startingAgents.add(agentId);
+    try { return await this.startSessionOwned(agentId, options); }
+    finally { this.startingAgents.delete(agentId); }
+  }
+
+  private async startSessionOwned(
     agentId: EntityId,
     options?: StartSessionOptions
   ): Promise<{ session: SessionRecord; events: EventEmitter }> {
@@ -609,10 +626,16 @@ export class SessionManagerImpl implements SessionManager {
     this.setupSessionEventForwarding(sessionState, result.events);
 
     // Update agent's session status in database
-    await this.registry.updateAgentSession(agentId, result.session.providerSessionId, 'running');
-
-    // Persist session state
-    await this.persistSession(sessionState.id);
+    try {
+      await this.publishSession(agent, sessionState.id);
+      await this.persistSession(sessionState.id);
+    } catch (error) {
+      // The caller cannot clean up a handle it never received. This includes
+      // persistence failures after publication, not only the publication CAS.
+      try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+      catch (cleanupError) { console.error(`[session-manager] Incomplete startup cleanup for ${sessionState.id}:`, cleanupError); }
+      throw error;
+    }
 
     // Log session spawn
     this.operationLog?.write('info', 'session', `Session started for agent ${agentId} (${meta.agentRole})`, { agentId, sessionId: sessionState.id });
@@ -624,6 +647,16 @@ export class SessionManagerImpl implements SessionManager {
   }
 
   async resumeSession(
+    agentId: EntityId,
+    options: ResumeSessionOptions
+  ): Promise<{ session: SessionRecord; events: EventEmitter; uwpCheck?: ResumeUWPCheckResult }> {
+    if (this.startingAgents.has(agentId)) throw new Error(`Session startup already in progress for ${agentId}`);
+    this.startingAgents.add(agentId);
+    try { return await this.resumeSessionOwned(agentId, options); }
+    finally { this.startingAgents.delete(agentId); }
+  }
+
+  private async resumeSessionOwned(
     agentId: EntityId,
     options: ResumeSessionOptions
   ): Promise<{ session: SessionRecord; events: EventEmitter; uwpCheck?: ResumeUWPCheckResult }> {
@@ -734,10 +767,16 @@ export class SessionManagerImpl implements SessionManager {
     this.setupSessionEventForwarding(sessionState, result.events);
 
     // Update agent's session status in database
-    await this.registry.updateAgentSession(agentId, options.providerSessionId, 'running');
-
-    // Persist session state
-    await this.persistSession(sessionState.id);
+    try {
+      await this.publishSession(agent, sessionState.id);
+      await this.persistSession(sessionState.id);
+    } catch (error) {
+      // The caller cannot clean up a handle it never received. This includes
+      // persistence failures after publication, not only the publication CAS.
+      try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+      catch (cleanupError) { console.error(`[session-manager] Incomplete startup cleanup for ${sessionState.id}:`, cleanupError); }
+      throw error;
+    }
 
     return {
       session: this.toPublicSession(sessionState),
@@ -752,12 +791,42 @@ export class SessionManagerImpl implements SessionManager {
       throw new Error(`Session not found: ${sessionId}`);
     }
 
+    let stop = this.sessionStops.get(sessionId);
+    if (stop?.pending) return stop.pending;
+    if (stop?.complete) return;
+    if (!stop) {
+      // Natural exits can already have completed their persistence.
+      if (session.status === 'terminated' && session.persisted) return;
+      stop = { terminationComplete: false, complete: false };
+      this.sessionStops.set(sessionId, stop);
+    }
+    const progress = stop;
+    // Publish the shared promise before invoking the spawner (which may reenter).
+    const pending = Promise.resolve().then(async () => {
+      await this.finishSessionStop(sessionId, progress, options);
+      progress.complete = true;
+    });
+    progress.pending = pending;
+    try {
+      await pending;
+    } finally {
+      progress.pending = undefined;
+    }
+  }
+
+  private async finishSessionStop(
+    sessionId: string,
+    progress: { terminationComplete: boolean },
+    options?: StopSessionOptions
+  ): Promise<void> {
+    const session = this.sessions.get(sessionId)!;
+
     // Update session state BEFORE terminating to prevent race with exit event handler
     const updatedSession: InternalSessionState = {
       ...session,
       status: 'terminated',
-      endedAt: createTimestamp(),
-      terminationReason: options?.reason,
+      endedAt: session.endedAt ?? createTimestamp(),
+      terminationReason: session.terminationReason ?? options?.reason,
       persisted: false,
     };
     this.sessions.set(sessionId, updatedSession);
@@ -770,7 +839,10 @@ export class SessionManagerImpl implements SessionManager {
     // Now terminate via spawner (may trigger exit/provider-session-id events, but status already terminated).
     // Keep listeners attached until this completes so provider-specific graceful shutdown output
     // can still update providerSessionId before the session is added to history.
-    await this.spawner.terminate(sessionId, options?.graceful ?? true);
+    if (!progress.terminationComplete) {
+      await this.spawner.terminate(sessionId, options?.graceful ?? true);
+      progress.terminationComplete = true;
+    }
 
     const finalSession = this.sessions.get(sessionId) ?? updatedSession;
 
@@ -779,9 +851,6 @@ export class SessionManagerImpl implements SessionManager {
 
     // Add to history after terminate so providerSessionId captured during shutdown is included.
     this.addToHistory(session.agentId, finalSession);
-
-    // Update agent's session status in database
-    await this.registry.updateAgentSession(session.agentId, undefined, 'idle');
 
     // Persist session state
     await this.persistSession(sessionId);
@@ -843,7 +912,7 @@ export class SessionManagerImpl implements SessionManager {
     } catch (error) {
       // Revert status on failure
       this.sessions.set(sessionId, session);
-      if (this.agentSessions.get(session.agentId) !== sessionId) {
+      if (!this.agentSessions.has(session.agentId)) {
         this.agentSessions.set(session.agentId, sessionId);
       }
       throw error;
@@ -851,9 +920,6 @@ export class SessionManagerImpl implements SessionManager {
 
     // Add to history
     this.addToHistory(session.agentId, updatedSession);
-
-    // Update agent's session status in database
-    await this.registry.updateAgentSession(session.agentId, session.providerSessionId, 'suspended');
 
     // Persist session state
     await this.persistSession(sessionId);
@@ -1170,31 +1236,60 @@ export class SessionManagerImpl implements SessionManager {
       return;
     }
 
-    // Get current agent state
-    const agent = await this.registry.getAgent(session.agentId);
-    if (!agent) {
-      return;
+    // Only this session's history entry may be merged. Copying the entire
+    // local history could roll back entries written by another manager.
+    let allowCurrent = true;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const agent = await this.registry.getAgent(session.agentId);
+      if (!agent) return;
+      const meta = getAgentMetadata(agent);
+      if (!meta) return;
+      const latestSession = this.sessions.get(sessionId) ?? session;
+      const history = (this.sessionHistory.get(session.agentId) ?? []).filter(entry => entry.id === sessionId);
+      const ownsCurrent = allowCurrent && meta.currentSessionId === sessionId;
+      const sessionHistory = this.mergeHistory(history, this.getPersistedHistory(agent)).slice(0, 20);
+      if (!ownsCurrent && history.length === 0) return;
+      try {
+        await this.api.update(asElementId(session.agentId), {
+          metadata: { ...agent.metadata, agent: {
+            ...meta,
+            ...(ownsCurrent ? {
+              sessionId: latestSession.providerSessionId,
+              sessionStatus: latestSession.status === 'running' || latestSession.status === 'starting' ? 'running' : latestSession.status === 'suspended' ? 'suspended' : 'idle',
+              lastActivityAt: latestSession.lastActivityAt,
+            } : {}),
+            sessionHistory,
+          } },
+        }, { expectedUpdatedAt: agent.updatedAt });
+        if (!ownsCurrent) {
+          console.warn(`[session-manager] Session ${sessionId}: incomplete current-field cleanup; ownership not proven, history saved`);
+          this.operationLog?.write('warn', 'session', `Session ${sessionId} history saved; current registry ownership not proven, current fields preserved`, { agentId: session.agentId, sessionId });
+        }
+        // Do not replace state advanced by a callback while the write awaited.
+        if (this.sessions.get(sessionId) === session) this.sessions.set(sessionId, { ...session, persisted: true });
+        return;
+      } catch (error) {
+        if (!(error instanceof ConflictError)) throw error;
+        // A CAS conflict revokes permission to write current fields. Subsequent
+        // reads are solely for merging this historical entry, never re-claiming.
+        allowCurrent = false;
+        if (attempt === 3) throw error;
+      }
     }
+  }
 
-    // Get the current in-memory session history for this agent
-    const inMemoryHistory = this.sessionHistory.get(session.agentId) ?? [];
-
-    // Update agent metadata with session info and history
-    // This persists session history to database for cross-restart recovery
-    await this.registry.updateAgentMetadata(session.agentId, {
-      sessionId: session.providerSessionId,
-      sessionStatus: session.status === 'running' ? 'running' : session.status === 'suspended' ? 'suspended' : 'idle',
-      lastActivityAt: session.lastActivityAt,
-      // Persist session history (limited to 20 entries to avoid bloat)
-      sessionHistory: inMemoryHistory.slice(0, 20),
-    } as Record<string, unknown>);
-
-    // Mark as persisted
-    const updatedSession: InternalSessionState = {
-      ...session,
-      persisted: true,
-    };
-    this.sessions.set(sessionId, updatedSession);
+  /** Publish from the pre-spawn entity token; concurrent starts cannot both win. */
+  private async publishSession(agent: AgentEntity, sessionId: string): Promise<void> {
+    const session = this.sessions.get(sessionId)!;
+    const meta = getAgentMetadata(agent)!;
+    await this.api.update(asElementId(session.agentId), {
+      metadata: { ...agent.metadata, agent: { ...meta,
+        currentSessionId: sessionId,
+        sessionId: session.providerSessionId,
+        sessionStatus: session.status === 'running' || session.status === 'starting' ? 'running' : 'idle',
+        lastActivityAt: session.lastActivityAt,
+      } },
+    }, { expectedUpdatedAt: agent.updatedAt });
   }
 
   async loadSessionState(agentId: EntityId): Promise<void> {
@@ -1377,8 +1472,10 @@ export class SessionManagerImpl implements SessionManager {
   private scheduleTerminatedSessionCleanup(sessionId: string): void {
     setTimeout(() => {
       const session = this.sessions.get(sessionId);
-      if (session && session.status === 'terminated') {
+      const stop = this.sessionStops.get(sessionId);
+      if (session && session.status === 'terminated' && (!stop || stop.complete)) {
         this.sessions.delete(sessionId);
+        this.sessionStops.delete(sessionId);
       }
     }, 5000);
   }
@@ -1413,7 +1510,6 @@ export class SessionManagerImpl implements SessionManager {
       this.agentSessions.delete(session.agentId);
     }
     this.addToHistory(session.agentId, updated);
-    this.registry.updateAgentSession(session.agentId, undefined, 'idle').catch(() => {});
     this.persistSession(session.id).then(() => {
       this.scheduleTerminatedSessionCleanup(session.id);
     }).catch(() => {});
@@ -1517,14 +1613,6 @@ export class SessionManagerImpl implements SessionManager {
         // Add to history
         this.addToHistory(session.agentId, updatedSession);
 
-        // Update agent status in registry to 'idle'
-        try {
-          await this.registry.updateAgentSession(session.agentId, undefined, 'idle');
-          console.log(`[session-manager] Updated agent ${session.agentId} status to idle in registry`);
-        } catch (error) {
-          console.error(`[session-manager] Failed to update agent ${session.agentId} status:`, error);
-        }
-
         // Persist session state
         try {
           await this.persistSession(session.id);
@@ -1553,11 +1641,6 @@ export class SessionManagerImpl implements SessionManager {
       // Persist session so providerSessionId survives a server restart
       // Codex can reveal its resume ID during graceful shutdown. Do not mark
       // an already stopped agent as running while recording that final ID.
-      if (current.status === 'running' || current.status === 'starting') {
-        this.registry.updateAgentSession(session.agentId, providerSessionId, 'running').catch((err) => {
-          console.error(`[session-manager] Failed to persist providerSessionId for ${session.id}:`, err);
-        });
-      }
       this.persistSession(session.id).catch((err) => {
         console.error(`[session-manager] Failed to persist session after providerSessionId for ${session.id}:`, err);
       });
