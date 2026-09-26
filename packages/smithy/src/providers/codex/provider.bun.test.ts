@@ -349,3 +349,21 @@ describe('CodexInteractiveProvider Windows quoting (issue #51)', () => {
     expect(posixShellQuote("model's-name")).toBe("'model'\\''s-name'");
   });
 });
+
+describe('Codex workspace CLI environment', () => {
+  it('pins tool PATH and workspace across resume without putting credentials in argv', () => {
+    const args = buildCodexInteractiveArgs({
+      workingDirectory: '/project/worktree', stoneforgeRoot: '/project',
+      environmentVariables: { PATH: '/Applications/Stoneforge Desktop.app/runtime:/usr/bin', SF_ENTITY_ID: 'director-a', STONEFORGE_SECRET: 'must-not-be-in-argv' },
+      resumeSessionId: '11111111-1111-1111-1111-111111111111',
+    });
+    const command = args.join(' ');
+    expect(command).toContain('allow_login_shell=false');
+    expect(command).toContain('features.shell_snapshot=false');
+    expect(command).toContain('shell_environment_policy.set.PATH=');
+    expect(command).toContain('shell_environment_policy.set.STONEFORGE_ROOT=');
+    expect(command).toContain('shell_environment_policy.set.SF_ENTITY_ID=');
+    expect(command).not.toContain('must-not-be-in-argv');
+    expect(args.slice(-2)).toEqual(['--add-dir', "'/project'"]);
+  });
+});

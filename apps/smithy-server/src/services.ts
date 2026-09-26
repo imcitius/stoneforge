@@ -1,3 +1,4 @@
+import { ProjectRepositories } from '@stoneforge/smithy';
 /**
  * Service Initialization
  *
@@ -62,6 +63,7 @@ export interface Services {
   sessionManager: SessionManager;
   spawnerService: SpawnerService;
   worktreeManager: WorktreeManager | undefined;
+  repositories?: ProjectRepositories;
   taskAssignmentService: TaskAssignmentService;
   dispatchService: DispatchService;
   roleDefinitionService: RoleDefinitionService;
@@ -121,20 +123,8 @@ export async function initializeServices(): Promise<Services> {
   const dispatchService = createDispatchService(api, taskAssignmentService, agentRegistry);
   const roleDefinitionService = createRoleDefinitionService(api);
 
-  let worktreeManager: WorktreeManager | undefined;
-  try {
-    worktreeManager = createWorktreeManager({ workspaceRoot: PROJECT_ROOT });
-    // Initialize the worktree manager (creates .stoneforge/.worktrees directory, validates git repo)
-    // This is synchronous initialization - consider making services async if this becomes slow
-    await worktreeManager.initWorkspace();
-  } catch (err) {
-    if (err instanceof GitRepositoryNotFoundError) {
-      logger.warn('Git repository not found - worktree features disabled');
-      worktreeManager = undefined;
-    } else {
-      throw err;
-    }
-  }
+  const worktreeManager = new ProjectRepositories(PROJECT_ROOT, api);
+  await worktreeManager.initWorkspace();
 
   const workerTaskService = createWorkerTaskService(
     api,
@@ -268,6 +258,7 @@ export async function initializeServices(): Promise<Services> {
     sessionManager,
     spawnerService,
     worktreeManager,
+    repositories: worktreeManager,
     taskAssignmentService,
     dispatchService,
     roleDefinitionService,

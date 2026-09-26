@@ -255,6 +255,8 @@ export type MergeStatus = 'pending' | 'testing' | 'merging' | 'merged' | 'confli
  * Orchestrator-specific metadata attached to tasks
  */
 export interface OrchestratorTaskMeta {
+  repositoryId?: string;
+  repositoryLocked?: boolean;
   branch?: string;
   worktree?: string;
   sessionId?: string;
@@ -300,6 +302,7 @@ export interface TaskSessionHistoryEntry {
  * Task entity as returned by the API
  */
 export interface Task {
+  repositoryId?: string;
   id: ElementId;
   type: 'task';
   title: string;

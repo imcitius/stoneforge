@@ -224,6 +224,7 @@ export function createSessionRoutes(
       const agentId = c.req.param('id') as EntityId;
       const body = (await c.req.json().catch(() => ({}))) as {
         taskId?: string;
+        repositoryId?: string;
         initialMessage?: string;
         workingDirectory?: string;
         worktree?: string;
@@ -288,18 +289,22 @@ export function createSessionRoutes(
           const sessionBranch = generateSessionBranchName(agentName, timestamp);
           const sessionPath = generateSessionWorktreePath(agentName, timestamp);
 
-          const worktreeResult = await services.worktreeManager.createWorktree({
+          const taskForSession = body.taskId ? await api.get<Task>(body.taskId as ElementId) : undefined;
+          const manager = services.repositories
+            ? taskForSession ? await services.repositories.forTask(taskForSession) : await services.repositories.manager(await services.repositories.resolve(body.repositoryId))
+            : services.worktreeManager;
+          const worktreeResult = await manager.createWorktree({
             agentName,
             taskId: `session-${timestamp}` as ElementId,
             customBranch: sessionBranch,
-            customPath: sessionPath,
+            customPath: services.repositories ? undefined : sessionPath,
           });
 
           worktreePath = worktreeResult.worktree.path;
           logger.debug(`Created persistent worker worktree: ${worktreePath} on branch ${sessionBranch}`);
         } catch (err) {
           logger.warn('Failed to create worktree for persistent worker:', err);
-          // Continue without worktree — don't block session start
+          return c.json({ error: { code: 'REPOSITORY_REQUIRED', message: String(err) } }, 400);
         }
       }
 
@@ -314,6 +319,12 @@ export function createSessionRoutes(
         }
       }
 
+      if (services.repositories && agentRole === 'director') {
+        const repos = await services.repositories.list();
+        rolePrompt = (rolePrompt ?? '') + `\n\n## Project repositories\nProject data root: ${services.repositories.root}. This root does not need to be a Git repository.\n` +
+          repos.map(repo => `- ${repo.id}: ${repo.path}; target branch: ${repo.targetBranch ?? 'repository default'}`).join('\n') +
+          '\nUse sf repo list to refresh this list. Set --repository <id> on sf task create/update. If multiple repositories are needed, create separate tasks with dependencies. Never initialize a wrapper Git repository as a workaround. Do not replace the running Stoneforge installation while tasks are executing; build and verify a separate artifact first.';
+      }
       let effectivePrompt = body.initialPrompt;
       let assignedTask: { id: string; title: string } | undefined;
 

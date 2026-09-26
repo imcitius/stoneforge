@@ -59,6 +59,20 @@ export function createTaskRoutes(services: Services) {
     return new Set(rows.map((r) => r.element_id));
   }
 
+  app.put('/api/tasks/:id/repository', async c => {
+    try {
+      const task = await api.get<Task>(c.req.param('id') as ElementId);
+      if (!task) return c.json({ error: 'Task not found' }, 404);
+      const { repositoryId } = await c.req.json();
+      if (typeof repositoryId !== 'string') return c.json({ error: 'repositoryId required' }, 400);
+      await services.repositories?.resolve(repositoryId);
+      const meta = (task.metadata?.orchestrator ?? {}) as OrchestratorTaskMeta;
+      if ((meta.repositoryLocked || meta.branch || meta.worktree || meta.sessionId) && meta.repositoryId !== repositoryId) return c.json({ error: 'Cannot change repository after dispatch' }, 409);
+      const updated = await api.update<Task>(task.id, { metadata: updateOrchestratorTaskMeta(task.metadata, { repositoryId }) });
+      return c.json({ task: formatTaskResponse(updated) });
+    } catch (error) { return c.json({ error: String(error) }, 400); }
+  });
+
   // GET /api/tasks - List tasks
   app.get('/api/tasks', async (c) => {
     try {
@@ -134,6 +148,7 @@ export function createTaskRoutes(services: Services) {
     try {
       const body = (await c.req.json()) as {
         title: string;
+        repositoryId?: string;
         description?: string;
         status?: string;
         priority?: number | 'critical' | 'high' | 'medium' | 'low';
@@ -179,6 +194,10 @@ export function createTaskRoutes(services: Services) {
       }
 
       const metadata: Record<string, unknown> = {};
+      if (body.repositoryId) {
+        await services.repositories?.resolve(body.repositoryId);
+        metadata.orchestrator = { repositoryId: body.repositoryId };
+      }
       if (body.description) {
         metadata.description = body.description;
       }
@@ -445,6 +464,7 @@ export function createTaskRoutes(services: Services) {
         restart?: boolean;
         markAsStarted?: boolean;
         branch?: string;
+        sessionId?: string;
         worktree?: string;
         notificationMessage?: string;
         dispatchedBy?: string;
@@ -469,6 +489,7 @@ export function createTaskRoutes(services: Services) {
         restart: body.restart,
         markAsStarted: body.markAsStarted,
         branch: body.branch,
+        sessionId: body.sessionId,
         worktree: body.worktree,
         notificationMessage: body.notificationMessage,
         dispatchedBy: body.dispatchedBy as EntityId | undefined,

@@ -6,7 +6,7 @@
  */
 
 import type { Command, GlobalOptions, CommandResult, CommandOption } from '@stoneforge/quarry/cli';
-import { success, failure, ExitCode, getOutputMode } from '@stoneforge/quarry/cli';
+import { success, failure, ExitCode, getOutputMode, getOrchestratorUrl, orchestratorFetch } from '@stoneforge/quarry/cli';
 import type { ElementId, EntityId } from '@stoneforge/core';
 import type { OrchestratorAPI } from '../../api/index.js';
 
@@ -92,23 +92,14 @@ async function dispatchHandler(
     return failure('Usage: sf dispatch <task-id> <agent-id> [options]\nExample: sf dispatch el-abc123 el-agent1', ExitCode.INVALID_ARGUMENTS);
   }
 
-  const { api, error } = await createOrchestratorClient(options);
-  if (error || !api) {
-    return failure(error ?? 'Failed to create API', ExitCode.GENERAL_ERROR);
-  }
-
   try {
-    // Assign the task to the agent
-    const task = await api.assignTaskToAgent(
-      taskId as ElementId,
-      agentId as EntityId,
-      {
-        branch: options.branch,
-        worktree: options.worktree,
-        sessionId: options.session,
-        markAsStarted: options.markAsStarted,
-      }
-    );
+    const response = await orchestratorFetch((await getOrchestratorUrl()) + `/api/tasks/${encodeURIComponent(taskId)}/dispatch`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agentId, branch: options.branch, worktree: options.worktree, sessionId: options.session, markAsStarted: options.markAsStarted }),
+    });
+    const data = await response.json();
+    if (!response.ok) return failure(data.error?.message ?? String(data.error), ExitCode.GENERAL_ERROR);
+    const task = { id: taskId, ...data.task };
 
     const mode = getOutputMode(options);
 

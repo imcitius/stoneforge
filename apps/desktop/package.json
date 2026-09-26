@@ -1,0 +1,31 @@
+{
+  "name": "@stoneforge/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main.js",
+  "description": "Stoneforge Desktop for macOS",
+  "scripts": {
+    "build": "tsc && cp src/preload.cjs src/logs-preload.cjs src/shell.html src/shell.css src/shell.js dist/ && node scripts/build-info.mjs",
+    "typecheck": "tsc --noEmit",
+    "dev": "pnpm build && electron .",
+    "package:mac": "node scripts/package.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@stoneforge/smithy": "workspace:*",
+    "@stoneforge/quarry": "workspace:*"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "@types/node": "^20.0.0",
+    "@xterm/headless": "6.0.0",
+    "electron": "44.4.5",
+    "node": "22.23.3",
+    "typescript": "^5.0.0"
+  },
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

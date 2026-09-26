@@ -29,6 +29,9 @@ type AnyWSData = WSClientData | EventsWSClientData | (LspWSClientData & { wsType
 export interface ServerStartOptions {
   port?: number;
   host?: string;
+  /** Applied before HTTP handling and before every WebSocket upgrade. */
+  authorize?: (headers: Headers) => boolean;
+  onListening?: (handle: { port: number; close: () => Promise<void> }) => void;
 }
 
 const MAX_PORT_RETRIES = 20;
@@ -56,7 +59,12 @@ async function startBunServer(app: Hono, services: Services, lspManager?: LspMan
       server = Bun.serve({
         port: tryPort,
         hostname: HOST,
-        fetch: app.fetch,
+        fetch: (request: Request) => {
+          if (options?.authorize && !options.authorize(request.headers)) {
+            return new Response('Unauthorized', { status: 401 });
+          }
+          return app.fetch(request);
+        },
         websocket: {
           open(ws: ServerWebSocket<AnyWSData>) {
             const data = ws.data;
@@ -90,7 +98,7 @@ async function startBunServer(app: Hono, services: Services, lspManager?: LspMan
           },
         },
       });
-      actualPort = tryPort;
+      actualPort = server.port;
       break;
     } catch (err: unknown) {
       const isAddrInUse = err instanceof Error && (
@@ -130,7 +138,8 @@ async function startBunServer(app: Hono, services: Services, lspManager?: LspMan
     return upgraded ? new Response(null, { status: 101 }) : c.json({ error: 'WebSocket upgrade failed' }, 400);
   });
 
-  if (actualPort !== requestedPort) {
+  options?.onListening?.({ port: actualPort, close: async () => { await server.stop(true); } });
+  if (requestedPort !== 0 && actualPort !== requestedPort) {
     logger.warn(`Requested port ${requestedPort} was in use, server started on port ${actualPort}`);
   }
   logger.info(`Server running at http://${HOST}:${actualPort} (Bun)`);
@@ -157,6 +166,10 @@ async function startNodeServer(app: Hono, services: Services, lspManager?: LspMa
     const headers = new Headers();
     for (const [key, value] of Object.entries(req.headers)) {
       if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+    }
+    if (options?.authorize && !options.authorize(headers)) {
+      res.writeHead(401).end('Unauthorized');
+      return;
     }
 
     let body: string | undefined;
@@ -291,6 +304,14 @@ async function startNodeServer(app: Hono, services: Services, lspManager?: LspMa
 
   // Handle upgrade requests to route to appropriate WebSocket server
   httpServer.on('upgrade', (req, socket, head) => {
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+    }
+    if (options?.authorize && !options.authorize(headers)) {
+      socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
+      return;
+    }
     const pathname = parseUrl(req.url || '').pathname;
 
     if (pathname === '/ws/events') {
@@ -327,14 +348,29 @@ async function startNodeServer(app: Hono, services: Services, lspManager?: LspMa
       httpServer.on('error', onError);
       httpServer.listen(port, HOST, () => {
         httpServer.removeListener('error', onError);
-        resolve(port);
+        const address = httpServer.address();
+        if (!address || typeof address === 'string') {
+          reject(new Error('Server did not bind a TCP port'));
+          return;
+        }
+        resolve(address.port);
       });
     });
   };
 
   actualPort = await tryListen(requestedPort);
 
-  if (actualPort !== requestedPort) {
+  options?.onListening?.({ port: actualPort, close: async () => {
+    for (const server of [wss, eventsWss, lspWss]) {
+      for (const client of server.clients) client.terminate();
+      server.close();
+    }
+    await new Promise<void>((resolve, reject) => {
+      httpServer.close((error) => error ? reject(error) : resolve());
+      httpServer.closeAllConnections();
+    });
+  } });
+  if (requestedPort !== 0 && actualPort !== requestedPort) {
     logger.warn(`Requested port ${requestedPort} was in use, server started on port ${actualPort}`);
   }
   logger.info(`Server running at http://${HOST}:${actualPort} (Node.js)`);

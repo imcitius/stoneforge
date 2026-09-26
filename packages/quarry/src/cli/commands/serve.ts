@@ -12,7 +12,8 @@ import { exec } from 'node:child_process';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Command, GlobalOptions, CommandResult } from '../types.js';
-import { failure, ExitCode } from '../types.js';
+import { failure, success, ExitCode } from '../types.js';
+import { getOrchestratorUrl, orchestratorFetch } from '../server-client.js';
 import { findStoneforgeDir } from '../../config/file.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -269,9 +270,19 @@ function hasDashboardMarker(): boolean {
  * was previously opened and skips opening a new one. Stale markers
  * (>24h) are cleaned up by hasDashboardMarker() instead.
  */
-function registerMarkerCleanup(): void {
-  process.on('SIGINT', () => { process.exit(0); });
-  process.on('SIGTERM', () => { process.exit(0); });
+function registerMarkerCleanup(close?: () => Promise<void>): void {
+  let stopping = false;
+  const stop = () => {
+    if (stopping) return;
+    stopping = true;
+    const timeout = setTimeout(() => process.exit(1), 45_000);
+    void Promise.resolve().then(() => close?.()).then(
+      () => { clearTimeout(timeout); process.exit(0); },
+      (error) => { console.error('Server shutdown failed:', error); clearTimeout(timeout); process.exit(1); },
+    );
+  };
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
 }
 
 /**
@@ -392,6 +403,7 @@ async function startSmithy(options: GlobalOptions): Promise<CommandResult> {
     startSmithyServer = mod.startSmithyServer;
   } else {
     try {
+
       // @ts-ignore — smithy is an optional runtime dependency, may not be installed
       const mod = await import('@stoneforge/smithy/server');
       startSmithyServer = mod.startSmithyServer;
@@ -466,8 +478,10 @@ async function startSmithy(options: GlobalOptions): Promise<CommandResult> {
     }
     // Always write marker so future restarts know a tab was opened
     writeDashboardMarker();
-    registerMarkerCleanup();
   }
+  const close = result && typeof result === 'object' && 'close' in result
+    ? (result as { close: () => Promise<void> }).close : undefined;
+  registerMarkerCleanup(close);
   return await new Promise<never>(() => {});
 }
 
@@ -489,6 +503,12 @@ export const serveCommand: Command = {
     const target = args[0];
 
     try {
+      if (process.env.STONEFORGE_DESKTOP_INSTANCE_ID && (!target || target === 'smithy')) {
+        const endpoint = await getOrchestratorUrl();
+        const response = await orchestratorFetch(endpoint + '/api/health');
+        if (!response.ok) throw new Error('The Desktop project server is unavailable. Restart it from Desktop.');
+        return success({ endpoint, alreadyRunning: true }, 'This workspace is already served by Stoneforge Desktop. Use sf daemon start to enable dispatch; do not start another server.');
+      }
       if (target === 'quarry') {
         return await startQuarry(options);
       }

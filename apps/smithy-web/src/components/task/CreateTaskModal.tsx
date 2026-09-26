@@ -1,3 +1,4 @@
+import { RepositorySelect } from './RepositorySelect';
 /**
  * CreateTaskModal - Modal for creating new tasks in the orchestrator
  *
@@ -47,6 +48,7 @@ const TASK_TYPE_OPTIONS: { value: TaskTypeValue; label: string }[] = [
 
 export function CreateTaskModal({ isOpen, onClose, onSuccess, defaultToBacklog = false }: CreateTaskModalProps) {
   const [title, setTitle] = useState('');
+  const [repositoryId, setRepositoryId] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<Priority>(3);
   const [complexity, setComplexity] = useState<Complexity>(3);
@@ -81,6 +83,7 @@ export function CreateTaskModal({ isOpen, onClose, onSuccess, defaultToBacklog =
     } else {
       // When closing, reset all form fields
       setTitle('');
+      setRepositoryId('');
       setDescription('');
       setPriority(3);
       setComplexity(3);
@@ -100,6 +103,7 @@ export function CreateTaskModal({ isOpen, onClose, onSuccess, defaultToBacklog =
     try {
       const result = await createTask.mutateAsync({
         title: title.trim(),
+        repositoryId: repositoryId || undefined,
         createdBy: currentUser?.id,
         description: description.trim() || undefined,
         priority,
@@ -216,6 +220,7 @@ export function CreateTaskModal({ isOpen, onClose, onSuccess, defaultToBacklog =
             </button>
           </div>
 
+          <div className="px-4 pt-3"><RepositorySelect value={repositoryId} onChange={setRepositoryId} disabled={createTask.isPending} /></div>
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-4">
             {createTask.isError && (

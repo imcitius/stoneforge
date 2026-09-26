@@ -18,7 +18,7 @@ export const PROJECT_ROOT = process.cwd();
 const DEFAULT_DB_PATH = resolve(PROJECT_ROOT, '.stoneforge/stoneforge.db');
 export const DB_PATH = process.env.STONEFORGE_DB_PATH || DEFAULT_DB_PATH;
 
-export const UPLOAD_DIR = '/tmp/stoneforge-terminal-uploads';
+export const UPLOAD_DIR = process.env.STONEFORGE_UPLOAD_DIR || resolve(PROJECT_ROOT, '.stoneforge/uploads/terminal');
 
 export const CORS_ORIGINS = [
   'http://localhost:5173',

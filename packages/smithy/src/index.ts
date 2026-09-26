@@ -45,3 +45,5 @@ export { parseRateLimitResetTime } from './utils/rate-limit-parser.js';
 
 // Re-export permissions module
 export * from './permissions/index.js';
+
+export { ProjectRepositories, taskWorktreeManager } from './git/project-repositories.js';

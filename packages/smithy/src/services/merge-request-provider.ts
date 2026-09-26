@@ -91,6 +91,7 @@ export class LocalMergeProvider implements MergeRequestProvider {
  */
 export class GitHubMergeProvider implements MergeRequestProvider {
   readonly name = 'github';
+  constructor(private readonly cwd?: string) {}
 
   async createMergeRequest(task: Task, options: CreateMergeRequestOptions): Promise<MergeRequestResult> {
     const { spawn } = await import('node:child_process');
@@ -109,6 +110,7 @@ export class GitHubMergeProvider implements MergeRequestProvider {
 
       const proc = spawn('gh', args, {
         stdio: ['ignore', 'pipe', 'pipe'],
+        cwd: this.cwd,
       });
 
       let stdout = '';
@@ -147,7 +149,7 @@ export class GitHubMergeProvider implements MergeRequestProvider {
     // Use gh pr view to get PR status as JSON
     const { stdout } = await execAsync(
       `gh pr view ${prNumber} --json state,mergeCommit,url`,
-      { encoding: 'utf8', timeout: 30_000 }
+      { encoding: 'utf8', timeout: 30_000, cwd: this.cwd }
     );
 
     const data = JSON.parse(stdout.trim()) as {
@@ -186,6 +188,6 @@ export function createLocalMergeProvider(): MergeRequestProvider {
 /**
  * Creates a GitHubMergeProvider that uses the `gh` CLI
  */
-export function createGitHubMergeProvider(): MergeRequestProvider {
-  return new GitHubMergeProvider();
+export function createGitHubMergeProvider(cwd?: string): MergeRequestProvider {
+  return new GitHubMergeProvider(cwd);
 }

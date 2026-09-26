@@ -160,6 +160,7 @@ export function useTaskCounts() {
 // ============================================================================
 
 interface CreateTaskInput {
+  repositoryId?: string;
   title: string;
   createdBy?: EntityId;
   description?: string;

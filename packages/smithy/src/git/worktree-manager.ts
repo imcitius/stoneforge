@@ -26,6 +26,7 @@ import {
   createSlugFromTitle,
 } from '../types/task-meta.js';
 import { detectTargetBranch } from './merge.js';
+import { resolveTarget } from './target.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -149,8 +150,10 @@ export interface CreateWorktreeResult {
  * Configuration for the WorktreeManager
  */
 export interface WorktreeManagerConfig {
-  /** Workspace root directory (must be a git repo) */
+  /** Project root for shared data and managed worktrees; need not contain Git. */
   readonly workspaceRoot: string;
+  /** Git checkout used for repository operations; defaults to workspaceRoot. */
+  readonly repositoryRoot?: string;
   /** Directory for worktrees relative to workspace root (default: ".stoneforge/.worktrees") */
   readonly worktreeDir?: string;
   /** Default base branch (default: auto-detect from git) */
@@ -224,6 +227,10 @@ export interface WorktreeManager {
    * Gets the workspace root directory.
    */
   getWorkspaceRoot(): string;
+
+  /** Resolve a task to its repository; project routers implement this. */
+  forTask?(task: import('@stoneforge/core').Task): Promise<WorktreeManager>;
+  getRepositoryRoot?(): string;
 
   // ----------------------------------------
   // Worktree Operations
@@ -362,6 +369,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
   constructor(config: WorktreeManagerConfig) {
     this.config = {
       workspaceRoot: path.resolve(config.workspaceRoot),
+      repositoryRoot: path.resolve(config.repositoryRoot ?? config.workspaceRoot),
       worktreeDir: config.worktreeDir ?? '.stoneforge/.worktrees',
       defaultBaseBranch: config.defaultBaseBranch ?? '',
     };
@@ -372,18 +380,18 @@ export class WorktreeManagerImpl implements WorktreeManager {
   // ----------------------------------------
 
   async initWorkspace(): Promise<void> {
-    const gitDir = path.join(this.config.workspaceRoot, '.git');
+    const gitDir = path.join(this.config.repositoryRoot, '.git');
 
     // Check if .git exists (could be a file for worktrees or a directory)
     if (!fs.existsSync(gitDir)) {
-      throw new GitRepositoryNotFoundError(this.config.workspaceRoot);
+      throw new GitRepositoryNotFoundError(this.config.repositoryRoot);
     }
 
     // Verify it's actually a git repository by running a git command
     try {
       await this.execGit(['rev-parse', '--git-dir']);
     } catch {
-      throw new GitRepositoryNotFoundError(this.config.workspaceRoot);
+      throw new GitRepositoryNotFoundError(this.config.repositoryRoot);
     }
 
     // Create worktree directory if it doesn't exist
@@ -415,6 +423,8 @@ export class WorktreeManagerImpl implements WorktreeManager {
     return this.initialized;
   }
 
+  getRepositoryRoot(): string { return this.config.repositoryRoot; }
+
   getWorkspaceRoot(): string {
     return this.config.workspaceRoot;
   }
@@ -429,8 +439,11 @@ export class WorktreeManagerImpl implements WorktreeManager {
     // Generate paths and branch name
     const slug = options.taskTitle ? createSlugFromTitle(options.taskTitle) : undefined;
     const branch = options.customBranch ?? generateBranchName(options.agentName, options.taskId, slug);
-    const relativePath = options.customPath ?? generateWorktreePath(options.agentName, slug);
-    const fullPath = path.join(this.config.workspaceRoot, relativePath);
+    const relativePath = options.customPath ?? path.join(this.config.worktreeDir, path.basename(generateWorktreePath(options.agentName, slug)));
+    const fullPath = path.resolve(this.config.workspaceRoot, relativePath);
+    if (this.config.repositoryRoot !== this.config.workspaceRoot && !fullPath.startsWith(path.resolve(this.config.workspaceRoot, this.config.worktreeDir) + path.sep)) {
+      throw new WorktreeError('Worktree path must stay in this repository managed directory', 'INVALID_PATH');
+    }
 
     // Check if worktree already exists — try to remove stale worktree and retry
     // (may be left over from a task reset or crash)
@@ -470,32 +483,11 @@ export class WorktreeManagerImpl implements WorktreeManager {
       }
     }
 
-    // Track state
-    this.worktreeStates.set(relativePath, 'creating');
-
     let branchCreated = false;
     const baseBranch = options.baseBranch ?? await this.getDefaultBranch();
 
-    // Fetch latest remote state so origin/<baseBranch> is up to date.
-    // Without this, worktrees branch from the (possibly stale) local ref
-    // and may be missing recently merged dependencies/code.
-    try {
-      await this.execGit(['fetch', 'origin', baseBranch]);
-    } catch {
-      // Non-fatal: remote may not exist or be unreachable
-    }
-
-    // Use origin/<baseBranch> as the start point for new worktrees so they
-    // always include the latest merged code, even when the local branch ref
-    // has fallen behind.  Falls back to the local branch if the remote ref
-    // doesn't exist (e.g. no remote configured).
-    let startPoint = baseBranch;
-    try {
-      await this.execGit(['rev-parse', '--verify', `origin/${baseBranch}`]);
-      startPoint = `origin/${baseBranch}`;
-    } catch {
-      // origin/<baseBranch> doesn't exist — use local branch
-    }
+    const { commit: startPoint } = await resolveTarget(this.getRepositoryRoot(), baseBranch);
+    this.worktreeStates.set(relativePath, 'creating');
 
     // Prune stale worktree entries before adding, in case git's list is stale
     // (directory was deleted but git still has it registered)
@@ -509,7 +501,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
         // Branch exists, create worktree checking out existing branch
         await this.execGit(['worktree', 'add', fullPath, branch]);
       } else {
-        // Create new branch from the latest remote base
+        // Create new branch from the resolved target commit
         await this.execGit(['worktree', 'add', '-b', branch, fullPath, startPoint]);
         branchCreated = true;
 
@@ -594,7 +586,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
   }): Promise<CreateWorktreeResult> {
     this.ensureInitialized();
 
-    const relativePath = `.stoneforge/.worktrees/${options.agentName}-${options.purpose}`;
+    const relativePath = path.join(this.config.worktreeDir, `${options.agentName}-${options.purpose}`);
     const fullPath = path.join(this.config.workspaceRoot, relativePath);
 
     if (fs.existsSync(fullPath)) {
@@ -609,21 +601,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
     try {
       const baseBranch = await this.getDefaultBranch();
 
-      // Fetch latest remote state so read-only worktrees see the latest code
-      try {
-        await this.execGit(['fetch', 'origin', baseBranch]);
-      } catch {
-        // Non-fatal: remote may not exist
-      }
-
-      // Use origin/<baseBranch> if available for latest code
-      let startPoint = baseBranch;
-      try {
-        await this.execGit(['rev-parse', '--verify', `origin/${baseBranch}`]);
-        startPoint = `origin/${baseBranch}`;
-      } catch {
-        // origin/<baseBranch> doesn't exist — use local branch
-      }
+      const { commit: startPoint } = await resolveTarget(this.getRepositoryRoot(), baseBranch);
 
       // Prune stale worktree entries before adding, in case git's list is stale
       await this.execGit(['worktree', 'prune']);
@@ -859,7 +837,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
 
   getWorktreePath(agentName: string, taskTitle?: string): string {
     const slug = taskTitle ? createSlugFromTitle(taskTitle) : undefined;
-    const relativePath = generateWorktreePath(agentName, slug);
+    const relativePath = path.join(this.config.worktreeDir, path.basename(generateWorktreePath(agentName, slug)));
     return path.join(this.config.workspaceRoot, relativePath);
   }
 
@@ -887,7 +865,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
   async ensureWorktreeRemote(worktreePath: string, remoteName = 'origin'): Promise<boolean> {
     this.ensureInitialized();
 
-    const workspaceRemote = await this.getRemoteConfiguration(this.config.workspaceRoot, remoteName);
+    const workspaceRemote = await this.getRemoteConfiguration(this.config.repositoryRoot, remoteName);
     if (!workspaceRemote) {
       return false;
     }
@@ -963,7 +941,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
 
   private async execGit(args: string[]): Promise<{ stdout: string; stderr: string }> {
     return execFileAsync('git', args, {
-      cwd: this.config.workspaceRoot,
+      cwd: this.config.repositoryRoot,
       encoding: 'utf8',
       timeout: GIT_OPERATION_TIMEOUT_MS,
     });
@@ -1290,7 +1268,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
   private async detectDefaultBranch(): Promise<string> {
     // Delegate to the canonical detectTargetBranch(), passing config value
     return detectTargetBranch(
-      this.config.workspaceRoot,
+      this.config.repositoryRoot,
       this.config.defaultBaseBranch || undefined
     );
   }

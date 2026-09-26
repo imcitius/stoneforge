@@ -1,3 +1,4 @@
+import { repoCommand } from './commands/repo.js';
 /**
  * Orchestrator CLI Plugin
  *
@@ -30,7 +31,7 @@ import { taskCommand } from './commands/task.js';
 export const cliPlugin: CLIPlugin = {
   name: 'orchestrator',
   version: '0.1.0',
-  commands: [agentCommand, daemonCommand, dispatchCommand, mergeCommand, poolCommand, taskCommand],
+  commands: [repoCommand, agentCommand, daemonCommand, dispatchCommand, mergeCommand, poolCommand, taskCommand],
   aliases: {
     agents: 'agent list',
     pools: 'pool list',
