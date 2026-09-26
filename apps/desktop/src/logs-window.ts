@@ -3,11 +3,16 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { logsBounds, logsHTML } from './logs.js';
 
-const viewers = new WeakMap<BrowserWindow, { window: BrowserWindow; closed: Promise<void> }>();
+const viewers = new WeakMap<BrowserWindow, { projectId: string; window: BrowserWindow; closed: Promise<void> }>();
 
-export async function showLogs(owner: BrowserWindow, name: string, logs?: string): Promise<void> {
+export async function showLogs(owner: BrowserWindow, projectId: string, name: string, logs?: string): Promise<void> {
   const existing = viewers.get(owner);
-  if (existing) { existing.window.focus(); return existing.closed; }
+  if (existing) {
+    if (existing.projectId === projectId) { existing.window.focus(); return existing.closed; }
+    existing.window.close();
+    await existing.closed;
+    return showLogs(owner, projectId, name, logs);
+  }
   const focused = webContents.getFocusedWebContents();
   const viewer = new BrowserWindow({
     ...logsBounds(screen.getDisplayMatching(owner.getBounds()).workArea),
@@ -29,7 +34,7 @@ export async function showLogs(owner: BrowserWindow, name: string, logs?: string
     }
     resolve();
   }));
-  viewers.set(owner, { window: viewer, closed });
+  viewers.set(owner, { projectId, window: viewer, closed });
   viewer.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   viewer.webContents.on('will-navigate', (event) => event.preventDefault());
   viewer.webContents.ipc.on('logs:close', (event) => {

@@ -158,6 +158,23 @@ export async function checkLogs(electron, page, resources, temp) {
     const closed = keyboard.waitForEvent('close');
     await closingKey(keyboard, 'Enter'); await closed;
     await page.waitForFunction(() => document.hasFocus());
+    const previous = await open();
+    const replacement = electron.waitForEvent('window');
+    const previousClosed = previous.waitForEvent('close');
+    await page.evaluate(async () => {
+      const atlas = [...document.querySelectorAll('nav button')].find(button => button.textContent.includes('Atlas'));
+      await window.desktop.command('open', atlas.dataset.project);
+      void window.desktop.command('logs', atlas.dataset.project);
+    });
+    await previousClosed;
+    const atlasLogs = await replacement;
+    await atlasLogs.locator('#close').waitFor();
+    await nativeFocus(true);
+    assert.equal(await atlasLogs.locator('h1').textContent(), 'Atlas — Logs');
+    assert.equal(await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 2);
+    await close(atlasLogs, 'button');
+    await page.locator('nav button').filter({ hasText: 'Cedar' }).click();
+    observations.push({ projectSwitchReplacesViewer: true });
     assert.deepEqual(errors, []);
     console.log('Packaged Logs: 600px work area, text safety, scrolling, Close/Escape/native close, focus, reopening, child above project: passed');
   } finally {

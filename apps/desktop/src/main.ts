@@ -214,7 +214,7 @@ async function boot(): Promise<void> {
       if (command === 'restart') await openProject(id);
       if (command === 'remove') { await manager.remove(id); if (active === id) active = undefined; }
     } else if (command === 'logs') {
-      await showLogs(window, manager.projects.get(id)!.name, manager.logs.get(id));
+      await showLogs(window, id, manager.projects.get(id)!.name, manager.logs.get(id));
     } else throw new Error('Unknown command');
     update(); return snapshot();
     } catch (error) {
