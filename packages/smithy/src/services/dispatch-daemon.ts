@@ -1172,7 +1172,27 @@ export class DispatchDaemonImpl implements DispatchDaemon {
             const task = sortedTasks[0];
             const stewardId = asEntityId(steward.id);
 
-            await this.dispatchService.dispatch(task.id, stewardId);
+            try {
+              await this.dispatchService.dispatch(task.id, stewardId, {
+                claim: { expectedUpdatedAt: task.updatedAt },
+              });
+            } catch (error) {
+              if (error instanceof DispatchAssignmentError && error.taskId === task.id) {
+                try {
+                  await this.taskAssignment.unassignTask(task.id, {
+                    mode: 'failed-dispatch', expectedAssignment: error.assignment,
+                  });
+                } catch (cleanupError) {
+                  // An intervening decision owns the task now. Never refresh the
+                  // receipt or fall back to administrative release.
+                  logger.warn(`Failed to release steward dispatch ${task.id}:`, cleanupError);
+                }
+              }
+              // A stale automatic candidate is an ordinary lost claim, not an
+              // explicit reassignment request. No resources were started here.
+              if (error instanceof ConflictError) continue;
+              throw error;
+            }
             processed++;
 
             this.emitter.emit('task:dispatched', task.id, stewardId);
