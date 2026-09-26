@@ -105,6 +105,11 @@ function ElapsedAndTokens({ session, agentId }: { session: SessionRecord; agentI
   const [elapsed, setElapsed] = useState('');
   const startTime = session.startedAt || session.createdAt;
   const { tokens: agentTokens } = useAgentTokens(agentId, session.id);
+  // An unqualified "High" badge requires complete, measured, nonlegacy usage.
+  const hasMeasuredUsage = agentTokens?.usageStatus === 'available'
+    && agentTokens.sessionCount > 0
+    && agentTokens.usageSessionCount === agentTokens.sessionCount
+    && agentTokens.legacySessionCount === 0;
 
   useEffect(() => {
     setElapsed(formatDuration(startTime));
@@ -117,7 +122,7 @@ function ElapsedAndTokens({ session, agentId }: { session: SessionRecord; agentI
       <span className="text-xs text-[var(--color-text-secondary)] font-mono">
         {elapsed}
       </span>
-      {agentTokens && agentTokens.totalTokens > 0 && (() => {
+      {agentTokens && (agentTokens.totalTokens > 0 || hasMeasuredUsage) && (() => {
         const tooltipParts = [
           `Input: ${agentTokens.inputTokens.toLocaleString()}`,
           `Output: ${agentTokens.outputTokens.toLocaleString()}`,
@@ -131,8 +136,14 @@ function ElapsedAndTokens({ session, agentId }: { session: SessionRecord; agentI
         if (agentTokens.estimatedCost != null && agentTokens.estimatedCost > 0) {
           tooltipParts.push(`Est. Cost: ${formatCost(agentTokens.estimatedCost)}`);
         }
-        const hasCacheIndicator = agentTokens.inputTokens > 0
-          && agentTokens.cacheReadTokens / agentTokens.inputTokens > 0.1;
+        // totalTokens is uncached input + output, so it cannot gate all-cache usage.
+        // Cache creation belongs in total input but is not a cache hit.
+        const inputCategories = [agentTokens.inputTokens, agentTokens.cacheReadTokens, agentTokens.cacheCreationTokens];
+        const totalInput = inputCategories.reduce((sum, value) => sum + value, 0);
+        const hasCacheIndicator = hasMeasuredUsage
+          && inputCategories.every(value => Number.isFinite(value) && value >= 0)
+          && Number.isFinite(totalInput) && totalInput > 0
+          && agentTokens.cacheReadTokens / totalInput > 0.1;
         return (
           <span
             className="text-[10px] font-mono text-[var(--color-text-tertiary)]"
