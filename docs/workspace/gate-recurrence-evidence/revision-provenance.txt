@@ -1,0 +1,33 @@
+commit a52765dd8f2caecde7de194e3e89e97e18404700
+Author: Ilya Rubinchik <citius@MacBook-Pro-2.local>
+Date:   Sat Sep 26 23:18:38 2026 +0300
+
+    docs: preserve non-merge dispatch gate failure evidence
+
+diff --git a/docs/task-lifecycle-race-investigation.md b/docs/task-lifecycle-race-investigation.md
+index c1d8a37..2ad177b 100644
+--- a/docs/task-lifecycle-race-investigation.md
++++ b/docs/task-lifecycle-race-investigation.md
+@@ -1031,3 +1031,14 @@ The required gate includes its declared typecheck/build/runtime checks. Installe
+ Desktop, live agents/sessions/daemon and completed maintenance remain unchanged.
+ Independent steward review of the exact final commit and approved CLI local
+ merge remain required; this worker report is not merge approval.
++
++First required gate on source `e3511ad`: **188/189, exit1, 450.35s**;
++`/tmp/el-hkutb-gate.log`, exact results
++`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/results.json`.
++Only unchanged Quarry list scaling failed: ratio3.559304857848077 against `<3`.
++The test/implementation were not edited by this task; the previously documented
++failure class remains unresolved, without a causal attribution to host load.
++All dispatch, lifecycle, typecheck, Node and Desktop source checks passed.
++Director notified. This failed gate is retained, not described as green acceptance.
++During the run local master advanced to delivered handoff fix `beac945`; the
++approved CLI's manifest and all299 hashes were verified before integrating it.
+
+a9dcc5b agent/e-worker-2/el-hkutb-dispatch-non-merge-steward-cl@{2026-09-26 23:29:06 +0300}: commit: docs: record final non-merge steward claim verification
+c1ba041 agent/e-worker-2/el-hkutb-dispatch-non-merge-steward-cl@{2026-09-26 23:23:37 +0300}: commit (merge): Merge commit '8c8cca96b7da052293e21ad945c9925d53a85419' into agent/e-worker-2/el-hkutb-dispatch-non-merge-steward-cl
+4304368 agent/e-worker-2/el-hkutb-dispatch-non-merge-steward-cl@{2026-09-26 23:23:18 +0300}: commit: docs: record integrated steward dispatch acceptance
+8fa6a5b agent/e-worker-2/el-hkutb-dispatch-non-merge-steward-cl@{2026-09-26 23:18:39 +0300}: merge beac9453f3eb51eb680dbcbc642e4a24e1f16a41: Merge made by the 'ort' strategy.
+a52765d agent/e-worker-2/el-hkutb-dispatch-non-merge-steward-cl@{2026-09-26 23:18:38 +0300}: commit: docs: preserve non-merge dispatch gate failure evidence
+e3511ad agent/e-worker-2/el-hkutb-dispatch-non-merge-steward-cl@{2026-09-26 23:12:57 +0300}: commit: fix: conditionally claim non-merge steward dispatch candidates
+3c22b53 agent/e-worker-2/el-hkutb-dispatch-non-merge-steward-cl@{2026-09-26 23:07:18 +0300}: branch: Created from 3c22b53bf6b85175dc8f4b69372096bc9b12fa9b

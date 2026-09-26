@@ -1,0 +1,38 @@
+[
+  {
+    "path": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-0mGim9/results.json",
+    "file": "stoneforge-merge-check-0mGim9-results.json",
+    "sha256": "93e858ec2e0a5528707b0ce75deb020a9fa3acea20eefe835937e1c47f4ac9ba",
+    "mtime": 1790452406.116314
+  },
+  {
+    "path": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-LVCg2k/results.json",
+    "file": "stoneforge-merge-check-LVCg2k-results.json",
+    "sha256": "9799edec9b0e4c541990496407b028092e2ca42f6525ad94333f9ee133331328",
+    "mtime": 1790453561.5517602
+  },
+  {
+    "path": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-SPA3m4/results.json",
+    "file": "stoneforge-merge-check-SPA3m4-results.json",
+    "sha256": "d03a5e332b08920411929f882ec1730019733780807b74a3e58de59e0e9dbdaa",
+    "mtime": 1790452869.208626
+  },
+  {
+    "path": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/results.json",
+    "file": "stoneforge-merge-check-GPBE9u-results.json",
+    "sha256": "fca981bcf2cfa9aa07b9a79d479586bdb6026b1a2823bb5f330288877c167936",
+    "mtime": 1790453933.2923377
+  },
+  {
+    "path": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/results.json",
+    "file": "stoneforge-merge-check-g8qBfX-results.json",
+    "sha256": "746fac8960f1d763f19f02276afee2d35bd9e5d9d60322b98781a1ebce19666e",
+    "mtime": 1790453868.0109086
+  },
+  {
+    "path": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-eBPSmr/results.json",
+    "file": "stoneforge-merge-check-eBPSmr-results.json",
+    "sha256": "0f938a240cc787fe608b7bd89c30f64151d8b26ffbd123634b737d252f44cbd6",
+    "mtime": 1790453914.963727
+  }
+]

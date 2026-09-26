@@ -1,0 +1,776 @@
+[
+  {
+    "gate": "dMwYdr",
+    "revision": "e3dc52102c8a84f6b23fec9430147c383ff2699e",
+    "steps": 189,
+    "passed": 187,
+    "stepSecondsSum": 319.88,
+    "quarry": {
+      "name": "packages/quarry/src/api/query-performance.bun.test.ts",
+      "command": "bun",
+      "args": [
+        "test",
+        "./packages/quarry/src/api/query-performance.bun.test.ts"
+      ],
+      "code": 1,
+      "seconds": "9.49",
+      "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/047.log"
+    },
+    "plugin": {
+      "name": "packages/smithy/src/services/plugin-executor.bun.test.ts",
+      "command": "bun",
+      "args": [
+        "test",
+        "./packages/smithy/src/services/plugin-executor.bun.test.ts"
+      ],
+      "code": 1,
+      "seconds": "5.76",
+      "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/172.log"
+    },
+    "scaling": {
+      "name": "list",
+      "unit": "ms",
+      "sizes": [
+        50,
+        100,
+        150
+      ],
+      "orders": [
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          2,
+          1,
+          0
+        ],
+        [
+          1,
+          2,
+          0
+        ],
+        [
+          0,
+          2,
+          1
+        ],
+        [
+          2,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          2
+        ]
+      ],
+      "warmup": [
+        {
+          "durations": [
+            50.986042
+          ],
+          "operations": 256
+        },
+        {
+          "durations": [
+            90.39291600000024
+          ],
+          "operations": 256
+        },
+        {
+          "durations": [
+            137.2641249999997
+          ],
+          "operations": 256
+        }
+      ],
+      "samples": [
+        [
+          {
+            "durations": [
+              49.682708000000275
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              59.007666999999856
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              51.47095799999988
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              51.2792500000005
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              54.39766700000018
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              49.95670800000062
+            ],
+            "operations": 256
+          }
+        ],
+        [
+          {
+            "durations": [
+              114.34383400000024
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              150.57037500000024
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              154.60091600000032
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              103.17929200000071
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              98.49416699999983
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              98.29562499999975
+            ],
+            "operations": 256
+          }
+        ],
+        [
+          {
+            "durations": [
+              212.6914999999999
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              182.16799999999967
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              192.4925000000003
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              143.92249999999967
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              139.54100000000017
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              140.0625829999999
+            ],
+            "operations": 256
+          }
+        ]
+      ],
+      "totals": [
+        [
+          49.682708000000275,
+          59.007666999999856,
+          51.47095799999988,
+          51.2792500000005,
+          54.39766700000018,
+          49.95670800000062
+        ],
+        [
+          114.34383400000024,
+          150.57037500000024,
+          154.60091600000032,
+          103.17929200000071,
+          98.49416699999983,
+          98.29562499999975
+        ],
+        [
+          212.6914999999999,
+          182.16799999999967,
+          192.4925000000003,
+          143.92249999999967,
+          139.54100000000017,
+          140.0625829999999
+        ]
+      ],
+      "medians": [
+        0.20068400000000075,
+        0.42484985546875187,
+        0.6368955078124987
+      ],
+      "ratio": 3.173623745851669,
+      "loadavg": [
+        11.80224609375,
+        11.951171875,
+        10.96875
+      ]
+    },
+    "bunHeader": "bun test v1.3.11 (af24e281)",
+    "mtimeWindow": {
+      "startApprox": "2026-09-26T19:49:48.730614+00:00",
+      "end": "2026-09-26T19:55:08.676427+00:00"
+    },
+    "targetMtimeWindows": {
+      "quarry": {
+        "startApprox": "2026-09-26T19:50:31.510134+00:00",
+        "end": "2026-09-26T19:50:41.000134+00:00"
+      },
+      "plugin": {
+        "startApprox": "2026-09-26T19:54:06.305646+00:00",
+        "end": "2026-09-26T19:54:12.065646+00:00"
+      }
+    }
+  },
+  {
+    "gate": "g8qBfX",
+    "revision": "e3511add8aca7eb9226409f880fc0ef52c597dc4",
+    "steps": 189,
+    "passed": 188,
+    "stepSecondsSum": 450.27,
+    "quarry": {
+      "name": "packages/quarry/src/api/query-performance.bun.test.ts",
+      "command": "bun",
+      "args": [
+        "test",
+        "./packages/quarry/src/api/query-performance.bun.test.ts"
+      ],
+      "code": 1,
+      "seconds": "16.68",
+      "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/047.log"
+    },
+    "plugin": {
+      "name": "packages/smithy/src/services/plugin-executor.bun.test.ts",
+      "command": "bun",
+      "args": [
+        "test",
+        "./packages/smithy/src/services/plugin-executor.bun.test.ts"
+      ],
+      "code": 0,
+      "seconds": "0.83",
+      "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/172.log"
+    },
+    "scaling": {
+      "name": "list",
+      "unit": "ms",
+      "sizes": [
+        50,
+        100,
+        150
+      ],
+      "orders": [
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          2,
+          1,
+          0
+        ],
+        [
+          1,
+          2,
+          0
+        ],
+        [
+          0,
+          2,
+          1
+        ],
+        [
+          2,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          2
+        ]
+      ],
+      "warmup": [
+        {
+          "durations": [
+            75.89191699999901
+          ],
+          "operations": 256
+        },
+        {
+          "durations": [
+            109.56112500000017
+          ],
+          "operations": 256
+        },
+        {
+          "durations": [
+            154.54654200000004
+          ],
+          "operations": 256
+        }
+      ],
+      "samples": [
+        [
+          {
+            "durations": [
+              53.95404200000121
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              117.13687500000015
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              117.95299999999952
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              100.1236659999995
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              126.90983400000005
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              52.74433300000055
+            ],
+            "operations": 256
+          }
+        ],
+        [
+          {
+            "durations": [
+              94.90562499999942
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              120.81591599999956
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              205.25020799999947
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              252.55112499999996
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              214.0539170000011
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              118.36183300000084
+            ],
+            "operations": 256
+          }
+        ],
+        [
+          {
+            "durations": [
+              602.8811669999996
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              1059.5104580000007
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              452.2920830000003
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              168.96462500000052
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              321.00441599999976
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              154.10349999999926
+            ],
+            "operations": 256
+          }
+        ]
+      ],
+      "totals": [
+        [
+          53.95404200000121,
+          117.13687500000015,
+          117.95299999999952,
+          100.1236659999995,
+          126.90983400000005,
+          52.74433300000055
+        ],
+        [
+          94.90562499999942,
+          120.81591599999956,
+          205.25020799999947,
+          252.55112499999996,
+          214.0539170000011,
+          118.36183300000084
+        ],
+        [
+          602.8811669999996,
+          1059.5104580000007,
+          452.2920830000003,
+          168.96462500000052,
+          321.00441599999976,
+          154.10349999999926
+        ]
+      ],
+      "medians": [
+        0.4243369941406243,
+        0.6368478984374981,
+        1.510344724609375
+      ],
+      "ratio": 3.559304857848077,
+      "loadavg": [
+        90.908203125,
+        38.2275390625,
+        26.49072265625
+      ]
+    },
+    "bunHeader": "bun test v1.3.11 (af24e281)",
+    "mtimeWindow": {
+      "startApprox": "2026-09-26T20:10:17.644831+00:00",
+      "end": "2026-09-26T20:17:48.010909+00:00"
+    },
+    "targetMtimeWindows": {
+      "quarry": {
+        "startApprox": "2026-09-26T20:11:53.716846+00:00",
+        "end": "2026-09-26T20:12:10.396846+00:00"
+      },
+      "plugin": {
+        "startApprox": "2026-09-26T20:17:14.487261+00:00",
+        "end": "2026-09-26T20:17:15.317261+00:00"
+      }
+    }
+  },
+  {
+    "gate": "GPBE9u",
+    "revision": "fd7cb1ea7dd24e3b10e820cd32760e28ba313711",
+    "steps": 189,
+    "passed": 188,
+    "stepSecondsSum": 324.89,
+    "quarry": {
+      "name": "packages/quarry/src/api/query-performance.bun.test.ts",
+      "command": "bun",
+      "args": [
+        "test",
+        "./packages/quarry/src/api/query-performance.bun.test.ts"
+      ],
+      "code": 1,
+      "seconds": "13.13",
+      "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/047.log"
+    },
+    "plugin": {
+      "name": "packages/smithy/src/services/plugin-executor.bun.test.ts",
+      "command": "bun",
+      "args": [
+        "test",
+        "./packages/smithy/src/services/plugin-executor.bun.test.ts"
+      ],
+      "code": 0,
+      "seconds": "0.50",
+      "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/172.log"
+    },
+    "scaling": {
+      "name": "list",
+      "unit": "ms",
+      "sizes": [
+        50,
+        100,
+        150
+      ],
+      "orders": [
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          2,
+          1,
+          0
+        ],
+        [
+          1,
+          2,
+          0
+        ],
+        [
+          0,
+          2,
+          1
+        ],
+        [
+          2,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          2
+        ]
+      ],
+      "warmup": [
+        {
+          "durations": [
+            224.38529199999994
+          ],
+          "operations": 256
+        },
+        {
+          "durations": [
+            135.6991250000001
+          ],
+          "operations": 256
+        },
+        {
+          "durations": [
+            175.2188329999999
+          ],
+          "operations": 256
+        }
+      ],
+      "samples": [
+        [
+          {
+            "durations": [
+              58.17133300000023
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              57.273667000001296
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              58.699915999999575
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              60.8234999999986
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              65.02570799999921
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              61.32775000000038
+            ],
+            "operations": 256
+          }
+        ],
+        [
+          {
+            "durations": [
+              120.05879200000072
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              119.55091700000048
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              108.98416599999837
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              116.28029099999912
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              111.7122500000005
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              115.50450000000092
+            ],
+            "operations": 256
+          }
+        ],
+        [
+          {
+            "durations": [
+              260.2112079999997
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              246.22366700000111
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              165.2893329999988
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              170.0188339999986
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              179.609457999999
+            ],
+            "operations": 256
+          },
+          {
+            "durations": [
+              199.37058400000024
+            ],
+            "operations": 256
+          }
+        ]
+      ],
+      "totals": [
+        [
+          58.17133300000023,
+          57.273667000001296,
+          58.699915999999575,
+          60.8234999999986,
+          65.02570799999921,
+          61.32775000000038
+        ],
+        [
+          120.05879200000072,
+          119.55091700000048,
+          108.98416599999837,
+          116.28029099999912,
+          111.7122500000005,
+          115.50450000000092
+        ],
+        [
+          260.2112079999997,
+          246.22366700000111,
+          165.2893329999988,
+          170.0188339999986,
+          179.609457999999,
+          199.37058400000024
+        ]
+      ],
+      "medians": [
+        0.23344417187499644,
+        0.4527046699218751,
+        0.7401953945312485
+      ],
+      "ratio": 3.1707597948840838,
+      "loadavg": [
+        43.724609375,
+        45.8896484375,
+        32.3525390625
+      ]
+    },
+    "bunHeader": "bun test v1.3.11 (af24e281)",
+    "mtimeWindow": {
+      "startApprox": "2026-09-26T20:13:28.335527+00:00",
+      "end": "2026-09-26T20:18:53.292338+00:00"
+    },
+    "targetMtimeWindows": {
+      "quarry": {
+        "startApprox": "2026-09-26T20:14:58.357074+00:00",
+        "end": "2026-09-26T20:15:11.487074+00:00"
+      },
+      "plugin": {
+        "startApprox": "2026-09-26T20:18:15.561392+00:00",
+        "end": "2026-09-26T20:18:16.061392+00:00"
+      }
+    }
+  }
+]
