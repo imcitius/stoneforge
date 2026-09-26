@@ -187,6 +187,23 @@ and exit code, including failures; a later pass does not erase a failed outcome.
 The smoke completes onboarding through UI synchronization, without force clicks,
 overlay removal, added sleeps, or retrying whole runs until green.
 
+Native focus checks require an unlocked macOS graphical session. If the Logs
+focus check fails, retain the failure and inspect the console lock state before
+starting another bounded sample; do not bypass native focus assertions. A passing
+LaunchServices check alone does not establish Logs or onboarding acceptance.
+
+For a release candidate, keep the relocated app and its evidence outside managed
+worktrees. `scripts/bundle-manifest.mjs create APP MANIFEST.json` records the complete
+file/directory/link inventory and permissions; `verify` rejects changed or extra
+entries and escaping symlinks. Keep the manifest outside the app and record its
+SHA-256 separately. With `DESKTOP_APP` set to that exact bundle, run
+`"$DESKTOP_APP/Contents/Resources/runtime/node" scripts/check-safeguards.mjs`
+from this directory to test bundled ancestry/sync, Git argument safety/local
+delivery, workload and metrics on temporary fixtures without provider sessions.
+These checks supplement the GUI and source gates. See the
+[el-1zar candidate/update runbook](../../docs/workspace/desktop-update-el-1zar.md)
+for its recorded results, limitations and the separate Human approval boundary.
+
 Opt-in provider validation makes real API calls through the packaged terminal:
 
 ```sh
