@@ -7,9 +7,10 @@
  */
 
 import { useProviderMetrics } from './useProviderMetrics';
+import type { UsageCoverage } from '../types';
 
-export interface AgentTokenUsage {
-  /** Input tokens consumed */
+export interface AgentTokenUsage extends UsageCoverage {
+  /** Uncached input tokens consumed (cache categories are separate) */
   inputTokens: number;
   /** Output tokens consumed */
   outputTokens: number;
@@ -98,6 +99,9 @@ export function useAgentTokens(agentId: string | undefined, sessionId?: string) 
     cacheCreationTokens: metrics.totalCacheCreationTokens ?? 0,
     totalTokens: metrics.totalTokens,
     sessionCount: metrics.sessionCount,
+    usageStatus: metrics.usageStatus,
+    usageSessionCount: metrics.usageSessionCount,
+    legacySessionCount: metrics.legacySessionCount,
     estimatedCost: metrics.estimatedCost?.totalCost,
   };
 
