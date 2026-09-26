@@ -214,3 +214,24 @@ no causal attribution to host load is claimed (recorded loadavg11.80/11.95/10.97
 All handoff/completion/dispatch/spawner suites passed. Director notified; no
 out-of-scope fix, threshold change or duplicate task. One isolated diagnostic run
 and integration of newly delivered master3c22b53 follow; failures remain evidence.
+
+The single isolated diagnostic command
+`bun test packages/quarry/src/api/query-performance.bun.test.ts packages/smithy/src/services/plugin-executor.bun.test.ts`
+passed **88/88,1019 assertions,exit0,35.57s** without code/threshold changes
+(`/tmp/el-2pujj-gate-failure-probe.log`). It does not erase the failed full gate
+or establish its cause. Approved CLI sync with delivered Spawner terminate fix
+`3c22b53` required only an additive conflict in the lifecycle report; both sections
+were retained in merge `f61392a`. Production merged without conflict; handoff
+implementation/tests are unchanged. A full gate on this new integration follows.
+
+Final integrated required gate on `f61392a`: **189/189, exit0, 360.79s**.
+Log `/tmp/el-2pujj-final-gate.log`; exact per-step commands/results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-pPFkcm/results.json`.
+Includes uncached typecheck17/17, handoff/retention/completion/dispatch regressions,
+mock Spawner and delivered termination tests, Smithy Node/Vitest and Desktop
+source build/Node tests. No check, threshold or implementation was changed to
+make the two intermediate failures pass; their root cause remains unresolved.
+The new integration necessitated this full gate. Local target remains3c22b53;
+ancestry and diff checks pass. Only verification documentation changed afterward.
+Independent steward must review the exact final commit and preserved failures
+before approved CLI local delivery; no worker merge or app/live changes occurred.
