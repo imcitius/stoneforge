@@ -7,11 +7,11 @@
  * Pattern:
  *  1. Fetch origin (skipped when local-only / no remote)
  *  2. (Optional) Pre-flight conflict detection via git merge-tree
- *  3. Create temp worktree with detached HEAD at origin/<target> or local <target>
+ *  3. Resolve target ancestry; create a detached temp worktree at its commit
  *  4. Squash merge (or regular merge) source branch
  *  5. Commit with provided message
  *  6. Push HEAD:<target> to remote (skipped when local-only)
- *  7. Remove temp worktree (always, in finally)
+ *  7. Deliver locally in local-only mode; retain temp worktree on delivery failure
  *  8. (Optional) Sync local target branch via fast-forward
  *
  * Local-only mode is auto-detected when no 'origin' remote exists, or can
@@ -20,7 +20,8 @@
  * @module
  */
 
-import { exec } from 'node:child_process';
+import { exec, execFile } from 'node:child_process';
+import { resolveTarget, requireRemoteTarget } from './target.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -49,7 +50,7 @@ export interface MergeBranchOptions {
   commitMessage?: string;
   /** Run pre-flight conflict detection via merge-tree (default: true) */
   preflight?: boolean;
-  /** Fast-forward local target branch after push (default: true) */
+  /** Best-effort local sync after remote push (default: true); local-only delivery is always required. */
   syncLocal?: boolean;
   /**
    * When true, skip all remote operations (fetch, push).
@@ -245,8 +246,7 @@ export async function ensureTargetBranchExists(
   const mainBranch = await detectTargetBranch(workspaceRoot);
   const hasOrigin = await hasRemote(workspaceRoot);
 
-  // Determine the base ref: prefer remote main when available
-  const baseRef = hasOrigin && !localOnly ? `origin/${mainBranch}` : mainBranch;
+  // Resolve after fetching below; never silently publish local-only main history.
 
   // When using a remote ref, ensure it exists locally by fetching.
   // The remote tracking ref (e.g. origin/main) may not exist if no
@@ -263,6 +263,10 @@ export async function ensureTargetBranchExists(
       // a clear error if the ref truly doesn't exist.
     }
   }
+
+  const base = await resolveTarget(workspaceRoot, mainBranch, 'none');
+  if (!localOnly && hasOrigin) requireRemoteTarget(base, mainBranch);
+  const baseRef = base.commit;
 
   // Create the branch locally from the main branch HEAD
   await execAsync(`git branch ${targetBranch} ${baseRef}`, {
@@ -321,7 +325,7 @@ async function branchExistsOnRemote(
 
 /**
  * Perform a merge of `sourceBranch` into `targetBranch` using a temporary
- * worktree. This never touches the main repo's HEAD or index.
+ * worktree. Local delivery fast-forwards the target checkout without switching branches.
  */
 export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBranchResult> {
   const {
@@ -349,6 +353,10 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
   // Ensure the target branch exists (auto-creates review branches from main)
   await ensureTargetBranchExists(workspaceRoot, targetBranch, localOnly);
 
+  const target = await resolveTarget(workspaceRoot, targetBranch, 'none');
+  if (!localOnly) requireRemoteTarget(target, targetBranch);
+  const targetRef = target.commit;
+
   // Build commit message
   const message = commitMessage
     ?? (mergeStrategy === 'squash'
@@ -358,7 +366,6 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
   // 1b. Check if source branch has any commits ahead of target.
   // If count is 0, the branch is already fully merged — nothing to do.
   try {
-    const targetRef = localOnly ? targetBranch : `origin/${targetBranch}`;
     // Always use local source ref — the actual merge (squash or no-ff) at line ~416
     // operates on the local sourceBranch, so the pre-check must match.
     // Using origin/${sourceBranch} would miss unpushed local commits.
@@ -369,6 +376,13 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
     );
     const commitsAhead = parseInt(countStr.trim(), 10);
     if (commitsAhead === 0) {
+      if (localOnly) {
+        try {
+          await syncLocalBranchFromCommit(workspaceRoot, targetBranch, targetRef);
+        } catch (error) {
+          return { success: false, hasConflict: false, error: `Local delivery failed: ${error}` };
+        }
+      }
       return {
         success: true,
         hasConflict: false,
@@ -381,9 +395,8 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
   }
 
   // 2. Pre-flight conflict detection via merge-tree
-  // When local-only, use the local targetBranch ref instead of origin/<targetBranch>
   if (preflight) {
-    const preflightRef = localOnly ? targetBranch : `origin/${targetBranch}`;
+    const preflightRef = targetRef;
     try {
       const { stdout: mergeBase } = await execAsync(
         `git merge-base ${preflightRef} ${sourceBranch}`,
@@ -420,16 +433,15 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
     });
   }
 
-  // Create with detached HEAD at the target ref.
-  // When remote exists, use origin/<target> for the latest remote state;
-  // when local-only, use the local <target> branch directly.
-  const worktreeStartRef = localOnly ? targetBranch : `origin/${targetBranch}`;
+  // Pin the resolved target snapshot for the whole merge.
+  const worktreeStartRef = targetRef;
   await execAsync(`git worktree add --detach "${mergeDir}" ${worktreeStartRef}`, {
     cwd: workspaceRoot, encoding: 'utf8',
   });
 
   let mergeResult: MergeBranchResult = { success: false, hasConflict: false, error: 'Merge did not complete' };
 
+  let preserveMergeWorktree = false;
   try {
     let commitHash: string;
 
@@ -481,6 +493,18 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
       }
     }
 
+    if (!pushFailed && localOnly) {
+      // Local-only means delivery, even if the caller disabled optional remote sync.
+      try {
+        await syncLocalBranchFromCommit(workspaceRoot, targetBranch, commitHash);
+      } catch (error) {
+        preserveMergeWorktree = true;
+        return {
+          success: false, commitHash, hasConflict: false,
+          error: `Local delivery to ${targetBranch} failed: ${error instanceof Error ? error.message : error}. Merge retained at ${mergeDir}; source branch/worktree are unchanged.`,
+        };
+      }
+    }
     if (!pushFailed) {
       mergeResult = { success: true, commitHash, hasConflict: false };
     }
@@ -520,9 +544,9 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
       };
     }
   } finally {
-    // 7. Always remove temp worktree
+    // 7. Retain undelivered local merge commits for recovery; clean other temp worktrees
     try {
-      await execAsync(`git worktree remove --force "${mergeDir}"`, {
+      if (!preserveMergeWorktree) await execAsync(`git worktree remove --force "${mergeDir}"`, {
         cwd: workspaceRoot, encoding: 'utf8',
       });
     } catch {
@@ -530,15 +554,9 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
     }
   }
 
-  // 8. Sync local target branch
-  // In local-only mode, fast-forward the local target branch to the merge commit.
-  // With a remote, sync local branch after push (best-effort).
-  if (mergeResult.success && syncLocal) {
-    if (localOnly) {
-      await syncLocalBranchFromCommit(workspaceRoot, targetBranch, mergeResult.commitHash!);
-    } else if (autoPush) {
-      await syncLocalBranch(workspaceRoot, targetBranch);
-    }
+  // Remote delivery remains authoritative in the default mode.
+  if (mergeResult.success && syncLocal && !localOnly && autoPush) {
+    await syncLocalBranch(workspaceRoot, targetBranch);
   }
 
   return mergeResult;
@@ -596,42 +614,33 @@ export async function syncLocalBranch(
 }
 
 /**
- * Fast-forward the local target branch to a specific commit hash.
- *
- * Used in local-only mode where there is no remote to sync from.
- * Updates the branch ref directly using `git branch -f` when not on
- * the target branch, or `git merge --ff-only <hash>` when on it.
+ * Deliver to the actual local target without checking out another branch.
+ * Refuse non-fast-forwards and dirty target checkouts; propagate every failure.
  */
 export async function syncLocalBranchFromCommit(
   workspaceRoot: string,
   targetBranch: string,
   commitHash: string
 ): Promise<void> {
-  try {
-    // Determine current branch
-    let currentBranch: string | undefined;
-    try {
-      const { stdout } = await execAsync(
-        'git symbolic-ref --short HEAD',
-        { cwd: workspaceRoot, encoding: 'utf8' }
-      );
-      currentBranch = stdout.trim();
-    } catch {
-      // Detached HEAD
+  const run = promisify(execFile);
+  const git = async (cwd: string, ...args: string[]) =>
+    (await run('git', args, { cwd, encoding: 'utf8' })).stdout.trim();
+  const ref = `refs/heads/${targetBranch}`;
+  const oldCommit = await git(workspaceRoot, 'rev-parse', '--verify', ref);
+  await git(workspaceRoot, 'merge-base', '--is-ancestor', oldCommit, commitHash);
+  const worktrees = await git(workspaceRoot, 'worktree', 'list', '--porcelain', '-z');
+  const targetCheckout = worktrees.split('\0\0').find(block => block.split('\0').includes(`branch ${ref}`));
+  if (targetCheckout) {
+    const checkout = targetCheckout.split('\0').find(line => line.startsWith('worktree '))!.slice(9);
+    // Git itself refuses untracked-file collisions; ignore unrelated generated
+    // files such as the temporary merge worktree under .stoneforge.
+    if (await git(checkout, 'status', '--porcelain', '--untracked-files=no')) {
+      throw new Error(`Target checkout ${checkout} is dirty; commit or stash its changes before delivery.`);
     }
-
-    if (currentBranch === targetBranch) {
-      // On the target branch — fast-forward in place
-      await execAsync(`git merge --ff-only ${commitHash}`, {
-        cwd: workspaceRoot, encoding: 'utf8',
-      });
-    } else {
-      // Not on target branch — force-update the ref to point at the merge commit
-      await execAsync(`git branch -f ${targetBranch} ${commitHash}`, {
-        cwd: workspaceRoot, encoding: 'utf8',
-      });
-    }
-  } catch {
-    console.warn('[git/merge] Failed to update local target branch after local-only merge.');
+    await git(checkout, 'merge', '--ff-only', commitHash);
+  } else {
+    // Compare-and-swap protects a concurrent target update; no force/reset.
+    await git(workspaceRoot, 'update-ref', ref, commitHash, oldCommit);
   }
+  await git(workspaceRoot, 'merge-base', '--is-ancestor', commitHash, ref);
 }
