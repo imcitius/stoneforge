@@ -789,6 +789,69 @@ Registered SF steward review of the **exact final commit**, followed by explicit
 checks and approved CLI local merge, remains required. Advisory sub-agent review
 is not a claim that this orchestration review or delivery has occurred.
 
+## Spawner termination retry — el-1c5so, 2026-09-26
+
+Production fix `1b8de58`, integrated with delivered local master `a6120dc` in
+`c4a8eb2`. This is the lower-level Spawner contract, separate from pending
+el-1q2vv SessionManager persistence/CAS work; no pending branch was copied.
+
+A real `SpawnerServiceImpl`, spawned through inert typed providers, confirms
+that throwing interactive kill/headless close after the transition leaves
+`terminating`, and a concurrent duplicate previously returned success. The
+initial four-test desired-safety baseline on `75b818a` produced **3 failures,
+1 pass** (exit1): both provider-error cases and early concurrent success fail.
+The original successor-only control passed because it did not yet assert own
+completion; the final regression also requires own terminated state and two
+calls on the original handle. Baseline log: `/tmp/el-1c5so-baseline.log`.
+No desired-safety failure was converted into acceptable defect behavior.
+
+The implementation stores attempt/step progress on the captured internal session.
+Concurrent callers await the same attempt, including its exact thrown error even
+if the provider reports exit synchronously before throwing. Retrying a failed
+attempt never resolves the agent's current session/provider ID, so a same-agent,
+same-provider-ID successor is untouched. Completed stops remain idempotent.
+Provider requestExit/write/interrupt/close/kill errors propagate unchanged.
+Successful interrupt, graceful request/grace period, close and force request are
+not replayed; a throwing step may be retried on that same handle. As with any
+provider API, a throw after an unreported external side effect is ambiguous:
+this is not a guarantee of exactly-once external delivery.
+
+A concurrent force call joins the active graceful attempt; it does not escalate
+that attempt. After failure, force retry skips unfinished graceful steps.
+Interactive/legacy graceful shutdown waits up to 5s for exit, then sends force
+and waits up to another 5s. Headless graceful shutdown interrupts, closes and
+waits up to 5s for stream completion; force skips interrupt. Provider interrupt
+itself retains its Promise contract (no new cancellation deadline).
+A sent signal, process.killed flag, successful close or expired timer alone is
+not completion: unconfirmed exit rejects and remains `terminating` with no
+synthetic endedAt. Later attempts can await the outstanding accepted request,
+without re-sending it. A provider exit callback/stream completion can finish the
+session independently. These provider observations do not prove that every
+external descendant/server has stopped. SessionManager's separate in-memory
+status/persistence behavior is not changed or claimed fixed here.
+
+The temporary exit observer and timer are installed before the request and
+removed on success, timeout and throw. No polling interval remains. Ordinary
+5s retention timers created by actual provider exit remain intact.
+`spawner-terminate.test.ts` uses Vitest fake timers, no arbitrary sleeps, no OS
+processes or live providers. Its **15/15** passing cases cover direct close/kill
+failure and concurrent error, delayed/synchronous exit, original handle versus
+successor, completed positive controls, requestExit/write failures, fallback
+kill throw, accepted-close/kill timeout then retry, headless interrupt/close
+progress, force/graceful retries, and original errors despite synchronous exit.
+The legacy process branch has no current public spawn path; its explicit
+private-state fixture uses only EventEmitter plus mock kill, and asserts
+SIGKILL despite killed=true, failure retry and listener disposal. This proves
+branch behavior, not current production reachability of a legacy spawn path.
+
+Validation before full gate: frozen pnpm install exit0; Smithy typecheck exit0;
+focused Vitest15/15 exit0; SessionManager Bun85/85,157 assertions exit0.
+Logs: `/tmp/el-1c5so-{install,typecheck,focused,session-manager}.log`.
+Required full gate result is recorded below when finished. No standalone root
+build/lint/test, browser/packaged GUI, cross-platform or real-provider coverage
+is claimed. Installed Desktop, agent processes, daemon and closed maintenance were not
+used as fixtures or modified. Shared task/docs updates use sf. Exact-final-commit
+independent steward review and approved CLI local merge remain required.
 
 ### el-1q2vv safe sync after delivered completion fix
 
@@ -883,3 +946,33 @@ Log `/tmp/el-1q2vv-retry-gate-final.log`; exact commands/exits and per-step logs
 All final production/test edits were present; only this result documentation was
 added afterward. This supersedes neither the historical rejection nor omitted
 live-provider coverage. Independent exact-commit review remains required.
+
+### el-1c5so delivered-contract compatibility and final verification
+
+The first full `pnpm check:merge` on integrated `c4a8eb2` passed **188/188,
+exit0,238.23s**; results at
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-HEkiPi/results.json`.
+During verification el-1q2vv was independently accepted and delivered as local
+master `90b3ad8`. Approved CLI sync produced `5ee8034`; only the additive report
+conflict needed resolution, retaining both reports. Statements above referring
+to pending SessionManager changes are historical; the final branch includes the
+delivered contract, with no worker changes to SessionManager/dispatch/Quarry.
+
+Source compatibility review: stopSession shares its own pending operation;
+a Spawner rejection leaves terminationComplete=false and does not enter
+persistence. Retry calls terminate with the same internal session ID. After
+successful Spawner exit, a persistence-only retry skips process termination.
+Existing SessionManager in-memory status-before-exit semantics remain outside
+this lower-level change. Integrated `bun test
+packages/smithy/src/services/dispatch-claim.bun.test.ts
+packages/smithy/src/runtime/session-manager.bun.test.ts`: **113/113,279 assertions,
+exit0,10.50s**, log `/tmp/el-1c5so-integrated-runtime.log`.
+
+Final integrated `pnpm check:merge`: **189/189,exit0,265.29s** on source `5ee8034`,
+including Spawner Vitest15/15 and all declared runtime/Node checks. Full log
+`/tmp/el-1c5so-gate-integrated.log`; exact commands/results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-YYVnWC/results.json`.
+Local master ancestry and diff checks pass. Only report text changed after this
+gate. Original failures and pre-sync result are retained. Independent steward
+review of the final commit and approved CLI local merge remain required; this
+worker record is not a merge verdict or installed application update.

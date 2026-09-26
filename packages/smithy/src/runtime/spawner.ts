@@ -206,6 +206,15 @@ export interface SpawnedSession {
  * Internal session state tracking
  */
 interface InternalSession extends SpawnedSession {
+  /** Progress belongs to this internal session and its original handles. */
+  termination?: {
+    operation?: Promise<void>;
+    gracefulRequested?: boolean;
+    graceExpired?: boolean;
+    interrupted?: boolean;
+    closed?: boolean;
+    forceRequested?: boolean;
+  };
   /** Child process handle (for headless mode - legacy) */
   process?: ChildProcess;
   /** Provider headless session handle */
@@ -293,7 +302,12 @@ export interface SpawnerService {
   ): Promise<SpawnResult>;
 
   /**
-   * Terminates a running session.
+   * Terminates a running session, awaiting its provider exit/stream completion.
+   * Concurrent calls share the current attempt (a force call does not escalate
+   * an in-flight graceful attempt). After failure, retry uses the same internal
+   * session and skips completed requests; force skips unfinished graceful steps.
+   * Unconfirmed exit rejects and leaves the session terminating. A provider's
+   * stream completion does not guarantee termination of every external process.
    *
    * @param sessionId - The internal session ID
    * @param graceful - Whether to attempt graceful shutdown (default: true)
@@ -580,105 +594,97 @@ export class SpawnerServiceImpl implements SpawnerService {
       throw new Error(`Session not found: ${sessionId}`);
     }
 
-    if (session.status === 'terminated' || session.status === 'terminating') {
-      return;
+    // Check the operation first: an exit callback can run before a provider
+    // method throws. Concurrent callers must still receive that same error.
+    const progress = session.termination ??= {};
+    if (progress.operation) return progress.operation;
+    if (session.status === 'terminated') return;
+
+    if (session.status !== 'terminating') this.transitionStatus(session, 'terminating');
+
+    // Publish before invoking any provider code (including synchronous callbacks).
+    const operation = Promise.resolve().then(() => this.terminateSession(session, graceful));
+    progress.operation = operation;
+    try {
+      await operation;
+    } finally {
+      progress.operation = undefined;
     }
+  }
 
-    this.transitionStatus(session, 'terminating');
+  private async terminateSession(session: InternalSession, graceful: boolean): Promise<void> {
+    const progress = session.termination!;
+    const interactive = session.interactiveSession;
+    const headless = session.headlessSession;
+    const process = session.process;
+    const exited = () => session.status === 'terminated';
+    if (exited()) return;
 
-    // Handle provider interactive sessions
-    if (session.interactiveSession) {
-      if (graceful) {
-        if (session.interactiveSession.requestExit) {
-          session.interactiveSession.requestExit();
-        } else {
-          session.interactiveSession.write('exit\r');
-        }
-
-        await new Promise<void>((resolve) => {
-          const timeout = setTimeout(() => {
-            clearInterval(checkInterval);
-            if (session.interactiveSession) {
-              session.interactiveSession.kill();
-            }
-            resolve();
-          }, 5000);
-
-          const checkInterval = setInterval(() => {
-            if ((session.status as SessionStatus) === 'terminated') {
-              clearInterval(checkInterval);
-              clearTimeout(timeout);
-              resolve();
-            }
-          }, 100);
+    if (interactive || process) {
+      if (graceful && !progress.forceRequested && !progress.graceExpired) {
+        const ended = await this.waitForTermination(session, () => {
+          if (progress.gracefulRequested) return;
+          if (interactive) {
+            if (interactive.requestExit) interactive.requestExit();
+            else interactive.write('exit\r');
+          } else {
+            process!.kill('SIGTERM');
+          }
+          progress.gracefulRequested = true;
         });
-      } else {
-        session.interactiveSession.kill();
+        if (ended) return;
+        progress.graceExpired = true;
       }
-    }
-
-    // Handle provider headless sessions
-    if (session.headlessSession) {
-      if (graceful) {
-        // Graceful: interrupt the SDK query, then close (which also interrupts).
-        // Wait up to 5s for the session to terminate cleanly.
-        try {
-          await session.headlessSession.interrupt();
-        } catch {
-          // Ignore — query may already be finished
-        }
-        session.headlessSession.close();
-
-        await new Promise<void>((resolve) => {
-          const timeout = setTimeout(() => {
-            clearInterval(checkInterval);
-            resolve();
-          }, 5000);
-
-          const checkInterval = setInterval(() => {
-            if ((session.status as SessionStatus) === 'terminated') {
-              clearInterval(checkInterval);
-              clearTimeout(timeout);
-              resolve();
-            }
-          }, 100);
-        });
-      } else {
-        // Force: close immediately (close() calls interrupt() internally)
-        session.headlessSession.close();
+      const ended = await this.waitForTermination(session, () => {
+        if (progress.forceRequested) return;
+        if (interactive) interactive.kill();
+        else process!.kill('SIGKILL');
+        progress.forceRequested = true;
+      });
+      if (ended) return;
+    } else if (headless) {
+      // A later force retry skips an unsuccessful interrupt. Completed steps
+      // are never repeated; close alone does not prove the stream has ended.
+      if (graceful && !progress.interrupted && !progress.closed) {
+        await headless.interrupt();
+        progress.interrupted = true;
       }
+      if (exited()) return;
+      const ended = await this.waitForTermination(session, () => {
+        if (progress.closed) return;
+        headless.close();
+        progress.closed = true;
+      });
+      if (ended) return;
     }
 
-    // Handle headless process sessions (legacy)
-    if (session.process) {
-      if (graceful) {
-        session.process.kill('SIGTERM');
+    // Neither a delivered signal nor a timeout establishes process termination.
+    throw new Error(`Session termination unconfirmed: ${session.id}`);
+  }
 
-        await new Promise<void>((resolve) => {
-          const timeout = setTimeout(() => {
-            if (session.process && !session.process.killed) {
-              session.process.kill('SIGKILL');
-            }
-            resolve();
-          }, 5000);
-
-          session.process?.once('exit', () => {
-            clearTimeout(timeout);
-            resolve();
-          });
-        });
-      } else {
-        session.process.kill('SIGKILL');
-      }
+  /** Observe exit before sending a signal, and dispose observers on every path. */
+  private async waitForTermination(session: InternalSession, request: () => void): Promise<boolean> {
+    if (session.status === 'terminated') return true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let onExit!: () => void;
+    const exitSource = session.process ?? session.events;
+    const ended = new Promise<boolean>((resolve) => {
+      onExit = () => {
+        if (session.status !== 'terminated') this.transitionStatus(session, 'terminated');
+        session.endedAt ??= createTimestamp();
+        if (session.process) this.scheduleTerminatedSessionCleanup(session.id);
+        resolve(true);
+      };
+      exitSource.once('exit', onExit);
+      timer = setTimeout(() => resolve(false), 5000);
+    });
+    try {
+      request();
+      return await ended;
+    } finally {
+      clearTimeout(timer);
+      exitSource.off('exit', onExit);
     }
-
-    // Only transition if not already terminated
-    if ((session.status as SessionStatus) !== 'terminated') {
-      this.transitionStatus(session, 'terminated');
-      session.endedAt = createTimestamp();
-    }
-
-    this.scheduleTerminatedSessionCleanup(sessionId);
   }
 
   async suspend(sessionId: string): Promise<void> {
