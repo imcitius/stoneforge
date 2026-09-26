@@ -74,9 +74,13 @@ const targetCommits: Record<string, string> = {
   develop: '3'.repeat(40),
 };
 
+// Legacy sequence assertions use a readable rendering; boundary tests below also
+// assert exact execFile argv, so joining here cannot hide argument splitting.
+const mockGitCommand = vi.fn();
+
 function mockTargetGit(file: string, args: string[], _opts: unknown, callback: Function): void {
   if (file === 'git') {
-    if (args[0] === 'check-ref-format' || args[0] === 'fetch') {
+    if (args[0] === 'check-ref-format' || (args[0] === 'fetch' && args[2]?.startsWith('+refs/heads/'))) {
       callback(null, { stdout: '', stderr: '' });
       return;
     }
@@ -92,7 +96,8 @@ function mockTargetGit(file: string, args: string[], _opts: unknown, callback: F
       return;
     }
   }
-  callback(new Error(`Unexpected execFile: ${file} ${args.join(' ')}`));
+  if (file !== 'git') throw new Error(`Unexpected executable: ${file}`);
+  mockGitCommand(`git ${args.join(' ')}`, _opts, callback);
 }
 
 async function expectResolvedTarget(branch: string): Promise<void> {
@@ -261,14 +266,17 @@ describe('MergeStewardService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Restore default exec mock implementation (vi.resetAllMocks in afterEach
-    // strips the implementation, causing promisify(exec) to hang forever).
+    // Restore default Git mock implementation (vi.resetAllMocks in afterEach
+    // strips the implementation, causing promisify(execFile) to hang forever).
     // The default calls the callback with an error so hasRemote() resolves to false
     // instead of hanging indefinitely.
     if (!isBunRuntime) {
       const cp = await import('node:child_process');
       (cp.execFile as unknown as MockInstance).mockImplementation(mockTargetGit);
       (cp.exec as unknown as MockInstance).mockImplementation(
+        (_cmd: string, _opts: unknown, cb: Function) => cb(new Error('mock: no test command implementation'), { stdout: '', stderr: '' })
+      );
+      mockGitCommand.mockImplementation(
         (_cmd: string, _opts: unknown, cb?: Function) => {
           const callback = typeof _opts === 'function' ? _opts as unknown as Function : cb;
           if (callback) callback(new Error('mock: no exec implementation'), { stdout: '', stderr: '' });
@@ -1052,8 +1060,7 @@ describe('MergeStewardService', () => {
       );
 
       // Mock exec to return 0 commits ahead for the rev-list call
-      const cp = await import('node:child_process');
-      (cp.exec as unknown as MockInstance).mockImplementation(
+      mockGitCommand.mockImplementation(
         (cmd: string, _opts: unknown, cb?: Function) => {
           const callback = typeof _opts === 'function' ? (_opts as unknown as Function) : cb;
           if (callback) {
@@ -1105,9 +1112,15 @@ describe('MergeStewardService', () => {
         Promise.resolve({ ...mockTask, ...updates } as Task)
       );
 
-      // Mock exec to return >0 commits ahead, then fail on test run
+      // Git goes through execFile; the configured test command still uses exec.
       const cp = await import('node:child_process');
       (cp.exec as unknown as MockInstance).mockImplementation(
+        (cmd: string, _opts: unknown, cb: Function) => {
+          expect(cmd).toBe(config.testCommand);
+          cb(new Error('tests failed'), { stdout: 'FAIL', stderr: '' });
+        }
+      );
+      mockGitCommand.mockImplementation(
         (cmd: string, opts: unknown, cb?: Function) => {
           const callback = typeof opts === 'function' ? (opts as unknown as Function) : cb;
           if (callback) {
@@ -1115,9 +1128,6 @@ describe('MergeStewardService', () => {
               callback(null, { stdout: '3\n', stderr: '' });
             } else if ((cmd as string).includes('remote get-url')) {
               callback(new Error('no remote'), { stdout: '', stderr: '' });
-            } else if ((cmd as string) === config.testCommand) {
-              // Tests fail — so we get test_failed status
-              callback(new Error('tests failed'), { stdout: 'FAIL', stderr: '' });
             } else {
               callback(null, { stdout: '', stderr: '' });
             }
@@ -1197,8 +1207,7 @@ describe('MergeStewardService', () => {
 
       // Mock exec for branchHasCommitsAhead to return >0 commits
       if (!isBunRuntime) {
-        const cp = await import('node:child_process');
-        (cp.exec as unknown as MockInstance).mockImplementation(
+        mockGitCommand.mockImplementation(
           (cmd: string, _opts: unknown, cb?: Function) => {
             const callback = typeof _opts === 'function' ? (_opts as unknown as Function) : cb;
             if (callback) {
@@ -1271,8 +1280,7 @@ describe('MergeStewardService', () => {
 
       // Mock exec for branchHasCommitsAhead
       if (!isBunRuntime) {
-        const cp = await import('node:child_process');
-        (cp.exec as unknown as MockInstance).mockImplementation(
+        mockGitCommand.mockImplementation(
           (cmd: string, _opts: unknown, cb?: Function) => {
             const callback = typeof _opts === 'function' ? (_opts as unknown as Function) : cb;
             if (callback) {
@@ -1347,8 +1355,7 @@ describe('MergeStewardService', () => {
 
       // Mock exec for branchHasCommitsAhead
       if (!isBunRuntime) {
-        const cp = await import('node:child_process');
-        (cp.exec as unknown as MockInstance).mockImplementation(
+        mockGitCommand.mockImplementation(
           (cmd: string, _opts: unknown, cb?: Function) => {
             const callback = typeof _opts === 'function' ? (_opts as unknown as Function) : cb;
             if (callback) {
@@ -1426,9 +1433,8 @@ describe('MergeStewardService', () => {
       let execCalls: Array<{ cmd: string; cwd: string }>;
 
       beforeEach(async () => {
-        // Get a reference to the mocked exec from node:child_process
-        const cp = await import('node:child_process');
-        execMock = cp.exec as unknown as MockInstance;
+        // Track the Git execFile command fixtures.
+        execMock = mockGitCommand as unknown as MockInstance;
         execCalls = [];
 
         // Track all exec calls and provide default success responses
@@ -1468,6 +1474,29 @@ describe('MergeStewardService', () => {
         (api.get as MockInstance).mockResolvedValue(mockTask);
       });
 
+      for (const mergeStrategy of ['squash', 'merge'] as const) {
+        it(`passes title and source as individual argv in ${mergeStrategy} without exec`, async () => {
+          const cp = await import('node:child_process');
+          const task = createMockTask({ title: 'Title "quoted"\n$HOME $(echo literal) `echo literal`' });
+          const branch = '--option-looking-source';
+          task.metadata = { orchestrator: { branch } };
+          (api.get as MockInstance).mockResolvedValue(task);
+          const svc = createMergeStewardService(api, taskAssignment, dispatchService, agentRegistry, { ...config, mergeStrategy });
+          const result = await svc.attemptMerge(task.id, task.title);
+          expect(result.success).toBe(true);
+          const expected = mergeStrategy === 'squash'
+            ? ['commit', '--cleanup=verbatim', '-m', task.title]
+            : ['merge', '--no-ff', '--cleanup=verbatim', '-m', task.title, '--', branch];
+          expect(cp.execFile).toHaveBeenCalledWith('git', expected,
+            expect.objectContaining({ cwd: expect.stringContaining('_merge-'), encoding: 'utf8' }), expect.any(Function));
+          if (mergeStrategy === 'squash') {
+            expect(cp.execFile).toHaveBeenCalledWith('git', ['merge', '--squash', '--', branch],
+              expect.any(Object), expect.any(Function));
+          }
+          expect(cp.exec).not.toHaveBeenCalled();
+        });
+      }
+
       it('should create a detached worktree at the resolved target commit', async () => {
         const result = await service.attemptMerge('task-001' as ElementId);
 
@@ -1483,11 +1512,11 @@ describe('MergeStewardService', () => {
         const result = await service.attemptMerge('task-001' as ElementId);
 
         expect(result.success).toBe(true);
-        const pushCmd = execCalls.find(c => c.cmd.includes('push origin'));
+        const pushCmd = execCalls.find(c => c.cmd.includes('push -- origin'));
         expect(pushCmd).toBeDefined();
-        expect(pushCmd!.cmd).toContain('push origin HEAD:main');
+        expect(pushCmd!.cmd).toContain('push -- origin HEAD:main');
         expect(execCalls).toContainEqual({
-          cmd: 'git merge-base --is-ancestor def456 origin/main', cwd: '/project',
+          cmd: 'git merge-base --is-ancestor -- def456 origin/main', cwd: '/project',
         });
       });
 
@@ -1496,11 +1525,11 @@ describe('MergeStewardService', () => {
 
         const mergeBaseCmd = execCalls.find(c => c.cmd.includes('merge-base'));
         expect(mergeBaseCmd).toBeDefined();
-        expect(mergeBaseCmd!.cmd).toBe(`git merge-base ${targetCommits.main} agent/worker-alice/task-001-implement-feature-x`);
+        expect(mergeBaseCmd!.cmd).toBe(`git merge-base -- ${targetCommits.main} agent/worker-alice/task-001-implement-feature-x`);
 
         const mergeTreeCmd = execCalls.find(c => c.cmd.includes('merge-tree'));
         expect(mergeTreeCmd).toBeDefined();
-        expect(mergeTreeCmd!.cmd).toBe(`git merge-tree abc123 ${targetCommits.main} agent/worker-alice/task-001-implement-feature-x`);
+        expect(mergeTreeCmd!.cmd).toBe(`git merge-tree -- abc123 ${targetCommits.main} agent/worker-alice/task-001-implement-feature-x`);
         await expectResolvedTarget('main');
       });
 
@@ -1578,7 +1607,7 @@ describe('MergeStewardService', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toContain('merge failed');
-        expect(execCalls.some(c => c.cmd.includes('push origin'))).toBe(false);
+        expect(execCalls.some(c => c.cmd.includes('push -- origin'))).toBe(false);
 
         // No checkout of target branch should occur after worktree removal
         const worktreeRemoveIdx = execCalls.findIndex(c => c.cmd.includes('worktree remove'));
@@ -1815,8 +1844,7 @@ describe('MergeStewardService', () => {
 
       // Mock exec for branchHasCommitsAhead
       if (!isBunRuntime) {
-        const cp = await import('node:child_process');
-        (cp.exec as unknown as MockInstance).mockImplementation(
+        mockGitCommand.mockImplementation(
           (cmd: string, _opts: unknown, cb?: Function) => {
             const callback = typeof _opts === 'function' ? (_opts as unknown as Function) : cb;
             if (callback) {
@@ -1871,8 +1899,7 @@ describe('MergeStewardService', () => {
       );
 
       // Mock exec to simulate branchHasCommitsAhead returning >0
-      const cp = await import('node:child_process');
-      (cp.exec as unknown as MockInstance).mockImplementation(
+      mockGitCommand.mockImplementation(
         (cmd: string, _opts: unknown, cb?: Function) => {
           const callback = typeof _opts === 'function' ? (_opts as unknown as Function) : cb;
           if (callback) {
@@ -1891,8 +1918,8 @@ describe('MergeStewardService', () => {
 
       expect(result.status).toBe('not_applicable');
       await expectResolvedTarget('staging');
-      expect(cp.exec).toHaveBeenCalledWith(
-        `git rev-list --count ${targetCommits.staging}..agent/worker/task-branch`,
+      expect(mockGitCommand).toHaveBeenCalledWith(
+        `git rev-list --count ${targetCommits.staging}..agent/worker/task-branch --`,
         expect.objectContaining({ cwd: '/project' }), expect.any(Function)
       );
     });
@@ -1917,8 +1944,7 @@ describe('MergeStewardService', () => {
       );
 
       // Mock exec — the fallback should use the detected default branch ('main')
-      const cp = await import('node:child_process');
-      (cp.exec as unknown as MockInstance).mockImplementation(
+      mockGitCommand.mockImplementation(
         (cmd: string, _opts: unknown, cb?: Function) => {
           const callback = typeof _opts === 'function' ? (_opts as unknown as Function) : cb;
           if (callback) {
@@ -1941,8 +1967,8 @@ describe('MergeStewardService', () => {
 
       expect(result.status).toBe('not_applicable');
       await expectResolvedTarget('main');
-      expect(cp.exec).toHaveBeenCalledWith(
-        `git rev-list --count ${targetCommits.main}..agent/worker/task-branch`,
+      expect(mockGitCommand).toHaveBeenCalledWith(
+        `git rev-list --count ${targetCommits.main}..agent/worker/task-branch --`,
         expect.objectContaining({ cwd: '/project' }), expect.any(Function)
       );
     });
@@ -1962,9 +1988,8 @@ describe('MergeStewardService', () => {
 
       (api.get as MockInstance).mockResolvedValue(taskWithTargetBranch);
 
-      const cp = await import('node:child_process');
       const execCalls: string[] = [];
-      (cp.exec as unknown as MockInstance).mockImplementation(
+      mockGitCommand.mockImplementation(
         (cmd: string, opts: unknown, cb?: Function) => {
           const callback = typeof opts === 'function' ? (opts as unknown as Function) : cb;
           execCalls.push(cmd as string);
@@ -1993,10 +2018,10 @@ describe('MergeStewardService', () => {
       expect(worktreeCmd).toMatch(new RegExp(` ${targetCommits.staging}$`));
       await expectResolvedTarget('staging');
 
-      const pushCmd = execCalls.find(c => c.includes('push origin'));
+      const pushCmd = execCalls.find(c => c.includes('push -- origin'));
       expect(pushCmd).toBeDefined();
-      expect(pushCmd).toContain('push origin HEAD:staging');
-      expect(execCalls).toContain('git merge-base --is-ancestor def456 origin/staging');
+      expect(pushCmd).toContain('push -- origin HEAD:staging');
+      expect(execCalls).toContain('git merge-base --is-ancestor -- def456 origin/staging');
       expect(execCalls.some(cmd => cmd.startsWith('git checkout '))).toBe(false);
     });
 
@@ -2018,9 +2043,8 @@ describe('MergeStewardService', () => {
         Promise.resolve({ ...taskWithTargetBranch, ...updates } as Task)
       );
 
-      const cp = await import('node:child_process');
       let revListCmd: string | undefined;
-      (cp.exec as unknown as MockInstance).mockImplementation(
+      mockGitCommand.mockImplementation(
         (cmd: string, _opts: unknown, cb?: Function) => {
           const callback = typeof _opts === 'function' ? (_opts as unknown as Function) : cb;
           if (callback) {
@@ -2039,7 +2063,7 @@ describe('MergeStewardService', () => {
       await service.processTask(taskWithTargetBranch.id);
 
       await expectResolvedTarget('develop');
-      expect(revListCmd).toBe(`git rev-list --count ${targetCommits.develop}..agent/worker/task-branch`);
+      expect(revListCmd).toBe(`git rev-list --count ${targetCommits.develop}..agent/worker/task-branch --`);
     });
   });
 

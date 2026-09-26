@@ -466,7 +466,7 @@ async function taskMergeHandler(
     }
 
     // 3b. Verify delivery to the selected target before marking as merged
-    const { exec: execCb } = await import('node:child_process');
+    const { execFile: execCb } = await import('node:child_process');
     const { promisify: promisifyUtil } = await import('node:util');
     const execVerify = promisifyUtil(execCb);
     const effectiveTargetForVerify = targetBranch ?? await detectTargetBranch(workspaceRoot);
@@ -475,7 +475,7 @@ async function taskMergeHandler(
     const verificationRef = remoteExists ? `origin/${effectiveTargetForVerify}` : effectiveTargetForVerify;
     if (remoteExists) {
       try {
-        await execVerify(`git fetch origin ${effectiveTargetForVerify}`, { cwd: workspaceRoot });
+        await execVerify('git', ['fetch', '--', 'origin', effectiveTargetForVerify], { cwd: workspaceRoot });
       } catch (fetchErr) {
         const fetchMsg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
         return failure(
@@ -490,7 +490,7 @@ async function taskMergeHandler(
       // Verify the merge commit is an ancestor of origin/{targetBranch}
       try {
         await execVerify(
-          `git merge-base --is-ancestor ${mergeResult.commitHash} ${verificationRef}`,
+          'git', ['merge-base', '--is-ancestor', '--', mergeResult.commitHash, verificationRef],
           { cwd: workspaceRoot }
         );
       } catch {
@@ -504,7 +504,7 @@ async function taskMergeHandler(
       // Verify the local source branch has no commits ahead of origin/{targetBranch}
       try {
         const { stdout: countStr } = await execVerify(
-          `git rev-list --count ${verificationRef}..${sourceBranch}`,
+          'git', ['rev-list', '--count', '--end-of-options', `${verificationRef}..${sourceBranch}`, '--'],
           { cwd: workspaceRoot, encoding: 'utf8' }
         );
         const aheadCount = parseInt(countStr.trim(), 10);
@@ -547,18 +547,18 @@ async function taskMergeHandler(
 
     // 5. Clean up: delete source branch and remove task worktree (best-effort)
     try {
-      if (!localDelivery) await execVerify(`git push origin --delete ${sourceBranch}`, { cwd: workspaceRoot });
+      if (!localDelivery) await execVerify('git', ['push', '--delete', '--', 'origin', sourceBranch], { cwd: workspaceRoot });
     } catch { /* branch may not exist on remote */ }
 
     const worktreePath = orchestratorMeta?.worktree;
     if (worktreePath) {
       try {
-        await execVerify(`git worktree remove --force "${worktreePath}"`, { cwd: workspaceRoot });
+        await execVerify('git', ['worktree', 'remove', '--force', '--', worktreePath], { cwd: workspaceRoot });
       } catch { /* worktree may already be gone */ }
     }
 
     try {
-      await execVerify(`git branch -D ${sourceBranch}`, { cwd: workspaceRoot });
+      await execVerify('git', ['branch', '-D', '--', sourceBranch], { cwd: workspaceRoot });
     } catch { /* branch may not exist locally */ }
 
     // 6. Sync local target branch (best-effort, after all bookkeeping is done)
