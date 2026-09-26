@@ -179,3 +179,16 @@ Desktop Node and gate regressions. No check/threshold was changed or failure
 retried away. Only documentation results changed after the tested source commit
 `687a11f`; independent steward must review the final documentation commit too.
 Target remained `3420c56`; `git diff --check` and target ancestry passed.
+
+
+## Explicit export rejection follow-up — el-e86r8
+
+The silent-success includeEvents observation above is historical baseline evidence.
+QuarryAPI now rejects `includeEvents:true` with ValidationError/INVALID_INPUT
+before output/state changes. The permanent retention fixture asserts rejection,
+then uses ordinary export to keep proving that audit snapshots are absent.
+Default/false JSONL format, retention and audit APIs are unchanged. See
+`quarry-export-events.md` for the three-case failing baseline, temporary SQLite
+preservation regressions and final integrated verification. Successful JSONL
+export is still not a complete audit backup. The archived candidate probe remains
+historical, not a current regression command or a reason to restore silent success.

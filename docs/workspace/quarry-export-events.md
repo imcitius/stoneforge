@@ -55,3 +55,14 @@ Its existing Vitest configuration was not changed to hide that result.
 Final integrated gate and retention compatibility results are recorded below.
 Independent registered steward review of the exact final commit and approved CLI
 local delivery remain required; worker verification is not a merge verdict.
+
+
+## Integration
+
+Pre-sync gate: **187/187, exit 0, 236.68s**, `/tmp/el-e86r8-gate.log`,
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-ptzEfg/results.json`.
+Local master advanced to retention delivery `75b818a`; approved CLI sync was
+conflict-free (`7beb139`). The delivered retention test previously characterized
+silent success. It now asserts INVALID_INPUT and performs its unchanged JSONL
+audit-omission checks using default export. Historical report/probe evidence is
+retained, with an explicit current-contract appendix. Final gate follows.
