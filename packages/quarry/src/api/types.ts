@@ -530,7 +530,7 @@ export interface WorkflowProgress {
 export type ExportFormat = 'jsonl';
 
 /**
- * Options for exporting elements
+ * Options for exporting elements and dependencies (not a complete audit backup)
  */
 export interface ExportOptions {
   /** Export format (default: jsonl) */
@@ -543,7 +543,7 @@ export interface ExportOptions {
   includeDeleted?: boolean;
   /** Export dependencies */
   includeDependencies?: boolean;
-  /** Export events */
+  /** Unsupported: true rejects with INVALID_INPUT before export; omitted/false excludes audit events. */
   includeEvents?: boolean;
   /** Output file path (if not provided, returns string) */
   outputPath?: string;
@@ -1540,10 +1540,12 @@ export interface QuarryAPI {
   // --------------------------------------------------------------------------
 
   /**
-   * Export elements to JSONL format.
+   * Export elements and dependencies to JSONL, excluding audit events.
+   * A successful export is not a complete audit backup.
    *
    * @param options - Export configuration
    * @returns JSONL string if no outputPath specified
+   * @throws ValidationError with INVALID_INPUT if includeEvents is true (before export)
    */
   export(options?: ExportOptions): Promise<string | void>;
 

@@ -385,9 +385,15 @@ const timeline = await api.getElementTimeline(elementId);
 
 ### Export
 
+JSONL contains elements and dependencies, not audit events or their `oldValue`/`newValue`
+snapshots. A successful ordinary export is not a complete audit backup.
+`includeEvents: true` rejects before files are written or export state changes;
+the option remains in the public type for compatibility.
+
 ```typescript
 await api.export();
-await api.export({ outputPath: './export.jsonl' });
+await api.export({ outputPath: './export' }); // directory containing JSONL files
+await api.export({ includeEvents: false }); // ordinary export without audit events
 await api.export({ includeDeleted: true });
 ```
 
@@ -397,8 +403,8 @@ await api.export({ includeDeleted: true });
   { name: 'modifiedAfter', type: 'Timestamp', description: 'Only elements modified after this time.' },
   { name: 'includeDeleted', type: 'boolean', description: 'Include soft-deleted elements.' },
   { name: 'includeDependencies', type: 'boolean', description: 'Export dependencies.' },
-  { name: 'includeEvents', type: 'boolean', description: 'Export events.' },
-  { name: 'outputPath', type: 'string', description: 'Output file path (returns string if omitted).' },
+  { name: 'includeEvents', type: 'boolean', description: 'Unsupported. true rejects with StoneforgeError code INVALID_INPUT before output; omitted/false excludes events.' },
+  { name: 'outputPath', type: 'string', description: 'Output directory path (returns string if omitted).' },
 ]} />
 
 ### Import

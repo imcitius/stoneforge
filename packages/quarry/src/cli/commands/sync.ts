@@ -153,7 +153,8 @@ export const exportCommand: Command = {
   help: `Export elements and dependencies to JSONL files for version control.
 
 By default, only exports elements that have been modified since the last export
-(incremental export). Use --full for a complete export.
+(incremental export). Use --full to export all eligible elements.
+Audit events are not included; even --full is not a complete audit backup.
 
 Options:
   -o, --output <dir>       Output directory (default: .stoneforge/sync)
