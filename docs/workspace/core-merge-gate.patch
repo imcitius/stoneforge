@@ -1,0 +1,11 @@
+--- shared-root/.stoneforge/repositories.json.before
++++ shared-root/.stoneforge/repositories.json.after
+@@ -5,7 +5,7 @@
+       "id": "core",
+       "path": "stoneforge",
+       "targetBranch": "master",
+-      "testCommand": "pnpm typecheck",
++      "testCommand": "pnpm check:merge",
+       "gitCommonDir": "/Users/citius/Desktop/Work/Stoneforge/stoneforge/.git"
+     }
+   ]
