@@ -993,8 +993,8 @@ worker record is not a merge verdict or installed application update.
 
 Baseline is delivered local master `3c22b53`, including Spawner el-1c5so and
 SessionManager el-1q2vv. No pending branch was copied. Implementation `c9f32d3`
-changes only ClaudeHeadlessSession close bookkeeping: `closed` continues to stop
-input/iteration immediately; `cleanupComplete` is set only after the captured
+changes only ClaudeHeadlessSession close bookkeeping: `closed` retains the existing
+iteration guard and input is closed before SDK cleanup; `cleanupComplete` is set only after the captured
 SDK query's synchronous close returns. Throws remain visible to the caller and
 leave cleanup retryable on that exact query. Successful cleanup is idempotent.
 Input is never reopened; pre-close queued messages retain their existing drain
@@ -1057,3 +1057,42 @@ Vitest349/349. Log `/tmp/el-1mo5c-gate.log`; exact per-step results:
 `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-LVCg2k/results.json`.
 Local master advanced to delivered handoff fix beac945 during verification; approved
 CLI sync and integration verification follow, preserving the first gate evidence.
+
+Approved CLI manifest and all299 hashes verified; `task sync el-1mo5c` integrated
+delivered local master beac945 without conflicts as fd7cb1e. Source/tests unchanged.
+Integrated gate **188/189, exit1,324.95s**: unchanged Quarry list scaling failed,
+medians0.233444/0.452705/0.740195ms, ratio3.170760 against `<3`. This is a failed
+gate, not green acceptance. All other steps passed. Log
+`/tmp/el-1mo5c-gate-integrated.log`; exact results
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/results.json`.
+Quarry API and performance test match first passing baseline3c22b53. Earlier
+progress updates sampled the current log tail and missed this earlier failure;
+the completed result corrects those updates. No causal attribution to host load.
+
+One isolated diagnostic via Node spawnSync with gate `checkEnvironment()` and
+`bun test packages/quarry/src/api/query-performance.bun.test.ts` passed
+**35/35,891 assertions,exit0,8.06s**, `/tmp/el-1mo5c-quarry-probe.log`.
+This does not erase the failure or establish its cause. Director notified, no
+duplicate task/threshold/code change. One final full gate retry follows to verify
+the integrated tree; repeated failure requires handoff rather than a green claim.
+
+Director instruction received after the repeat started supersedes the planned
+retry-as-acceptance/handoff wording above: do not stop the running check, retain
+its entire result as **additional diagnostic only**, and run no further gates
+on this unchanged source. The failed integrated acceptance **188/189** remains
+explicit regardless of the diagnostic outcome. Related investigation is tracked
+in **el-39znb**; no duplicate task or self-approval. Send the final report/commit
+to independent review with the unsuccessful acceptance disclosed. Completion of
+the worker implementation does not authorize merge or claim the gate issue resolved.
+
+Additional full diagnostic on unchanged fd7cb1e: **189/189,exit0,238.73s**,
+`/tmp/el-1mo5c-gate-final.log`; exact results
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-P1jcfh/results.json`.
+Per Director instruction this is diagnostic only; it does not replace the failed
+integrated acceptance188/189, prove a root cause, or authorize merge. No more
+worker gates were run. During this diagnostic local master advanced separately
+to8c8cca9 (el-2hrsm atomic assignment); it is not included in this worker tree.
+Independent steward must sync/review the exact final commit against the then-current
+target, retain the el-39znb failure context and establish acceptance before merge.
+Only verification documentation changed after the tested source. Installed app,
+live providers/sessions/daemon and maintenance remain unchanged.
