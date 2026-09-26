@@ -463,7 +463,7 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
 
     // Commit ownership, status and metadata together against the original task
     // snapshot. A conflict must propagate without retrying on a newer owner.
-    return this.api.update<Task>(taskId, updates, { expectedUpdatedAt: claim?.expectedUpdatedAt ?? task.updatedAt });
+    return this.api.update<Task>(taskId, updates, { expectedUpdatedAt: claim?.expectedUpdatedAt ?? task.updatedAt, requireReadyUnassigned: !!claim });
   }
 
   async unassignTask(taskId: ElementId, options: UnassignTaskOptions): Promise<Task> {

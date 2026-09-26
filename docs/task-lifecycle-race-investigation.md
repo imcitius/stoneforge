@@ -481,3 +481,103 @@ positive automatic/explicit start-worker paths, then run `pnpm check:merge`.
 Commit/push final implementation, complete the task, obtain independent steward
 review of the exact final commit and use approved CLI local delivery after checks.
 This partial worker handoff is not an approval to merge.
+
+## Automatic dispatch claim — Director-approved continuation el-1q2vv
+
+The earlier partial handoff and its two failing probes above are historical
+baseline evidence. Director's decision in the task handoff history (18:54:10Z)
+approved both narrow extensions and the conservative legacy ownership policy.
+The probe patch is retained as historical source; do not apply it to this revision:
+the two desired-safety probes now live as passing REGRESSION tests in the lifecycle
+suite. Current-field equality excludes the intentionally appended old-session
+history; neighboring history must be preserved. Other DEFECT groups, controls and
+historical failures are retained for their separate fixes.
+
+Approved standalone el-ptim sync verified all 299 artifact hashes and synced
+against local master f30b41ad841d1cea6ca5d274403baba950a85a0d without conflicts.
+No pending worker branch was copied. Frozen pnpm install succeeded (3.2s), with
+unbuilt-dist bin-link warnings and no lockfile changes.
+
+### Final contracts
+
+- `UpdateOptions.requireReadyUnassigned` is a task-only conditional option requiring
+  an original `expectedUpdatedAt`. SQLite transaction reads current task type,
+  status, assignee, deletion, schedule and parent-plan availability before the CAS
+  write. Rejection rolls back task writes/events and occurs before notification.
+  `ready()` and claim share the draft/blocked-parent SQL and task status/due rules.
+  Ephemeral workflow children remain allowed for automatic dispatch.
+- Dependency/status writers publish blocked_cache after their primary transaction.
+  The claim also calls the existing blocking computation with fresh recursive
+  parent reads in its transaction, including blocks/awaits/parent-child semantics.
+  This closes the unpublished-cache interval without moving all writers into a
+  new transaction framework. Cyclic ancestry conservatively rejects. Existing
+  blocked-cache exclusions remain conservative; no eager cache mutation is done
+  by claim. Eligibility is guaranteed at commit, not indefinitely after it.
+- Dispatch carries the original candidate token across worktree and session
+  preparation. Explicit manual dispatch/start-worker still omit claim and retain
+  deliberate reassignment. Failed notification cleanup uses the delivered
+  `failed-dispatch` identity/version contract, without acquiring a newer owner.
+- Automatic new worktrees use a unique attempt namespace. Borrowed/handoff and
+  failed-preparation worktrees are retained, including after startup failure:
+  deleting after a separate ownership read could destroy an adopted worktree.
+  This trades possible unused directories for successor safety; no automatic
+  reclamation policy is claimed.
+- New SessionManager start/resume publishes additive `metadata.agent.currentSessionId`
+  (the unique internal spawn ID) together with provider ID/status via entity CAS
+  from the pre-spawn token. Concurrent local starts are reserved; competing
+  managers cannot both publish from one token. A publication or later startup
+  persistence failure terminates only its exact known process handle.
+- Stop, suspend, exit, provider-ID discovery and dead-session persistence only
+  change current registry fields for that internal ID, with entity CAS. A conflict
+  revokes permission to update current fields; bounded retry only merges that
+  session's historical entry into freshly read history. No new identity is adopted,
+  provider IDs may be reused on resume, and unrelated history is preserved within
+  the existing 20-entry bound. Double stop is idempotent.
+- Legacy absent/ambiguous internal identity never authorizes current-field cleanup.
+  Exactly known processes can stop; available history is merged with diagnostics
+  indicating incomplete current-field cleanup. No live history/session migration.
+  Public start/stop/resume signatures and provider `sessionId` meaning are unchanged.
+  Other callers of unconditional registry APIs and startup-wide reconciliation
+  retain their existing contracts: this is not a universal registry-writer fix.
+
+### Deterministic verification and limits
+
+`dispatch-claim.bun.test.ts` uses two real temporary SQLite connections and a new
+local Git repository/worktrees per test. Actual daemon assignment action,
+assignment/dispatch, SessionManager and registry execute; only process/provider
+handles are inert mocks. No daemon loop or live/paid provider starts. Boundaries
+are awaited callbacks/barriers, not sleeps or probabilistic stress.
+
+Coverage includes CLOSED/DEFERRED/Human/worker B, ACTIVE→DRAFT, blocked parent and
+future schedule after candidate read; parent DRAFT after Quarry's update snapshot;
+unpublished blocked-cache writer boundary; two simultaneous daemon claimants with
+exactly one assignment notification and surviving winning worktree/session; due
+unassigned success; explicit start-worker reassignment with real Git worktree;
+startup/provider and notification failures; old stop/exit during successor start;
+resumed provider-ID reuse; absent/ambiguous legacy identity; preserved neighboring
+history; same-session cleanup; two managers' publication CAS; double stop; startup
+persistence failure after publication.
+
+The initial new Git fixture runs failed because `system` is a reserved entity name,
+then because WorktreeManager.initWorkspace was omitted. Both harness failures are
+retained in `/tmp/el-1q2vv-claim{,-2}.log`. Corrected run: 13/13; expanded run: 21/21.
+A further desired-safety test exposed a process leak after startup persistence
+failure: baseline `/tmp/el-1q2vv-startup-negative.log` fails, then exact-handle
+cleanup fixes it. Subsequent focused SessionManager/lifecycle/claim run: 179 pass,
+0 fail, 663 assertions. Final expanded claim run: **24 pass / 0 fail, 93 assertions**, 4.22s. Final gate results follow below.
+
+The first full gate started before that last startup cleanup correction and final
+regressions; it completed **186/186, exit 0, 235.38s** and is retained as intermediate, not final-revision acceptance.
+No gate script, threshold or merge configuration changed. Final acceptance uses a
+separate complete gate after all source/test edits.
+
+Logs: `/tmp/el-1q2vv-{install-continued,continued-focused,session-daemon,claim-3,
+claim-4,startup-negative,final-focused,final-claim,gate,gate-final}.log`.
+Separate root build/lint/test, Playwright, packaged GUI, cross-platform and live
+providers are not run. Required gate includes its declared package/runtime checks.
+Installed Desktop5f53cef, live project processes and closed maintenance el-1clm
+are not test fixtures and were not changed. Remaining SDK assignment/start and
+completion groups remain separately scoped (el-2hrsm/el-2htch/el-20qt0).
+
+Independent steward review of the exact final commit and approved CLI local merge
+remain required after worker commit/push/completion; worker does not self-approve.
