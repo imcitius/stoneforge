@@ -131,7 +131,13 @@ for (const [label, routes] of [['sdk', sdkRoutes], ['app', appRoutes]] as const)
       expect(current.metadata.retained).toBe('outer');
       for (const key of ['sessionHistory', 'completionHistory', 'handoffHistory', 'retainedExtension'] as const) expect(meta(current)[key]).toEqual(meta(task)[key]);
       expect(meta(current).branch).toContain('successor');
-      if (['spawn', 'reused', 'persist', 'terminate'].includes(stage)) {
+      if (stage === 'terminate') {
+        expect(current.assignee).toBe(successor);
+        expect(body.cleanup.assignment).toBe('retained-session-cleanup-incomplete');
+        expect(body.cleanup.sessionId).toBe('http-terminate');
+        expect(h.handles.get('http-terminate')).toBe(true);
+        expect(body.cleanup.error).toContain('terminate failed');
+      } else if (['spawn', 'reused', 'persist'].includes(stage)) {
         expect(current.assignee).toBeUndefined();
         expect(meta(current).assignedAgent).toBeUndefined();
         expect(body.cleanup.assignment).toBe('released');

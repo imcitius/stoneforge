@@ -42,6 +42,20 @@ import { trackListeners } from './event-utils.js';
 // Types
 // ============================================================================
 
+/** A failed start whose exact internal session rollback did not finish.
+ * Callers must retain assignment/resources: rejection is not proof of cleanup.
+ */
+export class SessionStartupCleanupError extends Error {
+  constructor(
+    readonly sessionId: string,
+    readonly startupError: unknown,
+    readonly cleanupError: unknown,
+  ) {
+    super(`${String(startupError)}; startup cleanup incomplete for ${sessionId}: ${String(cleanupError)}`, { cause: startupError });
+    this.name = 'SessionStartupCleanupError';
+  }
+}
+
 /**
  * Session record with persistence metadata
  */
@@ -623,22 +637,28 @@ export class SessionManagerImpl implements SessionManager {
     // Forward events from spawner BEFORE any awaits to avoid missing
     // early exit events (e.g. when provider uses `exec` and the process
     // terminates before the awaits below complete).
-    this.setupSessionEventForwarding(sessionState, result.events);
-
-    // Update agent's session status in database
+    // Include listener installation in rollback: the provider handle already exists.
     try {
+      this.setupSessionEventForwarding(sessionState, result.events);
       await this.publishSession(agent, sessionState.id);
       await this.persistSession(sessionState.id);
     } catch (error) {
       // The caller cannot clean up a handle it never received. This includes
       // persistence failures after publication, not only the publication CAS.
       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
-      catch (cleanupError) { console.error(`[session-manager] Incomplete startup cleanup for ${sessionState.id}:`, cleanupError); }
+      catch (cleanupError) {
+        throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+      }
       throw error;
     }
 
-    // Log session spawn
-    this.operationLog?.write('info', 'session', `Session started for agent ${agentId} (${meta.agentRole})`, { agentId, sessionId: sessionState.id });
+    // Publication and persistence accepted the start. Optional observability must
+    // not turn that receipt into a rejected start while its provider remains live.
+    try {
+      this.operationLog?.write('info', 'session', `Session started for agent ${agentId} (${meta.agentRole})`, { agentId, sessionId: sessionState.id });
+    } catch (error) {
+      console.error(`[session-manager] Accepted session ${sessionState.id}; operation log write failed:`, error);
+    }
 
     return {
       session: this.toPublicSession(sessionState),

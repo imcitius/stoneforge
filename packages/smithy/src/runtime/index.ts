@@ -57,6 +57,7 @@ export {
   type ResumeUWPCheckResult,
   // Implementation
   SessionManagerImpl,
+  SessionStartupCleanupError,
   // Factory
   createSessionManager,
 } from './session-manager.js';

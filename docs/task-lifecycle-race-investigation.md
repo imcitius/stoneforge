@@ -1395,3 +1395,61 @@ was run for that documentation-only addition; ancestry and diff checks passed.
 Only this verification report changes afterward. Independent steward must review
 this exact final source/documentation commit before approved CLI local delivery.
 No worker merge approval, installed-app update or live-session maintenance is claimed.
+
+### el-56khe independent rejection and corrected publication boundary
+
+The preceding worker result is historical, not acceptance. Independent steward
+review of `6937489e99cae471ab61678dfa3bf32989ca0d72` requested changes despite
+191/191 gate (316.92s) and focused237/237. Its real SQLite/Git/HTTP/SessionManager
+probe configured public `setOperationLog()` to throw after publication/persistence:
+both routes returned500 and released assignment while their own provider handle
+remained live. Original probe **0pass/2fail**, `/tmp/el-56khe-steward-probe.log`;
+control disabling only release **2pass/0fail**,
+`/tmp/el-56khe-steward-probe-control.log`. Original source/review are retained at
+`/tmp/el-56khe-steward-probe.bun.test.ts` and `/tmp/el-56khe-steward-review.md`.
+Worker reproduced **0pass/2fail** before this correction in
+`/tmp/el-56khe-revision-baseline.log`. Default server constructors do not configure
+this optional log; no live incidence claim is made. Director explicitly included
+this narrow runtime/HTTP boundary in el-56khe.
+
+Current start contract supersedes the earlier assumption that every rejected start
+proves successful cleanup. Once publication and persistence finish, optional
+`operationLog.write` failure emits an explicit stderr diagnostic including the
+accepted internal session ID and the error, and returns the normal accepted receipt.
+HTTP201 is accurate: the session was accepted and remains running. Only this
+optional post-acceptance log is non-fatal; publication, persistence and notification
+failures retain their existing rejection behavior. After this log, public receipt
+construction only copies internal fields; there are no other awaited operations.
+Listener installation now lies inside the exact-session startup rollback boundary.
+
+If startup rollback rejects (provider termination or persistence/observability),
+`SessionStartupCleanupError` carries the original error, rollback error and this
+attempt's internal session ID. Both HTTP routes return500 with
+`cleanup.assignment=retained-session-cleanup-incomplete`, exact `cleanup.sessionId`
+and cleanup error. They do not release or rediscover a session by agent identity.
+Even if the handle has exited, an unknown cleanup/persistence result conservatively
+retains assignment. A still-pending rollback does not reach HTTP assignment release;
+no new timeout/cancellation or automatic retry is introduced. Successful exact
+rollback still permits receipt-bound conditional assignment release. All prior
+CAS/version, Human/terminal/successor, completion/history and worktree protections
+remain. Worktrees intentionally remain retained without exclusive deletion proof;
+this change promises neither removal of all orphans nor live SDK termination.
+Resume, other runtime callers, provider transport and general logger design are
+outside this narrow correction.
+
+Permanent adaptation of the steward probe lives in
+`packages/smithy/src/api/http-session-start.steward-probe.bun.test.ts`:
+16 tests across both real routes with temporary SQLite/local Git and real
+SessionManager, mocked provider handles. They verify repeated accepted starts with
+failing optional logging and persisted current identity, listener and publication
+failure cleanup, persistence rollback success, termination failure, unknown rollback
+persistence, repeated exact cleanup rejection, and actual successor SessionManager
+starts during successful/failed rollback. Successor task/event snapshots and Git
+resources survive. Existing HTTP48 suite now requires retention on failed termination
+instead of incorrectly treating rejection as proof of completed rollback.
+
+Verification so far: frozen install exit0 (lock unchanged); package typecheck exit0;
+intermediate HTTP62/62 (772 assertions); final new probe16 plus SessionManager85
+**101/101,375 assertions,exit0**, `/tmp/el-56khe-revision-runtime.log`.
+Required final gate outcome and exact-final independent review follow separately.
+No installed app, live agent/session/daemon/provider or maintenance operation.

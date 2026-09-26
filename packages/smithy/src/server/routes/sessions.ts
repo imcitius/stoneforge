@@ -9,7 +9,7 @@ import { streamSSE } from 'hono/streaming';
 import type { EntityId, ElementId, Task } from '@stoneforge/core';
 import { createTimestamp, ElementType } from '@stoneforge/core';
 import type { AssignmentIdentity, SessionFilter, SpawnedSessionEvent, AgentRole, WorkerMetadata, StewardMetadata } from '../../index.js';
-import { loadRolePrompt, buildWorkflowPresetSection, getOrchestratorTaskMeta, getAgentMetadata, generateSessionBranchName, generateSessionWorktreePath, trackListeners } from '../../index.js';
+import { SessionStartupCleanupError, loadRolePrompt, buildWorkflowPresetSection, getOrchestratorTaskMeta, getAgentMetadata, generateSessionBranchName, generateSessionWorktreePath, trackListeners } from '../../index.js';
 import { isAgentDisabled } from '../../services/agent-registry.js';
 import type { WorkflowPresetContext } from '../../prompts/index.js';
 import { getValue } from '@stoneforge/quarry';
@@ -475,9 +475,11 @@ Please begin working on this task. Use \`sf task get ${taskResult.id}\` to see f
         201
       );
     } catch (error) {
-      let outcome = startedSessionId ? 'retained-session-started' : 'not-assigned';
-      let cleanupError: string | undefined;
-      if (assignment && !startedSessionId) {
+      const incomplete = error instanceof SessionStartupCleanupError ? error : undefined;
+      let outcome = startedSessionId ? 'retained-session-started'
+        : incomplete ? 'retained-session-cleanup-incomplete' : 'not-assigned';
+      let cleanupError = incomplete ? String(incomplete.cleanupError) : undefined;
+      if (assignment && !startedSessionId && !incomplete) {
         try {
           await services.taskAssignmentService.unassignTask(assignment.taskId, {
             mode: 'failed-dispatch', expectedAssignment: assignment.identity,
@@ -489,7 +491,7 @@ Please begin working on this task. Use \`sf task get ${taskResult.id}\` to see f
           cleanupError = String(releaseError);
         }
       }
-      const cleanup = { assignment: outcome, sessionId: startedSessionId,
+      const cleanup = { assignment: outcome, sessionId: startedSessionId ?? incomplete?.sessionId,
         worktree: retainedWorktree(), ...(cleanupError && { error: cleanupError }) };
       logger.error('Failed to start session:', error, cleanup);
       return c.json({ error: { code: 'INTERNAL_ERROR', message: String(error) }, cleanup }, 500);
