@@ -167,7 +167,7 @@ for (const [label, routes] of [['sdk', sdkRoutes], ['app', appRoutes]] as const)
           return result;
         };
       }
-      const route = routes({ api, orchestratorApi: api, agentRegistry: createAgentRegistry(api),
+      const route = routes({ api, orchestratorApi: api, agentRegistry: createAgentRegistry(api), taskAssignmentService: createTaskAssignmentService(api),
         worktreeManager: scenario === 'persistent-race' ? { async createWorktree() { ++worktrees; return { worktree: { path: repo } }; } } : undefined,
         sessionInitialPrompts: new Map(), sessionMessageService: { saveMessage() {} },
         sessionManager: { getActiveSession: () => undefined, startSession: async () => {
@@ -183,7 +183,7 @@ for (const [label, routes] of [['sdk', sdkRoutes], ['app', appRoutes]] as const)
       expect(starts).toBe(racing ? 0 : 1);
       expect(worktrees).toBe(scenario === 'persistent-race' ? 1 : 0); expect(notifications).toBe(scenario === 'success' ? 1 : 0);
       if (racing) { expect(winner).toBeDefined(); expect(await saved()).toEqual(winner!); expect(events()).toEqual(log); }
-      else { expect((await saved()).assignee).toBe(successor); expect(meta(await saved()).sessionHistory).toEqual(meta(task).sessionHistory); }
+      else { expect((await saved()).assignee).toBe(scenario === 'spawn-failure' ? undefined : successor); expect(meta(await saved()).sessionHistory).toEqual(meta(task).sessionHistory); }
     });
   }
 }

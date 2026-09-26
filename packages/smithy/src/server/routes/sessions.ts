@@ -8,8 +8,8 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import type { EntityId, ElementId, Task } from '@stoneforge/core';
 import { createTimestamp, ElementType } from '@stoneforge/core';
-import type { SessionFilter, SpawnedSessionEvent, AgentRole, WorkerMetadata, StewardMetadata } from '../../index.js';
-import { loadRolePrompt, buildWorkflowPresetSection, getAgentMetadata, generateSessionBranchName, generateSessionWorktreePath, trackListeners } from '../../index.js';
+import type { AssignmentIdentity, SessionFilter, SpawnedSessionEvent, AgentRole, WorkerMetadata, StewardMetadata } from '../../index.js';
+import { loadRolePrompt, buildWorkflowPresetSection, getOrchestratorTaskMeta, getAgentMetadata, generateSessionBranchName, generateSessionWorktreePath, trackListeners } from '../../index.js';
 import { isAgentDisabled } from '../../services/agent-registry.js';
 import type { WorkflowPresetContext } from '../../prompts/index.js';
 import { getValue } from '@stoneforge/quarry';
@@ -220,6 +220,16 @@ export function createSessionRoutes(
 
   // POST /api/agents/:id/start
   app.post('/api/agents/:id/start', async (c) => {
+    let assignment: { taskId: ElementId; identity: AssignmentIdentity } | undefined;
+    let startedSessionId: string | undefined;
+    let worktreePath: string | undefined;
+    // A returned path may be reused or acquired by a successor. No deletion lease
+    // exists here, so even an apparently orphaned worktree must be retained.
+    const retainedWorktree = () => ({
+      outcome: worktreePath ? 'retained' : 'not-returned',
+      path: worktreePath,
+      reason: 'Exclusive deletion ownership is not proven',
+    });
     try {
       const agentId = c.req.param('id') as EntityId;
       const body = (await c.req.json().catch(() => ({}))) as {
@@ -275,7 +285,6 @@ export function createSessionRoutes(
       logger.debug('Agent metadata:', agentMeta ? `role=${agentMeta.agentRole}${workerMode ? ` mode=${workerMode}` : ''}` : 'undefined');
 
       // Create worktree for persistent workers
-      let worktreePath: string | undefined;
       if (workerMode === 'persistent' && services.worktreeManager) {
         try {
           const now = new Date();
@@ -304,7 +313,7 @@ export function createSessionRoutes(
           logger.debug(`Created persistent worker worktree: ${worktreePath} on branch ${sessionBranch}`);
         } catch (err) {
           logger.warn('Failed to create worktree for persistent worker:', err);
-          return c.json({ error: { code: 'REPOSITORY_REQUIRED', message: String(err) } }, 400);
+          return c.json({ error: { code: 'REPOSITORY_REQUIRED', message: String(err) }, cleanup: { worktree: retainedWorktree() } }, 400);
         }
       }
 
@@ -338,10 +347,16 @@ export function createSessionRoutes(
       if (body.taskId) {
         const taskResult = await api.get<Task>(body.taskId as ElementId);
         if (!taskResult || taskResult.type !== ElementType.TASK) {
-          return c.json({ error: { code: 'NOT_FOUND', message: 'Task not found' } }, 404);
+          return c.json({ error: { code: 'NOT_FOUND', message: 'Task not found' }, cleanup: { worktree: retainedWorktree() } }, 404);
         }
 
-        await orchestratorApi.assignTaskToAgent(body.taskId as ElementId, agentId);
+        const assigned = await orchestratorApi.assignTaskToAgent(body.taskId as ElementId, agentId);
+        // Capture only the committed return value, never refresh/adopt ownership
+        // after a failure. The release service also fences terminal/Human decisions.
+        assignment = {
+          taskId: assigned.id,
+          identity: { agentId, sessionId: getOrchestratorTaskMeta(assigned.metadata)?.sessionId, updatedAt: assigned.updatedAt },
+        };
 
         const taskPrompt = `You have been assigned the following task:
 
@@ -419,6 +434,10 @@ Please begin working on this task. Use \`sf task get ${taskResult.id}\` to see f
         rows: body.rows,
       });
 
+      // SessionManager owns cleanup when startup rejects. Once it returns, this
+      // session is accepted: notification/prompt failures must not release its task.
+      startedSessionId = session.id;
+
       // Attach event saver immediately to capture all events, including the first assistant response
       // This must happen before any events are emitted to avoid missing early messages
       attachSessionEventSaver(events, session.id, agentId, sessionMessageService);
@@ -456,8 +475,24 @@ Please begin working on this task. Use \`sf task get ${taskResult.id}\` to see f
         201
       );
     } catch (error) {
-      logger.error('Failed to start session:', error);
-      return c.json({ error: { code: 'INTERNAL_ERROR', message: String(error) } }, 500);
+      let outcome = startedSessionId ? 'retained-session-started' : 'not-assigned';
+      let cleanupError: string | undefined;
+      if (assignment && !startedSessionId) {
+        try {
+          await services.taskAssignmentService.unassignTask(assignment.taskId, {
+            mode: 'failed-dispatch', expectedAssignment: assignment.identity,
+          });
+          outcome = 'released';
+        } catch (releaseError) {
+          outcome = (releaseError as { code?: string })?.code === 'CONCURRENT_MODIFICATION'
+            ? 'retained-conflict' : 'retained-error';
+          cleanupError = String(releaseError);
+        }
+      }
+      const cleanup = { assignment: outcome, sessionId: startedSessionId,
+        worktree: retainedWorktree(), ...(cleanupError && { error: cleanupError }) };
+      logger.error('Failed to start session:', error, cleanup);
+      return c.json({ error: { code: 'INTERNAL_ERROR', message: String(error) }, cleanup }, 500);
     }
   });
 
