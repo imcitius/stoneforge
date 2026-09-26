@@ -1,0 +1,50 @@
+--- a/packages/smithy/src/services/task-lifecycle-race-evidence.bun.test.ts
++++ b/packages/smithy/src/services/task-lifecycle-race-evidence.bun.test.ts
+@@ -470,3 +470,47 @@
+     }
+   });
+ }
++
++test('SCOPE: ready/unassigned claim must reject a newly draft parent plan', async () => {
++  const { createPlan, PlanStatus } = await import('@stoneforge/core');
++  const plan = await other.create(await createPlan({ title: 'Parent', createdBy: task.createdBy, status: PlanStatus.ACTIVE }) as unknown as Parameters<QuarryAPI['create']>[0]);
++  await other.addDependency({ blockedId: task.id, blockerId: plan.id, type: 'parent-child', createdBy: task.createdBy });
++  const candidate = await createTaskAssignmentService(api).unassignTask(task.id, { mode: 'admin' });
++  expect((await api.ready()).some(t => t.id === task.id)).toBe(true);
++  await other.update(plan.id, { status: PlanStatus.DRAFT } as never);
++  expect((await api.ready()).some(t => t.id === task.id)).toBe(false);
++  expect((await other.get<Task>(task.id))!.updatedAt).toBe(candidate.updatedAt);
++  await expect(createDispatchService(api, createTaskAssignmentService(api), createAgentRegistry(api)).dispatch(task.id, owner, {
++    claim: { expectedUpdatedAt: candidate.updatedAt }, markAsStarted: true, sessionId: 'stale-ready',
++  })).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
++});
++
++test('SCOPE: stopping an old session must preserve successor registry state', async () => {
++  const { EventEmitter } = await import('node:events');
++  const { createSessionManager } = await import('../runtime/session-manager.js');
++  const registry = createAgentRegistry(api);
++  let count = 0;
++  let duringTerminate: (() => Promise<void>) | undefined;
++  const spawner = {
++    getSession: () => ({ status: 'running' }),
++    spawn: async (agentId: EntityId, agentRole: 'worker') => {
++      const id = `internal-${++count}`;
++      return { session: { id, provider: 'mock', providerSessionId: `provider-${count}`, agentId, agentRole,
++        workerMode: 'ephemeral', mode: 'headless', status: 'running', workingDirectory: root,
++        createdAt: task.updatedAt, lastActivityAt: task.updatedAt, startedAt: task.updatedAt }, events: new EventEmitter() };
++    },
++    terminate: async () => { await duringTerminate?.(); },
++  } as unknown as import('../runtime/spawner.js').SpawnerService;
++  const manager = createSessionManager(spawner, api, registry);
++  const old = await manager.startSession(owner, { workingDirectory: root });
++  let successorSession: import('../runtime/session-manager.js').SessionRecord | undefined;
++  let winner: unknown;
++  duringTerminate = async () => {
++    successorSession = (await manager.startSession(owner, { workingDirectory: root })).session;
++    winner = (await registry.getAgent(owner))!.metadata.agent;
++  };
++  await manager.stopSession(old.session.id, { graceful: false });
++  expect(manager.getActiveSession(owner)!.id).toBe(successorSession!.id);
++  // Actual process remains live; stale cleanup corrupts its persisted identity/status.
++  expect((await registry.getAgent(owner))!.metadata.agent).toEqual(winner);
++});

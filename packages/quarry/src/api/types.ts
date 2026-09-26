@@ -325,6 +325,9 @@ export interface UpdateOptions extends OperationOptions {
    * modified the element since it was read.
    */
   expectedUpdatedAt?: string;
+  /** Task-only automatic claim: atomically require ready({includeEphemeral:true})
+   * eligibility and no assignee. Requires expectedUpdatedAt; no retry. */
+  requireReadyUnassigned?: boolean;
 }
 
 /**

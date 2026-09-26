@@ -52,6 +52,8 @@ import type { MergeRequestProvider } from './merge-request-provider.js';
  * Options for assigning a task to an agent
  */
 export interface AssignTaskOptions {
+  /** Automatic ready/unassigned claim; omission permits explicit reassignment. */
+  claim?: { expectedUpdatedAt: Task['updatedAt'] };
   /** Git branch for the task (auto-generated if not provided) */
   branch?: string;
   /** Worktree path for the task (auto-generated if not provided) */
@@ -398,11 +400,21 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
       throw new Error(`Task not found: ${taskId}`);
     }
 
-    // Note: Previously there was a guard against reassignment here, but
-    // the dispatch service needs to support task reassignment. The dispatch
-    // layer is responsible for determining when reassignment is appropriate
-    // (e.g., for handoffs). This guards changes after our snapshot; it does not
-    // turn an earlier dispatch candidate read into an atomic unassigned claim.
+    // Automatic selection must keep the original candidate token across all
+    // asynchronous preparation. Never retry this claim against a newer snapshot.
+    const claim = options?.claim;
+    if (claim && (
+      !claim.expectedUpdatedAt || task.updatedAt !== claim.expectedUpdatedAt ||
+      task.assignee ||
+      (task.status !== TaskStatus.OPEN && task.status !== TaskStatus.IN_PROGRESS) ||
+      (task.scheduledFor && new Date(task.scheduledFor).getTime() > Date.now())
+    )) {
+      throw new ConflictError(
+        `Cannot claim task ${taskId}: ready/unassigned candidate changed.`,
+        ConflictErrorCode.CONCURRENT_MODIFICATION,
+        { taskId }
+      );
+    }
 
     // Get and validate the agent
     const agent = await this.api.get<AgentEntity>(asElementId(agentId));
@@ -460,7 +472,7 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
 
     // Commit ownership, status and metadata together against the original task
     // snapshot. A conflict must propagate without retrying on a newer owner.
-    return this.api.update<Task>(taskId, updates, { expectedUpdatedAt: task.updatedAt });
+    return this.api.update<Task>(taskId, updates, { expectedUpdatedAt: claim?.expectedUpdatedAt ?? task.updatedAt, requireReadyUnassigned: !!claim });
   }
 
   async unassignTask(taskId: ElementId, options: UnassignTaskOptions): Promise<Task> {

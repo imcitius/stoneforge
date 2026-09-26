@@ -20,6 +20,7 @@ import { taskWorktreeManager, ProjectRepositories } from '../git/project-reposit
  */
 
 import { EventEmitter } from 'node:events';
+import { randomUUID } from 'node:crypto';
 import type {
   EntityId,
   ElementId,
@@ -30,7 +31,7 @@ import type {
   Plan,
   Workflow,
 } from '@stoneforge/core';
-import { InboxStatus, createTimestamp, TaskStatus, asEntityId, asElementId, PlanStatus, canAutoComplete, WorkflowStatus, computeWorkflowStatus, updateWorkflowStatus } from '@stoneforge/core';
+import { ConflictError, InboxStatus, createTimestamp, TaskStatus, asEntityId, asElementId, PlanStatus, canAutoComplete, WorkflowStatus, computeWorkflowStatus, updateWorkflowStatus } from '@stoneforge/core';
 import type { QuarryAPI, InboxService } from '@stoneforge/quarry';
 import { loadTriagePrompt, loadRolePrompt, renderPromptTemplate, buildWorkflowPresetSection } from '../prompts/index.js';
 import type { WorkflowPresetContext } from '../prompts/index.js';
@@ -2771,6 +2772,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const existingBranch = taskMeta?.branch;
     const existingWorktree = taskMeta?.worktree;
 
+    // A stale preparation must never replace another attempt's Git directory.
+    const attemptId = randomUUID();
     let worktreePath: string;
     let branch: string;
 
@@ -2783,7 +2786,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       const exists = await worktreeManager.worktreeExists(worktreePath);
       if (!exists) {
         // Worktree was cleaned up, create a new one
-        const worktreeResult = await this.createWorktreeForTask(worker, task);
+        const worktreeResult = await this.createWorktreeForTask(worker, task, attemptId);
         worktreePath = worktreeResult.path;
         branch = worktreeResult.branch;
       }
@@ -2797,14 +2800,14 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       const exists = await worktreeManager.worktreeExists(worktreePath);
       if (!exists) {
         // Worktree was cleaned up, create a new one
-        const worktreeResult = await this.createWorktreeForTask(worker, task);
+        const worktreeResult = await this.createWorktreeForTask(worker, task, attemptId);
         worktreePath = worktreeResult.path;
         branch = worktreeResult.branch;
       }
     }
     // No existing worktree, create a new one
     else {
-      const worktreeResult = await this.createWorktreeForTask(worker, task);
+      const worktreeResult = await this.createWorktreeForTask(worker, task, attemptId);
       worktreePath = worktreeResult.path;
       branch = worktreeResult.branch;
     }
@@ -2826,105 +2829,105 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     // This prevents a race condition where rate_limited events emitted during
     // the async gap (dispatch, metadata updates) would be lost because no
     // listener was attached yet.
-    if (this.config.onSessionStarted) {
-      this.config.onSessionStarted(session, events, workerId, initialPrompt);
-    }
-
-    // Session started successfully — now dispatch the task (assigns + sends message)
-    const dispatchOptions: DispatchOptions = {
-      branch,
-      worktree: worktreePath,
-      markAsStarted: true,
-      priority: task.priority,
-      sessionId: session.providerSessionId ?? session.id,
-    };
-
     try {
-      await this.dispatchService.dispatch(task.id, workerId, dispatchOptions);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.includes('Agent channel not found')) {
-        logger.warn(
-          `Skipping worker ${worker.name} (${workerId}): agent channel not found for task ${task.id}`
+      if (this.config.onSessionStarted) {
+        this.config.onSessionStarted(session, events, workerId, initialPrompt);
+      }
+
+      // Session started successfully — now dispatch the task (assigns + sends message)
+      const dispatchOptions: DispatchOptions = {
+        claim: { expectedUpdatedAt: task.updatedAt },
+        branch,
+        worktree: worktreePath,
+        markAsStarted: true,
+        priority: task.priority,
+        sessionId: session.providerSessionId ?? session.id,
+      };
+
+      const dispatched = await this.dispatchService.dispatch(task.id, workerId, dispatchOptions);
+      this.emitter.emit('task:dispatched', task.id, workerId);
+
+      // Record session history entry for this worker session
+      // Use only our assignment receipt; never append stale history to a successor.
+      const updatedTask = dispatched.task;
+      if (updatedTask) {
+        const sessionHistoryEntry: TaskSessionHistoryEntry = {
+          sessionId: session.id,
+          providerSessionId: session.providerSessionId,
+          agentId: workerId,
+          agentName: worker.name,
+          agentRole: 'worker',
+          startedAt: createTimestamp(),
+        };
+        const metadataWithHistory = appendTaskSessionHistory(
+          updatedTask.metadata as Record<string, unknown> | undefined,
+          sessionHistoryEntry
         );
-        this.operationLog?.write(
-          'warn',
-          'dispatch',
-          `Skipping worker with missing channel: ${worker.name} (${workerId}) for task ${task.id}`,
-          { agentId: workerId, taskId: task.id }
+        // Set owningDirector and targetBranch if not already set (merge into same metadata update)
+        const existingOrcMeta = getOrchestratorTaskMeta(
+          updatedTask.metadata as Record<string, unknown> | undefined
         );
-        // Only a post-assignment error carries a receipt. Never infer ownership
-        // by reading the current task after the asynchronous notification failure.
-        if (error instanceof DispatchAssignmentError && error.taskId === task.id) {
-          try {
-            await this.taskAssignment.unassignTask(task.id, {
-              mode: 'failed-dispatch', expectedAssignment: error.assignment,
-            });
-          } catch {
-            // A successor or another mutation won; preserve it without retry.
+        let finalMetadata = metadataWithHistory;
+        const metaUpdate: { owningDirector?: EntityId; targetBranch?: string } = {};
+
+        // Resolve owning director if not already set
+        let resolvedDirectorId = existingOrcMeta?.owningDirector;
+        if (!resolvedDirectorId) {
+          resolvedDirectorId = await this.resolveOwningDirector(task) ?? undefined;
+          if (resolvedDirectorId) {
+            metaUpdate.owningDirector = resolvedDirectorId;
           }
         }
+
+        // Propagate director's targetBranch if not already set on task
+        if (resolvedDirectorId && !existingOrcMeta?.targetBranch) {
+          const directorEntity = await this.agentRegistry.getAgent(resolvedDirectorId);
+          const directorMeta = directorEntity ? getAgentMetadata(directorEntity) : undefined;
+          if (directorMeta?.agentRole === 'director' && directorMeta.targetBranch) {
+            metaUpdate.targetBranch = directorMeta.targetBranch;
+          }
+        }
+
+        if (Object.keys(metaUpdate).length > 0) {
+          finalMetadata = updateOrchestratorTaskMeta(finalMetadata, metaUpdate);
+        }
+        await this.api.update<Task>(task.id, { metadata: finalMetadata }, { expectedUpdatedAt: updatedTask.updatedAt });
+      }
+
+      // Notify pool service that agent was spawned
+      if (this.poolService) {
+        await this.poolService.onAgentSpawned(workerId);
+      }
+
+      this.emitter.emit('agent:spawned', workerId, worktreePath);
+
+      return true;
+    } catch (error) {
+      // Stop only the internal session created by this attempt, never whichever
+      // session happens to be active for the agent now.
+      try {
+        await this.sessionManager.stopSession(session.id, { graceful: false, reason: 'Automatic dispatch failed' });
+      } catch (cleanupError) {
+        logger.warn(`Failed to stop dispatch session ${session.id}:`, cleanupError);
+      }
+      if (error instanceof DispatchAssignmentError && error.taskId === task.id) {
+        try {
+          await this.taskAssignment.unassignTask(task.id, {
+            mode: 'failed-dispatch', expectedAssignment: error.assignment,
+          });
+        } catch {
+          // Preserve a successor or any intervening task decision, without retry.
+        }
+      }
+      // Worktrees may be borrowed or adopted by a successor. Retain them on
+      // failure; deleting after an async ownership read would introduce a TOCTOU.
+      const message = error instanceof Error ? error.message : String(error);
+      if (error instanceof ConflictError || message.includes('Agent channel not found')) {
+        logger.warn(`Skipping stale/failed dispatch for task ${task.id}: ${message}`);
         return false;
       }
       throw error;
     }
-    this.emitter.emit('task:dispatched', task.id, workerId);
-
-    // Record session history entry for this worker session
-    // Re-read task to get metadata after dispatch wrote to it
-    const updatedTask = await this.api.get<Task>(task.id);
-    if (updatedTask) {
-      const sessionHistoryEntry: TaskSessionHistoryEntry = {
-        sessionId: session.id,
-        providerSessionId: session.providerSessionId,
-        agentId: workerId,
-        agentName: worker.name,
-        agentRole: 'worker',
-        startedAt: createTimestamp(),
-      };
-      const metadataWithHistory = appendTaskSessionHistory(
-        updatedTask.metadata as Record<string, unknown> | undefined,
-        sessionHistoryEntry
-      );
-      // Set owningDirector and targetBranch if not already set (merge into same metadata update)
-      const existingOrcMeta = getOrchestratorTaskMeta(
-        updatedTask.metadata as Record<string, unknown> | undefined
-      );
-      let finalMetadata = metadataWithHistory;
-      const metaUpdate: { owningDirector?: EntityId; targetBranch?: string } = {};
-
-      // Resolve owning director if not already set
-      let resolvedDirectorId = existingOrcMeta?.owningDirector;
-      if (!resolvedDirectorId) {
-        resolvedDirectorId = await this.resolveOwningDirector(task) ?? undefined;
-        if (resolvedDirectorId) {
-          metaUpdate.owningDirector = resolvedDirectorId;
-        }
-      }
-
-      // Propagate director's targetBranch if not already set on task
-      if (resolvedDirectorId && !existingOrcMeta?.targetBranch) {
-        const directorEntity = await this.agentRegistry.getAgent(resolvedDirectorId);
-        const directorMeta = directorEntity ? getAgentMetadata(directorEntity) : undefined;
-        if (directorMeta?.agentRole === 'director' && directorMeta.targetBranch) {
-          metaUpdate.targetBranch = directorMeta.targetBranch;
-        }
-      }
-
-      if (Object.keys(metaUpdate).length > 0) {
-        finalMetadata = updateOrchestratorTaskMeta(finalMetadata, metaUpdate);
-      }
-      await this.api.update<Task>(task.id, { metadata: finalMetadata });
-    }
-
-    // Notify pool service that agent was spawned
-    if (this.poolService) {
-      await this.poolService.onAgentSpawned(workerId);
-    }
-
-    this.emitter.emit('agent:spawned', workerId, worktreePath);
-
-    return true;
   }
 
   /**
@@ -2982,7 +2985,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    * Creates a worktree for a task assignment.
    * Includes dependency installation so workers have node_modules available.
    */
-  private async createWorktreeForTask(worker: AgentEntity, task: Task): Promise<CreateWorktreeResult> {
+  private async createWorktreeForTask(worker: AgentEntity, task: Task, attemptId?: string): Promise<CreateWorktreeResult> {
     const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
     const orcMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
     const targetBranch = orcMeta?.targetBranch;
@@ -2994,7 +2997,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     }
 
     return worktreeManager.createWorktree({
-      agentName: worker.name,
+      agentName: attemptId ? `${worker.name}-${attemptId}` : worker.name,
       taskId: task.id,
       taskTitle: task.title,
       installDependencies: true,

@@ -164,6 +164,8 @@ export interface BaseAgentMetadata {
   readonly channelId?: ChannelId;
   /** Provider session ID for resumption */
   readonly sessionId?: string;
+  /** Unique internal spawn identity; never inferred from a resumable provider ID. */
+  readonly currentSessionId?: string;
   /** Path to the agent's worktree (for workers) */
   readonly worktree?: string;
   /** Current session status */
