@@ -388,6 +388,14 @@ Independent steward review of the final commit and approved CLI local delivery
 remain pending; the implementation worker neither approves nor merges this work.
 Installed Desktop5f53cef, live daemon/sessions and completed el-1clm are unchanged.
 
+## Retention clarification — el-2y8n3
+
+See [task-session-retention.md](workspace/task-session-retention.md): append keeps
+only the last 50 entries, including unfinished/claim-referenced eviction. Preserving
+existing entries is not unlimited history. Audit availability and recovery authority
+are separate; provider-ID ambiguity can disappear after eviction. That handoff
+limitation is characterized and proposed to Director, not fixed here. Pending
+completion candidate probes remain explicitly separate from accepted master.
 ## Worker completion and history follow-up — el-20qt0, 2026-09-26
 
 This section supersedes **only completion/history** observations above. Historical
@@ -434,8 +442,8 @@ These identity fields are **not an authentication/authorization boundary**.
 mode/internal entry, original owner, repository/branch/worktree, resolved commitOid,
 request contents and phase. After a finalized operation is explicitly reopened
 and assigned a fresh internal session, the next claim archives the old operation
-in `completionHistory`. Both operation records and full session history survive
-assignment/reassignment, reopen and reset; pending claims cannot be erased by
+in `completionHistory`. Both operation records and existing session entries survive
+assignment/reassignment, reopen and reset (append still retains only the last 50); pending claims cannot be erased by
 these normal paths. Direct arbitrary metadata replacement is outside this narrow
 contract, as are unresolved stale start/dispatch writers listed above and the legacy SDK
 OrchestratorAPI.assignTaskToAgent metadata snapshot write. These can still replace
