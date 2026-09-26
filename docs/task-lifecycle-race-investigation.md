@@ -1207,3 +1207,97 @@ record changed after the integrated gate; production/test files remain the teste
 versions. Exact-final-commit independent steward review and approved CLI local merge
 are still required. Caller process/worktree effects and recovery limits above remain;
 no installed app, live session/daemon, provider or maintenance changes were made.
+
+## Retained headless cleanup after output end — el-4bwuz, 2026-09-26
+
+Implementation `c9dd48d73c2484909be6460d2ffe5c0467af48ff` starts at delivered local
+master `2bb427b7a314643fd8b0e8adcc94cb054888cc41`, including Spawner el-1c5so,
+Claude adapter el-1mo5c and SessionManager el-1q2vv. Approved CLI artifact manifest
+and all299 hashes verified; `task sync el-4bwuz` confirmed that exact local target.
+Only Spawner production code changes; providers, SessionManager, CAS and gate
+configuration are unchanged.
+
+### Contract and resource limits
+
+Spawner now distinguishes output termination from a successful synchronous
+`HeadlessSession.close()` return on its captured internal handle. Explicit terminate
+on an already terminated headless session retries incomplete close without sending
+another interrupt, changing the ended status/timestamp or resolving an agent's
+current provider/session. It also closes when output ends during awaited interrupt.
+A thrown close leaves its completion latch unset; each explicit attempt exposes
+its actual error, and concurrent terminate calls join the same attempt. Successful
+close is recorded through one helper for explicit termination, automatic result/error
+handling and suspension, preventing repeat calls after successful automatic cleanup.
+Interactive/legacy exited-process early returns remain; no exited PID is signalled.
+
+The existing five-second retention bound is unchanged. Retry is available only
+while the old internal handle remains in Spawner; after eviction, its ID rejects
+with `Session not found` rather than resolving a successor. No background cleanup
+retry or unbounded retention was added. Existing termination observer/timer cleanup,
+five-second confirmation waits, graceful/force behavior and successful-step
+idempotence remain covered. A successful synchronous adapter call is the observable
+cleanup-request contract, **not proof of every external process/resource stopping**.
+Providers may perform asynchronous cleanup internally (e.g. Codex/OpenCode); this
+change neither redesigns their APIs nor proves rollback of partial SDK side effects.
+
+Delivered SessionManager stop retries compose with this change: Spawner rejection
+keeps terminationComplete false, and a retry invokes the same internal ID. After
+success, persistence-only retries skip termination. Its pre-existing natural-exit
+shortcut (`terminated && persisted`, with no stop progress) still returns before
+Spawner; this is not a universal SessionManager natural-exit cleanup fix. Direct
+Spawner terminate can now clean the retained handle in that case. This boundary
+was reported once to Director in el-ig5h1; no broader contract was inferred.
+
+### Evidence and verification
+
+Vitest uses actual Spawner, actual delivered ClaudeHeadlessProvider with only
+SDK Query mocked, inert queues/interactive/process handles and isolated in-memory
+SQLite for real QuarryAPI/AgentRegistry/SessionManager composition. No live SDK,
+provider, OS process, agent PID, installed app/session, daemon or maintenance was
+used as a fixture. Fake timers and explicit exit/interrupt barriers avoid sleeps.
+
+- New real-Spawner baseline on unchanged production: **6fail/18pass, exit1**,
+  `/tmp/el-4bwuz-baseline.log`.
+- Final37-test baseline against the unchanged delivered Spawner, retaining the
+  delivered Claude adapter: **9fail/28pass, exit1**,
+  `/tmp/el-4bwuz-baseline-final.log`. Failures assert missing close/retry and missing
+  repeated errors, including SDK/SessionManager composition; controls remain green.
+- Corrected final focused command:
+  `pnpm --filter @stoneforge/smithy test:node src/runtime/spawner-terminate.test.ts src/providers/claude/headless-close.test.ts`:
+  **37/37 pass, exit0**, `/tmp/el-4bwuz-focused-final.log` (Spawner25, Claude12).
+  Coverage includes iterator end before first close, end during throwing close,
+  repeated distinct errors then success, concurrent success/failure, successful
+  cleanup exactly once, interrupt/output-driven-close interleaving, automatic
+  result/error success and throw, retention eviction, exited OS mock no-resignal,
+  same-agent/reused-provider-ID successor and real SessionManager persistence/CAS.
+- An intermediate composition fixture expected the entire successor agent record
+  to stay byte-equal: **35pass/1fail**, `/tmp/el-4bwuz-composition.log`. This was an
+  incorrect fixture expectation: successful old-session persistence legitimately
+  appends history. The final test instead asserts preserved active identity/status,
+  untouched successor handle and exactly one old history entry. No production CAS
+  or persistence change was made to satisfy that assertion.
+- `pnpm install --frozen-lockfile`: exit0, `/tmp/el-4bwuz-install.log`; existing
+  missing-unbuilt-workspace-bin warnings, lockfile unchanged.
+- `pnpm --filter @stoneforge/smithy typecheck`: exit0,
+  `/tmp/el-4bwuz-typecheck.log`.
+- Separate isolated Bun processes for
+  `packages/smithy/src/providers/claude/headless.bun.test.ts`,
+  `packages/smithy/src/runtime/spawner.bun.test.ts`,
+  `packages/smithy/src/runtime/session-manager.bun.test.ts`,
+  `packages/smithy/src/services/dispatch-claim.bun.test.ts`:
+  **17+74+85+28=204pass,526 assertions, all exit0**,
+  `/tmp/el-4bwuz-runtime.log`. Project/actor/server routing environment variables
+  were removed only for test subprocesses, preserving worker STONEFORGE_ROOT.
+
+Required `pnpm check:merge` result follows below. Separate root build/lint/test,
+browser/packaged GUI, cross-platform and live-provider coverage is not claimed.
+Independent exact-final steward acceptance and approved CLI local delivery remain
+required; worker completion is not merge approval.
+
+### el-4bwuz initial full acceptance before adjacent delivered dispatch delta
+
+`pnpm check:merge` on source `c9dd48d` passed **190/190,exit0,304.94s**.
+Log `/tmp/el-4bwuz-gate.log`; exact per-step results
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-p3oWjX/results.json`.
+During this run local master advanced to delivered non-merge-steward claim
+`4c29bb0`; subsequent approved sync and integrated acceptance are recorded below.
