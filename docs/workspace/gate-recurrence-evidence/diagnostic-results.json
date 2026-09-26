@@ -1,0 +1,182 @@
+[
+  {
+    "label": "quarry-1",
+    "command": [
+      "bun",
+      "test",
+      "packages/quarry/src/api/query-performance.bun.test.ts"
+    ],
+    "code": 0,
+    "utcStart": "2026-09-26T20:28:40.787934+00:00",
+    "utcEnd": "2026-09-26T20:28:48.931609+00:00",
+    "wallSeconds": 8.143606917001307,
+    "loadBefore": [
+      18.4833984375,
+      22.87939453125,
+      23.92431640625
+    ],
+    "loadAfter": [
+      17.3193359375,
+      22.4873046875,
+      23.7724609375
+    ],
+    "childResourceDelta": {
+      "ru_utime": 7.6633189999999995,
+      "ru_stime": 0.6864119999999999,
+      "ru_inblock": 0,
+      "ru_oublock": 0,
+      "ru_nvcsw": 149,
+      "ru_nivcsw": 13556
+    }
+  },
+  {
+    "label": "quarry-2",
+    "command": [
+      "bun",
+      "test",
+      "packages/quarry/src/api/query-performance.bun.test.ts"
+    ],
+    "code": 0,
+    "utcStart": "2026-09-26T20:28:49.025340+00:00",
+    "utcEnd": "2026-09-26T20:28:56.992335+00:00",
+    "wallSeconds": 7.966922916006297,
+    "loadBefore": [
+      17.3193359375,
+      22.4873046875,
+      23.7724609375
+    ],
+    "loadAfter": [
+      16.65283203125,
+      22.26318359375,
+      23.685546875
+    ],
+    "childResourceDelta": {
+      "ru_utime": 7.55859,
+      "ru_stime": 0.640074,
+      "ru_inblock": 0,
+      "ru_oublock": 0,
+      "ru_nvcsw": 0,
+      "ru_nivcsw": 12776
+    }
+  },
+  {
+    "label": "plugin-1",
+    "command": [
+      "bun",
+      "test",
+      "packages/smithy/src/services/plugin-executor.bun.test.ts"
+    ],
+    "code": 0,
+    "utcStart": "2026-09-26T20:28:57.085654+00:00",
+    "utcEnd": "2026-09-26T20:28:57.764996+00:00",
+    "wallSeconds": 0.6794170830398798,
+    "loadBefore": [
+      16.65283203125,
+      22.26318359375,
+      23.685546875
+    ],
+    "loadAfter": [
+      16.65283203125,
+      22.26318359375,
+      23.685546875
+    ],
+    "childResourceDelta": {
+      "ru_utime": 0.11847900000000067,
+      "ru_stime": 0.09860399999999991,
+      "ru_inblock": 0,
+      "ru_oublock": 0,
+      "ru_nvcsw": 2,
+      "ru_nivcsw": 1859
+    }
+  },
+  {
+    "label": "plugin-2",
+    "command": [
+      "bun",
+      "test",
+      "packages/smithy/src/services/plugin-executor.bun.test.ts"
+    ],
+    "code": 0,
+    "utcStart": "2026-09-26T20:28:57.861639+00:00",
+    "utcEnd": "2026-09-26T20:28:58.399660+00:00",
+    "wallSeconds": 0.538166124955751,
+    "loadBefore": [
+      16.65283203125,
+      22.26318359375,
+      23.685546875
+    ],
+    "loadAfter": [
+      16.65283203125,
+      22.26318359375,
+      23.685546875
+    ],
+    "childResourceDelta": {
+      "ru_utime": 0.10729599999999984,
+      "ru_stime": 0.08968500000000001,
+      "ru_inblock": 0,
+      "ru_oublock": 0,
+      "ru_nvcsw": 0,
+      "ru_nivcsw": 1033
+    }
+  },
+  {
+    "label": "quarry-instrumented",
+    "command": [
+      "bun",
+      "test",
+      "packages/quarry/src/api/el-39znb-query.bun.test.ts"
+    ],
+    "code": 0,
+    "utcStart": "2026-09-26T20:28:58.618166+00:00",
+    "utcEnd": "2026-09-26T20:29:07.040224+00:00",
+    "wallSeconds": 8.422011916991323,
+    "loadBefore": [
+      16.65283203125,
+      22.26318359375,
+      23.685546875
+    ],
+    "loadAfter": [
+      15.68994140625,
+      21.875,
+      23.53076171875
+    ],
+    "childResourceDelta": {
+      "ru_utime": 7.907814000000002,
+      "ru_stime": 0.6835819999999999,
+      "ru_inblock": 0,
+      "ru_oublock": 0,
+      "ru_nvcsw": 0,
+      "ru_nivcsw": 21383
+    }
+  },
+  {
+    "label": "plugin-instrumented",
+    "command": [
+      "bun",
+      "test",
+      "packages/smithy/src/services/el-39znb-plugin.bun.test.ts"
+    ],
+    "code": 0,
+    "utcStart": "2026-09-26T20:29:07.138133+00:00",
+    "utcEnd": "2026-09-26T20:29:07.688980+00:00",
+    "wallSeconds": 0.550892791012302,
+    "loadBefore": [
+      15.68994140625,
+      21.875,
+      23.53076171875
+    ],
+    "loadAfter": [
+      15.68994140625,
+      21.875,
+      23.53076171875
+    ],
+    "childResourceDelta": {
+      "ru_utime": 0.11991599999999991,
+      "ru_stime": 0.10698799999999986,
+      "ru_inblock": 0,
+      "ru_oublock": 0,
+      "ru_nvcsw": 0,
+      "ru_nivcsw": 1622
+    }
+  }
+]
