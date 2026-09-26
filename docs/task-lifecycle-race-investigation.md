@@ -1207,3 +1207,82 @@ record changed after the integrated gate; production/test files remain the teste
 versions. Exact-final-commit independent steward review and approved CLI local merge
 are still required. Caller process/worktree effects and recovery limits above remain;
 no installed app, live session/daemon, provider or maintenance changes were made.
+
+## HTTP session start conditional release — el-56khe, 2026-09-26
+
+Baseline `8c8cca9` includes the delivered explicit API CAS (el-2hrsm), automatic
+claim/internal-session cleanup and completion/history fixes. The former caller
+report's stranded HTTP assignment is historical baseline evidence, now addressed
+here; CLI caller ordering and the rest of session runtime are not rewritten.
+Approved local sync through the el-ptim CLI included delivered master `2bb427b`
+(Claude cleanup retry), without conflicts. CLI source manifest and all299 hashes
+matched; no pending worker branch was copied. Implementation commit: `1fe94ea`.
+
+Both actual `sessions.ts` HTTP start routes capture task ID, owner, session identity
+and version exclusively from the committed assignment return. A rejected assignment
+has no receipt and cannot release anything. A startup rejection releases through
+TaskAssignmentService's existing failed-dispatch CAS; no administrative fallback,
+retry or reread/adoption of a newer owner is allowed. The release preserves task
+status, generated branch, outer/extension metadata, completion claims/history and
+session/handoff history. Human, terminal, deferred and successor/version changes
+win at both the first read and the actual update transaction.
+
+Worktree preparation is distinct from an accepted SessionManager return. The route
+never stops sessions by agent ID or tries to recover a handle it did not receive.
+SessionManager retains its existing exact-internal-session startup cleanup contract.
+After start returns, event-saver/prompt persistence/client-notification errors still
+return HTTP500, but do not unassign or stop the accepted session (or a newer one).
+The response identifies the accepted internal session when known. Persistent
+worktree preparation errors now fail explicitly in both routes; the app route no
+longer silently continues in a different directory after preparation failure.
+
+No destructive worktree cleanup is attempted: there is no exclusive deletion lease,
+and a precheck cannot prove that a reusable path has not been acquired by a successor.
+Errors report `cleanup.assignment` (`not-assigned`, `released`, `retained-conflict`,
+`retained-error`, `retained-session-started`) and `cleanup.worktree` with retained
+path/reason when returned, or `not-returned` when no path was delivered. The latter
+is **not** proof that preparation created no resources. Cleanup errors accompany,
+never replace, the original HTTP error. Logs include the same diagnostics. These
+outcomes do not promise removal of all orphan resources or successful provider
+termination: a failed internal stop remains logged by SessionManager and resources
+can remain for later explicit recovery. No resource GC or entire runtime redesign.
+
+Evidence uses both real HTTP route factories, two connections to temporary on-disk
+SQLite, local Git worktrees, real OrchestratorAPI/TaskAssignmentService/SessionManager,
+and inert SpawnerService-boundary provider handles. No live process/provider, agent,
+session, daemon, installed app or maintenance operation was used as a test object.
+The tests do not claim an actual SDK/provider transport termination was exercised.
+
+- New initial desired-safety baseline: **4pass/34fail**,210 assertions,
+  `/tmp/el-56khe-baseline.log`. Six direct spawn/persistence/termination-error cases
+  demonstrate retained assignment. Other failures also include missing diagnostics
+  and cleanup-race hooks that the old route never reached; not34 distinct defects.
+- First correction:38/38,454 assertions, `/tmp/el-56khe-focused.log`.
+- Expanded test intermediate:70pass/2fail across new+API suites,
+  `/tmp/el-56khe-focused-2.log`. The two publication-race expectations incorrectly
+  forbade the existing runtime's own ended-history append. Assertions now preserve
+  successor current fields and require the legitimate terminated own history entry;
+  production runtime was unchanged. Subsequent46/46,540 assertions in
+  `/tmp/el-56khe-focused-3.log` retains that evidence.
+- Final focused command: `bun test packages/smithy/src/api/http-session-start.bun.test.ts packages/smithy/src/api/orchestrator-assignment.bun.test.ts packages/smithy/src/services/task-assignment-service.bun.test.ts packages/smithy/src/services/dispatch-claim.bun.test.ts packages/smithy/src/services/task-completion-protocol.bun.test.ts`:
+  **212/212,1359 assertions,exit0,36.79s**, `/tmp/el-56khe-focused-final.log`.
+  New route suite48 tests covers spawn, preparation, publication, persistence,
+  termination and notification errors; rollback after real release SQL; R1/R2
+  closed/deferred/Human/successor/completion-claim races; assignment CAS rejection;
+  successful start; returned reusable Git paths; accepted plus newer sessions;
+  full task/event preservation and retained files/registered Git worktrees.
+- `pnpm install --frozen-lockfile`:exit0,lock unchanged,
+  `/tmp/el-56khe-install.log`; package typecheck exit0 before final integration.
+- Required integrated `pnpm check:merge`: result appended below.
+
+Separate root build/lint/test, browser/packaged GUI, cross-platform and live-provider
+checks are not claimed. The required gate runs its declared uncached source/runtime
+checks. Independent steward review must name the exact final commit and establish
+acceptance before approved CLI local delivery; worker verification is not approval.
+Installed Desktop and completed maintenance are unchanged.
+
+First required gate on `1fe94ea`: **191/191,exit0,317.12s**;
+`/tmp/el-56khe-gate.log`, exact commands/results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dLG3kY/results.json`.
+During this run master advanced to delivered non-merge steward claim `4c29bb0`.
+Approved sync and final integrated verification follow; this first result is retained.
