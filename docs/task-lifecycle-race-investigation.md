@@ -1453,3 +1453,20 @@ intermediate HTTP62/62 (772 assertions); final new probe16 plus SessionManager85
 **101/101,375 assertions,exit0**, `/tmp/el-56khe-revision-runtime.log`.
 Required final gate outcome and exact-final independent review follow separately.
 No installed app, live agent/session/daemon/provider or maintenance operation.
+
+### el-56khe corrected-boundary final worker gate
+
+Source `9a689169101ec97d8aa7d96328edc7fc8bc4fbfd`, base/master24df339:
+**pnpm check:merge192/192,exit0,304.48s**, single required run after correction.
+Log `/tmp/el-56khe-revision-gate.log`; exact commands/results/per-step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-rKGCc3/results.json`.
+Seven relevant suites in that gate: HTTP48 + new steward probe16 + explicit API30
++ SessionManager85 + dispatch53 + assignment37 + completion69 = **338/338,1930
+assertions**. Smithy Node349/349 and Desktop Node6/6 passed, as did uncached workspace
+typecheck and Desktop source build. Frozen install/package typecheck/diff/target
+ancestry also passed. No gate or threshold modification; earlier failed probe/control
+and previous gate results are retained. Only this verification text changes after
+the passing source. Separate root build/lint/test, public docs build, browser/packaged
+GUI, cross-platform and live-provider tests were not run. No installed/live changes.
+Exact-final independent steward approval and approved CLI local delivery remain
+required; this worker result is not a merge verdict.
