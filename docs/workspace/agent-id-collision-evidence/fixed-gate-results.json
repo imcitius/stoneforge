@@ -1,0 +1,2106 @@
+[
+  {
+    "name": "gate regression tests",
+    "command": "node",
+    "args": [
+      "--test",
+      "scripts/check-merge.test.mjs"
+    ],
+    "code": 0,
+    "seconds": "0.42",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/001.log"
+  },
+  {
+    "name": "workspace typecheck (uncached)",
+    "command": "pnpm",
+    "args": [
+      "typecheck",
+      "--force"
+    ],
+    "code": 0,
+    "seconds": "36.01",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/002.log"
+  },
+  {
+    "name": "Desktop build",
+    "command": "pnpm",
+    "args": [
+      "--filter",
+      "@stoneforge/desktop",
+      "build"
+    ],
+    "code": 0,
+    "seconds": "1.54",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/003.log"
+  },
+  {
+    "name": "packages/core/src/config/model-pricing.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/config/model-pricing.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/004.log"
+  },
+  {
+    "name": "packages/core/src/errors/codes.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/errors/codes.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.01",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/005.log"
+  },
+  {
+    "name": "packages/core/src/errors/documentation.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/errors/documentation.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/006.log"
+  },
+  {
+    "name": "packages/core/src/errors/error.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/errors/error.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.01",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/007.log"
+  },
+  {
+    "name": "packages/core/src/errors/factories.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/errors/factories.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/008.log"
+  },
+  {
+    "name": "packages/core/src/id/generator.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/id/generator.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/009.log"
+  },
+  {
+    "name": "packages/core/src/types/channel.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/channel.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/010.log"
+  },
+  {
+    "name": "packages/core/src/types/dependency.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/dependency.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/011.log"
+  },
+  {
+    "name": "packages/core/src/types/document.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/document.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/012.log"
+  },
+  {
+    "name": "packages/core/src/types/element.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/element.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/013.log"
+  },
+  {
+    "name": "packages/core/src/types/entity.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/entity.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.04",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/014.log"
+  },
+  {
+    "name": "packages/core/src/types/event.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/event.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/015.log"
+  },
+  {
+    "name": "packages/core/src/types/external-sync.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/external-sync.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.01",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/016.log"
+  },
+  {
+    "name": "packages/core/src/types/inbox.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/inbox.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/017.log"
+  },
+  {
+    "name": "packages/core/src/types/library.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/library.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/018.log"
+  },
+  {
+    "name": "packages/core/src/types/message.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/message.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/019.log"
+  },
+  {
+    "name": "packages/core/src/types/plan.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/plan.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/020.log"
+  },
+  {
+    "name": "packages/core/src/types/playbook-yaml.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/playbook-yaml.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "1.17",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/021.log"
+  },
+  {
+    "name": "packages/core/src/types/playbook.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/playbook.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/022.log"
+  },
+  {
+    "name": "packages/core/src/types/task.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/task.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/023.log"
+  },
+  {
+    "name": "packages/core/src/types/team.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/team.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/024.log"
+  },
+  {
+    "name": "packages/core/src/types/workflow-create.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/workflow-create.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/025.log"
+  },
+  {
+    "name": "packages/core/src/types/workflow.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/types/workflow.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/026.log"
+  },
+  {
+    "name": "packages/core/src/utils/mentions.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/core/src/utils/mentions.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/027.log"
+  },
+  {
+    "name": "packages/storage/src/errors.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/storage/src/errors.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.04",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/028.log"
+  },
+  {
+    "name": "packages/storage/src/schema.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/storage/src/schema.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.17",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/029.log"
+  },
+  {
+    "name": "packages/storage/src/types.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/storage/src/types.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.01",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/030.log"
+  },
+  {
+    "name": "packages/quarry/src/api/auto-blocked-status.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/auto-blocked-status.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.12",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/031.log"
+  },
+  {
+    "name": "packages/quarry/src/api/channel-membership.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/channel-membership.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.16",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/032.log"
+  },
+  {
+    "name": "packages/quarry/src/api/concurrent-update.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/concurrent-update.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.12",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/033.log"
+  },
+  {
+    "name": "packages/quarry/src/api/document-version.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/document-version.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.13",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/034.log"
+  },
+  {
+    "name": "packages/quarry/src/api/events.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/events.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.57",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/035.log"
+  },
+  {
+    "name": "packages/quarry/src/api/export-events.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/export-events.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.10",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/036.log"
+  },
+  {
+    "name": "packages/quarry/src/api/library-hydration.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/library-hydration.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.11",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/037.log"
+  },
+  {
+    "name": "packages/quarry/src/api/library-multi-membership.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/library-multi-membership.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.10",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/038.log"
+  },
+  {
+    "name": "packages/quarry/src/api/message-hydration.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/message-hydration.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.12",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/039.log"
+  },
+  {
+    "name": "packages/quarry/src/api/message-integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/message-integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.14",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/040.log"
+  },
+  {
+    "name": "packages/quarry/src/api/message-pagination.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/message-pagination.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.11",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/041.log"
+  },
+  {
+    "name": "packages/quarry/src/api/plan-auto-complete.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/plan-auto-complete.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.09",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/042.log"
+  },
+  {
+    "name": "packages/quarry/src/api/plan-bulk-operations.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/plan-bulk-operations.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.19",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/043.log"
+  },
+  {
+    "name": "packages/quarry/src/api/plan-events.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/plan-events.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.08",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/044.log"
+  },
+  {
+    "name": "packages/quarry/src/api/plan-task-linking.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/plan-task-linking.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.18",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/045.log"
+  },
+  {
+    "name": "packages/quarry/src/api/quarry-api.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/quarry-api.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.49",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/046.log"
+  },
+  {
+    "name": "packages/quarry/src/api/query-performance.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/query-performance.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "8.30",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/047.log"
+  },
+  {
+    "name": "packages/quarry/src/api/ready-blocked.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/ready-blocked.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.26",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/048.log"
+  },
+  {
+    "name": "packages/quarry/src/api/soft-identity.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/soft-identity.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.12",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/049.log"
+  },
+  {
+    "name": "packages/quarry/src/api/task-gc.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/task-gc.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.06",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/050.log"
+  },
+  {
+    "name": "packages/quarry/src/api/task-hydration.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/task-hydration.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.09",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/051.log"
+  },
+  {
+    "name": "packages/quarry/src/api/team-membership.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/team-membership.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.12",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/052.log"
+  },
+  {
+    "name": "packages/quarry/src/api/types.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/types.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.05",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/053.log"
+  },
+  {
+    "name": "packages/quarry/src/api/update-concurrency.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/update-concurrency.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.07",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/054.log"
+  },
+  {
+    "name": "packages/quarry/src/api/workflow-queries.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/api/workflow-queries.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.24",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/055.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/admin.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/admin.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.24",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/056.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/alias.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/alias.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/057.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/auto-link-helper.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/auto-link-helper.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.12",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/058.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/completion.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/completion.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/059.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/config.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/config.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.11",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/060.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/crud.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/crud.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.52",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/061.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/dep.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/dep.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.38",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/062.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/docs.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/docs.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.24",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/063.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/document.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/document.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.66",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/064.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/entity.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/entity.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.65",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/065.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/external-sync-link-all.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/external-sync-link-all.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.27",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/066.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/external-sync-unlink-all.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/external-sync-unlink-all.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.18",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/067.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/history.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/history.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.15",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/068.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/identity.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/identity.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.10",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/069.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/inbox.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/inbox.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.65",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/070.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/init.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/init.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.68",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/071.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/library.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/library.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.33",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/072.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/log.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/log.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.22",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/073.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/message.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/message.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.69",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/074.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/metrics-output.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/metrics-output.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "11.89",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/075.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/metrics.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/metrics.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.14",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/076.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/plan.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/plan.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.61",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/077.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/playbook.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/playbook.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.32",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/078.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/serve.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/serve.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.05",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/079.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/stats.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/stats.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.12",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/080.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/sync.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/sync.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.29",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/081.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/task.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/task.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "1.77",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/082.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/team.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/team.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.86",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/083.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/commands/workflow.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/commands/workflow.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.64",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/084.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/completion.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/completion.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/085.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/errors-output.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/errors-output.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.12",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/086.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/formatter.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/formatter.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/087.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/parser.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/parser.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.12",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/088.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/piped-output.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/piped-output.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "21.40",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/089.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/plugin-loader.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/plugin-loader.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/090.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/plugin-registry.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/plugin-registry.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/091.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/plugin-types.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/plugin-types.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/092.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/runner.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/runner.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/093.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/server-client.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/server-client.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.08",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/094.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/types.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/types.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/095.log"
+  },
+  {
+    "name": "packages/quarry/src/cli/utils/progress.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/cli/utils/progress.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/096.log"
+  },
+  {
+    "name": "packages/quarry/src/config/config.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/config/config.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.11",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/097.log"
+  },
+  {
+    "name": "packages/quarry/src/config/file.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/config/file.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.07",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/098.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/adapters/document-sync-adapter.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/adapters/document-sync-adapter.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.06",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/099.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/adapters/task-sync-adapter.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/adapters/task-sync-adapter.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.06",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/100.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/auto-link.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/auto-link.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/101.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/conflict-resolver.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/conflict-resolver.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.06",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/102.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/document-sync-integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/document-sync-integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.09",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/103.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/provider-registry.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/provider-registry.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "1.37",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/104.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/providers/folder/folder-document-adapter.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/providers/folder/folder-document-adapter.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.10",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/105.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/providers/folder/folder-fs.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/providers/folder/folder-fs.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.08",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/106.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/providers/github/github-api.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/providers/github/github-api.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/107.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/providers/github/github-task-adapter.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/providers/github/github-task-adapter.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/108.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/providers/linear/linear-api.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/providers/linear/linear-api.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/109.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/providers/linear/linear-provider.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/providers/linear/linear-provider.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/110.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/providers/linear/linear-task-adapter.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/providers/linear/linear-task-adapter.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/111.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/providers/notion/notion-api.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/providers/notion/notion-api.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "10.05",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/112.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/providers/notion/notion-blocks.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/providers/notion/notion-blocks.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/113.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/providers/notion/notion-document-adapter.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/providers/notion/notion-document-adapter.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/114.log"
+  },
+  {
+    "name": "packages/quarry/src/external-sync/sync-engine.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/external-sync/sync-engine.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.08",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/115.log"
+  },
+  {
+    "name": "packages/quarry/src/http/sync-handlers.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/http/sync-handlers.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.21",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/116.log"
+  },
+  {
+    "name": "packages/quarry/src/services/blocked-cache.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/services/blocked-cache.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.26",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/117.log"
+  },
+  {
+    "name": "packages/quarry/src/services/dependency.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/services/dependency.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.11",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/118.log"
+  },
+  {
+    "name": "packages/quarry/src/services/dependency.perf.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/services/dependency.perf.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.47",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/119.log"
+  },
+  {
+    "name": "packages/quarry/src/services/embeddings/fusion.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/services/embeddings/fusion.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.01",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/120.log"
+  },
+  {
+    "name": "packages/quarry/src/services/embeddings/local-provider.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/services/embeddings/local-provider.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/121.log"
+  },
+  {
+    "name": "packages/quarry/src/services/embeddings/service.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/services/embeddings/service.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.07",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/122.log"
+  },
+  {
+    "name": "packages/quarry/src/services/id-length-cache.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/services/id-length-cache.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.53",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/123.log"
+  },
+  {
+    "name": "packages/quarry/src/services/inbox.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/services/inbox.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.08",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/124.log"
+  },
+  {
+    "name": "packages/quarry/src/services/priority-service.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/services/priority-service.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.11",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/125.log"
+  },
+  {
+    "name": "packages/quarry/src/services/search-utils.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/services/search-utils.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/126.log"
+  },
+  {
+    "name": "packages/quarry/src/sync/auto-export.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/sync/auto-export.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.72",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/127.log"
+  },
+  {
+    "name": "packages/quarry/src/sync/service.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/sync/service.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.21",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/128.log"
+  },
+  {
+    "name": "packages/quarry/src/sync/sync.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/sync/sync.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.05",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/129.log"
+  },
+  {
+    "name": "packages/quarry/src/systems/identity.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/quarry/src/systems/identity.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.06",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/130.log"
+  },
+  {
+    "name": "packages/smithy/src/api/agent-id-collision.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/api/agent-id-collision.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.09",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/131.log"
+  },
+  {
+    "name": "packages/smithy/src/api/orchestrator-api.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/api/orchestrator-api.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.16",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/132.log"
+  },
+  {
+    "name": "packages/smithy/src/api/orchestrator-assignment.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/api/orchestrator-assignment.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "3.62",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/133.log"
+  },
+  {
+    "name": "packages/smithy/src/cli/commands/agent.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/cli/commands/agent.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.11",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/134.log"
+  },
+  {
+    "name": "packages/smithy/src/cli/commands/daemon.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/cli/commands/daemon.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "32.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/135.log"
+  },
+  {
+    "name": "packages/smithy/src/cli/commands/dispatch.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/cli/commands/dispatch.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.10",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/136.log"
+  },
+  {
+    "name": "packages/smithy/src/cli/commands/merge.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/cli/commands/merge.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.10",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/137.log"
+  },
+  {
+    "name": "packages/smithy/src/cli/commands/task-merge-status-arguments.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/cli/commands/task-merge-status-arguments.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "5.46",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/138.log"
+  },
+  {
+    "name": "packages/smithy/src/cli/commands/task-merge-status.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/cli/commands/task-merge-status.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.07",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/139.log"
+  },
+  {
+    "name": "packages/smithy/src/git/merge-arguments.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/git/merge-arguments.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "13.51",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/140.log"
+  },
+  {
+    "name": "packages/smithy/src/git/merge.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/git/merge.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "16.18",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/141.log"
+  },
+  {
+    "name": "packages/smithy/src/git/project-repositories.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/git/project-repositories.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "4.19",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/142.log"
+  },
+  {
+    "name": "packages/smithy/src/git/target-delivery.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/git/target-delivery.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "28.65",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/143.log"
+  },
+  {
+    "name": "packages/smithy/src/git/worktree-manager.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/git/worktree-manager.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "13.08",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/144.log"
+  },
+  {
+    "name": "packages/smithy/src/prompts/index.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/prompts/index.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/145.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/claude/env.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/claude/env.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.01",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/146.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/claude/headless.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/claude/headless.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/147.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/claude/index.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/claude/index.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.08",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/148.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/claude/interactive.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/claude/interactive.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/149.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/codex/compatibility.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/codex/compatibility.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.11",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/150.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/codex/event-mapper.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/codex/event-mapper.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/151.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/codex/headless.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/codex/headless.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/152.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/codex/provider.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/codex/provider.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/153.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/codex/server-manager.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/codex/server-manager.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/154.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/opencode/event-mapper.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/opencode/event-mapper.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/155.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/opencode/interactive.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/opencode/interactive.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/156.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/opencode/model.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/opencode/model.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.01",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/157.log"
+  },
+  {
+    "name": "packages/smithy/src/providers/shell-quote.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/providers/shell-quote.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.01",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/158.log"
+  },
+  {
+    "name": "packages/smithy/src/runtime/handoff.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/runtime/handoff.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.05",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/159.log"
+  },
+  {
+    "name": "packages/smithy/src/runtime/predecessor-query.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/runtime/predecessor-query.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.78",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/160.log"
+  },
+  {
+    "name": "packages/smithy/src/runtime/session-manager.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/runtime/session-manager.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "6.00",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/161.log"
+  },
+  {
+    "name": "packages/smithy/src/runtime/spawner.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/runtime/spawner.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "1.65",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/162.log"
+  },
+  {
+    "name": "packages/smithy/src/runtime/spawner.integration.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/runtime/spawner.integration.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.11",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/163.log"
+  },
+  {
+    "name": "packages/smithy/src/server/routes/agents-workload.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/server/routes/agents-workload.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.14",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/164.log"
+  },
+  {
+    "name": "packages/smithy/src/server/routes/assets.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/server/routes/assets.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.03",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/165.log"
+  },
+  {
+    "name": "packages/smithy/src/server/server.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/server/server.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.14",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/166.log"
+  },
+  {
+    "name": "packages/smithy/src/services/agent-registry.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/agent-registry.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.20",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/167.log"
+  },
+  {
+    "name": "packages/smithy/src/services/demo-mode-service.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/demo-mode-service.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.12",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/168.log"
+  },
+  {
+    "name": "packages/smithy/src/services/dispatch-claim.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/dispatch-claim.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "10.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/169.log"
+  },
+  {
+    "name": "packages/smithy/src/services/dispatch-daemon.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/dispatch-daemon.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "4.01",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/170.log"
+  },
+  {
+    "name": "packages/smithy/src/services/dispatch-service.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/dispatch-service.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.14",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/171.log"
+  },
+  {
+    "name": "packages/smithy/src/services/metrics-service.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/metrics-service.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.22",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/172.log"
+  },
+  {
+    "name": "packages/smithy/src/services/operation-log-service.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/operation-log-service.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.16",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/173.log"
+  },
+  {
+    "name": "packages/smithy/src/services/plugin-executor.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/plugin-executor.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.59",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/174.log"
+  },
+  {
+    "name": "packages/smithy/src/services/rate-limit-tracker.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/rate-limit-tracker.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.14",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/175.log"
+  },
+  {
+    "name": "packages/smithy/src/services/role-definition-service.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/role-definition-service.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.43",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/176.log"
+  },
+  {
+    "name": "packages/smithy/src/services/session-metrics.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/session-metrics.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.16",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/177.log"
+  },
+  {
+    "name": "packages/smithy/src/services/settings-service.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/settings-service.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.23",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/178.log"
+  },
+  {
+    "name": "packages/smithy/src/services/task-assignment-service.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/task-assignment-service.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.37",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/179.log"
+  },
+  {
+    "name": "packages/smithy/src/services/task-completion-git.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/task-completion-git.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "6.52",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/180.log"
+  },
+  {
+    "name": "packages/smithy/src/services/task-completion-protocol.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/task-completion-protocol.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "12.21",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/181.log"
+  },
+  {
+    "name": "packages/smithy/src/services/task-handoff-ownership.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/task-handoff-ownership.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "2.69",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/182.log"
+  },
+  {
+    "name": "packages/smithy/src/services/task-lifecycle-race-evidence.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/task-lifecycle-race-evidence.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "9.07",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/183.log"
+  },
+  {
+    "name": "packages/smithy/src/services/task-session-retention.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/services/task-session-retention.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.14",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/184.log"
+  },
+  {
+    "name": "packages/smithy/src/types/agent.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/types/agent.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.01",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/185.log"
+  },
+  {
+    "name": "packages/smithy/src/types/message-types.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/types/message-types.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.05",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/186.log"
+  },
+  {
+    "name": "packages/smithy/src/types/role-definition.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/types/role-definition.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/187.log"
+  },
+  {
+    "name": "packages/smithy/src/types/task-meta.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/types/task-meta.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.02",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/188.log"
+  },
+  {
+    "name": "packages/smithy/src/utils/rate-limit-parser.bun.test.ts",
+    "command": "bun",
+    "args": [
+      "test",
+      "./packages/smithy/src/utils/rate-limit-parser.bun.test.ts"
+    ],
+    "code": 0,
+    "seconds": "0.04",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/189.log"
+  },
+  {
+    "name": "Smithy Node/Vitest",
+    "command": "pnpm",
+    "args": [
+      "--filter",
+      "@stoneforge/smithy",
+      "test:node"
+    ],
+    "code": 0,
+    "seconds": "3.46",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/190.log"
+  },
+  {
+    "name": "Desktop Node backend integration",
+    "command": "pnpm",
+    "args": [
+      "--filter",
+      "@stoneforge/desktop",
+      "test"
+    ],
+    "code": 0,
+    "seconds": "6.05",
+    "logFile": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/191.log"
+  }
+]

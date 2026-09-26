@@ -1,0 +1,4 @@
+
+> @stoneforge/smithy@1.25.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy
+> tsc --noEmit
+

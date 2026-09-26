@@ -1,0 +1,35 @@
+bun test v1.3.11 (af24e281)
+
+packages/smithy/src/api/orchestrator-api.integration.bun.test.ts:
+(pass) OrchestratorAPI > Agent Registration > registerDirector creates a director agent [10.84ms]
+(pass) OrchestratorAPI > Agent Registration > registerWorker creates an ephemeral worker [4.42ms]
+(pass) OrchestratorAPI > Agent Registration > registerWorker creates a persistent worker [3.43ms]
+(pass) OrchestratorAPI > Agent Registration > registerWorker with maxConcurrentTasks stores value in metadata [3.93ms]
+(pass) OrchestratorAPI > Agent Registration > registerSteward creates a merge steward [3.79ms]
+(pass) OrchestratorAPI > Agent Registration > registerSteward creates a docs steward with cron trigger [3.92ms]
+(pass) OrchestratorAPI > Agent Registration > registerDirector persists provider, model, and executablePath [5.38ms]
+(pass) OrchestratorAPI > Agent Registration > registerWorker persists provider, model, and executablePath [2.74ms]
+(pass) OrchestratorAPI > Agent Registration > registerSteward persists provider, model, and executablePath [3.34ms]
+(pass) OrchestratorAPI > Agent Registration > registerSteward persists playbook and playbookId [3.19ms]
+(pass) OrchestratorAPI > Agent Registration > registerDirector with targetBranch stores it in metadata [4.21ms]
+(pass) OrchestratorAPI > Agent Registration > registerDirector without targetBranch leaves it undefined [2.89ms]
+(pass) OrchestratorAPI > Agent Registration > registerSteward without playbook fields leaves them undefined [3.49ms]
+(pass) OrchestratorAPI > Agent Queries > getAgent retrieves an agent by ID [6.38ms]
+(pass) OrchestratorAPI > Agent Queries > getAgentByName retrieves an agent by name [6.04ms]
+(pass) OrchestratorAPI > Agent Queries > listAgents returns all agents [4.25ms]
+(pass) OrchestratorAPI > Agent Queries > listAgents filters by role [3.80ms]
+(pass) OrchestratorAPI > Agent Queries > listAgents filters by workerMode [3.75ms]
+(pass) OrchestratorAPI > Agent Queries > getAgentsByRole returns agents of a specific role [6.14ms]
+(pass) OrchestratorAPI > Agent Queries > getAvailableWorkers returns idle workers [4.81ms]
+(pass) OrchestratorAPI > Agent Queries > getStewards returns all stewards [5.31ms]
+(pass) OrchestratorAPI > Agent Queries > getDirector returns the director [4.46ms]
+(pass) OrchestratorAPI > Agent Session Management > updateAgentSession updates session status [4.72ms]
+(pass) OrchestratorAPI > Agent Session Management > getAgentChannel returns direct channel ID created during registration (TB-O7a) [4.66ms]
+(pass) OrchestratorAPI > Orchestrator Task Metadata > setTaskOrchestratorMeta sets orchestrator metadata [4.66ms]
+(pass) OrchestratorAPI > Orchestrator Task Metadata > updateTaskOrchestratorMeta updates existing metadata [3.51ms]
+(pass) OrchestratorAPI > Orchestrator Task Metadata > assignTaskToAgent assigns task and sets metadata [5.67ms]
+
+ 27 pass
+ 0 fail
+ 92 expect() calls
+Ran 27 tests across 1 file. [207.00ms]
