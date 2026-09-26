@@ -317,9 +317,10 @@ for (const kind of ['closed', 'deferred', 'human', 'reassign']) {
   });
 }
 
-for (const kind of ['deferred', 'human', 'reassign']) {
+for (const kind of ['closed', 'deferred', 'human', 'reassign']) {
   test(`REGRESSION: actual stale-session CLI complete rejects ${kind}`, async () => {
     const winner = await change(kind);
+    const description = await other.get(task.descriptionRef!);
     const events = storage.query('SELECT * FROM events ORDER BY id');
     const env = { ...process.env };
     for (const key of Object.keys(env)) if (/^(STONEFORGE_|SF_|ORCHESTRATOR_URL$|ELECTRON_RUN_AS_NODE$)/.test(key)) delete env[key];
@@ -329,6 +330,7 @@ for (const kind of ['deferred', 'human', 'reassign']) {
     const result = spawnSync(process.execPath, [cliSource, 'task', 'complete', task.id, '--no-mr'], { cwd: root, env, encoding: 'utf8' });
     expect(result.status).not.toBe(0);
     expect(await other.get(task.id)).toEqual(winner);
+    expect(await other.get(task.descriptionRef!)).toEqual(description);
     expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
   });
 }
