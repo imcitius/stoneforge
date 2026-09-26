@@ -648,7 +648,15 @@ export interface CostBreakdown {
 /**
  * Aggregated metrics for a single provider, model, or agent group
  */
-export interface AggregatedProviderMetrics {
+/** Coverage counts describe metric records, not all real sessions. Optional for older servers. */
+export interface UsageCoverage {
+  sessionCount: number;
+  usageStatus?: 'available' | 'partial' | 'unavailable' | 'unknown';
+  usageSessionCount?: number;
+  legacySessionCount?: number;
+}
+
+export interface AggregatedProviderMetrics extends UsageCoverage {
   /** Group key (provider name, model name, or agent ID) */
   group: string;
   /** Total input tokens */
@@ -661,7 +669,7 @@ export interface AggregatedProviderMetrics {
   totalCacheCreationTokens: number;
   /** Total tokens (input + output) */
   totalTokens: number;
-  /** Number of sessions */
+  /** Number of metric records */
   sessionCount: number;
   /** Average duration in milliseconds */
   avgDurationMs: number;
@@ -675,12 +683,14 @@ export interface AggregatedProviderMetrics {
   rateLimitedCount: number;
   /** Estimated cost breakdown computed from model pricing */
   estimatedCost?: CostBreakdown;
+  estimatedCostStatus?: 'available' | 'partial' | 'unavailable';
+  pricedSessionCount?: number;
 }
 
 /**
  * A single time-series data point for provider metrics
  */
-export interface ProviderTimeSeriesPoint {
+export interface ProviderTimeSeriesPoint extends UsageCoverage {
   /** Time bucket (ISO 8601 date string) */
   bucket: string;
   /** Group key (provider or model name) */
@@ -689,7 +699,7 @@ export interface ProviderTimeSeriesPoint {
   totalInputTokens: number;
   /** Total output tokens in this bucket */
   totalOutputTokens: number;
-  /** Number of sessions in this bucket */
+  /** Number of metric records in this bucket */
   sessionCount: number;
   /** Average duration in milliseconds for this bucket */
   avgDurationMs: number;

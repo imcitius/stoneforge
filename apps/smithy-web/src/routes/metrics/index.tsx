@@ -44,6 +44,7 @@ import { useAllPlans } from '../../api/hooks/useAllElements';
 import { useMergeRequestCounts } from '../../api/hooks/useMergeRequests';
 import { useProviderMetrics } from '../../api/hooks/useProviderMetrics';
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { metricValue, summarizeMetrics, summarizeUsage, tokenTrend, usageCoverageText } from './coverage';
 import type { Task } from '../../api/types';
 
 // ============================================================================
@@ -844,51 +845,14 @@ export function MetricsPage() {
   const providerMetrics = providerMetricsData?.metrics ?? [];
 
   // Summary totals across all providers
-  const providerSummary = useMemo(() => {
-    const totalInputTokens = providerMetrics.reduce((s, m) => s + m.totalInputTokens, 0);
-    const totalOutputTokens = providerMetrics.reduce((s, m) => s + m.totalOutputTokens, 0);
-    const totalCacheReadTokens = providerMetrics.reduce((s, m) => s + (m.totalCacheReadTokens ?? 0), 0);
-    const totalCacheCreationTokens = providerMetrics.reduce((s, m) => s + (m.totalCacheCreationTokens ?? 0), 0);
-    const totalTokens = totalInputTokens + totalOutputTokens;
-    const totalSessions = providerMetrics.reduce((s, m) => s + m.sessionCount, 0);
-    const estimatedCost = providerMetrics.reduce((s, m) => s + (m.estimatedCost?.totalCost ?? 0), 0);
-    // Cache hit rate: cache read tokens as % of total input tokens (input includes cache)
-    const cacheHitRate = totalInputTokens > 0
-      ? Math.round((totalCacheReadTokens / totalInputTokens) * 100)
-      : 0;
-    return {
-      totalInputTokens, totalOutputTokens, totalCacheReadTokens,
-      totalCacheCreationTokens, totalTokens, totalSessions, estimatedCost,
-      cacheHitRate,
-    };
-  }, [providerMetrics]);
-
-  // Model-level breakdown for the token/cost table
+  const providerSummary = useMemo(() => summarizeMetrics(providerMetrics), [providerMetrics]);
   const modelMetrics = modelMetricsData?.metrics ?? [];
-
-  // Token usage trend line chart — aggregate time series across all models
-  const tokenTrendData = useMemo((): LineChartDataPoint[] => {
-    const series = modelMetricsData?.timeSeries ?? providerMetricsData?.timeSeries ?? [];
-    if (series.length === 0) return [];
-
-    // Aggregate tokens by bucket across all groups
-    const bucketMap = new Map<string, number>();
-    for (const point of series) {
-      const existing = bucketMap.get(point.bucket) ?? 0;
-      bucketMap.set(point.bucket, existing + point.totalInputTokens + point.totalOutputTokens);
-    }
-
-    return Array.from(bucketMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([bucket, totalTokens]) => {
-        const date = new Date(bucket);
-        const label =
-          timeRange.days <= 7
-            ? date.toLocaleDateString('en-US', { weekday: 'short' })
-            : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        return { label, value: totalTokens, date: bucket };
-      });
-  }, [modelMetricsData?.timeSeries, providerMetricsData?.timeSeries, timeRange.days]);
+  const modelSummary = useMemo(() => summarizeMetrics(modelMetrics), [modelMetrics]);
+  const series = modelMetricsData?.timeSeries ?? providerMetricsData?.timeSeries ?? [];
+  const trendCoverage = summarizeUsage(series);
+  const tokenTrendData = useMemo(() => tokenTrend(series, timeRange.days), [series, timeRange.days]);
+  const providerValue = (value: string) => isProviderMetricsLoading ? 'Loading…'
+    : isProviderMetricsError ? 'unavailable' : value;
 
   // Provider distribution pie chart — sessions by provider
   const providerDistributionData = useMemo((): PieChartDataPoint[] => {
@@ -1131,7 +1095,7 @@ export function MetricsPage() {
       {/* ================================================================ */}
       {/* Provider and Model Analytics */}
       {/* ================================================================ */}
-      <div>
+      <div data-testid="provider-analytics">
         <SectionHeader title="Provider and Model Analytics" icon={Cpu} />
 
         {/* Summary cards row */}
@@ -1141,23 +1105,23 @@ export function MetricsPage() {
         >
           <StatCard
             label="Total Tokens"
-            value={formatTokenCount(providerSummary.totalTokens)}
-            subtitle={`${formatTokenCount(providerSummary.totalInputTokens)} in / ${formatTokenCount(providerSummary.totalOutputTokens)} out`}
+            value={providerValue(metricValue(formatTokenCount(providerSummary.totalTokens), providerSummary.usageStatus))}
+            subtitle={usageCoverageText(providerSummary)}
             icon={Hash}
             iconColor="bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] text-[var(--color-primary)]"
             testId="stat-total-tokens"
           />
           <StatCard
             label="Cache Hit Rate"
-            value={`${providerSummary.cacheHitRate}%`}
-            subtitle={`${formatTokenCount(providerSummary.totalCacheReadTokens)} cache read tokens`}
+            value={providerValue(metricValue(`${providerSummary.cacheHitRate}%`, providerSummary.usageStatus, 'recorded ratio'))}
+            subtitle={`${metricValue(formatTokenCount(providerSummary.totalCacheReadTokens), providerSummary.usageStatus)} cache read tokens`}
             icon={Zap}
             iconColor="bg-[color-mix(in_srgb,#8b5cf6_15%,transparent)] text-[#8b5cf6]"
             testId="stat-cache-hit-rate"
           />
           <StatCard
-            label="Total Sessions"
-            value={providerSummary.totalSessions}
+            label="Metric Records"
+            value={providerValue(String(providerSummary.sessionCount))}
             subtitle={`across ${providerMetrics.length} provider${providerMetrics.length !== 1 ? 's' : ''}`}
             icon={Activity}
             iconColor="bg-[color-mix(in_srgb,#22c55e_15%,transparent)] text-[#22c55e]"
@@ -1165,13 +1129,19 @@ export function MetricsPage() {
           />
           <StatCard
             label="Estimated Cost"
-            value={formatCost(providerSummary.estimatedCost)}
-            subtitle="per-model pricing"
+            value={providerValue(metricValue(formatCost(providerSummary.estimatedCost), providerSummary.estimatedCostStatus, 'priced'))}
+            subtitle={`Priced: ${providerSummary.pricedSessionCount}/${providerSummary.sessionCount} metric records`}
             icon={DollarSign}
             iconColor="bg-[color-mix(in_srgb,#eab308_15%,transparent)] text-[#eab308]"
             testId="stat-estimated-cost"
           />
         </div>
+
+        {providerSummary.legacySessionCount > 0 && (
+          <p className="text-xs text-[var(--color-text-secondary)] mb-4">
+            Recorded token subtotals retain unverified legacy values.
+          </p>
+        )}
 
         {/* Charts row */}
         <div
@@ -1179,20 +1149,20 @@ export function MetricsPage() {
           data-testid="charts-grid-provider"
         >
           <TrendLineChart
-            data={tokenTrendData}
-            title={`Token Usage (${timeRange.label})`}
+            data={tokenTrendData.some(point => point.value !== null) ? tokenTrendData : []}
+            title={`Token Usage (${timeRange.label})${trendCoverage.usageStatus === 'available' ? '' : ` — ${trendCoverage.usageStatus}`}`}
             testId="token-usage-trend-chart"
             isLoading={isProviderMetricsLoading}
             isError={isProviderMetricsError}
             errorMessage="Failed to load token usage data"
-            emptyMessage="No token usage recorded"
-            total={providerSummary.totalTokens}
+            emptyMessage={`Token usage ${trendCoverage.usageStatus}`}
+            total={trendCoverage.usageStatus === 'available' ? tokenTrendData.reduce((s, p) => s + (p.value ?? 0), 0) : undefined}
             height={220}
           />
 
           <StatusPieChart
             data={providerDistributionData}
-            title="Sessions by Provider"
+            title="Metric Records by Provider"
             testId="provider-distribution-chart"
             isLoading={isProviderMetricsLoading}
             isError={isProviderMetricsError}
@@ -1214,6 +1184,12 @@ export function MetricsPage() {
             maxBars={8}
           />
         </div>
+
+        {series.length > 0 && trendCoverage.usageStatus !== 'available' && (
+          <p className="text-xs text-[var(--color-text-secondary)] mt-2" data-testid="token-trend-coverage">
+            {usageCoverageText(trendCoverage)}. Partial points show recorded subtotals; gaps are unavailable or unknown.
+          </p>
+        )}
 
         {/* Model-level token & cost breakdown table */}
         {modelMetrics.length > 0 && (
@@ -1241,17 +1217,21 @@ export function MetricsPage() {
                       : 0;
                     return (
                       <tr key={m.group} className="hover:bg-[var(--color-surface-hover)] text-[var(--color-text)]">
-                        <td className="px-3 py-2 font-mono">{m.group}</td>
-                        <td className="text-right px-3 py-2 font-mono">{formatTokenCount(m.totalInputTokens)}</td>
-                        <td className="text-right px-3 py-2 font-mono">{formatTokenCount(m.totalOutputTokens)}</td>
-                        <td className="text-right px-3 py-2 font-mono">{formatTokenCount(m.totalCacheReadTokens)}</td>
-                        <td className="text-right px-3 py-2 font-mono">{formatTokenCount(m.totalCacheCreationTokens)}</td>
+                        <td className="px-3 py-2 font-mono">{m.group}
+                          <div className="font-sans text-[var(--color-text-secondary)] mt-1">
+                            {usageCoverageText(m)}; priced: {m.pricedSessionCount ?? 'unknown'}/{m.sessionCount}
+                          </div>
+                        </td>
+                        <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(m.totalInputTokens), m.usageStatus)}</td>
+                        <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(m.totalOutputTokens), m.usageStatus)}</td>
+                        <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(m.totalCacheReadTokens), m.usageStatus)}</td>
+                        <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(m.totalCacheCreationTokens), m.usageStatus)}</td>
                         <td className="text-right px-3 py-2 font-mono">
                           <span className={cacheRate > 50 ? 'text-[var(--color-success)]' : cacheRate > 10 ? 'text-[var(--color-warning)]' : ''}>
-                            {cacheRate}%
+                            {metricValue(`${cacheRate}%`, m.usageStatus, 'recorded ratio')}
                           </span>
                         </td>
-                        <td className="text-right px-3 py-2 font-mono font-medium">{formatCost(m.estimatedCost?.totalCost ?? 0)}</td>
+                        <td className="text-right px-3 py-2 font-mono font-medium">{metricValue(formatCost(m.estimatedCost?.totalCost ?? 0), m.estimatedCost ? m.estimatedCostStatus : undefined, 'priced')}</td>
                       </tr>
                     );
                   })}
@@ -1259,12 +1239,12 @@ export function MetricsPage() {
                 <tfoot>
                   <tr className="bg-[var(--color-surface-hover)] font-medium text-[var(--color-text)]">
                     <td className="px-3 py-2">Total</td>
-                    <td className="text-right px-3 py-2 font-mono">{formatTokenCount(providerSummary.totalInputTokens)}</td>
-                    <td className="text-right px-3 py-2 font-mono">{formatTokenCount(providerSummary.totalOutputTokens)}</td>
-                    <td className="text-right px-3 py-2 font-mono">{formatTokenCount(providerSummary.totalCacheReadTokens)}</td>
-                    <td className="text-right px-3 py-2 font-mono">{formatTokenCount(providerSummary.totalCacheCreationTokens)}</td>
-                    <td className="text-right px-3 py-2 font-mono">{providerSummary.cacheHitRate}%</td>
-                    <td className="text-right px-3 py-2 font-mono">{formatCost(providerSummary.estimatedCost)}</td>
+                    <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(modelSummary.totalInputTokens), modelSummary.usageStatus)}</td>
+                    <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(modelSummary.totalOutputTokens), modelSummary.usageStatus)}</td>
+                    <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(modelSummary.totalCacheReadTokens), modelSummary.usageStatus)}</td>
+                    <td className="text-right px-3 py-2 font-mono">{metricValue(formatTokenCount(modelSummary.totalCacheCreationTokens), modelSummary.usageStatus)}</td>
+                    <td className="text-right px-3 py-2 font-mono">{metricValue(`${modelSummary.cacheHitRate}%`, modelSummary.usageStatus, 'recorded ratio')}</td>
+                    <td className="text-right px-3 py-2 font-mono">{metricValue(formatCost(modelSummary.estimatedCost), modelSummary.estimatedCostStatus, 'priced')}</td>
                   </tr>
                 </tfoot>
               </table>

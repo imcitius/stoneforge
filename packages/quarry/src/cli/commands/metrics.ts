@@ -14,7 +14,6 @@ import { createAPI } from '../db.js';
 import type { StorageBackend } from '@stoneforge/storage';
 import {
   type CostBreakdown,
-  calculateCost,
   calculateCostFromPricing,
   lookupModelPricing,
 } from '@stoneforge/core';
@@ -31,6 +30,8 @@ interface AggregateRow {
   total_cache_read_tokens: number;
   total_cache_creation_tokens: number;
   session_count: number;
+  usage_session_count: number;
+  legacy_session_count: number;
   avg_duration_ms: number;
   failed_count: number;
   rate_limited_count: number;
@@ -41,16 +42,50 @@ interface ModelTokenRow {
   [key: string]: unknown;
   group_key: string;
   model: string | null;
+  session_count: number;
   input_tokens: number;
   output_tokens: number;
   cache_read_tokens: number;
   cache_creation_tokens: number;
 }
 
+interface Coverage {
+  usageStatus: 'available' | 'partial' | 'unavailable' | 'unknown';
+  usageSessionCount: number;
+  legacySessionCount: number;
+  estimatedCostStatus: 'available' | 'partial' | 'unavailable';
+  pricedSessionCount: number;
+}
+
+function coverage(count: number, observed: number, legacy: number, priced: number): Coverage {
+  return {
+    usageStatus: count > 0 && observed === count ? 'available' : observed > 0 ? 'partial'
+      : legacy > 0 ? 'unknown' : 'unavailable',
+    usageSessionCount: observed,
+    legacySessionCount: legacy,
+    estimatedCostStatus: count > 0 && priced === count ? 'available' : priced > 0 ? 'partial' : 'unavailable',
+    pricedSessionCount: priced,
+  };
+}
+
+function usageValue(value: number, status: Coverage['usageStatus']): string {
+  return status === 'available' ? formatNumber(value)
+    : status === 'partial' ? `${formatNumber(value)} (partial; recorded subtotal)` : status;
+}
+
+function costValue(value: number, status: Coverage['estimatedCostStatus']): string {
+  return status === 'available' ? formatCost(value)
+    : status === 'partial' ? `${formatCost(value)} (partial; priced subtotal)` : status;
+}
+
+function coverageText(m: Coverage & { sessionCount: number }): string {
+  return `Usage observed: ${m.usageSessionCount}/${m.sessionCount} metric records; legacy unknown: ${m.legacySessionCount}; priced: ${m.pricedSessionCount}/${m.sessionCount}`;
+}
+
 interface MetricsSummary {
   timeRange: { days: number; label: string };
   groupBy: string;
-  metrics: Array<{
+  metrics: Array<Coverage & {
     group: string;
     totalInputTokens: number;
     totalOutputTokens: number;
@@ -64,7 +99,7 @@ interface MetricsSummary {
     rateLimitedCount: number;
     estimatedCost: CostBreakdown;
   }>;
-  totals: {
+  totals: Coverage & {
     totalInputTokens: number;
     totalOutputTokens: number;
     totalTokens: number;
@@ -131,14 +166,10 @@ function formatCost(cost: number): string {
  */
 function queryMetrics(
   backend: StorageBackend,
-  days: number,
+  cutoffStr: string,
   groupBy: 'provider' | 'model',
   providerFilter?: string
 ): AggregateRow[] {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-  const cutoffStr = cutoff.toISOString();
-
   const groupExpr = groupBy === 'provider' ? 'provider' : "COALESCE(model, 'unknown')";
   const params: unknown[] = [cutoffStr];
 
@@ -156,6 +187,8 @@ function queryMetrics(
        COALESCE(SUM(cache_read_tokens), 0) AS total_cache_read_tokens,
        COALESCE(SUM(cache_creation_tokens), 0) AS total_cache_creation_tokens,
        COUNT(*) AS session_count,
+       SUM(CASE WHEN usage_available = 1 THEN 1 ELSE 0 END) AS usage_session_count,
+       SUM(CASE WHEN usage_available IS NULL THEN 1 ELSE 0 END) AS legacy_session_count,
        COALESCE(AVG(duration_ms), 0) AS avg_duration_ms,
        COALESCE(SUM(CASE WHEN outcome = 'failed' THEN 1 ELSE 0 END), 0) AS failed_count,
        COALESCE(SUM(CASE WHEN outcome = 'rate_limited' THEN 1 ELSE 0 END), 0) AS rate_limited_count
@@ -167,78 +200,36 @@ function queryMetrics(
   );
 }
 
-/**
- * Compute cost breakdown for a model-grouped metric using model pricing lookup.
- */
-function computeModelGroupCost(modelName: string, row: AggregateRow): CostBreakdown {
-  const result = calculateCost(
-    modelName,
-    '',
-    Number(row.total_input_tokens),
-    Number(row.total_output_tokens),
-    Number(row.total_cache_read_tokens),
-    Number(row.total_cache_creation_tokens)
-  );
-  return {
-    inputCost: result.inputCost,
-    outputCost: result.outputCost,
-    cacheReadCost: result.cacheReadCost,
-    cacheCreationCost: result.cacheCreationCost,
-    totalCost: result.totalCost,
-  };
-}
-
-/**
- * Compute cost breakdown for a provider-grouped metric by querying
- * per-model token breakdowns from the database.
- */
-function computeProviderGroupCost(
+/** Price only observed records with a matched model, for either grouping. */
+function computeGroupCost(
   backend: StorageBackend,
-  providerName: string,
-  cutoffStr: string
-): CostBreakdown {
+  group: string,
+  groupBy: 'provider' | 'model',
+  cutoffStr: string,
+  providerFilter?: string
+): { estimatedCost: CostBreakdown; pricedSessionCount: number } {
+  const groupExpr = groupBy === 'provider' ? 'provider' : "COALESCE(model, 'unknown')";
   const rows = backend.query<ModelTokenRow>(
-    `SELECT
-       provider AS group_key,
-       COALESCE(model, 'unknown') AS model,
-       COALESCE(SUM(input_tokens), 0) AS input_tokens,
-       COALESCE(SUM(output_tokens), 0) AS output_tokens,
-       COALESCE(SUM(cache_read_tokens), 0) AS cache_read_tokens,
-       COALESCE(SUM(cache_creation_tokens), 0) AS cache_creation_tokens
+    `SELECT model, COUNT(*) AS session_count,
+       SUM(input_tokens) AS input_tokens, SUM(output_tokens) AS output_tokens,
+       SUM(cache_read_tokens) AS cache_read_tokens,
+       SUM(cache_creation_tokens) AS cache_creation_tokens
      FROM provider_metrics
-     WHERE timestamp >= ? AND provider = ?
-     GROUP BY provider, model`,
-    [cutoffStr, providerName]
+     WHERE timestamp >= ? AND ${groupExpr} = ? AND usage_available = 1
+       ${providerFilter ? 'AND provider = ?' : ''}
+     GROUP BY model`,
+    providerFilter ? [cutoffStr, group, providerFilter] : [cutoffStr, group]
   );
-
-  let totalInputCost = 0;
-  let totalOutputCost = 0;
-  let totalCacheReadCost = 0;
-  let totalCacheCreationCost = 0;
-
+  const costs: CostBreakdown[] = [];
+  let pricedSessionCount = 0;
   for (const row of rows) {
-    const model = String(row.model ?? 'unknown');
-    const { pricing } = lookupModelPricing(model);
-    const cost = calculateCostFromPricing(
-      pricing,
-      Number(row.input_tokens),
-      Number(row.output_tokens),
-      Number(row.cache_read_tokens),
-      Number(row.cache_creation_tokens)
-    );
-    totalInputCost += cost.inputCost;
-    totalOutputCost += cost.outputCost;
-    totalCacheReadCost += cost.cacheReadCost;
-    totalCacheCreationCost += cost.cacheCreationCost;
+    const { pricing, matched } = lookupModelPricing(row.model ?? 'unknown');
+    if (!matched) continue;
+    costs.push(calculateCostFromPricing(pricing, Number(row.input_tokens),
+      Number(row.output_tokens), Number(row.cache_read_tokens), Number(row.cache_creation_tokens)));
+    pricedSessionCount += Number(row.session_count);
   }
-
-  return {
-    inputCost: totalInputCost,
-    outputCost: totalOutputCost,
-    cacheReadCost: totalCacheReadCost,
-    cacheCreationCost: totalCacheCreationCost,
-    totalCost: totalInputCost + totalOutputCost + totalCacheReadCost + totalCacheCreationCost,
-  };
+  return { estimatedCost: sumCosts(costs), pricedSessionCount };
 }
 
 /**
@@ -280,18 +271,18 @@ async function metricsHandler(
     const providerFilter = options.provider as string | undefined;
     const groupBy = (options['group-by'] as string | undefined) === 'model' ? 'model' : 'provider';
 
-    const rows = queryMetrics(backend, days, groupBy, providerFilter);
-
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     const cutoffStr = cutoff.toISOString();
+    const rows = queryMetrics(backend, cutoffStr, groupBy, providerFilter);
 
     const metrics = rows.map(row => {
-      const estimatedCost = groupBy === 'model'
-        ? computeModelGroupCost(row.group_key, row)
-        : computeProviderGroupCost(backend, row.group_key, cutoffStr);
+      const { estimatedCost, pricedSessionCount } = computeGroupCost(
+        backend, row.group_key, groupBy, cutoffStr, providerFilter);
 
       return {
+        ...coverage(Number(row.session_count), Number(row.usage_session_count),
+          Number(row.legacy_session_count), pricedSessionCount),
         group: row.group_key,
         totalInputTokens: Number(row.total_input_tokens),
         totalOutputTokens: Number(row.total_output_tokens),
@@ -312,6 +303,10 @@ async function metricsHandler(
     const totalCost = sumCosts(metrics.map(m => m.estimatedCost));
 
     const totals = {
+      ...coverage(metrics.reduce((s, m) => s + m.sessionCount, 0),
+        metrics.reduce((s, m) => s + m.usageSessionCount, 0),
+        metrics.reduce((s, m) => s + m.legacySessionCount, 0),
+        metrics.reduce((s, m) => s + m.pricedSessionCount, 0)),
       totalInputTokens: metrics.reduce((sum, m) => sum + m.totalInputTokens, 0),
       totalOutputTokens: metrics.reduce((sum, m) => sum + m.totalOutputTokens, 0),
       totalTokens: metrics.reduce((sum, m) => sum + m.totalTokens, 0),
@@ -346,13 +341,17 @@ async function metricsHandler(
     const totalCacheCreation = metrics.reduce((s, m) => s + m.totalCacheCreationTokens, 0);
 
     lines.push('Summary:');
-    lines.push(`  Total tokens:          ${formatNumber(totals.totalTokens)}`);
-    lines.push(`  Input tokens:          ${formatNumber(totals.totalInputTokens)}`);
-    lines.push(`  Output tokens:         ${formatNumber(totals.totalOutputTokens)}`);
-    lines.push(`  Cache read tokens:     ${formatNumber(totalCacheRead)}`);
-    lines.push(`  Cache creation tokens: ${formatNumber(totalCacheCreation)}`);
-    lines.push(`  Sessions:              ${formatNumber(totals.sessionCount)}`);
-    lines.push(`  Estimated cost:        ${formatCost(totals.estimatedCost.totalCost)}`);
+    lines.push(`  ${coverageText(totals)}`);
+    if (totals.legacySessionCount > 0) {
+      lines.push('  Recorded token subtotals retain unverified legacy values.');
+    }
+    lines.push(`  Total tokens:          ${usageValue(totals.totalTokens, totals.usageStatus)}`);
+    lines.push(`  Input tokens:          ${usageValue(totals.totalInputTokens, totals.usageStatus)}`);
+    lines.push(`  Output tokens:         ${usageValue(totals.totalOutputTokens, totals.usageStatus)}`);
+    lines.push(`  Cache read tokens:     ${usageValue(totalCacheRead, totals.usageStatus)}`);
+    lines.push(`  Cache creation tokens: ${usageValue(totalCacheCreation, totals.usageStatus)}`);
+    lines.push(`  Metric records:        ${formatNumber(totals.sessionCount)}`);
+    lines.push(`  Estimated cost:        ${costValue(totals.estimatedCost.totalCost, totals.estimatedCostStatus)}`);
     lines.push('');
 
     // Per-group breakdown
@@ -361,19 +360,20 @@ async function metricsHandler(
 
     for (const m of metrics) {
       lines.push(`  ${m.group}`);
-      lines.push(`    Tokens:           ${formatNumber(m.totalTokens)} total`);
-      lines.push(`      Input:          ${formatNumber(m.totalInputTokens)}`);
-      lines.push(`      Output:         ${formatNumber(m.totalOutputTokens)}`);
-      lines.push(`      Cache read:     ${formatNumber(m.totalCacheReadTokens)}`);
-      lines.push(`      Cache creation: ${formatNumber(m.totalCacheCreationTokens)}`);
-      lines.push(`    Sessions:         ${formatNumber(m.sessionCount)}`);
+      lines.push(`    ${coverageText(m)}`);
+      lines.push(`    Tokens:           ${usageValue(m.totalTokens, m.usageStatus)} total`);
+      lines.push(`      Input:          ${usageValue(m.totalInputTokens, m.usageStatus)}`);
+      lines.push(`      Output:         ${usageValue(m.totalOutputTokens, m.usageStatus)}`);
+      lines.push(`      Cache read:     ${usageValue(m.totalCacheReadTokens, m.usageStatus)}`);
+      lines.push(`      Cache creation: ${usageValue(m.totalCacheCreationTokens, m.usageStatus)}`);
+      lines.push(`    Metric records:   ${formatNumber(m.sessionCount)}`);
       lines.push(`    Avg duration:     ${formatDuration(m.avgDurationMs)}`);
       lines.push(`    Error rate:       ${(m.errorRate * 100).toFixed(1)}% (${m.failedCount} failed, ${m.rateLimitedCount} rate limited)`);
-      lines.push(`    Est. cost:        ${formatCost(m.estimatedCost.totalCost)}`);
-      lines.push(`      Input:          ${formatCost(m.estimatedCost.inputCost)}`);
-      lines.push(`      Output:         ${formatCost(m.estimatedCost.outputCost)}`);
-      lines.push(`      Cache read:     ${formatCost(m.estimatedCost.cacheReadCost)}`);
-      lines.push(`      Cache creation: ${formatCost(m.estimatedCost.cacheCreationCost)}`);
+      lines.push(`    Est. cost:        ${costValue(m.estimatedCost.totalCost, m.estimatedCostStatus)}`);
+      lines.push(`      Input:          ${costValue(m.estimatedCost.inputCost, m.estimatedCostStatus)}`);
+      lines.push(`      Output:         ${costValue(m.estimatedCost.outputCost, m.estimatedCostStatus)}`);
+      lines.push(`      Cache read:     ${costValue(m.estimatedCost.cacheReadCost, m.estimatedCostStatus)}`);
+      lines.push(`      Cache creation: ${costValue(m.estimatedCost.cacheCreationCost, m.estimatedCostStatus)}`);
       lines.push('');
     }
 
@@ -418,7 +418,10 @@ export const metricsCommand: Command = {
   description: 'Show provider metrics and usage statistics',
   usage: 'sf metrics [options]',
   help: `Show LLM provider usage metrics including token counts, estimated costs,
-session counts, average duration, and error rates.
+metric record counts, average duration, and error rates.
+Usage: unavailable = not observed; unknown = unverified legacy data;
+partial = recorded subtotal, including any unverified legacy values.
+Cost subtotals include only observed usage with known model pricing.
 
 Options:
   --range, -r    Time range (e.g., 7d, 14d, 30d). Default: 7d
