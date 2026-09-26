@@ -27,7 +27,7 @@ function fixture(mode: 'interactive' | 'headless' = 'interactive') {
     isAvailable: async () => true, getInstallInstructions: () => '', listModels: async () => [],
   };
   const service = new SpawnerServiceImpl({ provider, workingDirectory: '/unused' });
-  return { service, interactive, headless, provider,
+  return { service, interactive, headless, provider, queue,
     finish: () => mode === 'interactive' ? exit(0) : queue.close(),
     spawn: () => service.spawn(agent, 'worker', { mode }),
   };
@@ -226,6 +226,133 @@ describe('termination steps and confirmation', () => {
     await f.service.terminate(session.id, false);
     expect(process.kill.mock.calls).toEqual([['SIGTERM'], ['SIGKILL'], ['SIGKILL']]);
     expect(f.service.getSession(session.id)?.status).toBe('terminated');
+    await f.service.terminate(session.id);
+    expect(process.kill.mock.calls).toEqual([['SIGTERM'], ['SIGKILL'], ['SIGKILL']]);
     expect(process.listenerCount('exit')).toBe(0);
+  });
+});
+
+
+describe('headless output completion versus handle cleanup', () => {
+  it('closes an independently ended stream once without interrupting or changing its ended state', async () => {
+    const f = fixture('headless');
+    const { session, events } = await f.spawn();
+    const exit = new Promise<void>(resolve => events.once('exit', resolve));
+    f.finish();
+    await exit;
+    const endedAt = f.service.getSession(session.id)!.endedAt;
+    await Promise.all([f.service.terminate(session.id), f.service.terminate(session.id, false)]);
+    await f.service.terminate(session.id);
+    expect(f.headless.close).toHaveBeenCalledTimes(1);
+    expect(f.headless.interrupt).not.toHaveBeenCalled();
+    expect(f.service.getSession(session.id)).toMatchObject({ status: 'terminated', endedAt });
+    expect(f.service.listActiveSessions()).toHaveLength(0);
+  });
+
+  it('keeps repeated cleanup errors observable after output end and protects a same-agent successor', async () => {
+    const f = fixture('headless');
+    const own = await f.spawn();
+    const exit = new Promise<void>(resolve => own.events.once('exit', resolve));
+    f.finish(); await exit;
+    const successor = fixture('headless');
+    const next = await f.service.spawn(agent, 'worker', { mode: 'headless', provider: successor.provider });
+    for (const error of [new Error('first'), new Error('second')]) {
+      f.headless.close.mockImplementationOnce(() => { throw error; });
+      expect(await Promise.allSettled([f.service.terminate(own.session.id), f.service.terminate(own.session.id)]))
+        .toEqual([{ status: 'rejected', reason: error }, { status: 'rejected', reason: error }]);
+      expect(f.service.getSession(own.session.id)?.status).toBe('terminated');
+    }
+    await f.service.terminate(own.session.id);
+    await f.service.terminate(own.session.id);
+    expect(f.headless.close).toHaveBeenCalledTimes(3);
+    expect(f.headless.interrupt).not.toHaveBeenCalled();
+    expect(f.service.getSession(next.session.id)?.status).toBe('running');
+    expect(successor.headless.close).not.toHaveBeenCalled();
+    expect(successor.headless.interrupt).not.toHaveBeenCalled();
+  });
+
+  it('retries close that ends output before throwing, with concurrent callers sharing the error', async () => {
+    const f = fixture('headless');
+    const { session, events } = await f.spawn();
+    const exit = new Promise<void>(resolve => events.once('exit', resolve));
+    const error = new Error('close after end');
+    f.headless.close.mockImplementationOnce(() => { f.finish(); throw error; });
+    expect(await Promise.allSettled([f.service.terminate(session.id, false), f.service.terminate(session.id)]))
+      .toEqual([{ status: 'rejected', reason: error }, { status: 'rejected', reason: error }]);
+    await exit;
+    await f.service.terminate(session.id);
+    expect(f.headless.close).toHaveBeenCalledTimes(2);
+    expect(f.headless.interrupt).not.toHaveBeenCalled();
+    expect(events.listenerCount('exit')).toBe(0);
+    expect(vi.getTimerCount()).toBe(1);
+  });
+
+  it('still closes when output ends during an awaited interrupt', async () => {
+    const f = fixture('headless');
+    const { session, events } = await f.spawn();
+    f.headless.interrupt.mockImplementation(async () => {
+      const exit = new Promise<void>(resolve => events.once('exit', resolve));
+      f.finish(); await exit;
+    });
+    await f.service.terminate(session.id);
+    expect(f.headless.close).toHaveBeenCalledTimes(1);
+    expect(f.headless.interrupt).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not repeat output-driven close while an explicit graceful attempt awaits interrupt', async () => {
+    const f = fixture('headless');
+    const { session, events } = await f.spawn();
+    let release!: () => void;
+    const barrier = new Promise<void>(resolve => { release = resolve; });
+    f.headless.interrupt.mockImplementation(() => barrier);
+    const stop = f.service.terminate(session.id);
+    await vi.advanceTimersByTimeAsync(0);
+    const exit = new Promise<void>(resolve => events.once('exit', resolve));
+    f.queue.push({ type: 'result', subtype: 'success', raw: {} });
+    await exit;
+    const concurrent = f.service.terminate(session.id);
+    release();
+    await Promise.all([stop, concurrent]);
+    expect(f.headless.close).toHaveBeenCalledTimes(1);
+    expect(f.headless.interrupt).toHaveBeenCalledTimes(1);
+    expect(f.service.getSession(session.id)?.status).toBe('terminated');
+  });
+
+  it.each(['result', 'error'] as const)('does not repeat automatic successful %s cleanup', async type => {
+    const f = fixture('headless');
+    const { session, events } = await f.spawn();
+    const exit = new Promise<void>(resolve => events.once('exit', resolve));
+    f.queue.push({ type, subtype: 'success', raw: {} });
+    await exit;
+    await f.service.terminate(session.id);
+    expect(f.headless.close).toHaveBeenCalledTimes(1);
+    expect(f.headless.interrupt).not.toHaveBeenCalled();
+  });
+
+  it.each(['result', 'error'] as const)('retries automatic failed %s cleanup after stream end', async type => {
+    const f = fixture('headless');
+    const { session, events } = await f.spawn();
+    const error = new Error('automatic close');
+    const errors: unknown[] = [];
+    events.on('error', e => errors.push(e));
+    f.headless.close.mockImplementationOnce(() => { throw error; });
+    const exit = new Promise<void>(resolve => events.once('exit', resolve));
+    f.queue.push({ type, subtype: 'success', raw: {} });
+    await exit;
+    expect(errors).toEqual([error]);
+    await f.service.terminate(session.id);
+    await f.service.terminate(session.id);
+    expect(f.headless.close).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves the five-second retention bound even when cleanup remains incomplete', async () => {
+    const f = fixture('headless');
+    const { session, events } = await f.spawn();
+    const exit = new Promise<void>(resolve => events.once('exit', resolve));
+    f.finish(); await exit;
+    await vi.advanceTimersByTimeAsync(5000);
+    await expect(f.service.terminate(session.id)).rejects.toThrow('Session not found');
+    expect(f.headless.close).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

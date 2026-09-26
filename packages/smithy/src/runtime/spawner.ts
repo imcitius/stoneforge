@@ -212,6 +212,7 @@ interface InternalSession extends SpawnedSession {
     gracefulRequested?: boolean;
     graceExpired?: boolean;
     interrupted?: boolean;
+    /** The captured headless close() returned successfully, independent of output end. */
     closed?: boolean;
     forceRequested?: boolean;
   };
@@ -308,6 +309,9 @@ export interface SpawnerService {
    * session and skips completed requests; force skips unfinished graceful steps.
    * Unconfirmed exit rejects and leaves the session terminating. A provider's
    * stream completion does not guarantee termination of every external process.
+   * Headless close failures remain retryable after output ends while the original
+   * handle is retained (the existing five-second retention window). Successful
+   * close means the synchronous adapter call returned, not universal resource release.
    *
    * @param sessionId - The internal session ID
    * @param graceful - Whether to attempt graceful shutdown (default: true)
@@ -598,9 +602,13 @@ export class SpawnerServiceImpl implements SpawnerService {
     // method throws. Concurrent callers must still receive that same error.
     const progress = session.termination ??= {};
     if (progress.operation) return progress.operation;
-    if (session.status === 'terminated') return;
-
-    if (session.status !== 'terminating') this.transitionStatus(session, 'terminating');
+    if (session.status === 'terminated') {
+      // Output completion is independent of cleanup on a retained headless handle.
+      // Never resend signals to exited interactive/legacy OS processes.
+      if (!session.headlessSession || session.interactiveSession || session.process || progress.closed) return;
+    } else if (session.status !== 'terminating') {
+      this.transitionStatus(session, 'terminating');
+    }
 
     // Publish before invoking any provider code (including synchronous callbacks).
     const operation = Promise.resolve().then(() => this.terminateSession(session, graceful));
@@ -618,7 +626,10 @@ export class SpawnerServiceImpl implements SpawnerService {
     const headless = session.headlessSession;
     const process = session.process;
     const exited = () => session.status === 'terminated';
-    if (exited()) return;
+    if (exited()) {
+      if (headless && !interactive && !process) this.closeHeadlessSession(session);
+      return;
+    }
 
     if (interactive || process) {
       if (graceful && !progress.forceRequested && !progress.graceExpired) {
@@ -649,17 +660,25 @@ export class SpawnerServiceImpl implements SpawnerService {
         await headless.interrupt();
         progress.interrupted = true;
       }
-      if (exited()) return;
-      const ended = await this.waitForTermination(session, () => {
-        if (progress.closed) return;
-        headless.close();
-        progress.closed = true;
-      });
+      // interrupt may have ended output while cleanup is still incomplete.
+      if (exited()) {
+        this.closeHeadlessSession(session);
+        return;
+      }
+      const ended = await this.waitForTermination(session, () => this.closeHeadlessSession(session));
       if (ended) return;
     }
 
     // Neither a delivered signal nor a timeout establishes process termination.
     throw new Error(`Session termination unconfirmed: ${session.id}`);
+  }
+
+  /** Share successful close bookkeeping across explicit and output-driven cleanup. */
+  private closeHeadlessSession(session: InternalSession): void {
+    const progress = session.termination ??= {};
+    if (progress.closed || !session.headlessSession) return;
+    session.headlessSession.close();
+    progress.closed = true;
   }
 
   /** Observe exit before sending a signal, and dispose observers on every path. */
@@ -700,7 +719,7 @@ export class SpawnerServiceImpl implements SpawnerService {
     // For headless, close the session but mark as suspended
     // The providerSessionId can be used to resume later
     if (session.headlessSession) {
-      session.headlessSession.close();
+      this.closeHeadlessSession(session);
     }
     if (session.process) {
       session.process.kill('SIGTERM');
@@ -1035,7 +1054,7 @@ export class SpawnerServiceImpl implements SpawnerService {
         // forever, leaving the worker occupied after a failed request.
         if (message.type === 'error') {
           providerErrorDetected = true;
-          headlessSession.close();
+          this.closeHeadlessSession(session);
           break;
         }
 
@@ -1046,7 +1065,7 @@ export class SpawnerServiceImpl implements SpawnerService {
         // Close the headless session to break the for-await loop and allow
         // the finally block to clean up.
         if (message.type === 'result' && message.subtype !== 'error_during_execution') {
-          headlessSession.close();
+          this.closeHeadlessSession(session);
           break;
         }
       }
