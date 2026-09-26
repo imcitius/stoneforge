@@ -66,3 +66,24 @@ conflict-free (`7beb139`). The delivered retention test previously characterized
 silent success. It now asserts INVALID_INPUT and performs its unchanged JSONL
 audit-omission checks using default export. Historical report/probe evidence is
 retained, with an explicit current-contract appendix. Final gate follows.
+
+## Final worker verification
+
+Integrated source `6fd35b7` includes local master `75b818a`; subsequent edits only
+record these results. Five focused files (four above plus
+`packages/smithy/src/services/task-session-retention.bun.test.ts`) pass **333/333,
+823 assertions**, `/tmp/el-e86r8-integrated-focused.log`.
+Final **`pnpm check:merge`: 188/188, exit 0, 225.87s**;
+`/tmp/el-e86r8-integrated-gate.log`, exact commands/results/per-step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-PSX88u/results.json`.
+Includes uncached workspace typecheck, Desktop build, **8,796 Bun pass / 0 fail /
+29 existing skips**, Smithy Node/Vitest, Desktop Node and gate regression checks.
+`git diff --check` and local target ancestry pass. No gate/threshold changes.
+Separate root build/lint/test, browser/packaged GUI, live providers and cross-platform
+checks were not run. Quarry Node's no-tests exit remains recorded above, not green.
+
+Existing workspace architecture/retention references and Directory are updated
+without discarding historical evidence. No new workspace document was needed.
+Only assigned source branch was pushed. Independent exact-final steward review
+and approved CLI local merge remain required; installed Desktop/live processes
+and closed maintenance were untouched.
