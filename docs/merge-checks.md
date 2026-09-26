@@ -80,3 +80,65 @@ This document and command do **not** activate a repository merge policy.
 The shared `repositories.json` still requires a separate, explicitly reviewed
 activation task after this change is merged. Do not infer that the old
 `pnpm typecheck` policy executes this gate.
+
+## Recorded validation — 2026-09-26, task el-5xd
+
+Tested code commit: `502a86ed65b733f51c254fb9dd3aa3d8546e0408`, based on local
+`master` `b7e5c8b`. The assigned worktree initially pointed to `bb5f967` (without
+Desktop); it was fast-forwarded to local master without switching branches.
+All implementation and verification stayed in the assigned worktree. macOS arm64,
+Node v22.23.3, pnpm 8.15.5, Bun 1.3.11, lockfile Vitest 4.0.18.
+
+Before the recorded clean run, `git status --porcelain` was empty. Generated
+package `dist`, Desktop `dist` and workspace/package/app `.turbo` directories
+were removed; no tracked files were removed. Dependencies came from a frozen
+pnpm install using the existing package store. Typecheck reported **17 tasks,
+0 cached**. The worktree remained clean after the run.
+
+| Command / group | Exit code | Seconds | Result |
+| --- | --- | --- | --- |
+| `pnpm install --frozen-lockfile` | 0 | 7.38 wall | Lockfile unchanged; warnings about workspace CLI bins before `dist` exists. |
+| `node --test scripts/check-merge.test.mjs` | 0 | 0.37 | 5 passed, including synthetic failed subprocesses and >2 MiB log preservation. |
+| `pnpm typecheck --force` | 0 | 26.81 | 17 Turbo tasks successful, none cached. |
+| `pnpm --filter @stoneforge/desktop build` | 0 | 1.28 | Fresh Desktop output. |
+| Per-file Bun: core (24 files) | All 0 | 1.71 | 2,737 passed, 22 skipped. |
+| Per-file Bun: storage (3 files) | All 0 | 0.20 | 137 passed. |
+| Per-file Bun: quarry (96 files) | All 0 | 38.84 | 4,261 passed, 1 skipped; see earlier failure below. |
+| Per-file Bun: smithy (45 files) | One 1; others 0 | 52.83 | 1,302 passed, 1 failed, 6 skipped. |
+| `pnpm --filter @stoneforge/smithy test:node` | 0 | 2.69 | 323 passed across 13 files. |
+| `pnpm --filter @stoneforge/desktop test` | 0 | 5.59 | All 4 real backend integration tests passed. |
+| **`pnpm check:merge`** | **1** | **130.47 runner / 131.11 wall** | **173 steps, 1 failed; not accepted for activation.** |
+
+The failed command was
+`bun test ./packages/smithy/src/git/project-repositories.bun.test.ts`
+(exit 1, 3.55 s). Test `an assigned task cannot switch repositories or resume a
+foreign worktree` raised `CONCURRENT_MODIFICATION` in `QuarryAPI.update`:
+expected updatedAt `2026-09-26T12:40:21.714Z`, actual `.715Z`. Tracked as **el-52s**.
+
+The initial full run, before file-backed logging was added, also returned **1**:
+173 steps, 163.30 s, two failed files. In addition to the same repository test,
+`bun test ./packages/quarry/src/api/query-performance.bun.test.ts` returned 1
+in 1.72 s: scaling per-item ratio **7.216375** exceeded `< 4` at line 596.
+That unchanged test passed on the clean run; its instability remains tracked as
+**el-2z6**, not erased by the later pass. No failing test was excluded or retried
+to manufacture a successful gate. The second run validated the logging change
+and clean-build prerequisites.
+
+The 29 existing skips are 22 core documentation checks, one Quarry cycle check,
+two Smithy dispatch/E2E checks and four opt-in live Claude spawner checks.
+The existing suite failure is unrelated to this command's implementation; production
+behavior and assertion thresholds were not changed in this task.
+
+Local evidence retained for independent review:
+
+- Clean install: `/tmp/el-5xd-clean-install.log`.
+- Initial full run: `/tmp/el-5xd-check-merge-first.log`.
+- Clean command output: `/tmp/el-5xd-check-merge-clean.log`.
+- Full clean per-step logs and `results.json` (all commands, exit codes and
+  durations): `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-L6eAuQ/`.
+
+Observed duration fits the current steward default of five minutes on this host;
+this is not a guarantee for slower machines. The steward must rerun the final
+proposed merge after the separately tracked defects are resolved, inspect the
+results independently and never bypass failures. Repository activation remains
+task **el-1r6**; `repositories.json` was not edited.
