@@ -132,3 +132,28 @@ STONEFORGE_DESKTOP_INSTANCE_ID was inherited; the same final suite passed under
 Full current `pnpm check:merge`, final source hash and independent steward review
 are recorded below when available. Local delivery belongs to the independent
 steward using only the approved CLI `task merge el-5psa --local`, after final review.
+
+### Final worker acceptance
+
+Implementation commit `a9f18a0`; after approved CLI sync with local master
+`37a4969d19e9bd8239c5739e9c911b14557073b0`, tested source commit
+`a8ba22cc51c8422be0b476b91e3a3c03ff1f7be6`. Clean assigned worktree,
+`git merge-base --is-ancestor master HEAD` exit 0. Node 22.23.3,
+pnpm 8.15.5, Bun 1.3.11, macOS arm64. Frozen install completed successfully.
+
+One full `pnpm check:merge` on that source: **exit 0, 178/178 steps, 138.77 s**.
+Uncached typecheck 17/17, gate regressions 5, Bun 8,507 pass / 0 fail /
+29 existing skips, Smithy Vitest 325 pass, Desktop Node integration 6 pass.
+Fresh Desktop source build passed. This does not claim packaged GUI validation,
+installation, live provider calls, full browser suites, or standalone root lint/test.
+
+Full worker logs: `/tmp/el-5psa/{install-final,gate}.log`, gate exit and summary
+in `gate.exit` / `gate-summary.json`. Exact commands, exits, durations and step
+logs: `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-97kkIT/results.json`.
+Subsequent commit changes only this validation report; production/test source
+remains the tested revision. Task branch is pushed; independent final-commit
+steward review and approved CLI local delivery are still required.
+
+Workspace reference: `el-1fqa`, added via `sf docs add`; existing runbook `el-of6`
+and audit `el-3d6` link the diagnosis. Directory `el-1s1` was reread immediately
+before updates and other agents' entries were preserved.
