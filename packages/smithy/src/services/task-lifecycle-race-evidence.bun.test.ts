@@ -289,26 +289,31 @@ test('CONTROL: current worker completion enters review, clears owner and ends se
 });
 
 for (const kind of ['closed', 'deferred', 'human', 'reassign']) {
-  test(`DEFECT evidence: stale automatic-dispatch candidate wins over ${kind} and sends notification`, async () => {
+  test(`REGRESSION: stale automatic-dispatch candidate rejects ${kind} without notification`, async () => {
     await createTaskAssignmentService(api).unassignTask(task.id, { mode: 'admin' });
-    expect((await api.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(1);
+    const candidates = (await api.ready()).filter(t => t.id === task.id && !t.assignee);
+    expect(candidates).toHaveLength(1);
     const get = api.get.bind(api);
-    let injected = false;
+    let winner: Task | undefined;
+    let events: unknown[] = [];
     api.get = async (...args) => {
       const result = await get(...args);
-      if (args[0] === task.id && !injected) {
-        injected = true;
-        await change(kind);
+      if (args[0] === task.id && !winner) {
+        winner = await change(kind);
+        events = storage.query('SELECT * FROM events WHERE element_id = ? ORDER BY id', [task.id]);
       }
       return result;
     };
+    const messages = await other.list({ type: 'message' });
     const dispatch = createDispatchService(api, createTaskAssignmentService(api), createAgentRegistry(api));
-    const result = await dispatch.dispatch(task.id, owner, { markAsStarted: true, sessionId: 'late-dispatch' });
-    expect(result.task.status).toBe(TaskStatus.IN_PROGRESS);
-    expect(result.task.assignee).toBe(owner);
-    expect(result.isNewAssignment).toBe(true);
-    expect(await other.get(result.notification.id)).toBeDefined();
-    expect(getOrchestratorTaskMeta(result.task.metadata)!.sessionId).toBe('late-dispatch');
+    await expect(dispatch.dispatch(task.id, owner, {
+      claim: { expectedUpdatedAt: candidates[0].updatedAt },
+      markAsStarted: true, sessionId: 'late-dispatch',
+    })).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+    expect(winner).toBeDefined();
+    expect(await other.get(task.id)).toEqual(winner!);
+    expect(await other.list({ type: 'message' })).toEqual(messages);
+    expect(storage.query('SELECT * FROM events WHERE element_id = ? ORDER BY id', [task.id])).toEqual(events);
   });
 }
 

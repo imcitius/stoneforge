@@ -387,3 +387,97 @@ and cross-platform tests were not run. Existing skips do not count as coverage.
 Independent steward review of the final commit and approved CLI local delivery
 remain pending; the implementation worker neither approves nor merges this work.
 Installed Desktop5f53cef, live daemon/sessions and completed el-1clm are unchanged.
+
+## Automatic dispatch claim — el-1q2vv, partial implementation / contract handoff
+
+**NOT ready for merge or task completion.** Worker el-4eqh is handing off for
+Director contract clarification under the task's explicit instruction to propose
+a concrete design before expanding the contract. Installed Desktop5f53cef,
+live daemons/sessions and closed maintenance el-1clm were not touched.
+
+Base is local master `f30b41ad841d1cea6ca5d274403baba950a85a0d`.
+Approved el-ptim artifact: all 299 hashes verified, `sf task sync el-1q2vv`
+exit 0; worktree/branch unchanged. Frozen pnpm install exit 0 (8.7s), lockfile
+unchanged; initial unbuilt-dist bin warnings retained in the log.
+
+Partial source implementation:
+
+- Daemon passes the original ready/unassigned candidate's updatedAt through
+  DispatchOptions.claim to assignment. Assignment checks unchanged version,
+  unassigned owner, OPEN/IN_PROGRESS and due scheduledFor, then commits via CAS.
+  Omitted claim continues to mean explicit reassignment; start-worker keeps it.
+- New automatic preparation uses a UUID in its Git agent-name namespace, so a
+  second attempt cannot invoke destructive createWorktree on the first path.
+  Existing/handoff worktrees are reused. Failed attempts retain worktrees:
+  deleting one after an async ownership check cannot safely exclude adoption by
+  a successor. No new automatic deletion is introduced.
+- Dispatch failure stops its exact internal session ID and conditionally releases
+  only the notification-error assignment receipt. This exposes the separate
+  SessionManager persistence problem below: **this cleanup is not fully safe yet**.
+- Post-dispatch session-history write uses the returned assignment snapshot and
+  CAS, rather than rereading and overwriting a successor.
+- Only the four D DEFECT cases were converted to rejection/preservation tests;
+  other labelled DEFECT evidence and positive controls remain intact.
+
+Actual verification of the partial implementation:
+
+- `bun test packages/smithy/src/services/task-lifecycle-race-evidence.bun.test.ts
+  packages/smithy/src/services/dispatch-daemon.bun.test.ts`: **216 pass, 2 existing
+  skips, 0 fail, 847 assertions**, 5.06s. Log `/tmp/el-1q2vv-initial.log`.
+- `pnpm --filter @stoneforge/smithy typecheck`: exit 0.
+- `git diff --check`: exit 0.
+- Required `pnpm check:merge` deliberately **not run yet**: acceptance is incomplete,
+  including new real Git/daemon simultaneous-claimant and explicit start-worker
+  controls. No independent approval, merge or application update is claimed.
+
+### Confirmed contract gaps and proposed narrow design
+
+Two deterministic reject/preserve probes are preserved as
+`docs/workspace/dispatch-claim-contract-probes.patch`. They assert the desired
+safe behavior, **not unsafe behavior as a passing norm**. Apply this patch in an
+isolated worktree, run the lifecycle evidence file with `bun test <file> -t SCOPE:`,
+then reverse the patch. It appends to the existing real temporary two-connection
+SQLite fixture. Session startup/termination use only an isolated spawner mock,
+with the real SessionManager and registry; there is no real provider invocation.
+
+1. **Parent-plan eligibility is not protected by the task timestamp.** Associate
+   a task with an ACTIVE parent, capture ready/unassigned candidate, then change
+   parent to DRAFT on the other connection. The task is absent from ready, its
+   updatedAt is unchanged, but the partial claim succeeds and notifies. Proposed
+   API: a task-only conditional update option (or dedicated Quarry claim method)
+   that checks original updatedAt plus ready/unassigned predicates in the *same
+   SQLite transaction* as the update. Include task status, owner, schedule,
+   blocked_cache, parent DRAFT and parent blocked state, matching
+   ready({includeEphemeral:true}). An extra asynchronous ready() check is not an
+   atomic fix. Keep manual assignment outside this predicate. Director must
+   confirm whether full ready eligibility is intended here or explicitly limit
+   this task to the four task-version D competitors.
+2. **Stopping by internal session ID alone does not preserve successor metadata.**
+   During spawner.terminate(old), start successor for the same agent. Its active
+   in-memory ID remains correct, but old stopSession calls updateAgentSession and
+   persistSession, restoring old provider ID and idle over successor running.
+   Proposed contract: persist a unique internal current-session identity at start;
+   stop/exit cleanup may update current agent fields only with that identity and
+   an atomic entity CAS. Historical session append must preserve successor fields
+   and history. No retry may substitute a new owner. Define legacy sessions without
+   internal identity explicitly. This is a SessionManager/registry contract change,
+   not something dispatch can fix by rereading current session or using provider ID.
+   Keep attempt-specific process termination; never terminate the current agent
+   session by lookup. Scope/legacy policy needs Director confirmation before edits.
+
+Refined probes: **0 pass / 2 fail as expected**, 6 assertions, 384ms;
+`/tmp/el-1q2vv-contract-probes-refined.log`. Original exploratory run is retained
+at `/tmp/el-1q2vv-contract-probes.log`: its first assertion incorrectly assumed a
+new blocks dependency leaves updatedAt unchanged (it actually changes it), and
+its spawner mock lacked getSession. Those harness/assumption failures were corrected
+before the above two findings were claimed. The final probe source is also at
+`/tmp/el-1q2vv-contract-probes.ts`. No retries of a merge gate occurred.
+
+After Director decision: finish the scoped atomic eligibility/session ownership
+contract, add real temporary Git daemon-boundary regressions for all four D
+competitors and both simultaneous claimants, verify unique notification and
+successor resource preservation, cover isolated startup/notification errors and
+positive automatic/explicit start-worker paths, then run `pnpm check:merge`.
+Commit/push final implementation, complete the task, obtain independent steward
+review of the exact final commit and use approved CLI local delivery after checks.
+This partial worker handoff is not an approval to merge.
