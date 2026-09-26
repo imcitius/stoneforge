@@ -32,7 +32,7 @@ import type { QuarryAPI } from '@stoneforge/quarry';
 
 import type { AgentEntity } from '../api/orchestrator-api.js';
 
-import type { TaskAssignmentService, AssignTaskOptions } from './task-assignment-service.js';
+import type { TaskAssignmentService, AssignTaskOptions, AssignmentIdentity } from './task-assignment-service.js';
 import type { AgentRegistry } from './agent-registry.js';
 
 // ============================================================================
@@ -61,6 +61,20 @@ export interface DispatchOptions {
   notificationMetadata?: Record<string, unknown>;
   /** Entity performing the dispatch (for message sender) */
   dispatchedBy?: EntityId;
+}
+
+/** Notification failed after assignment committed. Carries only that commit's identity. */
+export class DispatchAssignmentError extends Error {
+  readonly assignment: AssignmentIdentity;
+  constructor(readonly taskId: ElementId, task: Task, cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause), { cause });
+    this.name = 'DispatchAssignmentError';
+    this.assignment = {
+      agentId: task.assignee!,
+      sessionId: (task.metadata?.orchestrator as { sessionId?: string } | undefined)?.sessionId,
+      updatedAt: task.updatedAt,
+    };
+  }
 }
 
 /**
@@ -263,13 +277,18 @@ export class DispatchServiceImpl implements DispatchService {
     const messageContent = options?.notificationMessage ??
       this.createNotificationContent(updatedTask, messageType, options);
 
-    const notification = await this.sendNotification(
-      agentId,
-      asElementId(channel.id),
-      messageContent,
-      notificationMetadata,
-      options?.dispatchedBy
-    );
+    let notification: Message;
+    try {
+      notification = await this.sendNotification(
+        agentId,
+        asElementId(channel.id),
+        messageContent,
+        notificationMetadata,
+        options?.dispatchedBy
+      );
+    } catch (error) {
+      throw new DispatchAssignmentError(taskId, updatedTask, error);
+    }
 
     return {
       task: updatedTask,
