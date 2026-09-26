@@ -243,6 +243,10 @@ Examples:
 // ============================================================================
 
 interface TaskCompleteOptions {
+  agentId?: string;
+  sessionId?: string;
+  admin?: boolean;
+  operationId?: string;
   summary?: string;
   commitHash?: string;
   noMR?: boolean;
@@ -252,6 +256,10 @@ interface TaskCompleteOptions {
 }
 
 const taskCompleteOptions: CommandOption[] = [
+  { name: 'agentId', description: 'Caller identity (defaults to SF_ENTITY_ID, verified against current owner)', hasValue: true },
+  { name: 'sessionId', description: 'Current internal session ID (defaults to STONEFORGE_SESSION_ID)', hasValue: true },
+  { name: 'admin', description: 'Explicit administrative completion; requires --agentId, never environment fallback' },
+  { name: 'operationId', description: 'Replay a finalized completion operation', hasValue: true },
   {
     name: 'summary',
     short: 's',
@@ -303,6 +311,10 @@ async function taskCompleteHandler(
 
   try {
     const result = await service.completeTask(taskId as ElementId, {
+      mode: options.admin ? 'admin' : 'worker',
+      agentId: (options.agentId || (options.admin ? undefined : process.env.SF_ENTITY_ID)) as EntityId | undefined,
+      sessionId: options.admin ? undefined : options.sessionId || process.env.STONEFORGE_SESSION_ID,
+      operationId: options.operationId,
       summary: options.summary,
       commitHash: options.commitHash,
       createMergeRequest: options['no-mr'] !== true,
@@ -360,6 +372,10 @@ Arguments:
   task-id    Task identifier to complete
 
 Options:
+  --agentId <id>            Caller (worker default: SF_ENTITY_ID)
+  --sessionId <id>          Internal session (worker default: STONEFORGE_SESSION_ID)
+  --admin                   Explicit operator mode; requires explicit --agentId
+  --operationId <id>        Replay a finalized completion without repeating effects
   -s, --summary <text>      Summary of what was accomplished
   -c, --commitHash <hash>   Commit hash for the final commit
   --no-mr                   Skip merge request creation

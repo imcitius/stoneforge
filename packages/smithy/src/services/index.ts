@@ -46,6 +46,7 @@ export {
   type MergeRequestStatusResult,
   type MergeRequestProvider,
   // Implementations
+  type MergeRequestEvidence,
   LocalMergeProvider,
   GitHubMergeProvider,
   // Factories
@@ -62,6 +63,7 @@ export {
   type CompleteTaskOptions,
   type HandoffTaskOptions,
   type TaskCompletionResult,
+  type ReconcileCompletionOptions,
   type TaskAssignment,
   type AssignmentFilter,
   type AssignmentStatus,

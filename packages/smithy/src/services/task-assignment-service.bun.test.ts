@@ -78,6 +78,17 @@ describe('TaskAssignmentService', () => {
     return api.create(task as unknown as Record<string, unknown> & { createdBy: EntityId }) as Promise<Task>;
   }
 
+  // These tests exercise administrative task transitions without Git effects.
+  // Generated assignment refs are not repositories; make the branchless fixture explicit.
+  async function completeOfflineFixture(taskId: ElementId) {
+    const current = (await api.get<Task>(taskId))!;
+    const meta = getOrchestratorTaskMeta(current.metadata);
+    if (meta?.branch || meta?.worktree) {
+      await api.update<Task>(taskId, { metadata: { ...current.metadata, orchestrator: { ...meta, branch: undefined, worktree: undefined } } });
+    }
+    return service.completeTask(taskId, { mode: 'admin', agentId: systemEntity, createMergeRequest: false });
+  }
+
   // Helper function to register a test worker
   async function createTestWorker(name: string, maxConcurrentTasks?: number) {
     return registry.registerWorker({
@@ -248,7 +259,7 @@ describe('TaskAssignmentService', () => {
 
       // Complete - returns { task, mergeRequestUrl?, mergeRequestId? }
       // Skip MR creation since we don't have a provider
-      const result = await service.completeTask(task.id, { createMergeRequest: false });
+      const result = await completeOfflineFixture(task.id);
       const completed = result.task;
 
       // Status should be REVIEW (merge steward will set to CLOSED after merge)
@@ -272,7 +283,7 @@ describe('TaskAssignmentService', () => {
       expect(assignedTask?.assignee).toBe(agentId);
 
       // Complete
-      const result = await service.completeTask(task.id, { createMergeRequest: false });
+      const result = await completeOfflineFixture(task.id);
 
       // Assignee should be cleared (task is now awaiting review, not actively worked on)
       expect(result.task.assignee).toBeUndefined();
@@ -287,17 +298,17 @@ describe('TaskAssignmentService', () => {
     test('throws error when task is already CLOSED', async () => {
       const task = await createTestTask('Closed task', TaskStatus.CLOSED);
       await expect(
-        service.completeTask(task.id, { createMergeRequest: false })
+        completeOfflineFixture(task.id)
       ).rejects.toThrow("already in 'closed' status");
     });
 
     test('throws error when task is already in REVIEW', async () => {
       const task = await createTestTask('Review task', TaskStatus.IN_PROGRESS);
       // Complete once to move to REVIEW
-      await service.completeTask(task.id, { createMergeRequest: false });
+      await completeOfflineFixture(task.id);
       // Attempting to complete again should fail
       await expect(
-        service.completeTask(task.id, { createMergeRequest: false })
+        completeOfflineFixture(task.id)
       ).rejects.toThrow("already in 'review' status");
     });
   });
@@ -477,7 +488,7 @@ describe('TaskAssignmentService', () => {
       await service.assignToAgent(openTask.id, agentId);
       await service.assignToAgent(inProgressTask.id, agentId, { markAsStarted: true });
       await service.assignToAgent(reviewTask.id, agentId);
-      await service.completeTask(reviewTask.id, { createMergeRequest: false });
+      await completeOfflineFixture(reviewTask.id);
 
       const workload = await service.getAgentWorkload(agentId);
 
@@ -556,7 +567,7 @@ describe('TaskAssignmentService', () => {
       await service.assignToAgent(assignedTask.id, agentId);
       await service.assignToAgent(inProgressTask.id, agentId, { markAsStarted: true });
       await service.assignToAgent(completedTask.id, agentId, { markAsStarted: true });
-      await service.completeTask(completedTask.id, { createMergeRequest: false });
+      await completeOfflineFixture(completedTask.id);
 
       // Check unassigned (includes completedTask since completeTask clears assignee)
       const unassignedTasks = await service.getTasksByAssignmentStatus('unassigned');
@@ -620,7 +631,7 @@ describe('TaskAssignmentService', () => {
 
       const task = await createTestTask('Task to complete');
       await service.assignToAgent(task.id, agentId, { markAsStarted: true });
-      await service.completeTask(task.id, { createMergeRequest: false });
+      await completeOfflineFixture(task.id);
 
       const pendingMerge = await service.listAssignments({ mergeStatus: 'pending' });
       expect(pendingMerge.map(t => t.taskId)).toContain(task.id);
@@ -662,8 +673,8 @@ describe('TaskAssignmentService', () => {
       await service.assignToAgent(task2.id, agentId, { markAsStarted: true });
       await service.assignToAgent(task3.id, agentId, { markAsStarted: true });
 
-      await service.completeTask(task1.id, { createMergeRequest: false });
-      await service.completeTask(task2.id, { createMergeRequest: false });
+      await completeOfflineFixture(task1.id);
+      await completeOfflineFixture(task2.id);
       // task3 not completed
 
       const awaitingMerge = await service.getTasksAwaitingMerge();

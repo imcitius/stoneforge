@@ -4,6 +4,7 @@
  * Provides hooks for fetching and mutating task data from the orchestrator API.
  */
 
+import { useCurrentUser } from '../../contexts';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
   TasksResponse,
@@ -274,16 +275,18 @@ export function useStartTask() {
 }
 
 /**
- * Hook to complete a task (set to closed)
+ * Hook for explicit operator completion (set to review)
  */
 export function useCompleteTask() {
+  const { currentUser } = useCurrentUser();
   const queryClient = useQueryClient();
 
   return useMutation<TaskResponse, Error, { taskId: string; closeReason?: string }>({
     mutationFn: async ({ taskId, closeReason }) => {
+      if (!currentUser?.id) throw new Error('Select the operator completing this task');
       return fetchApi<TaskResponse>(`/tasks/${taskId}/complete`, {
         method: 'POST',
-        body: JSON.stringify({ closeReason }),
+        body: JSON.stringify({ mode: 'admin', performedBy: currentUser.id, summary: closeReason }),
       });
     },
     onSuccess: (_, { taskId }) => {
