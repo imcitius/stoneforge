@@ -142,3 +142,63 @@ this is not a guarantee for slower machines. The steward must rerun the final
 proposed merge after the separately tracked defects are resolved, inspect the
 results independently and never bypass failures. Repository activation remains
 task **el-1r6**; `repositories.json` was not edited.
+
+
+## Validation after local target integration — 2026-09-26
+
+The resumed worker used the independently approved
+`/tmp/stoneforge-el-ptim-151b314/sf task sync el-5xd` with
+`STONEFORGE_ROOT=/Users/citius/Desktop/Work/Stoneforge`. No installed app or session
+was changed. The first sync included local master `e32f709` (el-2kc and el-ptim),
+producing `6a01bc56f43562392a948a48c025761a889f1c10`. A second sync included the
+newly merged el-52s fixture fix, local master `0f0a7ad4c767d9ac85ce0fb3408f031ee2f9bf91`,
+producing final tested code **`67d3dd5a9862e90a1c880bda705e47300588505d`**.
+Both sync commands exited 0. The task delta remains the same six gate/documentation
+files; no implementation changes or test exclusions were added during resumption.
+`git merge-base --is-ancestor master HEAD`, `git diff --check` and clean tracked
+worktree checks succeeded. Tool versions remain Node 22.23.3, pnpm 8.15.5,
+Bun 1.3.11 on macOS arm64. Each run began with empty `git status --porcelain`.
+
+| Command / revision | Exit | Duration | Result |
+| --- | --- | --- | --- |
+| `pnpm install --frozen-lockfile` | 0 | 3.23 s wall | Existing lockfile unchanged. |
+| `pnpm check:merge` on `6a01bc5` | 0 | 145.94 s runner / 146.55 s wall | 175/175 steps; 8,479 Bun pass, 29 skips; 325 Vitest, 4 Desktop, 5 gate regressions pass. |
+| **`pnpm check:merge` on `67d3dd5`** | **1** | **176.64 s runner / 177.30 s wall** | **174/175 steps pass; final acceptance blocked by el-2z6.** |
+
+The final run executed all checks, even after the failure:
+
+| Check group | Exit | Seconds | Result |
+| --- | --- | --- | --- |
+| `node --test scripts/check-merge.test.mjs` | 0 | 0.38 | 5 pass, including synthetic subprocess failures. |
+| `pnpm typecheck --force` | 0 | 39.68 | 17 successful tasks, 0 cached. |
+| `pnpm --filter @stoneforge/desktop build` | 0 | 1.95 | Fresh source build. |
+| Core Bun, 24 files | All 0 | 3.28 | 2,737 pass, 22 skip. |
+| Storage Bun, 3 files | All 0 | 0.69 | 137 pass. |
+| Quarry Bun, 96 files | One 1 | 36.02 | 4,260 pass, 1 fail, 1 skip. |
+| Smithy Bun, 47 files | All 0 | 87.23 | 1,344 pass, 6 skip; includes new target-delivery and merge-arguments files. |
+| `pnpm --filter @stoneforge/smithy test:node` | 0 | 2.23 | 325 pass in 13 files. |
+| `pnpm --filter @stoneforge/desktop test` | 0 | 5.08 | 4 backend integration tests pass. |
+
+The sole final failure is `bun test ./packages/quarry/src/api/query-performance.bun.test.ts`
+(exit 1, 1.02 s; 32 pass / 1 fail). `should maintain list performance as dataset grows`
+received **3.9796987826047063**, expected **< 3**, at line 633. This is the existing
+list measurement issue tracked in **el-2z6**; that task's changes are not in this
+revision. The earlier successful run does not supersede this failure. No retry,
+assertion change or unrelated production fix was performed. The el-52s fixture fix
+is included and its five tests passed; historical failures above are retained.
+
+Evidence:
+
+- `/tmp/el-5xd-resume-install.log` (install).
+- `/tmp/el-5xd-resume-gate.log` (first post-sync pass).
+- `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-LHUCOB/results.json` (all first-run commands, exits, durations and per-step log paths).
+- `/tmp/el-5xd-final-gate.log` (final failed gate).
+- `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-m98nM3/results.json` (all final commands, exits, durations and per-step log paths); `046.log` is the complete failure.
+
+The command correctly propagated a real failed check through the final process
+exit despite subsequent successful checks. Implementation approval of the gate
+remains separate from acceptance of this revision. Preserve this task branch and
+worktree until el-2z6 is integrated, then sync using an independently approved CLI,
+run the final gate and obtain independent steward review before local delivery.
+Do not use installed remote-first merge or merge-status as a workaround. Activation
+remains el-1r6; repositories.json and AGENTS.md were not edited by this task.
