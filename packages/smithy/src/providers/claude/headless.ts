@@ -100,7 +100,9 @@ class ClaudeHeadlessSession implements HeadlessSession {
   private sdkQuery: SDKQuery;
   private messageIterator: AsyncIterator<AgentMessage>;
   private sessionId: ProviderSessionId | undefined;
+  // Keep input/iteration closed even if SDK resource cleanup throws.
   private closed = false;
+  private cleanupComplete = false;
 
   constructor(inputQueue: SDKInputQueue, sdkQuery: SDKQuery) {
     this.inputQueue = inputQueue;
@@ -121,12 +123,15 @@ class ClaudeHeadlessSession implements HeadlessSession {
   }
 
   close(): void {
-    if (this.closed) return;
+    if (this.cleanupComplete) return;
     this.closed = true;
     this.inputQueue.close();
     // interrupt() only cancels the current turn; close() also releases the
     // subprocess and MCP transports, including when the session is idle.
     this.sdkQuery.close();
+    // Only a successful close completes cleanup; a throw permits retry on
+    // this same query without reopening input or resuming message iteration.
+    this.cleanupComplete = true;
   }
 
   getSessionId(): ProviderSessionId | undefined {
