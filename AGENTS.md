@@ -1,262 +1,155 @@
 # AGENTS.md
 
-Context and instructions for AI coding agents working on the Stoneforge repository.
+Instructions for the Stoneforge `core` repository in this local workspace.
 
-## How to Find Documentation
+## Workspace and documentation
 
-1. **This file** — Quick task-to-file mappings below
-2. **Documentation Directory** — Full index of all workspace docs: `sf show el-30yb`
-3. **Category Index** — Browse by category: `sf show el-og6v`
-4. **Full-text search** — Find any doc by topic: `sf document search "your topic"`
+- Shared project root: `/Users/citius/Desktop/Work/Stoneforge`. Read its `AGENTS.md`
+  as well as these repository instructions. Use `sf` for shared tasks, documents,
+  messages and agent data; preserve `STONEFORGE_ROOT` when working in a worktree.
+- The registered checkout is `stoneforge/` beneath that root, repository ID `core`,
+  local merge target `master`. Confirm current registration with `sf repo list`.
+  The project root need not be a Git repository.
+- Workers edit only their assigned branch/worktree under the shared project's
+  `.stoneforge/.worktrees/core/`. Do not switch branches or edit the main checkout.
+  Inspect another revision with `git show master:<path>` when necessary.
+- `stoneforge-desktop/` was consolidated into `stoneforge/`; do not recreate it as
+  a separate repository. Desktop is part of `core` on local `master`. Older worker
+  branches may lack it: inspect the assigned revision before choosing commands.
+- At session start run `sf docs dir --content`, then `sf document search "topic"`.
+  Discover document IDs from the current directory/search; do not reuse IDs from
+  another workspace. Read document contents with `sf document show <id>`.
 
----
+## Source navigation
 
-## Quick Start
+| Area | Source |
+|------|--------|
+| Types, errors, IDs, events | `packages/core/src/` |
+| SQLite backends (Bun, Node, browser) | `packages/storage/src/` |
+| Shared HTTP route factories | `packages/shared-routes/src/` |
+| Quarry API, dependencies, sync, CLI | `packages/quarry/src/` |
+| Orchestrator API | `packages/smithy/src/api/orchestrator-api.ts` |
+| Dispatch, worker lifecycle, merge, scheduling | `packages/smithy/src/services/` |
+| Spawning and session tracking | `packages/smithy/src/runtime/` |
+| Repository registry and worktrees | `packages/smithy/src/git/` |
+| Built-in role prompts and loader | `packages/smithy/src/prompts/` |
+| Shared React components and hooks | `packages/ui/src/` |
+| Smithy server and dashboard | `apps/smithy-server/src/`, `apps/smithy-web/src/` |
+| Quarry server and dashboard | `apps/quarry-server/src/`, `apps/quarry-web/src/` |
+| Desktop on local master | `git show master:apps/desktop/README.md` |
+| Documentation site / public site | `apps/docs/`, `apps/website/` |
 
-### Backend Tasks
+Inspect manifests for dependency edges: core also depends on `yaml`; shared-routes
+uses core/storage, quarry uses core/storage/shared-routes, and smithy uses those
+plus quarry. UI has its own React dependencies and peers, not a backend-layer chain.
 
-| I need... | Key Files | Reference Doc |
-|-----------|-----------|---------------|
-| Add an API endpoint | `apps/quarry-server/src/index.ts`, `apps/smithy-server/src/routes/` | `sf show el-5z1q` |
-| Add a core type | `packages/core/src/types/` | `sf show el-6c3s` |
-| Work with dependencies | `packages/quarry/src/services/dependency.ts` | `sf show el-200z` |
-| Add an orchestrator service | `packages/smithy/src/services/` | `sf show el-50ia` |
-| Use the CLI | `packages/quarry/src/cli/commands/` | `sf show el-59tr` |
-| Use the QuarryAPI | `packages/quarry/src/api/quarry-api.ts` | `sf show el-kflh` |
-| Use the OrchestratorAPI | `packages/smithy/src/api/orchestrator-api.ts` | `sf show el-3qg2` |
-| Customize agent prompts | `.stoneforge/prompts/` | `sf show el-32rb` |
-| Configure identity | `packages/quarry/src/systems/identity.ts` | `sf show el-2jw5` |
-| Understand event sourcing | `packages/core/src/types/event.ts` | `sf show el-58k3` |
-| Configure the system | `packages/quarry/src/config/` | `sf show el-z1sj` |
+## Development and verification
 
-### Frontend Tasks
+The root `package.json` pins **pnpm@8.15.5**. Use `pnpm-lock.yaml` and
+`pnpm-workspace.yaml`; do not introduce another package manager or regenerate
+unrelated lockfiles. From the assigned repository worktree:
 
-| I need... | Key Files | Reference Doc |
-|-----------|-----------|---------------|
-| Modify a smithy-web page | `apps/smithy-web/src/routes/{page}/` | `sf show el-4b3q` |
-| Modify a quarry-web page | `apps/quarry-web/src/routes/{page}/` | `sf show el-4iiz` |
-| Add a new frontend route | `apps/{app}/src/router.tsx` | `sf show el-232d` |
-| Modify shared UI components | `packages/ui/src/` | `sf show el-2hk5` |
-| Add a React component | `apps/{app}/src/components/` | `sf show el-3gg7` |
-| Work with API hooks (smithy) | `apps/smithy-web/src/api/hooks/` | `sf show el-4b3q` |
-| Work with API hooks (quarry) | `apps/quarry-web/src/api/hooks/` | `sf show el-4iiz` |
-| Understand frontend architecture | — | `sf show el-935d` |
-
----
-
-## Repository Structure
-
-```
-packages/
-├── core/              # @stoneforge/core - types, errors, ID generation
-├── storage/           # @stoneforge/storage - SQLite backends (Bun, Node, Browser)
-├── quarry/            # @stoneforge/quarry - QuarryAPI, services, sync, CLI
-├── ui/                # @stoneforge/ui - React components, hooks, design tokens
-├── shared-routes/     # @stoneforge/shared-routes - HTTP route factories
-└── smithy/            # @stoneforge/smithy - agent orchestration
-
-apps/
-├── quarry-server/     # Platform HTTP + WebSocket (port 3456)
-├── quarry-web/        # Platform React SPA (port 5173)
-├── smithy-server/     # Orchestrator API (port 3457)
-├── smithy-web/        # Orchestrator dashboard (port 5174)
-├── docs/              # @stoneforge/docs - Astro documentation site
-└── website/           # @stoneforge/website - Public website
-
-.stoneforge/            # Project data (config.yaml, sync/, prompts/, uploads/)
+```sh
+pnpm install --frozen-lockfile
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm test
 ```
 
-### Package Dependency Graph
+These root scripts invoke Turbo. Read `turbo.json` and the affected package's
+`package.json` before running them. `pnpm test` runs declared package test scripts;
+it does not automatically run every runtime suite or every smoke check. A green
+`pnpm typecheck` is not evidence that behavior tests passed. Report actual commands,
+results and omissions, and distinguish pre-existing failures from regressions.
 
-```
-@stoneforge/core           (shared types, no dependencies)
-       ↓
-@stoneforge/storage        (SQLite backends)
-       ↓
-@stoneforge/shared-routes  (HTTP route factories)
-       ↓
-@stoneforge/quarry         (API, services, sync, CLI)
-       ↓
-@stoneforge/smithy         (agent orchestration)
+- Core/storage/quarry/smithy and smithy-server: `test` currently uses Bun;
+  `test:node` uses Vitest under Node; `test:all` runs both. Select a package, e.g.
+  `pnpm --filter @stoneforge/smithy test:node`.
+- Target a Bun-only regression with `bun test path/to/file.bun.test.ts`.
+  Inspect imports/config before choosing a runner. Vitest configurations exclude
+  `*.bun.test.ts`; a source export condition named `bun` does not change the runner.
+- Smithy-web: `test:unit` uses Vitest, `test` uses Playwright. Quarry-web `test`
+  uses Playwright. Browser tests need their configured browser/server prerequisites.
+- Desktop (when present): `test` uses Node's test runner. Read its README and
+  manifest for the pinned runtime, native dependencies and packaged smoke checks.
+- Run relevant regression coverage and the currently required repository check
+  from `sf repo list`. Do not modify merge configuration to bypass a failing check.
 
-@stoneforge/ui             (React components, hooks — depends on core, shared-routes)
-```
+Development servers (do not start another server against a running Desktop project):
 
----
-
-## Core Concepts
-
-### Element Types
-
-- **Core Types**: Task, Message, Document, Entity
-- **Collection Types**: Plan, Workflow, Playbook, Channel, Library, Team
-- **All inherit from Element** (id, type, timestamps, tags, metadata, createdBy)
-
-### Dual Storage Model
-
-- **SQLite**: Fast queries, indexes, FTS - the **cache**
-- **JSONL**: Git-tracked, append-only - the **source of truth**
-
-### Dependencies
-
-- **Blocking types**: `blocks`, `awaits`, `parent-child` - affect task status
-- **Non-blocking**: `relates-to`, `mentions`, `references` - informational only
-- `blocked` status is **computed** from dependencies, never set directly
-
-### Agent Roles (Orchestrator)
-
-- **Director**: Owns task backlog, spawns workers, makes strategic decisions
-- **Worker**: Executes assigned tasks (ephemeral or persistent)
-- **Steward**: Handles code merges, documentation scanning and fixes
-
----
-
-## Development Workflow
-
-### Build & Test
-
-```bash
-bun install           # Install dependencies
-bun run build         # Build all packages
-bun test              # Run test suite
-bun test --watch      # Watch mode
+```sh
+pnpm --filter @stoneforge/smithy-server dev
+pnpm --filter @stoneforge/smithy-web dev
+pnpm --filter @stoneforge/quarry-server dev
+pnpm --filter @stoneforge/quarry-web dev
 ```
 
-### CLI Usage
+Standalone defaults: Smithy server 3457 / web 5174, Quarry server 3456 / web 5173.
+Desktop discovers its project backend; do not assume a fixed port identifies it.
 
-```bash
-sf task ready         # List ready tasks
-sf task blocked       # List blocked tasks
-sf show <id>          # Show element details
-sf task create --title "..." --priority 3 --type feature
-sf dependency add --type=blocks <blocked-id> <blocker-id>
-sf task close <id> --reason "..."
-sf stats              # View progress stats
-```
+## Desktop builds and explicit updates
 
-### Running Apps
+Build/verify a separate artifact using the README at the revision being built.
+Source commits, merges and build outputs do not update the installed
+`~/Applications/Stoneforge Desktop Preview.app`. Determine its version/commit from
+its sidebar footer or About panel, not checkout HEAD. Installation is a separate,
+explicitly coordinated step after arranging session shutdown. Do not copy over the
+running application or restart sessions as part of ordinary implementation/testing.
 
-```bash
-bun run --filter @stoneforge/quarry-server dev       # Platform server (port 3456)
-bun run --filter @stoneforge/quarry-web dev          # Platform web (port 5173)
-bun run --filter @stoneforge/smithy-server dev  # Orchestrator (port 3457)
-bun run --filter @stoneforge/smithy-web dev     # Orchestrator UI (port 5174)
-```
+## Data and implementation conventions
 
----
+- Task, Message, Document and Entity are core elements; Plan, Workflow, Playbook,
+  Channel, Library and Team are collections. Use branded IDs and existing guards.
+- Mutate data through QuarryAPI or `sf`, never direct SQLite writes. SQLite serves
+  live reads/writes, indexes and FTS. JSONL is the portable sync/export form; exports
+  can lag live writes and rewrite files. Do not describe it as an append-only log
+  or assume deleting SQLite is safe without a verified complete export/backup.
+- `blocked` is computed from dependencies. Never set it directly.
+  `sf dependency add --type=blocks A B` means A is blocked **by** B.
+- `sendDirectMessage()` takes a document `contentRef`; CLI `sf message send`
+  accepts text and handles the document. Include task ID and worker sender in
+  messages to the Director.
+- Check cycles with DependencyService before adding dependencies; query both
+  dependencies and dependents for bidirectional `relates-to` relationships.
+- Use existing StoneforgeError/ErrorCode handling; keep changes focused and preserve
+  other agents' work. Add regression tests where they catch a meaningful defect.
 
-## Critical Gotchas
+## Agent workflow and review policy
 
-See `sf show el-49ra` for the complete list. **Top 10 for agents:**
+Current configuration (2026-09-26 snapshot): Director, two ephemeral workers and
+one merge steward all specify `codex` / `gpt-6-astra`. Both workers have
+`maxConcurrentTasks: 1`. These are settings, not guarantees of model availability,
+throughput, reasoning effort or metrics. Verify live state with `sf agent list`
+and `sf show <agent-id> --json`; do not infer unsupported controls or measurements.
 
-1. **`blocked` is computed** - Never set `status: 'blocked'` directly; it's derived from dependencies
-2. **`blocks` direction** - `sf dependency add --type=blocks A B` means A is blocked BY B (B completes first)
-3. **Messages need `contentRef`** - `sendDirectMessage()` requires a `DocumentId`, not raw text
-4. **`sortByEffectivePriority()` mutates** - Returns same array reference, modifies in place
-5. **SQLite is cache** - JSONL is the source of truth; SQLite can be rebuilt
-6. **No auto cycle detection** - `api.addDependency()` doesn't check cycles; use `DependencyService.detectCycle()`
-7. **FTS not indexed on import** - After `sf import`, run `sf document reindex` to rebuild search index
-8. **`relates-to` is bidirectional** - Query both directions: `getDependencies()` AND `getDependents()`
-9. **Closed/tombstone always wins** - In merge conflicts, these statuses take precedence
-10. **Server ports** - Platform: 3456, Orchestrator: 3457 (not 3000)
+Director scopes tasks and dependencies. A worker implements one assigned task,
+verifies it, commits only its files with a conventional prefix, pushes its assigned
+branch, and runs `sf task complete <task-id>`. Do not create PRs directly or take
+another task. If blocked, message the Director with task ID and run
+`sf task handoff <task-id> --message "Completed / blocker / next step"`.
 
----
+Before merge, the steward independently reads the task, diff and affected code;
+checks every acceptance criterion; verifies relevant tests, failures and limitations;
+and records a review verdict with task ID, reviewed commit, commands/results and
+remaining risks. Self-review by the implementation worker is insufficient. If the
+steward makes substantive implementation changes, obtain another agent's review
+before merging. Unmet criteria or newly introduced failures require rejection or
+handoff. Report unrelated existing failures to the Director without calling the
+checks green. This is an operating policy, not a guaranteed software approval gate.
 
-## Navigation Quick Reference
+Workspace role overrides load from the shared root's `.stoneforge/prompts/`.
+They **replace** the corresponding built-in file. Preserve the built-in instructions
+when adding local policy. The reviewed merge-focus override is stored in
+`docs/workspace/steward-merge.md`; see the current orchestration runbook in
+`sf docs dir --content` for its activation and maintenance. Merely setting
+`roleDefinitionRef` is not evidence that the launch path reads that document.
 
-| I want to... | Key Files |
-|--------------|-----------|
-| Add a new core type | `packages/core/src/types/` |
-| Add an API endpoint | `apps/quarry-server/src/index.ts` |
-| Add a React component | `packages/ui/src/components/` |
-| Work with dependencies | `packages/quarry/src/services/dependency.ts` |
-| Understand task status | `packages/core/src/types/task.ts` |
-| Configure identity/signing | `packages/quarry/src/systems/identity.ts` |
-| Work with the Orchestrator API | `packages/smithy/src/api/orchestrator-api.ts` |
-| Customize agent prompts | `.stoneforge/prompts/` |
-| Debug sync issues | `packages/quarry/src/sync/service.ts` |
-| Add a CLI command | `packages/quarry/src/cli/commands/` |
-| Modify the Activity page | `apps/smithy-web/src/routes/activity/`, `apps/smithy-web/src/components/activity/` |
-| Modify the Agents page | `apps/smithy-web/src/routes/agents/`, `apps/smithy-web/src/components/agent/` |
-| Modify the Tasks page (smithy) | `apps/smithy-web/src/routes/tasks/`, `apps/smithy-web/src/components/task/` |
-| Modify the Dashboard (quarry) | `apps/quarry-web/src/routes/dashboard/` |
-| Modify the Entity page | `apps/quarry-web/src/routes/entities/` |
-| Modify the Dependency Graph | `apps/quarry-web/src/routes/dependency-graph/` |
-| Modify the Workspaces page | `apps/smithy-web/src/routes/workspaces/`, `apps/smithy-web/src/components/workspace/`, `apps/smithy-web/src/components/terminal/` |
-| Modify the Editor | `apps/smithy-web/src/routes/editor/`, `apps/smithy-web/src/components/editor/` |
-| Modify the Messages page | `apps/smithy-web/src/routes/messages/` or `apps/quarry-web/src/routes/messages/` |
-| Modify the Documents page | `apps/smithy-web/src/routes/documents/` or `apps/quarry-web/src/routes/documents/` |
-| Modify the Merge Requests page | `apps/smithy-web/src/routes/merge-requests/`, `apps/smithy-web/src/components/merge-request/` |
-| Modify the Plans page | `apps/smithy-web/src/routes/plans/` or `apps/quarry-web/src/routes/plans/` |
-| Modify the Workflows page | `apps/smithy-web/src/routes/workflows/` or `apps/quarry-web/src/routes/workflows/` |
-| Modify the Settings page | `apps/smithy-web/src/routes/settings/` or `apps/quarry-web/src/routes/settings/` |
-| Modify the Metrics page | `apps/smithy-web/src/routes/metrics/` |
+## Keeping shared documentation current
 
----
-
-## Implementation Guidelines
-
-### Type Safety
-
-- Use branded types: `ElementId`, `EntityId`, `DocumentId`, `ChannelId`, `WorkflowId`
-- Implement type guards: `isTask()`, `isElement()`, etc.
-- Use `asEntityId()`, `asElementId()` casts only at trust boundaries
-
-### Storage Operations
-
-- All mutations through `QuarryAPI` - never modify SQLite directly
-- Dirty tracking marks elements for incremental export
-- Content hashing enables merge conflict detection
-
-### Testing
-
-- Tests colocated with source: `*.test.ts` next to `*.ts`
-- Integration tests use real SQLite (`:memory:` or temp files)
-- Run `bun test <path>` for specific tests
-- See `sf show el-50x1` for test runner conventions (Bun vs Vitest)
-
-### Error Handling
-
-- Use `StoneforgeError` with appropriate `ErrorCode`
-- CLI formats errors based on output mode (standard, verbose, quiet)
-
----
-
-## Agent Orchestration Overview
-
-The orchestrator manages AI agent lifecycles for multi-agent task execution:
-
-```
-Director → creates tasks, assigns priorities → dispatches to Workers
-Workers  → execute tasks in git worktrees → update status, handoff
-Stewards → merge completed work, documentation scanning and fixes
-```
-
-**Key Services:**
-
-- `OrchestratorAPI` - Agent registration and management
-- `DispatchService` - Task assignment with inbox notifications
-- `SpawnerService` - Process spawning, headless/interactive modes (`packages/smithy/src/runtime/spawner.ts`)
-- `SessionManager` - Agent session lifecycle tracking (`packages/smithy/src/runtime/session-manager.ts`)
-
-**Prompts:** Built-in prompts in `packages/smithy/src/prompts/`, override with `.stoneforge/prompts/`
-
----
-
-## Keeping Docs Updated
-
-When your changes affect documented behavior (APIs, config, workflows, architecture):
-
-1. **Search** for relevant docs: `sf document search "topic"`
-2. **Update** existing workspace documents: `sf document update <doc-id> --content "..."`
-3. **Create** new docs for undocumented knowledge: `sf document create --title "..." --content "..." --category reference --type markdown`
-4. **Update the Documentation Directory** (`sf show el-30yb`) when you create or significantly modify documents
-5. **Add to the Documentation library** (`sf docs add <doc-id>`) so the document is discoverable
-
----
-
-## Commit Guidelines
-
-- Create commits after completing features, refactors, or significant changes
-- Only commit files you changed
-- Use conventional commit format: `feat:`, `fix:`, `chore:`, `docs:`
+Search before creating. Update existing documents with
+`sf document update <id> --file <path>`. Use appropriate categories (`spec`,
+`runbook`, `reference`, etc.) for new documents and add them using
+`sf docs add <id>`. Immediately before editing the Documentation Directory, reread
+`sf docs dir --content` and preserve all other contributors' entries. Keep commands
+aligned with current manifests; separate planned checks from checks actually run.
