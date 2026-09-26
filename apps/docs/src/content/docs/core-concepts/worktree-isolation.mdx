@@ -164,23 +164,34 @@ Branch contains working local implementation with all endpoints.
 
 ## Merge worktrees
 
-When the merge steward processes a completed task, it creates a **temporary worktree** with a detached HEAD at `origin/master` (or your configured target branch). The merge steward auto-detects the repository's default branch, so this works regardless of whether your project uses `master`, `main`, or another branch name. This is a safety measure — the merge happens in an isolated directory so the main repository's HEAD is never at risk.
+New task and triage worktrees compare the configured target's local and `origin`
+histories after a best-effort fetch. The descendant commit is used, so both local-ahead
+and remote-ahead targets retain their commits. Divergent histories require explicit
+reconciliation. Offline operation uses known refs and does not prove remote freshness.
+An explicit task target takes precedence over the repository default.
 
-```
-Temporary merge worktree:
-  Path:   .stoneforge/.worktrees/_merge-el-3a8f/
-  HEAD:   detached at origin/master
-```
+Merging uses a **temporary detached worktree** at the resolved target commit. The
+squash or regular merge happens there without switching the main checkout's branch.
 
-The merge steward:
-1. Creates the temporary worktree with `git worktree add --detach`
-2. Runs `git merge --squash <task-branch>` in the temp worktree
-3. Commits the squashed changes
-4. Pushes from the detached HEAD: `git push origin HEAD:master`
-5. Removes the temporary worktree (always, via `finally` block)
-6. Syncs the local master branch via fast-forward
+Default remote delivery pushes the merge to `origin/<target>` and verifies it there.
+It refuses a local-ahead target to avoid publishing unpublished target history as a
+side effect. Local checkout synchronization after remote delivery remains best-effort.
 
-A safety guard (`execGitSafe`) rejects any git operation that accidentally targets the main repository instead of the merge worktree.
+Use `sf task merge <task-id> --local` to explicitly deliver to the local target
+without fetching, pushing the target, or deleting remote source branches. This mode
+fast-forwards the checkout holding the target, or compare-and-swaps an unchecked-out
+target ref. It refuses non-fast-forwards and tracked changes in the target checkout;
+Git also protects colliding untracked files. With no origin, local delivery is automatic.
+
+The task is marked merged and closed, and its source worktree is cleaned up, only
+after verification against the selected delivery target. A local delivery failure
+leaves the task open and source branch/worktree available; the error also identifies
+the retained temporary merge worktree. Resolve the cause before retrying. Do not use
+`merge-status --force` as a substitute for delivery.
+
+Before local review, use the corrected `sf task sync`, confirm the source contains
+the current local target, and review its diff against that target. A diff against a
+stale `origin/master` alone does not describe the changes to local `master`.
 
 ## Triage worktrees
 

@@ -39,6 +39,7 @@ if (!isBunRuntime) {
     const actual = await vi.importActual<typeof import('node:child_process')>('node:child_process');
     return {
       ...actual,
+      execFile: vi.fn(),
       exec: vi.fn((_cmd: string, _opts: unknown, cb?: Function) => {
         // Default: call callback with an error so promisify(exec) rejects
         // instead of hanging forever (which causes test timeouts).
@@ -64,6 +65,45 @@ if (!isBunRuntime) {
 // ============================================================================
 // Test Fixtures
 // ============================================================================
+
+// Distinct commits make target routing observable even though merge commands
+// now use a pinned SHA rather than a mutable branch name.
+const targetCommits: Record<string, string> = {
+  main: '1'.repeat(40),
+  staging: '2'.repeat(40),
+  develop: '3'.repeat(40),
+};
+
+function mockTargetGit(file: string, args: string[], _opts: unknown, callback: Function): void {
+  if (file === 'git') {
+    if (args[0] === 'check-ref-format' || args[0] === 'fetch') {
+      callback(null, { stdout: '', stderr: '' });
+      return;
+    }
+    if (args[0] === 'rev-parse' && args[1] === '--verify') {
+      const branch = args[2].match(/^refs\/(?:heads|remotes\/origin)\/(.+)\^\{commit\}$/)?.[1];
+      if (branch && targetCommits[branch]) {
+        callback(null, { stdout: `${targetCommits[branch]}\n`, stderr: '' });
+        return;
+      }
+    }
+    if (args[0] === 'merge-base' && args[1] === '--is-ancestor' && args[2] === args[3]) {
+      callback(null, { stdout: '', stderr: '' });
+      return;
+    }
+  }
+  callback(new Error(`Unexpected execFile: ${file} ${args.join(' ')}`));
+}
+
+async function expectResolvedTarget(branch: string): Promise<void> {
+  const cp = await import('node:child_process');
+  for (const ref of [`refs/heads/${branch}`, `refs/remotes/origin/${branch}`]) {
+    expect(cp.execFile).toHaveBeenCalledWith(
+      'git', ['rev-parse', '--verify', `${ref}^{commit}`],
+      expect.objectContaining({ cwd: '/project' }), expect.any(Function)
+    );
+  }
+}
 
 function createMockTask(overrides: Partial<Task> = {}): Task {
   return {
@@ -227,6 +267,7 @@ describe('MergeStewardService', () => {
     // instead of hanging indefinitely.
     if (!isBunRuntime) {
       const cp = await import('node:child_process');
+      (cp.execFile as unknown as MockInstance).mockImplementation(mockTargetGit);
       (cp.exec as unknown as MockInstance).mockImplementation(
         (_cmd: string, _opts: unknown, cb?: Function) => {
           const callback = typeof _opts === 'function' ? _opts as unknown as Function : cb;
@@ -1427,14 +1468,15 @@ describe('MergeStewardService', () => {
         (api.get as MockInstance).mockResolvedValue(mockTask);
       });
 
-      it('should use --detach and origin/targetBranch for worktree creation', async () => {
+      it('should create a detached worktree at the resolved target commit', async () => {
         const result = await service.attemptMerge('task-001' as ElementId);
 
         expect(result.success).toBe(true);
         const worktreeCmd = execCalls.find(c => c.cmd.includes('worktree add'));
         expect(worktreeCmd).toBeDefined();
         expect(worktreeCmd!.cmd).toContain('--detach');
-        expect(worktreeCmd!.cmd).toContain('origin/main');
+        expect(worktreeCmd!.cmd).toMatch(new RegExp(` ${targetCommits.main}$`));
+        await expectResolvedTarget('main');
       });
 
       it('should use HEAD:targetBranch for push', async () => {
@@ -1444,18 +1486,22 @@ describe('MergeStewardService', () => {
         const pushCmd = execCalls.find(c => c.cmd.includes('push origin'));
         expect(pushCmd).toBeDefined();
         expect(pushCmd!.cmd).toContain('push origin HEAD:main');
+        expect(execCalls).toContainEqual({
+          cmd: 'git merge-base --is-ancestor def456 origin/main', cwd: '/project',
+        });
       });
 
-      it('should use origin/targetBranch in pre-flight merge-base and merge-tree', async () => {
+      it('should pin pre-flight merge-base and merge-tree to the resolved target commit', async () => {
         await service.attemptMerge('task-001' as ElementId);
 
         const mergeBaseCmd = execCalls.find(c => c.cmd.includes('merge-base'));
         expect(mergeBaseCmd).toBeDefined();
-        expect(mergeBaseCmd!.cmd).toContain('origin/main');
+        expect(mergeBaseCmd!.cmd).toBe(`git merge-base ${targetCommits.main} agent/worker-alice/task-001-implement-feature-x`);
 
         const mergeTreeCmd = execCalls.find(c => c.cmd.includes('merge-tree'));
         expect(mergeTreeCmd).toBeDefined();
-        expect(mergeTreeCmd!.cmd).toContain('origin/main');
+        expect(mergeTreeCmd!.cmd).toBe(`git merge-tree abc123 ${targetCommits.main} agent/worker-alice/task-001-implement-feature-x`);
+        await expectResolvedTarget('main');
       });
 
       it('should NOT sync local branch in attemptMerge (syncLocal: false)', async () => {
@@ -1501,6 +1547,7 @@ describe('MergeStewardService', () => {
         expect(fetchRefUpdate).toBeUndefined();
         expect(checkoutTarget).toBeUndefined();
         expect(mergeRemote).toBeUndefined();
+        expect(execCalls.some(c => c.cmd.startsWith('git checkout '))).toBe(false);
       });
 
       it('should not sync local branch when merge fails', async () => {
@@ -1530,14 +1577,14 @@ describe('MergeStewardService', () => {
         const result = await service.attemptMerge('task-001' as ElementId);
 
         expect(result.success).toBe(false);
+        expect(result.error).toContain('merge failed');
+        expect(execCalls.some(c => c.cmd.includes('push origin'))).toBe(false);
 
         // No checkout of target branch should occur after worktree removal
         const worktreeRemoveIdx = execCalls.findIndex(c => c.cmd.includes('worktree remove'));
-        if (worktreeRemoveIdx >= 0) {
-          const postWorktreeCmds = execCalls.slice(worktreeRemoveIdx + 1);
-          const checkoutTarget = postWorktreeCmds.find(c => c.cmd.includes('git checkout main'));
-          expect(checkoutTarget).toBeUndefined();
-        }
+        expect(worktreeRemoveIdx).toBeGreaterThan(-1);
+        expect(execCalls.slice(worktreeRemoveIdx + 1)).toEqual([]);
+        expect(execCalls.some(c => c.cmd.startsWith('git checkout '))).toBe(false);
       });
 
       it('should fetch origin before pre-flight conflict detection', async () => {
@@ -1830,8 +1877,6 @@ describe('MergeStewardService', () => {
           const callback = typeof _opts === 'function' ? (_opts as unknown as Function) : cb;
           if (callback) {
             if ((cmd as string).includes('rev-list --count')) {
-              // Verify the command uses 'staging' (the task's targetBranch), not 'main'
-              expect((cmd as string)).toContain('staging');
               callback(null, { stdout: '0\n', stderr: '' });
             } else if ((cmd as string).includes('remote get-url')) {
               callback(new Error('no remote'), { stdout: '', stderr: '' });
@@ -1844,8 +1889,12 @@ describe('MergeStewardService', () => {
 
       const result = await service.processTask(taskWithTargetBranch.id);
 
-      // Should have used 'staging' as the target branch (not_applicable because 0 commits)
       expect(result.status).toBe('not_applicable');
+      await expectResolvedTarget('staging');
+      expect(cp.exec).toHaveBeenCalledWith(
+        `git rev-list --count ${targetCommits.staging}..agent/worker/task-branch`,
+        expect.objectContaining({ cwd: '/project' }), expect.any(Function)
+      );
     });
 
     itGit('getTargetBranchForTask falls back to global when task has no targetBranch', async () => {
@@ -1874,8 +1923,6 @@ describe('MergeStewardService', () => {
           const callback = typeof _opts === 'function' ? (_opts as unknown as Function) : cb;
           if (callback) {
             if ((cmd as string).includes('rev-list --count')) {
-              // Should fall back to 'main' (detected default branch) instead of any task-specific branch
-              expect((cmd as string)).toContain('main');
               callback(null, { stdout: '0\n', stderr: '' });
             } else if ((cmd as string).includes('remote get-url')) {
               callback(new Error('no remote'), { stdout: '', stderr: '' });
@@ -1893,6 +1940,11 @@ describe('MergeStewardService', () => {
       const result = await service.processTask(taskWithoutTargetBranch.id);
 
       expect(result.status).toBe('not_applicable');
+      await expectResolvedTarget('main');
+      expect(cp.exec).toHaveBeenCalledWith(
+        `git rev-list --count ${targetCommits.main}..agent/worker/task-branch`,
+        expect.objectContaining({ cwd: '/project' }), expect.any(Function)
+      );
     });
 
     itGit('attemptMerge merges to the task targetBranch', async () => {
@@ -1935,14 +1987,17 @@ describe('MergeStewardService', () => {
       const result = await service.attemptMerge(taskWithTargetBranch.id);
 
       expect(result.success).toBe(true);
-      // Verify merge commands reference 'staging', not 'main'
+      // Resolve staging and pin the merge to its commit; push to staging by name.
       const worktreeCmd = execCalls.find(c => c.includes('worktree add'));
       expect(worktreeCmd).toBeDefined();
-      expect(worktreeCmd).toContain('origin/staging');
+      expect(worktreeCmd).toMatch(new RegExp(` ${targetCommits.staging}$`));
+      await expectResolvedTarget('staging');
 
       const pushCmd = execCalls.find(c => c.includes('push origin'));
       expect(pushCmd).toBeDefined();
       expect(pushCmd).toContain('push origin HEAD:staging');
+      expect(execCalls).toContain('git merge-base --is-ancestor def456 origin/staging');
+      expect(execCalls.some(cmd => cmd.startsWith('git checkout '))).toBe(false);
     });
 
     itGit('branchHasCommitsAhead compares against the task targetBranch', async () => {
@@ -1983,10 +2038,8 @@ describe('MergeStewardService', () => {
 
       await service.processTask(taskWithTargetBranch.id);
 
-      // Verify the rev-list command compared against 'develop' (the task's targetBranch)
-      expect(revListCmd).toBeDefined();
-      expect(revListCmd).toContain('develop');
-      expect(revListCmd).not.toContain('main');
+      await expectResolvedTarget('develop');
+      expect(revListCmd).toBe(`git rev-list --count ${targetCommits.develop}..agent/worker/task-branch`);
     });
   });
 
