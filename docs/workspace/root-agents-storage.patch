@@ -1,0 +1,23 @@
+--- shared-root/AGENTS.md.before
++++ shared-root/AGENTS.md.after
+@@ -23,8 +23,9 @@
+ 
+ ### Dual Storage Model
+ 
+-- **SQLite**: Fast queries, indexes, FTS — the **cache**
+-- **JSONL**: Git-tracked, append-only — the **source of truth**
++- **SQLite**: Serves current reads/writes, indexes and FTS.
++- **JSONL**: Portable export/synchronization files, rewritten with `writeFile` by
++  `packages/quarry/src/sync/service.ts`; exports can lag live writes.
+ 
+ ### Dependencies
+ 
+@@ -60,7 +61,7 @@
+ 2. **`blocks` direction** — `sf dependency add --type=blocks A B` means A is blocked BY B (B completes first)
+ 3. **Messages need `contentRef`** — `sendDirectMessage()` requires a `DocumentId`, not raw text
+ 4. **`sortByEffectivePriority()` mutates** — Returns same array reference, modifies in place
+-5. **SQLite is cache** — JSONL is the source of truth; SQLite can be rebuilt
++5. **Exports can lag SQLite** — Do not delete SQLite or assume any JSONL export can fully restore current data; verify export completeness and backups first.
+ 6. **No auto cycle detection** — `api.addDependency()` doesn't check cycles; use `DependencyService.detectCycle()`
+ 7. **FTS not indexed on import** — After `sf import`, run `sf document reindex` to rebuild search index
+ 8. **`relates-to` is bidirectional** — Query both directions: `getDependencies()` AND `getDependents()`
