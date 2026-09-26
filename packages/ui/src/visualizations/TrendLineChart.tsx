@@ -36,7 +36,7 @@ function LineTooltip({
   return (
     <div className="bg-card p-2 rounded-lg shadow-lg border border-border">
       <p className="text-sm font-medium text-foreground">{label}</p>
-      <p className="text-sm text-muted-foreground">{payload[0].value} completed</p>
+      <p className="text-sm text-muted-foreground">{payload[0].payload.valueLabel ?? `${payload[0].value} completed`}</p>
     </div>
   );
 }
@@ -166,6 +166,7 @@ export function TrendLineChart({
             />
             <Tooltip
               content={<LineTooltip />}
+              filterNull={false}
               trigger={isTouchDevice ? 'click' : 'hover'}
               wrapperStyle={{ zIndex: 1000 }}
             />

@@ -43,8 +43,8 @@ function seedMetrics(backend: StorageBackend) {
 
   for (const entry of entries) {
     backend.run(
-      `INSERT INTO provider_metrics (id, timestamp, provider, model, session_id, task_id, input_tokens, output_tokens, duration_ms, outcome)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO provider_metrics (id, timestamp, provider, model, session_id, task_id, input_tokens, output_tokens, duration_ms, outcome, usage_available)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
       [entry.id, entry.timestamp, entry.provider, entry.model, entry.session_id, entry.task_id, entry.input_tokens, entry.output_tokens, entry.duration_ms, entry.outcome]
     );
   }

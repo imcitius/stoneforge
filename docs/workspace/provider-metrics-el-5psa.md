@@ -158,6 +158,145 @@ Workspace reference: `el-1fqa`, added via `sf docs add`; existing runbook `el-of
 and audit `el-3d6` link the diagnosis. Directory `el-1s1` was reread immediately
 before updates and other agents' entries were preserved.
 
+## Metrics clients: availability and subtotals — el-33hc
+
+The follow-up updates the existing direct-DB `sf metrics` and Smithy metrics
+page, without changing the collector, prices, schema, or historical records.
+CLI supports its existing provider/model groupings and provider/date filters.
+The dashboard consumes provider/model aggregates plus time-series buckets;
+agent/session API responses share the additive frontend coverage types but
+have no separate usage/cost consumer on this page. Quarry dashboard metrics
+are task statistics; smithy-next metrics remain mock data and are outside this fix.
+
+- CLI adds `usageStatus`, `usageSessionCount`, `legacySessionCount`,
+  `estimatedCostStatus`, and `pricedSessionCount` to groups and totals. Existing
+  numeric keys and token sums remain numeric and unchanged. Its model-cost query
+  now uses the same observed-record/matched-price rules as the API, including the
+  provider filter and one shared cutoff. It no longer applies the pricing helper's
+  fallback to unknown models or estimates costs from unverified legacy usage.
+- Measured zero renders as `0` / `$0.00`. Missing usage renders `unavailable`;
+  legacy usage renders `unknown`. Incomplete tokens show `partial; recorded
+  subtotal`, with an explicit warning when sums retain unverified legacy values.
+  These recorded subtotals are not claimed to be verified/complete usage.
+- Costs show `unavailable` when no records can be priced; partial costs are
+  explicitly a `priced subtotal` of observed usage with matched prices. A
+  measured zero can be priced zero; absent pricing cannot imply free usage.
+- Dashboard cards, cache ratios, model rows and totals use coverage. Missing
+  additive fields from older servers remain `unknown`; unverified old-server
+  costs are excluded from a combined priced subtotal. Model table totals use
+  model records from the same response, avoiding mixed refresh snapshots.
+- Time-series buckets combine coverage before rendering. Unavailable/unknown
+  buckets are null gaps, including nonzero unverified legacy buckets. Observed
+  zero remains a plotted zero; partial points have recorded-subtotal tooltips.
+  No incomplete total is presented as a complete chart total. The shared chart
+  accepts null points and optional tooltip labels; default task tooltips persist.
+- Counts are labelled **metric records**, not complete coverage of real sessions.
+  Loading/errors/empty responses do not render zero token or cost measurements.
+
+Focused acceptance on source `6392b438c2e5418e50235df55e25c27841e89a64`:
+
+- Frozen pnpm install: exit 0 (pnpm 8.15.5). Quarry and smithy-web typecheck pass.
+- `bun test packages/quarry/src/cli/commands/metrics-output.bun.test.ts`: 9/9 pass.
+  Builds and executes the real Node CLI with a temporary SQLite database, checks
+  text/JSON, both groupings, provider/date filters, measured zero, missing and
+  legacy usage, partial/priced subtotals, unknown pricing and empty results.
+- Existing metrics command tests: 14/14 pass. Their priced fixture now explicitly
+  marks usage observed; separate legacy fixtures assert old counters are retained.
+- `pnpm --filter @stoneforge/smithy-web exec vitest run src/routes/metrics/coverage.test.ts`:
+  3/3 pass, covering mixed old/new responses, missing cost and per-bucket gaps.
+- `PLAYWRIGHT_BROWSERS_PATH=/tmp/el-33hc-browsers pnpm --filter @stoneforge/smithy-web exec playwright test --config playwright.metrics.config.ts`:
+  9/9 pass. Actual MetricsPage, query hooks, cards/table and charts render against
+  intercepted API fixture responses; no backend starts. Covers states above,
+  empty/error responses, tooltip, responsive widths 320/768/1024/1440, keyboard
+  range selector and no page errors. Partial screenshot is in ignored
+  `apps/smithy-web/test-results/metrics-coverage-visible-cards-table-and-chart-partial/provider-analytics.png`.
+  Chromium is isolated under `/tmp`. Initial attempts failed on a missing browser
+  and an overly broad fixture route matching source modules; both prerequisites
+  were corrected, with no production workaround or weakened assertions.
+
+Logs: `/tmp/el-33hc-{install,cli-output,cli-tests,ui-types,cli-types,unit,browser}.log`.
+The full required merge gate and independent final review are recorded separately
+below. This does not validate live providers, installed Desktop, billing, complete
+collector coverage, packaged GUI, or the full browser suite. Installed app and
+real projects/sessions were not changed. Source merge requires independent
+steward review and the approved standalone CLI `task merge el-33hc --local`.
+
+### Required gate and worker handoff — el-33hc
+
+On source `6392b438c2e5418e50235df55e25c27841e89a64`, one full
+`pnpm check:merge` returned **exit 1: 179/180 steps passed**, 155.10 s.
+Uncached typecheck and Desktop source build passed; Bun 8,533 pass / 1 fail /
+29 existing skips; Smithy Vitest 325 pass, Desktop Node 6 pass, gate tests 5 pass.
+The sole failure is `packages/quarry/src/cli/commands/playbook.bun.test.ts:618`,
+`allows valid inheritance chain during creation`: expected exit code 0, got 1.
+That test and its playbook implementation are unchanged from local master
+`e7c00526cc23e312e4def0bea8e259b77359e80f`. This does not establish the cause or
+prove a baseline reproduction. The metrics-specific gate steps passed.
+
+One isolated original-file rerun under the gate's `checkEnvironment()` passed
+35/35. A fixed diagnostic series of five runs of a temporary copy, with extra
+CommandResult logging, also passed 35/35 each. An initial diagnostic invocation
+failed to resolve workspace imports from `/tmp`; absolute source imports fixed
+only that fixture. These results do not erase the original failure or justify
+calling the full gate successful. No full-gate retry-until-green, assertion change,
+unrelated production fix or merge bypass was performed.
+
+Tracked investigation **el-16z5** belongs to the same plan el-122b. A separate
+screenshot observation, **el-2ohr**, tracks the existing shared-chart responsive
+title spans appearing simultaneously in the isolated fixture; full-app reproduction
+and root cause remain unconfirmed. Their markup was not changed by this task.
+
+Gate logs `/tmp/el-33hc-gate.log`; commands/exits/durations and individual logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Cvgd8R/results.json`
+(failure: `076.log`). Diagnostics:
+`/tmp/el-33hc-playbook-original.log` and
+`/tmp/el-33hc-playbook-diagnostic-{0..4}.log`.
+
+Implementation and test source is committed/pushed; this final document-only
+update preserves all previous provider-metrics findings and limitations. Worker
+hands off rather than claiming acceptance. **Still required:** resolve/triage the
+tracked gate failure, rerun the full required gate on the final revision, obtain
+independent final-commit steward review, then use approved CLI local delivery.
+No PR was created manually; no task merge, installed-app change, live migration,
+backfill, paid provider request or session restart occurred.
+
+
+### Integrated worker acceptance after el-16z5 — el-33hc, 2026-09-26
+
+The blocker el-16z5 was independently reviewed and delivered as local master
+`dca7189e8e28111c0fb643a33650222f69b3eb99`. All 299 approved el-ptim CLI
+artifact hashes matched. Its `task sync el-33hc` merged that target without
+conflicts into tested commit `d7cc1494c5e7dcaa7f849fcbeb7f648c9ba70da1`.
+No metrics implementation or tests changed during this resumed acceptance.
+The historical failed gate above is preserved: the collision defect is proven,
+but attribution of that original failure remains unresolved (see el-43jm).
+
+- `pnpm install --frozen-lockfile`: exit 0, lockfile unchanged.
+- One integrated `pnpm check:merge`: **exit 0, 180/180 checks, 177.09 s**.
+  Uncached typecheck 17/17; Bun 8,535 pass / 0 fail / 29 existing skips;
+  Smithy Vitest 325 pass; Desktop Node 6 pass; gate regressions 5 pass;
+  Desktop source build passed. This includes the real Node CLI metrics output
+  suite (9), existing metrics command suite (14), and playbook suite (36).
+- The isolated Playwright command above: **9/9 pass**, retries=0, 9.8 s.
+  The partial-state screenshot was inspected: labels and subtotals are visible.
+  The known duplicated responsive chart title remains separately tracked by
+  el-2ohr; its unmerged source fix is not included in this acceptance.
+- The coverage Vitest command above: **3/3 pass**.
+- `git diff --check` and local-target ancestry: exit 0; target remained dca7189.
+
+Logs: `/tmp/el-33hc-resume-{install,gate,browser,unit}.log`. Exact gate
+commands, exits, durations and per-step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-c8mGBn/results.json`.
+Node 22.23.3, pnpm 8.15.5, Bun 1.3.11, macOS arm64. Subsequent changes only
+record these results in documentation. Shared el-1fqa and Directory updates
+preserve other contributors' entries, including el-2ohr.
+
+This is worker acceptance for transition to REVIEW, not independent approval.
+Steward must review the final commit and use the approved CLI for local delivery;
+if the target changes, sync and verify the resulting revision. No manual PR,
+merge bypass, installed-app update, live project migration, provider calls,
+backfill or session restart. Full browser suites, packaged GUI/LaunchServices,
+standalone root build/lint/test and cross-platform checks were not run.
 ## Shared chart responsive titles — el-2ohr, 2026-09-26
 
 Approved CLI sync brought the assigned worktree to local master

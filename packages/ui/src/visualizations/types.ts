@@ -26,7 +26,9 @@ export interface LineChartDataPoint {
   /** X-axis label */
   label: string;
   /** Numeric value */
-  value: number;
+  value: number | null;
+  /** Optional formatted tooltip value, including coverage when relevant. */
+  valueLabel?: string;
   /** Optional date string for more precise X-axis */
   date?: string;
 }
