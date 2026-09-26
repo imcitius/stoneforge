@@ -792,3 +792,26 @@ only this append-only report conflicted, resolved by preserving both full sectio
 Completion's delivered contracts and converted regression assertions are retained.
 Thus the earlier statement that completion is pending describes the pre-sync state.
 Final integrated checks and independent exact-commit review are recorded below.
+
+### el-1q2vv final integrated worker acceptance
+
+Source at integrated commit `5a42f08` (implementation `5f03117`, prior partial
+`12dd742`) includes delivered local master `3420c56`. Focused claim/lifecycle/
+completion protocol/Git suite: **189 pass, 0 fail, 992 assertions**, 24.32s.
+Complete **pnpm check:merge: 187/187, exit 0, 236.11s**, after all source/test edits
+and approved sync. Includes uncached workspace typecheck, Desktop build, all gate
+Bun files, Smithy Node/Vitest, Desktop Node and gate regression checks. Claim suite
+is **24/24**; existing skip cases remain, no gate/threshold changes.
+
+Logs: `/tmp/el-1q2vv-integrated-focused.log`, `/tmp/el-1q2vv-gate-integrated.log`.
+Every command/exit/duration and log is recorded in
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-5wSjK1/results.json`.
+`git diff --check` passes and local master is an ancestor. Only documentation is
+changed after this gate. Previous gate runs (186/186 at 235.38s and 214.59s),
+original safety failures and fixture failures are preserved above, not erased.
+
+Worker acceptance is complete; independent steward review of the final documentation
+commit plus exact implementation, and approved CLI local delivery after explicit
+checks, remain required. No manual PR/merge, installed app replacement or live
+provider/daemon/session testing was performed. Director's coordination of this
+worker's live task assignment is not a test fixture or application maintenance.
