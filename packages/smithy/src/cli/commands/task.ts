@@ -528,27 +528,33 @@ async function taskMergeHandler(
       metadata: newMeta,
     });
 
-    // 5. Clean up: delete source branch and remove task worktree (best-effort)
-    try {
-      await execVerify(`git branch -D ${sourceBranch}`, { cwd: workspaceRoot });
-    } catch { /* branch may not exist locally */ }
-
-    try {
-      await execVerify(`git push origin --delete ${sourceBranch}`, { cwd: workspaceRoot });
-    } catch { /* branch may not exist on remote */ }
-
-    const worktreePath = orchestratorMeta?.worktree;
-    if (worktreePath) {
-      try {
-        await execVerify(`git worktree remove --force "${worktreePath}"`, { cwd: workspaceRoot });
-      } catch { /* worktree may already be gone */ }
-    }
-
-    // 6. Sync local target branch (best-effort, after all bookkeeping is done)
+    // 5. Sync before safe branch deletion, which may use local HEAD to check
+    // ancestry. Bookkeeping is already complete if sync or cleanup fails.
     try {
       await execVerify('git fetch origin', { cwd: workspaceRoot, encoding: 'utf8' });
     } catch { /* best-effort */ }
     await syncLocalBranch(workspaceRoot, effectiveTargetForVerify);
+
+    // 6. Remove the owned worktree before deleting the branch, without force.
+    const { cleanupMergedTask } = await import('../../git/task-merge-cleanup.js');
+    try {
+      await cleanupMergedTask({
+        workspaceRoot,
+        sourceBranch,
+        targetBranch: effectiveTargetForVerify,
+        worktreePath: orchestratorMeta?.worktree,
+      });
+    } catch (err) {
+      const cleanupError = err instanceof Error ? err.message : String(err);
+      return {
+        ...failure(
+          `Task ${taskId} was merged and is CLOSED, but cleanup failed: ${cleanupError}\n` +
+          'Inspect retained branches/worktrees and retry cleanup manually; do not rerun the merge or force deletion.',
+          ExitCode.GENERAL_ERROR
+        ),
+        data: { taskId, mergeStatus: 'merged', commitHash: mergeResult.commitHash, cleanupError },
+      };
+    }
 
     // 7. Output result
     const mode = getOutputMode(options);
@@ -593,7 +599,11 @@ This command:
 2. Squash-merges the branch into the target branch (auto-detected)
 3. Pushes to remote
 4. Atomically sets merge status to "merged" and closes the task
-5. Cleans up the source branch (local + remote) and worktree
+5. Removes the owned worktree, then safely deletes merged source branches (local + remote)
+
+Cleanup never uses force. Unmerged branches (including squash-only ancestry),
+dirty/locked worktrees, and worktrees owned by other tasks are retained.
+Cleanup failures return a nonzero exit code; the task remains CLOSED and merged.
 
 Arguments:
   task-id    Task identifier to merge

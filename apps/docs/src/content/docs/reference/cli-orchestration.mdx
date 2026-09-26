@@ -355,7 +355,11 @@ Squash-merge a task branch and close the task.
 sf task merge <task-id> [--summary <text>]
 ```
 
-Validates the task is in REVIEW status, performs the squash-merge, pushes, sets merge status to `merged`, closes the task, and cleans up the branch and worktree.
+Validates the task is in REVIEW status, performs the squash-merge, pushes, sets merge status to `merged`, and closes the task. After syncing the local target branch, cleanup checks that the source branches are fully merged into the fetched remote target, removes the task's owned worktree, then deletes the local branch with `git branch -d` and the remote branch. Cleanup never forces worktree removal or local branch deletion.
+
+Dirty or locked worktrees, worktrees whose branch no longer matches task metadata, and branches still checked out in other worktrees are retained. An unmerged local or remote source branch also stops cleanup. Squash merging does not establish commit ancestry, so a squash-only source branch and its worktree are retained even when their changes landed on the target.
+
+Cleanup failures return a nonzero exit code with an explicit error in all output modes, including JSON and quiet mode. The task remains CLOSED with merge status `merged`. Cleanup may be partial (for example, the worktree was removed but `git branch -d` refused deletion). Inspect the named retained resources and complete safe cleanup manually after resolving the reported cause. Do not rerun the merge or use force to bypass a refusal. Already absent branches and worktrees are treated as no-ops.
 
 #### `sf task reject`
 
