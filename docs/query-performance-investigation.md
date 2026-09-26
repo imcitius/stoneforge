@@ -1,5 +1,9 @@
 # Quarry scaling investigation — el-2z6, 2026-09-26
 
+> The original investigation through the raw measurement tables is preserved below.
+> The authorized measurement-stabilization follow-up is appended after those tables;
+> historical requests for a Director decision describe the pre-decision state.
+
 ## Status: not reproduced; no fix claimed
 
 The original create-scaling failure remains unresolved. Its ratio was
@@ -181,3 +185,164 @@ Durations are milliseconds; process exit is for the whole selected test file.
 | Run | 10 tasks ms | 50 tasks ms | 100 tasks ms | Per-item ratio | Process exit |
 |---|---:|---:|---:|---:|---:|
 | 44 | 0.522042 | 2.368625 | 4.235375 | 0.811309 | 0 |
+
+
+## Measurement-stabilization follow-up — el-2z6, 2026-09-26
+
+Director authorized warmup, fixed independent median samples and a meaningful
+negative control for **both** create and list. This implementation starts from
+6506d00 (including b7e5c8b); it changes only performance tests and evidence/docs.
+It does not establish the cause of the original create ratio **7.216375025823988**,
+fix a demonstrated production defect, or erase any historical exit 1 above.
+Production code, dataset sizes, ratio assertions, package manifests, AGENTS.md,
+and check:merge are unchanged.
+
+### Fixed method
+
+- Sizes remain create **10, 50, 100** and list **50, 100, 150**. Assertions remain
+  per-item create ratio **< 4** and total list-query ratio **< 3** (150/50).
+- A complete fixed warmup sample for each size runs on disposable databases.
+  Then all six permutations of size indices run in this fixed order:
+  `012, 210, 120, 021, 201, 102`. Each size occupies each within-round position
+  twice; every directed within-round transition occurs twice. This is six
+  independent database samples per size, with no adaptive stopping or retries.
+- Each create sample sums **32** timed batches; **every batch has a fresh in-memory
+  database** and grows only from zero to its stated size. Schema setup/close and
+  result-count assertions are outside timing; task construction, IDs, hashing
+  and actual API creation remain inside. Divide the summed durations by
+  `32 * size`. Summing separate fresh-DB batches increases the measured work
+  without accidentally changing the dataset to 32 times its intended size.
+- Each list sample seeds a fresh database, prepares that DB's query path with
+  one untimed list, then times **256** consecutive queries as one interval.
+  Every query requests all `size` rows; the accumulated result count is checked
+  outside timing. Divide the interval by 256, **not** by dataset size.
+- For each size take the median of its six normalized sample values, averaging
+  the middle two. Compare largest-size median / smallest-size median. The middle
+  size is retained diagnostically, as before; the assertion compares endpoints.
+- Every warmup and measured duration, repetition count, order, median, ratio and
+  host load average is emitted as `[scaling]` JSON **before** the assertion. No
+  outlier is deleted from diagnostics. No sleep, artificial CPU stress, forced
+  GC, pass-dependent extra measurement, skip or weakened threshold is used.
+  The four affected tests have a 30-second execution timeout to accommodate the
+  larger fixed workload; this does not change their ratio assertions.
+
+Counts were chosen once before the post-change verification, based on historical
+~0.5 ms ten-task batches and the need to amortize short list-query timing. They
+were not tuned in response to pass/fail. A faster host may still have shorter
+intervals; the test logs actual durations rather than claiming a guaranteed
+minimum or adding adaptive work to get a passing ratio.
+
+### Negative sensitivity controls
+
+Both controls execute real Quarry API operations on fresh SQLite databases.
+They use the **same sample schedule, normalization, median and assertion
+functions** as the wall-clock tests, with a deterministic clock counting actual
+rows processed. This avoids making a second noisy wall-clock benchmark the
+oracle for the benchmark. They run one batch/query per sample because counting
+work has no timer-resolution problem. The clock is cumulative; each timed delta
+excludes warmup and preparation just as the wall clock does.
+
+- Create baseline counts each inserted row. The injected regression lists and
+  checks all existing tasks for duplicate IDs before each insertion, adding
+  actual returned rows to the counter. Its work is `n + n(n-1)/2`; per-item
+  growth ratio is **9.181818**, compared with **1** for the linear baseline.
+- List baseline counts the request and materialized rows (`1+n`). The injected
+  N+1 regression re-lists all tasks for each returned task and checks that it
+  exists, counting every request and returned row. Work becomes `(n+1)^2`;
+  growth ratio is **8.766244**, compared with **2.960784** for the linear baseline.
+- Each baseline must pass; applying the exact performance assertion to the
+  quadratic workload must throw. Unexpected API errors occur outside that
+  expected-throw assertion and fail the test. Neither control feeds fabricated
+  ratios to the assertion or relies on a delay/busy-loop duration.
+
+These controls verify that aggregation and normalization preserve rejection of
+persistent quadratic **work**. They do not prove that any particular mix of
+wall-clock costs, GC or host scheduling will reveal every regression. In
+particular, count-clock controls do not constitute a production latency result.
+
+### Limits and interpretation
+
+Fresh databases isolate state, not the process JIT, allocator, machine load or
+scheduler; these samples are not independent statistical trials of the host.
+Warmup targets steady-state behavior, and medians deliberately reduce sensitivity
+to isolated stalls. The raw samples retain those stalls for investigation, but
+this ratio assertion is not a tail-latency or cold-start guarantee. Existing
+absolute-latency tests remain in the file. Summed create timings exclude schema
+cost but may still include pauses within each batch; list timings include loop
+and promise overhead. No confidence interval or cross-platform guarantee is
+claimed from this small local validation.
+
+The unchanged create threshold also cannot detect every superlinear algorithm:
+for ideal `T(n)=n^p`, per-item growth from 10 to 100 exceeds 4 only for roughly
+`p >= 1.60206`. Quadratic work is clearly beyond that bound. The list threshold
+is stricter: fixed overhead can make approximately linear materialization pass
+at these sizes, but pure linear growth with no overhead sits exactly at 3 and
+fails. This run evaluates the existing contract, not an asymptotic complexity
+proof. If future stable measurements contradict `<3`, retain the failure and
+ask the Director to review the contract; do not relax it locally.
+
+### Predeclared bounded verification
+
+The plan was **three fresh processes** selecting the two target tests plus both
+quadratic controls, then **one relevant complete sequence** using the same
+171-step recipe as the historical investigation: uncached workspace typecheck,
+Desktop source build, every per-file Bun test under core/storage/quarry/smithy,
+Smithy Node tests and Desktop backend tests. The sequence also runs the entire
+performance file, exercising the target after preceding tests. No additional
+baseline campaign or rerun-until-green is planned.
+
+The Python runner preserves every command's exit code, wall duration and before/
+after load, strips shared-project variables only from child environments, runs
+all planned commands even after a failure, and returns 1 if any command fails.
+`pnpm check:merge` is still absent on this base; this is not a claim to have run
+that proposed 173-step command. Final integration and acceptance remain el-2kc
+and el-1r6. The installed Desktop application and active sessions are untouched.
+
+### Recorded post-change results
+
+Bun 1.3.11, Node v22.23.3, pnpm 8.15.5, macOS arm64, unchanged installed
+dependencies from the earlier successful frozen install. No dependency changes.
+The selected four tests passed in all three planned processes (4 pass / 0 fail
+each; the other 31 tests were filtered, not claimed as verified in those runs).
+
+| Execution | Create median ms/item (10 / 50 / 100) | Create ratio <4 | List median ms/query (50 / 100 / 150) | List ratio <3 | Process exit | Wall seconds |
+|---|---|---:|---|---:|---:|---:|
+| Focused 1 | 0.044654 / 0.044301 / 0.042645 | 0.955023 | 0.168504 / 0.302214 / 0.451412 | 2.678944 | 0 | 6.615 |
+| Focused 2 | 0.046128 / 0.046080 / 0.045203 | 0.979950 | 0.167844 / 0.301209 / 0.448587 | 2.672645 | 0 | 6.717 |
+| Focused 3 | 0.046726 / 0.046052 / 0.044427 | 0.950785 | 0.166139 / 0.303743 / 0.446822 | 2.689450 | 0 | 6.706 |
+| Full sequence, step 44 | 0.044778 / 0.043757 / 0.043527 | 0.972067 | 0.167704 / 0.310247 / 0.443062 | 2.641927 | 0 | 6.949 |
+
+All four executions rejected both quadratic controls and accepted both linear
+controls, with the deterministic ratios described above. Across all recorded
+wall-clock samples, the shortest create accumulated interval was
+**13.434 ms** and the shortest list interval **40.950 ms**.
+The three focused runs took **20.038 s** summed child wall time,
+aggregate exit **0**. No follow-up retry was run.
+
+The complete sequence ran **171 steps**, **123.703 s** summed child wall
+time, aggregate exit **1**. All 96 Quarry files passed; the performance file had
+**35 pass / 0 fail**. Typecheck, Desktop source build, Smithy Node tests and
+Desktop backend tests returned 0. The only failed step was the unchanged
+`packages/smithy/src/git/project-repositories.bun.test.ts` (4 pass / 1 fail,
+exit 1), already tracked as **el-52s**: stale fixture expected
+`2026-09-26T12:56:43.045Z`, actual `.046Z`, `CONCURRENT_MODIFICATION`.
+Its separate fix is not on this base. This sequence is **not an acceptance pass**
+and was not retried. The final integrated gate remains el-1r6 after el-2kc.
+
+Durable machine-readable evidence is in
+[`query-performance-validation.json`](query-performance-validation.json): every
+command, exit code, elapsed time, before/after load, the complete failed-step
+output, and all raw `[scaling]` records (including warmup, per-batch durations,
+all six samples, controls and outliers). It records the tested source SHA-256.
+Full local stdout/stderr is retained at:
+
+- `/tmp/el-2z6-postchange-focused/{000..002}.log` and `results.json`;
+- `/tmp/el-2z6-postchange-full/{000..170}.log` and `results.json`
+  (performance `043.log`, known fixture failure `130.log`);
+- runner `/tmp/el-2z6-postchange-runs.py`, sequence console
+  `/tmp/el-2z6-postchange-full.log`.
+
+This bounded validation supports improved local measurement stability while
+retaining sensitivity to the demonstrated quadratic-work controls. It does
+not establish the cause or resolution of the original production-cost concern,
+nor guarantee that the list threshold is valid on every host.

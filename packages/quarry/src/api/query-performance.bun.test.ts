@@ -14,6 +14,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'bun:test';
+import { loadavg } from 'node:os';
 import { QuarryAPIImpl } from './quarry-api.js';
 import { createStorage, initializeSchema } from '@stoneforge/storage';
 import type { StorageBackend } from '@stoneforge/storage';
@@ -142,6 +143,115 @@ async function createTaskBatch(
     tasks.push(created as Task);
   }
   return tasks;
+}
+
+// Six independent samples per size: every position and directed size transition
+// occurs equally often. Never add samples in response to an assertion outcome.
+const SCALING_ORDERS = [
+  [0, 1, 2], [2, 1, 0], [1, 2, 0],
+  [0, 2, 1], [2, 0, 1], [1, 0, 2],
+];
+const CREATE_SIZES = [10, 50, 100];
+const LIST_SIZES = [50, 100, 150];
+const CREATE_BATCHES = 32;
+const LIST_QUERIES = 256;
+
+type ScalingSample = { durations: number[]; operations: number };
+type CreateBatch = (api: QuarryAPIImpl, size: number) => Promise<Task[]>;
+type ListTasks = (api: QuarryAPIImpl, size: number) => Promise<Task[]>;
+const listTasks: ListTasks = (api, size) => api.list<Task>({ type: 'task', limit: size });
+const wallClock = () => performance.now();
+
+async function withScalingDatabase<T>(run: (api: QuarryAPIImpl) => Promise<T>): Promise<T> {
+  const storage = createStorage({ path: ':memory:' });
+  try {
+    initializeSchema(storage);
+    return await run(new QuarryAPIImpl(storage));
+  } finally {
+    storage.close();
+  }
+}
+
+async function measureCreateSample(
+  size: number,
+  create: CreateBatch = createTaskBatch,
+  clock = wallClock,
+  batches = CREATE_BATCHES
+): Promise<ScalingSample> {
+  const durations: number[] = [];
+  for (let batch = 0; batch < batches; batch++) {
+    // Each batch grows only from 0 to size. Schema setup/teardown is not timed.
+    await withScalingDatabase(async (freshApi) => {
+      const start = clock();
+      const tasks = await create(freshApi, size);
+      durations.push(clock() - start);
+      expect(tasks.length).toBe(size);
+    });
+  }
+  return { durations, operations: batches * size };
+}
+
+async function measureListSample(
+  size: number,
+  list: ListTasks = listTasks,
+  clock = wallClock,
+  queries = LIST_QUERIES
+): Promise<ScalingSample> {
+  return withScalingDatabase(async (freshApi) => {
+    await createTaskBatch(freshApi, size);
+    // Prepare this database's query path; global warmup below uses other DBs.
+    expect((await list(freshApi, size)).length).toBe(size);
+    let count = 0;
+    const start = clock();
+    for (let query = 0; query < queries; query++) {
+      count += (await list(freshApi, size)).length;
+    }
+    const duration = clock() - start;
+    expect(count).toBe(size * queries);
+    return { durations: [duration], operations: queries };
+  });
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = sorted.length / 2;
+  return (sorted[Math.floor(middle)] + sorted[Math.ceil(middle) - 1]) / 2;
+}
+
+async function measureScaling(
+  name: string,
+  sizes: number[],
+  sample: (size: number) => Promise<ScalingSample>,
+  unit = 'ms'
+): Promise<number> {
+  // Fixed warmup, never calibrated from measured ratios or pass/fail.
+  const warmup = [];
+  for (const size of sizes) warmup.push(await sample(size));
+  const samples: ScalingSample[][] = sizes.map(() => []);
+  for (const order of SCALING_ORDERS) {
+    for (const index of order) samples[index].push(await sample(sizes[index]));
+  }
+  const totals = samples.map((group) => group.map(({ durations }) =>
+    durations.reduce((sum, duration) => sum + duration, 0)));
+  const medians = samples.map((group, index) => median(
+    group.map(({ operations }, i) => totals[index][i] / operations)
+  ));
+  const ratio = medians[medians.length - 1] / medians[0];
+  // Log every raw duration, including warmup and outliers, before asserting.
+  console.log('[scaling]', JSON.stringify({
+    name, unit, sizes, orders: SCALING_ORDERS, warmup, samples, totals, medians, ratio,
+    loadavg: loadavg(),
+  }));
+  return ratio;
+}
+
+function assertCreateScaling(ratio: number): void {
+  expect(ratio).toBeLessThan(4);
+}
+
+function assertListScaling(ratio: number): void {
+  // 150 / 50 = 3: the existing contract requires strictly sublinear total time.
+  expect(ratio).toBeLessThan(LIST_SIZES[2] / LIST_SIZES[0]);
 }
 
 // ============================================================================
@@ -571,67 +681,70 @@ describe('Query API Performance', () => {
 
   describe('Scaling Performance', () => {
     it('should maintain consistent per-item performance as dataset grows', async () => {
-      const sizes = [10, 50, 100];
-      const perItemTimes: number[] = [];
-
-      for (const size of sizes) {
-        // Fresh database for each size
-        if (backend.isOpen) {
-          backend.close();
-        }
-        backend = createStorage({ path: ':memory:' });
-        initializeSchema(backend);
-        api = new QuarryAPIImpl(backend);
-
-        // Create batch
-        const { duration: createDuration } = await measureTime(async () => {
-          await createTaskBatch(api, size);
-        });
-        perItemTimes.push(createDuration / size);
-      }
-
-      // Per-item time should not grow significantly (less than 4x from smallest to largest)
-      // Note: This threshold is generous to account for test environment variability
-      const ratio = perItemTimes[perItemTimes.length - 1] / perItemTimes[0];
-      expect(ratio).toBeLessThan(4);
-    });
+      assertCreateScaling(await measureScaling('create', CREATE_SIZES, measureCreateSample));
+    }, 30_000);
 
     it('should maintain list performance as dataset grows', async () => {
-      const sizes = [50, 100, 150];
-      const listTimes: number[] = [];
-      const RUNS_PER_SIZE = 5;
+      assertListScaling(await measureScaling('list', LIST_SIZES, measureListSample));
+    }, 30_000);
 
-      for (const size of sizes) {
-        // Fresh database for each size
-        if (backend.isOpen) {
-          backend.close();
+    it('should reject quadratic create work with the same sampling and assertion', async () => {
+      // Deterministic operation-count clock over real API work, not a timed busy
+      // loop. The injected regression scans all existing tasks before each insert.
+      // One batch suffices for this clock; it has no timer/scheduler resolution.
+      let rows = 0;
+      const clock = () => rows;
+      const countedCreate = (scan: boolean): CreateBatch => async (freshApi, size) => {
+        const tasks: Task[] = [];
+        for (let i = 0; i < size; i++) {
+          const task = await createTestTask();
+          if (scan) {
+            const existing = await freshApi.list<Task>({ type: 'task', limit: size });
+            rows += existing.length;
+            if (existing.some((candidate) => candidate.id === task.id)) {
+              throw new Error('Duplicate task');
+            }
+          }
+          tasks.push(await freshApi.create(toCreateInput(task)) as Task);
+          rows++;
         }
-        backend = createStorage({ path: ':memory:' });
-        initializeSchema(backend);
-        api = new QuarryAPIImpl(backend);
+        return tasks;
+      };
+      const linear = await measureScaling('create-linear-control', CREATE_SIZES,
+        (size) => measureCreateSample(size, countedCreate(false), clock, 1), 'row-visits');
+      const quadratic = await measureScaling('create-quadratic-control', CREATE_SIZES,
+        (size) => measureCreateSample(size, countedCreate(true), clock, 1), 'row-visits');
+      assertCreateScaling(linear);
+      expect(() => assertCreateScaling(quadratic)).toThrow();
+    }, 30_000);
 
-        await createTaskBatch(api, size);
-
-        // Warmup run to avoid cold-start variance
-        await api.list<Task>({ type: 'task', limit: size });
-
-        // Take multiple measurements and use the median to reduce noise
-        const runs: number[] = [];
-        for (let r = 0; r < RUNS_PER_SIZE; r++) {
-          const { duration } = await measureTime(() =>
-            api.list<Task>({ type: 'task', limit: size })
-          );
-          runs.push(duration);
+    it('should reject quadratic list work with the same sampling and assertion', async () => {
+      // Simulate an N+1 enrichment regression: re-list the entire dataset for
+      // every returned task. Count actual rows materialized by the real API.
+      let rows = 0;
+      const clock = () => rows;
+      const countedList = (rescan: boolean): ListTasks => async (freshApi, size) => {
+        const tasks = await listTasks(freshApi, size);
+        // One request plus all materialized rows: linear work with fixed overhead.
+        rows += 1 + tasks.length;
+        if (rescan) {
+          for (const task of tasks) {
+            const candidates = await listTasks(freshApi, size);
+            rows += 1 + candidates.length;
+            if (!candidates.some((candidate) => candidate.id === task.id)) {
+              throw new Error('Missing task');
+            }
+          }
         }
-        runs.sort((a, b) => a - b);
-        listTimes.push(runs[Math.floor(runs.length / 2)]);
-      }
-
-      // List time should grow sub-linearly (less than 2x for 2x data)
-      const ratio = listTimes[listTimes.length - 1] / listTimes[0];
-      const sizeRatio = sizes[sizes.length - 1] / sizes[0];
-      expect(ratio).toBeLessThan(sizeRatio);
-    });
+        return tasks;
+      };
+      const linear = await measureScaling('list-linear-control', LIST_SIZES,
+        (size) => measureListSample(size, countedList(false), clock, 1), 'row-visits');
+      const quadratic = await measureScaling('list-quadratic-control', LIST_SIZES,
+        (size) => measureListSample(size, countedList(true), clock, 1), 'row-visits');
+      assertListScaling(linear);
+      expect(() => assertListScaling(quadratic)).toThrow();
+    }, 30_000);
 
     it('should maintain ready query performance as dependencies grow', async () => {
       const tasks = await createTaskBatch(api, 100);
