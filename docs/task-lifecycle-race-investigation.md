@@ -976,3 +976,58 @@ Local master ancestry and diff checks pass. Only report text changed after this
 gate. Original failures and pre-sync result are retained. Independent steward
 review of the final commit and approved CLI local merge remain required; this
 worker record is not a merge verdict or installed application update.
+
+## Non-merge steward automatic claim — el-hkutb, 2026-09-26
+
+Baseline local master `3c22b53bf6b85175dc8f4b69372096bc9b12fa9b` already contains
+el-1q2vv's independently delivered automatic claim/cleanup contract and the
+Spawner retry fix. Assigned worktree started at that exact target; no sync or
+branch switch was necessary. Earlier evidence and neighboring fixes are retained.
+
+`pollWorkflowTasks` now passes the selected non-merge steward candidate's original
+`updatedAt` through DispatchService's automatic claim option. Assignment keeps its
+transactional ready/unassigned predicates, source parent/dependency eligibility and
+schedule checks. A lost claim does not increment processed or emit task:dispatched.
+Focus tags (`docs`, `steward-docs`, generic `workflow`), priority ordering, disabled
+and busy exclusions remain unchanged. Manual dispatch still permits intentional
+reassignment. The merge-steward REVIEW branch and reconciliation are unchanged.
+
+On notification failure, this caller conditionally releases only the assignment
+receipt carried by DispatchAssignmentError. It never refreshes ownership or uses
+administrative unassign. Pre-assignment preparation failure has no receipt and
+cannot release a successor. This path does not prepare a process or worktree;
+it must not call session stop or directory cleanup on existing resources.
+
+The 25 added Bun regressions extend `dispatch-claim.bun.test.ts` using the actual
+daemon poll, DispatchService, TaskAssignmentService and two Quarry connections to
+one temporary on-disk SQLite database. Deterministic hooks run after selection and
+immediately before the real transactional update. Close, defer, Human/successor,
+parent DRAFT/blocked and future schedule reject while preserving complete task and
+task-event snapshots, messages, existing agent/session state and a successor
+directory. Two polls selecting the same snapshot for different stewards produce
+one assignment notification and one success. Controls cover all three tags,
+priority, due/in-progress tasks, focus mismatch, disabled/busy agents, manual
+Human reassignment, notification failure with/without successor, and channel
+preparation failure. No sleeps, live daemon, provider or live task reproduction.
+SQLite writes use QuarryAPI; direct SQL only reads event/message evidence.
+
+Validation:
+- `pnpm install --frozen-lockfile`: exit0, unchanged lock; `/tmp/el-hkutb-install.log`.
+- Before the production edit, new desired-safety tests: **16 pass / 9 fail**,
+  133 assertions (`/tmp/el-hkutb-baseline.log`). Seven candidate races, parent DRAFT
+  at the transaction boundary and notification cleanup without a successor fail.
+  Other transaction races and the original same-steward two-poll control already
+  pass via existing assignment CAS; they are not newly attributed defects.
+  The final two-poll control uses distinct steward identities.
+- Initial corrected full claim suite: **53/53**, 320 assertions, 8.94s
+  (`/tmp/el-hkutb-focused.log`).
+- `bun test packages/smithy/src/services/dispatch-claim.bun.test.ts packages/smithy/src/services/dispatch-service.bun.test.ts packages/smithy/src/services/dispatch-daemon.bun.test.ts packages/smithy/src/services/task-assignment-service.bun.test.ts`:
+  **246 pass / 2 existing skips / 0 fail**, 893 assertions, 24.22s
+  (`/tmp/el-hkutb-focused-final.log`). Final distinct-steward control included.
+
+Required gate results follow below. Separate root build/lint/test, Quarry Node,
+browser/packaged GUI, cross-platform and live-provider checks are not claimed.
+The required gate includes its declared typecheck/build/runtime checks. Installed
+Desktop, live agents/sessions/daemon and completed maintenance remain unchanged.
+Independent steward review of the exact final commit and approved CLI local
+merge remain required; this worker report is not merge approval.

@@ -67,7 +67,7 @@ async function services(connection = api) {
     {} as StewardScheduler, createInboxService(connection === api ? db : db2), { projectRoot: root });
   // Invoke the actual poll action at its deterministic boundary, never start a daemon.
   const claim = (agent = worker) => (daemon as unknown as { assignTaskToWorker(w: AgentEntity): Promise<boolean> }).assignTaskToWorker(agent);
-  return { registry, assignment, dispatch, sessions, worktrees, claim };
+  return { registry, assignment, dispatch, sessions, worktrees, claim, daemon };
 }
 const messages = () => db.query("SELECT * FROM elements WHERE type = 'message' ORDER BY id");
 
@@ -378,4 +378,176 @@ test('concurrent successful stops await one termination and one persisted histor
   const meta = (await s.registry.getAgent(agentId))!.metadata.agent as { sessionStatus: string; sessionHistory: { id: string }[] };
   expect(meta.sessionStatus).toBe('idle');
   expect(meta.sessionHistory.filter(entry => entry.id === own.session.id)).toHaveLength(1);
+});
+
+
+// Non-merge stewards only enqueue an assignment notification here. Session/worktree
+// preparation is not part of this poll path; existing resources must be untouched.
+async function stewardServices(connection = api) {
+  const s = await services(connection);
+  const steward = await s.registry.registerSteward({ name: 'docs-steward', stewardFocus: 'docs', createdBy: creator });
+  const successes: string[] = [];
+  s.daemon.on('task:dispatched', id => successes.push(id));
+  await connection.update<Task>(task.id, { tags: ['docs'] });
+  return { ...s, steward, successes };
+}
+
+for (const boundary of ['candidate', 'transaction'] as const) {
+  for (const competitor of ['closed', 'deferred', 'human', 'successor', 'draft', 'blocked-parent', 'future']) {
+    test(`non-merge steward rejects ${competitor} at ${boundary}; preserves task/events/resources`, async () => {
+      const s = await stewardServices();
+      const existingSession = await s.sessions.startSession(second.id as unknown as EntityId, { workingDirectory: root });
+      const directory = path.join(root, 'successor-worktree'); mkdirSync(directory);
+      writeFileSync(path.join(directory, 'keep'), 'successor');
+      const agentSnapshot = await api.get(second.id);
+      let plan: Plan | undefined;
+      if (competitor === 'draft' || competitor === 'blocked-parent') {
+        plan = await api.create<Plan>(await createPlan({ title: 'Parent', createdBy: creator, status: PlanStatus.ACTIVE }) as never);
+        await api.addDependency({ blockedId: task.id, blockerId: plan.id, type: 'parent-child', createdBy: creator });
+      }
+      let winner: Task | null = null; let events: unknown;
+      const beforeMessages = messages();
+      const compete = async () => {
+        if (competitor === 'draft') await other.update(plan!.id, { status: PlanStatus.DRAFT } as never);
+        else if (competitor === 'blocked-parent') {
+          const blocker = await other.create<Task>(await createTask({ title: 'Blocker', createdBy: creator }) as never);
+          await other.addDependency({ blockedId: plan!.id, blockerId: blocker.id, type: 'blocks', createdBy: creator });
+        } else if (competitor === 'successor') await createTaskAssignmentService(other).assignToAgent(task.id, second.id as unknown as EntityId,
+          { sessionId: existingSession.session.id, worktree: directory });
+        else await other.update<Task>(task.id, competitor === 'human' ? { assignee: 'human:fixture' as EntityId }
+          : competitor === 'future' ? { scheduledFor: '2099-01-01T00:00:00.000Z' as Task['scheduledFor'] }
+          : { status: competitor as Task['status'] });
+        winner = await other.get<Task>(task.id);
+        events = db.query('SELECT * FROM events WHERE element_id = ? ORDER BY id', [task.id]);
+      };
+      if (boundary === 'candidate') {
+        const select = s.assignment.getUnassignedTasks.bind(s.assignment);
+        s.assignment.getUnassignedTasks = async options => { const candidates = await select(options); await compete(); return candidates; };
+      } else {
+        const update = api.update.bind(api);
+        let injected = false;
+        api.update = async (...args) => {
+          if (args[0] === task.id && !injected) { injected = true; await compete(); }
+          return update(...args);
+        };
+      }
+      const result = await s.daemon.pollWorkflowTasks();
+      expect(winner).not.toBeNull();
+      expect(result.processed).toBe(0);
+      expect(s.successes).toEqual([]);
+      expect(await api.get(task.id)).toEqual(winner);
+      expect(db.query('SELECT * FROM events WHERE element_id = ? ORDER BY id', [task.id])).toEqual(events);
+      expect(messages()).toEqual(beforeMessages);
+      expect(await api.get(second.id)).toEqual(agentSnapshot);
+      expect(handles.get(existingSession.session.id)!.alive).toBe(true);
+      expect(handles.size).toBe(1);
+      expect(existsSync(path.join(directory, 'keep'))).toBe(true);
+    });
+  }
+}
+
+test('two non-merge steward polls on separate SQLite connections produce one winner', async () => {
+  const a = await stewardServices(), b = await services(other);
+  const rival = await b.registry.registerSteward({ name: 'rival-docs-steward', stewardFocus: 'docs', createdBy: creator });
+  // Each poll sees one available steward, but both select the same task snapshot.
+  a.registry.getStewards = async () => [a.steward];
+  b.registry.getStewards = async () => [rival];
+  let release!: () => void;
+  const barrier = new Promise<void>(resolve => { release = resolve; });
+  let arrivals = 0;
+  for (const s of [a, b]) {
+    const select = s.assignment.getUnassignedTasks.bind(s.assignment);
+    s.assignment.getUnassignedTasks = async options => {
+      const candidates = await select(options);
+      if (++arrivals === 2) release();
+      await barrier;
+      return candidates;
+    };
+  }
+  const successes: string[] = [];
+  b.daemon.on('task:dispatched', id => successes.push(id));
+  const beforeMessages = messages().length;
+  const results = await Promise.all([a.daemon.pollWorkflowTasks(), b.daemon.pollWorkflowTasks()]);
+  expect(results.reduce((sum, result) => sum + result.processed, 0)).toBe(1);
+  expect(a.successes.length + successes.length).toBe(1);
+  expect(messages().length - beforeMessages).toBe(1);
+  expect([a.steward.id, rival.id]).toContain((await api.get<Task>(task.id))!.assignee!);
+  expect(handles.size).toBe(0);
+});
+
+for (const tag of ['docs', 'steward-docs', 'workflow']) {
+  test(`non-merge steward matches ${tag}, selects priority and accepts due/in-progress tasks`, async () => {
+    const s = await stewardServices();
+    await api.update<Task>(task.id, { tags: [tag], priority: 1, status: TaskStatus.IN_PROGRESS,
+      scheduledFor: '2020-01-01T00:00:00.000Z' as Task['scheduledFor'] });
+    const low = await api.create<Task>(await createTask({ title: 'Lower priority', tags: [tag], priority: 4, createdBy: creator }) as never);
+    expect((await s.daemon.pollWorkflowTasks()).processed).toBe(1);
+    expect((await api.get<Task>(task.id))!.assignee).toBe(s.steward.id as unknown as EntityId);
+    expect((await api.get<Task>(low.id))!.assignee).toBeUndefined();
+    expect(s.successes).toEqual([task.id]);
+    expect(messages()).toHaveLength(1);
+    expect(handles.size).toBe(0);
+  });
+}
+
+for (const unavailable of ['focus', 'disabled', 'busy']) {
+  test(`non-merge steward skips ${unavailable}`, async () => {
+    const s = await stewardServices();
+    if (unavailable === 'focus') await api.update<Task>(task.id, { tags: ['custom'] });
+    if (unavailable === 'disabled') await api.update(s.steward.id, { metadata: {
+      ...s.steward.metadata, agent: { ...s.steward.metadata.agent, disabled: true },
+    } });
+    if (unavailable === 'busy') await s.sessions.startSession(s.steward.id as unknown as EntityId, { workingDirectory: root });
+    const snapshot = await api.get(task.id);
+    expect((await s.daemon.pollWorkflowTasks()).processed).toBe(0);
+    expect(await api.get(task.id)).toEqual(snapshot);
+    expect(s.successes).toEqual([]); expect(messages()).toEqual([]);
+  });
+}
+
+for (const successor of [false, true]) {
+  test(`non-merge steward notification failure uses its receipt (successor=${successor})`, async () => {
+    const s = await stewardServices();
+    let winner: Task | undefined; let events: unknown;
+    const create = api.create.bind(api);
+    api.create = async (...args) => {
+      if (args[0].type !== 'message') return create(...args);
+      if (successor) {
+        winner = await createTaskAssignmentService(other).assignToAgent(task.id, second.id as unknown as EntityId, { sessionId: 'successor' });
+        events = db.query('SELECT * FROM events WHERE element_id = ? ORDER BY id', [task.id]);
+      }
+      throw new Error('fixture notification failure');
+    };
+    const result = await s.daemon.pollWorkflowTasks();
+    expect(result.processed).toBe(0); expect(result.errors).toBe(1);
+    expect(s.successes).toEqual([]); expect(messages()).toEqual([]);
+    if (successor) {
+      expect(await api.get(task.id)).toEqual(winner!);
+      expect(db.query('SELECT * FROM events WHERE element_id = ? ORDER BY id', [task.id])).toEqual(events);
+    } else expect((await api.get<Task>(task.id))!.assignee).toBeUndefined();
+    expect(handles.size).toBe(0);
+  });
+}
+
+test('non-merge steward channel preparation failure cannot release a successor', async () => {
+  const s = await stewardServices(); let winner: Task | undefined; let events: unknown;
+  s.registry.ensureAgentChannel = async () => {
+    winner = await createTaskAssignmentService(other).assignToAgent(task.id, second.id as unknown as EntityId, { sessionId: 'successor' });
+    events = db.query('SELECT * FROM events WHERE element_id = ? ORDER BY id', [task.id]);
+    throw new Error('fixture preparation failure');
+  };
+  const result = await s.daemon.pollWorkflowTasks();
+  expect(result.processed).toBe(0); expect(result.errors).toBe(1);
+  expect(await api.get(task.id)).toEqual(winner!);
+  expect(db.query('SELECT * FROM events WHERE element_id = ? ORDER BY id', [task.id])).toEqual(events);
+  expect(messages()).toEqual([]); expect(s.successes).toEqual([]); expect(handles.size).toBe(0);
+});
+
+test('non-merge steward explicit dispatch retains intentional Human reassignment', async () => {
+  const s = await stewardServices();
+  await api.update<Task>(task.id, { assignee: 'human:fixture' as EntityId });
+  const result = await s.dispatch.dispatch(task.id, s.steward.id as unknown as EntityId);
+  expect(result.task.assignee).toBe(s.steward.id as unknown as EntityId);
+  expect(result.isNewAssignment).toBe(false);
+  expect(messages()).toHaveLength(1);
 });
