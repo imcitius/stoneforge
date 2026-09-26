@@ -849,8 +849,8 @@ focused Vitest15/15 exit0; SessionManager Bun85/85,157 assertions exit0.
 Logs: `/tmp/el-1c5so-{install,typecheck,focused,session-manager}.log`.
 Required full gate result is recorded below when finished. No standalone root
 build/lint/test, browser/packaged GUI, cross-platform or real-provider coverage
-is claimed. Installed Desktop, agent processes, daemon, live project data and
-closed maintenance are not fixtures and were not modified. Exact-final-commit
+is claimed. Installed Desktop, agent processes, daemon and closed maintenance were not
+used as fixtures or modified. Shared task/docs updates use sf. Exact-final-commit
 independent steward review and approved CLI local merge remain required.
 
 ### el-1q2vv safe sync after delivered completion fix
@@ -946,3 +946,33 @@ Log `/tmp/el-1q2vv-retry-gate-final.log`; exact commands/exits and per-step logs
 All final production/test edits were present; only this result documentation was
 added afterward. This supersedes neither the historical rejection nor omitted
 live-provider coverage. Independent exact-commit review remains required.
+
+### el-1c5so delivered-contract compatibility and final verification
+
+The first full `pnpm check:merge` on integrated `c4a8eb2` passed **188/188,
+exit0,238.23s**; results at
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-HEkiPi/results.json`.
+During verification el-1q2vv was independently accepted and delivered as local
+master `90b3ad8`. Approved CLI sync produced `5ee8034`; only the additive report
+conflict needed resolution, retaining both reports. Statements above referring
+to pending SessionManager changes are historical; the final branch includes the
+delivered contract, with no worker changes to SessionManager/dispatch/Quarry.
+
+Source compatibility review: stopSession shares its own pending operation;
+a Spawner rejection leaves terminationComplete=false and does not enter
+persistence. Retry calls terminate with the same internal session ID. After
+successful Spawner exit, a persistence-only retry skips process termination.
+Existing SessionManager in-memory status-before-exit semantics remain outside
+this lower-level change. Integrated `bun test
+packages/smithy/src/services/dispatch-claim.bun.test.ts
+packages/smithy/src/runtime/session-manager.bun.test.ts`: **113/113,279 assertions,
+exit0,10.50s**, log `/tmp/el-1c5so-integrated-runtime.log`.
+
+Final integrated `pnpm check:merge`: **189/189,exit0,265.29s** on source `5ee8034`,
+including Spawner Vitest15/15 and all declared runtime/Node checks. Full log
+`/tmp/el-1c5so-gate-integrated.log`; exact commands/results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-YYVnWC/results.json`.
+Local master ancestry and diff checks pass. Only report text changed after this
+gate. Original failures and pre-sync result are retained. Independent steward
+review of the final commit and approved CLI local merge remain required; this
+worker record is not a merge verdict or installed application update.
