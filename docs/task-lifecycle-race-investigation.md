@@ -1031,3 +1031,14 @@ The required gate includes its declared typecheck/build/runtime checks. Installe
 Desktop, live agents/sessions/daemon and completed maintenance remain unchanged.
 Independent steward review of the exact final commit and approved CLI local
 merge remain required; this worker report is not merge approval.
+
+First required gate on source `e3511ad`: **188/189, exit1, 450.35s**;
+`/tmp/el-hkutb-gate.log`, exact results
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/results.json`.
+Only unchanged Quarry list scaling failed: ratio3.559304857848077 against `<3`.
+The test/implementation were not edited by this task; the previously documented
+failure class remains unresolved, without a causal attribution to host load.
+All dispatch, lifecycle, typecheck, Node and Desktop source checks passed.
+Director notified. This failed gate is retained, not described as green acceptance.
+During the run local master advanced to delivered handoff fix `beac945`; the
+approved CLI's manifest and all299 hashes were verified before integrating it.
