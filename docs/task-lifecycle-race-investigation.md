@@ -638,9 +638,10 @@ and assigned a fresh internal session, the next claim archives the old operation
 in `completionHistory`. Both operation records and existing session entries survive
 assignment/reassignment, reopen and reset (append still retains only the last 50); pending claims cannot be erased by
 these normal paths. Direct arbitrary metadata replacement is outside this narrow
-contract, as are unresolved stale start/dispatch writers listed above and the legacy SDK
-OrchestratorAPI.assignTaskToAgent metadata snapshot write. These can still replace
-metadata outside this protocol; they require separate fixes, reported to Director.
+contract, as are the remaining stale start and arbitrary legacy metadata writers.
+The automatic dispatch claim was subsequently fixed by el-1q2vv; the separate
+OrchestratorAPI.assignTaskToAgent snapshot write is corrected by el-2hrsm below.
+These narrow fixes do not make all lifecycle metadata writers CAS-safe.
 
 Each phase/final write has SQL CAS on the exact preceding task version. Each
 continuation checks current version, ownership, claim and session before an effect.
@@ -883,3 +884,82 @@ Log `/tmp/el-1q2vv-retry-gate-final.log`; exact commands/exits and per-step logs
 All final production/test edits were present; only this result documentation was
 added afterward. This supersedes neither the historical rejection nor omitted
 live-provider coverage. Independent exact-commit review remains required.
+
+
+## Explicit OrchestratorAPI assignment — el-2hrsm, 2026-09-26
+
+Base local master `a98c67e` includes delivered completion el-20qt0 and automatic
+claim el-1q2vv. This fixes the separate `OrchestratorAPI.assignTaskToAgent` path;
+it does not redirect explicit assignment through automatic ready/unassigned
+eligibility or through the differently configured TaskAssignmentService.
+
+Previously assignee/status committed first; a second metadata write reused the
+original snapshot. A concurrent close/defer/Human/worker owner or completion claim
+could be overwritten; failure of the metadata transaction left partial assignment.
+Now one Quarry update combines assignee, optional IN_PROGRESS and merged metadata,
+with expectedUpdatedAt from the original task read. Existing transactional SQL CAS
+rejects both R1 (after API snapshot read) and R2 (after Quarry update read) without
+retry. No second write remains. W1 observers see coherent ownership, status and
+metadata, and a later winner survives. Rollback after real SQL mutations preserves
+the original task and event rows.
+
+Compatibility is deliberate: an existing owner and future schedule do not prevent
+explicit reassignment. Custom/default branch and worktree, omitted/provided
+sessionId, optional markAsStarted, and unconditional startedAt retain this API's
+previous semantics. No new eligibility/status policy or session-history append is
+introduced. Outer metadata, orchestrator extensions, completionOperation,
+completionHistory, sessionHistory and handoff history are retained. A competing
+claim causes conflict instead of stale overwrite; an already present unknown claim
+survives assignment. Real lost-MR-response -> CLI reopen -> API assignment coverage
+supplies a valid new session and confirms completion still requires reconciliation;
+the transferred owner cannot recover the previous operation. No claim reset, TTL
+or recovery escape hatch was added.
+
+### Caller boundaries (verified, not expanded into lifecycle cleanup)
+
+- Real source CLI `agent start --taskId` spawns before assignment. Its subprocess
+  test uses the actual parser/handler/API/SQLite and an inert Spawner factory.
+  CAS rejection returns failure and preserves the competitor task/events, but the
+  already spawned process is not terminated. The fixture records one spawn and
+  zero termination calls. This existing resource lifecycle remains out of scope.
+- Both SDK and app HTTP session-start routes call the real API. Rejection keeps
+  task/events and avoids session start, prompt save and notification; their current
+  error mapping is HTTP 500, not a newly introduced 409 mapping. Persistent-worker
+  worktree preparation precedes assignment: an inert manager proves one preparation
+  call remains on rejection. No deletion/compensating cleanup is claimed.
+- Successful HTTP assignment precedes startSession. A simulated start failure
+  leaves the coherent assignment committed and returns 500; there is no caller-wide
+  transaction. Earlier route prompt reads and preparation are outside the API's
+  original-snapshot CAS. A change after assignment may precede spawn; the assignment
+  result is a receipt of that commit, not a lock on future lifecycle decisions.
+- SessionManager/Spawner/provider/Git process behavior is not tested by these mocks.
+  Existing completion/dispatch suites are run for compatibility. Generic metadata
+  replacement and unrelated start writers are not fixed here.
+
+### Evidence and checks
+
+All new data lives in temporary on-disk SQLite with independent connections;
+fixture Git repositories have only local empty commits and no remote. No running
+server/listening port, live task/agent/session, provider or installed app is used.
+CLI module mocks are restricted to a child process preload under tests/fixtures,
+so they cannot contaminate other Bun suites or ship in the production src build.
+
+Initial desired-safety baseline on original production code: **15 fail / 9 pass**
+(`/tmp/el-2hrsm-baseline-corrected.log`). Failures are ten R1/R2 competitors,
+W1 coherence, transactional rollback, real CLI conflict and both HTTP conflicts.
+The first baseline invocation used a wrong CLI flag; that fixture error was fixed
+before recording this baseline. Positive existing reassignment/unknown controls
+passed even before the fix; they are compatibility evidence, not newly fixed bugs.
+The corrected API passed those 24 tests. Final coverage adds all five W1 winners,
+nonempty completion audit history and persistent-worktree caller boundaries.
+
+Frozen pnpm install passed (missing dist CLI-bin warnings before build; lockfile
+unchanged). Initial package build caught a generic type mismatch in the new preload
+fixture; it was typed correctly and moved out of production src. Final
+`pnpm --filter @stoneforge/smithy... build` passed. Focused API/integration/assignment/
+completion/lifecycle run passed234/234 before two added persistent-worktree cases.
+Final required gate, logs and exact source commit are recorded below.
+Separate full root build/lint/test, browser/GUI/packaged app, cross-platform,
+browser SQLite, live provider and universal Node caller coverage are not claimed.
+Independent exact-final-commit steward review and approved CLI local delivery
+remain required. No installed application or maintenance changes are authorized.
