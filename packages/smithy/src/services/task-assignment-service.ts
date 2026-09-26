@@ -87,8 +87,10 @@ export interface CompleteTaskOptions {
  * Options for handing off a task
  */
 export interface HandoffTaskOptions {
-  /** Session ID of the agent handing off */
+  /** Current internal session ID (or an unambiguous legacy provider session ID). */
   sessionId: string;
+  /** Caller identity, when available (CLI uses SF_ENTITY_ID). */
+  agentId?: EntityId;
   /** Handoff message explaining why and providing context */
   message?: string;
   /** Override branch (defaults to current task branch) */
@@ -643,9 +645,36 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     const currentMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
     const { sessionId, message, branch, worktree } = options;
 
-    // Close the current session's history entry using the sessionId from orchestrator metadata
-    // (the options.sessionId is the provider session ID, but we match on internal sessionId)
-    const currentSessionId = currentMeta?.sessionId;
+    // A handoff releases current work; it is never authority to reopen a task.
+    // History is authoritative when present, including for resumed sessions whose
+    // provider ID can be shared with an older process. Never search old entries
+    // for a matching caller or infer the caller from the task's current session.
+    const history = currentMeta?.sessionHistory;
+    const currentSession = history?.[history.length - 1];
+    const matchesSession = currentSession
+      ? currentSession.endedAt === undefined && currentSession.agentId === task.assignee &&
+        (currentMeta?.sessionId === currentSession.sessionId || currentMeta?.sessionId === currentSession.providerSessionId) && (
+        currentSession.sessionId === sessionId || (
+          currentSession.providerSessionId === sessionId &&
+          history!.filter(entry => entry.providerSessionId === sessionId).length === 1
+        )
+      )
+      : currentMeta?.sessionId === sessionId;
+    if (
+      (task.status !== TaskStatus.OPEN && task.status !== TaskStatus.IN_PROGRESS) ||
+      !task.assignee || task.assignee !== currentMeta?.assignedAgent ||
+      (options.agentId !== undefined && options.agentId !== task.assignee) ||
+      !sessionId?.trim() || !matchesSession
+    ) {
+      throw new ConflictError(
+        `Cannot hand off task ${taskId}: requires an active task owned by the current session. ` +
+        'Refresh task ownership; use explicit task reopen for closed work.',
+        ConflictErrorCode.CONCURRENT_MODIFICATION,
+        { taskId, status: task.status, sessionId }
+      );
+    }
+
+    const currentSessionId = currentSession?.sessionId ?? currentMeta?.sessionId;
     let metadataWithClosedSession = task.metadata as Record<string, unknown> | undefined;
     if (currentSessionId) {
       metadataWithClosedSession = closeTaskSessionHistory(
@@ -669,21 +698,6 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
       handoffAt: createTimestamp(),
     };
     const handoffHistory = [...(existingHistory || []), handoffEntry];
-
-    // Append handoff note to the task's description Document
-    if (task.descriptionRef && message) {
-      try {
-        const doc = await this.api.get<Document>(asElementId(task.descriptionRef));
-        if (doc) {
-          const handoffLine = `\n\n[AGENT HANDOFF NOTE]: ${message}`;
-          await this.api.update<Document>(asElementId(task.descriptionRef), {
-            content: doc.content + handoffLine,
-          } as Partial<Document>);
-        }
-      } catch {
-        // Non-fatal: handoff note is also preserved in handoffHistory
-      }
-    }
 
     // Update orchestrator metadata with handoff info
     const metaUpdates: Record<string, unknown> = {
@@ -712,11 +726,29 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     // Update task: clear assignee, reset status to OPEN, update metadata
     // Note: We store the handoff note in metadata since tasks use descriptionRef
     // Setting status to OPEN ensures dispatch daemon can pick up the task
-    return this.api.update<Task>(taskId, {
+    const handedOff = await this.api.update<Task>(taskId, {
       assignee: undefined,
       status: TaskStatus.OPEN,
       metadata: newMeta,
-    });
+    }, { expectedUpdatedAt: task.updatedAt, actor: task.assignee });
+
+    // Append the optional description note only after the task CAS succeeds.
+    // The authoritative handoff history is committed with the task.
+    if (task.descriptionRef && message) {
+      try {
+        const doc = await this.api.get<Document>(asElementId(task.descriptionRef));
+        if (doc) {
+          const handoffLine = `\n\n[AGENT HANDOFF NOTE]: ${message}`;
+          await this.api.update<Document>(asElementId(task.descriptionRef), {
+            content: doc.content + handoffLine,
+          } as Partial<Document>, { expectedUpdatedAt: doc.updatedAt });
+        }
+      } catch {
+        // Non-fatal: handoff note is also preserved in handoffHistory
+      }
+    }
+
+    return handedOff;
   }
 
   async updateSessionId(taskId: ElementId, sessionId: string): Promise<Task> {

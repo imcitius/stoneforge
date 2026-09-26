@@ -317,7 +317,20 @@ Refresh pool status from active sessions. Useful if pool counts drift.
 
 #### `sf task handoff`
 
-Hand off a task to another agent. The task returns to the pool with context notes, and the branch/worktree are preserved for the next worker.
+Hand off an active task owned by the calling session. The task returns to the pool with context notes, and the branch/worktree are preserved for the next worker.
+
+The command requires `STONEFORGE_SESSION_ID` (set by the spawner) or an explicit
+`--sessionId` from the caller's own session. It never generates a placeholder or
+looks up a replacement identity from the task. When `SF_ENTITY_ID` is present,
+it must also match the current owner. Closed, deferred, review, backlog,
+tombstoned, reassigned, and stale-session handoffs fail without changing the task
+or its description. A concurrent task update also rejects the handoff.
+Use `sf task reopen` as a separate explicit action for closed tasks.
+
+Prefer the internal session ID. A legacy provider ID is accepted only when it
+identifies the current session unambiguously; resumed sessions can share a provider
+ID and must use their distinct internal IDs. Older tasks without session history
+require an exact match with their stored session ID and consistent ownership.
 
 ```bash
 sf task handoff <task-id> [options]
@@ -328,7 +341,7 @@ sf task handoff <task-id> [options]
 | `-m, --message <text>` | Handoff message with context for the next worker |
 | `-b, --branch <name>` | Override branch to preserve |
 | `-w, --worktree <path>` | Override worktree path to preserve |
-| `-s, --sessionId <id>` | Session ID (defaults to current session) |
+| `-s, --sessionId <id>` | Current caller session ID (defaults to `STONEFORGE_SESSION_ID`) |
 
 #### `sf task complete`
 

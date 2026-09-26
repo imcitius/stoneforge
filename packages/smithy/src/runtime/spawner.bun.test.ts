@@ -1575,3 +1575,27 @@ describe('rate_limited event carries correct executablePath', () => {
     expect(rateLimitEvents[0]!.executablePath).toBe('claude');
   });
 });
+
+
+for (const mode of ['headless', 'interactive'] as const) {
+  test(`${mode} provider receives the new internal session identity, overriding inherited values`, async () => {
+    let received: Record<string, string> | undefined;
+    let internalId: string | undefined;
+    const provider = createMockProvider(createImmediateExitHeadlessSession);
+    const spawner = new SpawnerServiceImpl({ provider, environmentVariables: { STONEFORGE_SESSION_ID: 'parent-session' } });
+    const capture = async (options: HeadlessSpawnOptions | InteractiveSpawnOptions): Promise<never> => {
+      received = options.environmentVariables;
+      internalId = spawner.listActiveSessions()[0].id;
+      throw new Error('Isolated provider boundary');
+    };
+    if (mode === 'headless') provider.headless.spawn = capture;
+    else provider.interactive.spawn = capture;
+    await expect(spawner.spawn(testAgentId, 'worker', {
+      mode, environmentVariables: { STONEFORGE_SESSION_ID: 'stale-session', SF_ENTITY_ID: 'wrong-agent', CUSTOM: 'preserved' },
+    })).rejects.toThrow('Isolated provider boundary');
+    expect(received?.STONEFORGE_SESSION_ID).toBe(internalId);
+    expect(received?.STONEFORGE_SESSION_ID).not.toBe('stale-session');
+    expect(received?.SF_ENTITY_ID).toBe(testAgentId);
+    expect(received?.CUSTOM).toBe('preserved');
+  });
+}
