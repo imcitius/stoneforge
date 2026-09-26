@@ -202,6 +202,73 @@ relevant tests/required gate on the final revision before approved local deliver
 Worker does not self-approve or merge. Separate root build/lint/test, browser,
 packaged GUI, live providers, Quarry Node and cross-platform checks are not run.
 
+## Atomic assignment follow-up — el-3oeut, 2026-09-26
+
+The research matrix and review above are historical evidence from el-191a6, not a
+claim that every row remains unfixed. This follow-up changes only the assignment
+R1/R2/W1/failure group. Base is delivered local master
+`072b5305b2b67c90d951318f1942457810c68068`, read after approved el-ptim CLI sync
+(299 artifact hashes verified). Storage and other lifecycle implementations are
+unchanged.
+
+`assignToAgent` now passes assignee, optional IN_PROGRESS status and orchestrator
+metadata in one Quarry update with `expectedUpdatedAt` from the initial service
+snapshot. Conflicts propagate unchanged; there is no retry with a newer version
+or owner. Explicit sequential A→B reassignment remains supported. This is not an
+eligibility check for an earlier automatic-dispatch candidate: dispatch D still
+has its own labelled DEFECT evidence and requires its separate contract/fix.
+
+The same evidence file converts assignment's eight R1/R2 rows into regressions:
+CLOSED/DEFERRED/Human/B winners are preserved by full task equality (including
+schedule, closure and both histories), unchanged event snapshots, and absence
+from the unassigned ready pool. Each rejected call attempts exactly one update.
+W1 now reads the first committed assignment from the other connection, verifies
+coherent owner/session metadata, commits B, and verifies B and its events survive;
+a tripwire rejects any attempted second assignment write. The failure regression
+throws after the real metadata transaction callback's SQL work but before commit,
+then verifies rollback of the full OPEN/A snapshot and all events. It would leave
+B/A partial ownership with the old split implementation. No direct SQL fixture
+mutations were introduced.
+
+All original controls remain. Start/complete/unassign, automatic dispatch, stale
+CLI completion and provider/internal history mapping remain labelled DEFECT
+cases pending their own fixes. Successful assignment retains its previous metadata
+construction policy; this change does not broaden history-retention semantics.
+The competitor fixture now accepts absent sessionHistory because a completed
+assignment already rebuilt metadata without that history before this fix.
+
+Validation:
+
+- `pnpm install --frozen-lockfile`: exit 0, unchanged lockfile.
+- `bun test packages/smithy/src/services/task-lifecycle-race-evidence.bun.test.ts packages/smithy/src/services/task-assignment-service.bun.test.ts packages/smithy/src/services/task-handoff-ownership.bun.test.ts`:
+  **113 pass / 0 fail, 597 assertions**, 1.74 s.
+- Negative control: temporarily restore only the old assignment-service production
+  file from master, run the ten converted `REGRESSION:` cases, restore the fixed
+  file in `finally`: **10 fail / 0 pass**, exit 1 as expected. No branch switch.
+- Initial fixture run: 49 pass / 1 fail because W1's competitor tried to spread
+  missing sessionHistory after the newly atomic metadata commit. Fixture corrected
+  to handle the existing optional field; production history policy was not changed.
+  Original log retained at `/tmp/el-3oeut-initial-fixture.log`.
+
+Required gate result is recorded below. Logs: `/tmp/el-3oeut-{install,focused,negative,gate}.log`.
+Independent steward review of the exact final commit and explicit checks remain
+required before approved CLI local delivery; the worker does not self-approve or
+merge. Installed Desktop5f53cef, live daemon/sessions/tasks and completed maintenance
+el-1clm are not test fixtures and were untouched. No paid provider or remote fixture.
+Separate root build/lint/test, Quarry Node, browser/packaged GUI, live providers and
+cross-platform checks were not run.
+
+One full required `pnpm check:merge`: **184/184, exit 0, 215.69 s**.
+Uncached typecheck 17/17; fresh Desktop build; Bun 8,661 pass / 0 fail /
+29 existing skips; Smithy Node/Vitest 325; Desktop Node 6; gate regressions 5.
+The converted evidence suite remains 50 tests (331 assertions); assignment 37,
+handoff ownership/CLI 26 and Quarry CAS 2 also pass in the gate. No gate retries,
+skipped steps, threshold changes or configuration edits. `git diff --check` passed.
+Exact commands/exits/durations and per-step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-yaJkik/results.json`.
+Only evidence documentation changed after the gate; production/tests are the tested
+versions. Independent approval/local delivery remain pending task lifecycle review.
+
 ## Git completion argv correction — el-50c9s, 2026-09-26
 
 The separate source risk reported above is addressed in

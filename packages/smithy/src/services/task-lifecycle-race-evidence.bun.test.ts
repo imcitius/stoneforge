@@ -1,5 +1,6 @@
 /**
- * el-191a6 research characterization, NOT desired lifecycle policy.
+ * el-191a6 research characterization with el-3oeut atomic assignment regressions.
+ * Remaining DEFECT evidence is NOT desired lifecycle policy.
  * Passing defect cases prove the documented unsafe result on the audited revision.
  * Convert those assertions to rejection/preservation regressions with each approved fix.
  * Real isolated SQLite connections; deterministic boundaries, no timers or providers.
@@ -52,7 +53,7 @@ async function change(kind: string) {
   if (kind === 'reassign') {
     return other.update<Task>(task.id, { assignee: successor, metadata: { ...current.metadata, orchestrator: {
       ...getOrchestratorTaskMeta(current.metadata), assignedAgent: successor, sessionId: 'provider-new',
-      sessionHistory: [...getOrchestratorTaskMeta(current.metadata)!.sessionHistory!, {
+      sessionHistory: [...(getOrchestratorTaskMeta(current.metadata)!.sessionHistory ?? []), {
         sessionId: 'internal-new', providerSessionId: 'provider-new', agentId: successor, agentName: 'successor', agentRole: 'worker', startedAt: current.updatedAt,
       }],
     } } });
@@ -78,22 +79,45 @@ async function run(operation: Operation) {
 for (const operation of ['assign', 'start', 'complete', 'unassign'] as const) {
   for (const kind of ['closed', 'deferred', 'reassign', 'human']) {
     for (const readNumber of [1, 2]) {
-      test(`DEFECT evidence: ${operation} overwrites ${kind} at read ${readNumber}`, async () => {
+      test(operation === 'assign'
+        ? `REGRESSION: assign rejects and preserves ${kind} at read ${readNumber}`
+        : `DEFECT evidence: ${operation} overwrites ${kind} at read ${readNumber}`, async () => {
         const get = api.get.bind(api);
         let reads = 0;
         let winner: Task | undefined;
+        let events: unknown[] = [];
         api.get = async (...args) => {
           const result = await get(...args);
-          if (args[0] === task.id && ++reads === readNumber) winner = await change(kind);
+          if (args[0] === task.id && ++reads === readNumber) {
+            winner = await change(kind);
+            events = storage.query('SELECT * FROM events ORDER BY id');
+          }
           return result;
         };
+        if (operation === 'assign') {
+          const update = api.update.bind(api);
+          let attempts = 0;
+          api.update = async (...args) => {
+            if (args[0] === task.id) ++attempts;
+            return update(...args);
+          };
+          await expect(run(operation)).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+          api.get = get;
+          expect(attempts).toBe(1);
+          expect(winner).toBeDefined();
+          // Full equality includes both histories, schedule, closure and version.
+          expect(await other.get(task.id)).toEqual(winner!);
+          expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
+          expect((await other.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(0);
+          return;
+        }
         const result = await run(operation);
         api.get = get;
         expect(winner).toBeDefined();
         expect(await api.get(task.id)).toEqual(result);
         expect(result).not.toEqual(winner!);
         expect(result.status).toBe(operation === 'complete' ? TaskStatus.REVIEW : operation === 'unassign' && readNumber === 1 ? winner!.status : TaskStatus.IN_PROGRESS);
-        expect(result.assignee).toBe(operation === 'complete' || operation === 'unassign' ? undefined : operation === 'assign' || readNumber === 2 ? owner : winner!.assignee);
+        expect(result.assignee).toBe(operation === 'complete' || operation === 'unassign' ? undefined : readNumber === 2 ? owner : winner!.assignee);
         const meta = getOrchestratorTaskMeta(result.metadata)!;
         expect(meta.assignedAgent).toBe(operation === 'unassign' ? undefined : owner);
         expect(meta.sessionId).toBe(operation === 'unassign' ? undefined : operation === 'complete' ? 'provider-old' : 'stale-session');
@@ -102,7 +126,7 @@ for (const operation of ['assign', 'start', 'complete', 'unassign'] as const) {
           expect(result.deadline).toBe(readNumber === 1 ? future : undefined);
         }
         if (kind === 'closed') expect(result.closedAt).toBe(readNumber === 1 ? winner!.closedAt : undefined);
-        if (kind === 'reassign' && operation !== 'assign') {
+        if (kind === 'reassign') {
           expect(meta.sessionHistory?.some(s => s.sessionId === 'internal-new')).toBe(false);
         }
       });
@@ -110,7 +134,7 @@ for (const operation of ['assign', 'start', 'complete', 'unassign'] as const) {
   }
 }
 
-for (const operation of ['assign', 'unassign'] as const) {
+for (const operation of ['unassign'] as const) {
   test(`DEFECT evidence: ${operation} exposes split ownership and leaves partial state on second-write failure`, async () => {
     const update = api.update.bind(api);
     let writes = 0;
@@ -123,13 +147,11 @@ for (const operation of ['assign', 'unassign'] as const) {
       return update(...args);
     };
     const service = createTaskAssignmentService(api);
-    await expect(operation === 'assign'
-      ? service.assignToAgent(task.id, successor, { sessionId: 'provider-new' })
-      : service.unassignTask(task.id)).rejects.toThrow('fixture: second write failed');
-    expect(intermediate!.assignee).toBe(operation === 'assign' ? successor : undefined);
+    await expect(service.unassignTask(task.id)).rejects.toThrow('fixture: second write failed');
+    expect(intermediate!.assignee).toBeUndefined();
     expect(getOrchestratorTaskMeta(intermediate!.metadata)!.assignedAgent).toBe(owner);
     expect(await other.get(task.id)).toEqual(intermediate!);
-    expect((await other.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(operation === 'unassign' ? 1 : 0);
+    expect((await other.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(1);
   });
 
   test(`DEFECT evidence: ${operation} races a full reassignment between its writes`, async () => {
@@ -142,10 +164,73 @@ for (const operation of ['assign', 'unassign'] as const) {
     };
     const result = await run(operation);
     expect(result.assignee).toBe(successor);
-    expect(getOrchestratorTaskMeta(result.metadata)!.assignedAgent).toBe(operation === 'assign' ? owner : undefined);
-    expect(getOrchestratorTaskMeta(result.metadata)!.sessionId).toBe(operation === 'assign' ? 'stale-session' : undefined);
+    expect(getOrchestratorTaskMeta(result.metadata)!.assignedAgent).toBeUndefined();
+    expect(getOrchestratorTaskMeta(result.metadata)!.sessionId).toBeUndefined();
   });
 }
+
+// Converted assignment W1/failure evidence: the old second write is gone.
+// Keep unassign's corresponding DEFECT cases above until its separate fix.
+test('REGRESSION: assign commits coherent ownership before W1 and preserves a subsequent winner', async () => {
+  const update = api.update.bind(api);
+  let writes = 0;
+  let winner: Task | undefined;
+  let events: unknown[] = [];
+  api.update = async (...args) => {
+    if (args[0] === task.id) {
+      ++writes;
+      if (writes > 1) throw new Error('fixture: second write failed');
+    }
+    const result = await update(...args);
+    if (args[0] === task.id) {
+      // Observe the first commit through a separate SQLite connection.
+      expect(await other.get(task.id)).toEqual(result);
+      expect(result.assignee).toBe(owner);
+      const meta = getOrchestratorTaskMeta(result.metadata)!;
+      expect(meta.assignedAgent).toBe(owner);
+      expect(meta.sessionId).toBe('stale-session');
+      winner = await change('reassign');
+      events = storage.query('SELECT * FROM events ORDER BY id');
+    }
+    return result;
+  };
+  const result = await run('assign');
+  expect(writes).toBe(1);
+  expect(result.assignee).toBe(owner);
+  expect(getOrchestratorTaskMeta(result.metadata)!.sessionId).toBe('stale-session');
+  expect(await other.get(task.id)).toEqual(winner!);
+  expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
+});
+
+test('REGRESSION: assignment metadata transaction failure leaves no partial owner/status/events', async () => {
+  // Start OPEN so rollback must preserve status as well as both ownership fields.
+  const snapshot = await other.update<Task>(task.id, { status: TaskStatus.OPEN });
+  const events = storage.query('SELECT * FROM events ORDER BY id');
+  const update = api.update.bind(api);
+  const transaction = storage.transaction.bind(storage);
+  let failMetadataWrite = false;
+  let injected = false;
+  api.update = async (...args) => {
+    failMetadataWrite = args[0] === task.id && args[1].metadata !== undefined;
+    try { return await update(...args); }
+    finally { failMetadataWrite = false; }
+  };
+  storage.transaction = (fn, options) => transaction(tx => {
+    const result = fn(tx);
+    if (failMetadataWrite) {
+      injected = true;
+      // Fail after the real SQL mutations, before COMMIT. No direct fixture writes.
+      throw new Error('fixture: metadata transaction failed');
+    }
+    return result;
+  }, options);
+  await expect(createTaskAssignmentService(api).assignToAgent(task.id, successor, {
+    sessionId: 'provider-new', markAsStarted: true,
+  })).rejects.toThrow('fixture: metadata transaction failed');
+  expect(injected).toBe(true);
+  expect(await other.get(task.id)).toEqual(snapshot);
+  expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
+});
 
 test('CONTROL: explicit sequential reassignment is supported and yields consistent ownership', async () => {
   const result = await createTaskAssignmentService(api).assignToAgent(task.id, successor, { sessionId: 'provider-new', markAsStarted: true });
