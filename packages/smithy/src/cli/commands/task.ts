@@ -1002,7 +1002,7 @@ interface TaskMergeStatusOptions {
 
 /**
  * Verify that a task's branch content has been merged into the target branch.
- * Returns null if verification passes, or an error message if it fails.
+ * Returns an object with status 'ok', 'error', or 'forced' and an optional message.
  *
  * Exported for testing.
  */

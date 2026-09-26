@@ -194,6 +194,14 @@ project. Read the project and repository AGENTS.md and `sf docs dir --content`.
 The registered repository is core, with local target master; use the task's pinned
 repository/target and current `sf repo list`, not an assumed remote main branch.
 
+For this workspace's local core/master delivery, the local integration runbook in
+`sf docs dir --content` takes precedence over the remote workflow examples above.
+Use its independently approved standalone CLI for sync and `task merge <id> --local`;
+do not use the installed CLI or publish the local target as a workaround. After
+sync, compare against the actual local target and review/test the resulting commit.
+The merge command does not run the required gate: run it explicitly before merge.
+Never use merge-status or --force to substitute for verified delivery.
+
 Before `sf task merge`, independently inspect the task, final diff and affected
 code. The worker's own summary/self-review is not independent review. Match every
 acceptance criterion to evidence. Check correctness, regressions, relevant security
