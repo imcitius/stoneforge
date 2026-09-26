@@ -2,158 +2,152 @@
 
 ## Decision boundary
 
-Prepared on 2026-09-26 by worker el-4eqh. **Acceptance is incomplete:** the fixed
-GUI sample failed 3/3 at native Logs focus, and the subsequent OS snapshot shows
-the graphical console is locked. Onboarding was not reached. This candidate must
-not be described as independently approved or ready to install. The task prepares
-a candidate and an installation runbook for Human. It does **not** authorize stopping
-agents/daemons, replacing the installed app, migrating live projects or restarting
-sessions. No installation task or automatic update action was created.
+Updated 2026-09-26 by worker el-38k9 after the earlier el-4eqh handoff.
+**Worker acceptance passed for the new 5f53cef candidate. Independent steward
+review of this exact relocated app and the final report commit remains required.**
+This task prepares a candidate and a reviewable installation runbook for Human;
+it does not authorize stopping agents/daemons, replacing the installed app,
+migrating live projects or restarting sessions. No installation task was created.
+A separately rebuilt app is a different candidate, even at the same source commit.
 
-Independent steward review of the **exact relocated app below** and the final
-task commit is required before Human decides. Worker results are not independent
-approval. A separately rebuilt app is a different candidate, even at the same
-source commit; record and review its identity/manifest separately if needed.
+## Current candidate identity and source
 
-While this candidate was being checked, local master advanced to
-`5b58361429b403e9a87edc590b70f81ba5c9353e` (el-1onu, delivered at 15:59:37Z).
-The frozen d121628 app is therefore evidence, **not the latest-master final
-candidate**. On resumption, sync via the approved CLI and build a new clean-source
-candidate including el-1onu, retaining this app and its failed GUI sample. Run the
-gate and all required packaged checks for that new identity; do not relabel this
-manifest or count earlier results as checks of a different app.
-
-## Candidate identity and source
-
-- Artifact directory: `/Users/citius/Desktop/Work/Stoneforge-artifacts/el-1zar-d121628`.
-- App: `Stoneforge Desktop.app` inside that directory; relocated before runtime tests.
-  This directory is outside all managed worktrees and survives task cleanup.
-- Clean build source/local master: `d121628cae2b615f020ef3a08a2f0b0bb0910ebf`.
+- Artifact directory: `/Users/citius/Desktop/Work/Stoneforge-artifacts/el-1zar-5f53cef`.
+- Exact app: `Stoneforge Desktop.app` inside that directory, relocated before all
+  runtime checks; outside managed worktrees and preserved after task cleanup.
+- Clean build source: `5f53cef6e9ff262d641ba11918dfe44a8f88e3f4`.
+- Local master included: `5b58361429b403e9a87edc590b70f81ba5c9353e`, including
+  el-1onu active-agent cache indicator. Source differs from master only in the
+  earlier verification scripts/README/runbook; production code is the current master.
 - Bundled version `0.1.0`, branch `agent/e-worker-1/el-1zar-desktop`, `dirty=false`,
-  builtAt `2026-09-26T15:50:36.888Z`. macOS arm64, Electron 44.4.5, Node 22.23.3.
-- `IDENTITY.json` duplicates `Contents/Resources/app/build-info.json`.
-- `BUNDLE_MANIFEST.json` records 10,543 file/directory/symlink entries, permissions,
-  file lengths/SHA-256 and link targets. SHA-256:
-  `be78ee5cf176e0f81ac813306cb75213ad3f09848e28a467d6717d8c6908cd18`.
-- Build used pnpm 8.15.5 and frozen lockfile, Bun 1.3.11, host Node 22.23.3.
-  Source was clean through packaging. Subsequent task changes add verification
-  scripts and documentation; they do not alter this immutable app or its identity.
+  builtAt `2026-09-26T16:09:38.584Z`; macOS arm64, Electron 44.4.5, Node 22.23.3.
+- Adjacent `IDENTITY.json` matches `Contents/Resources/app/build-info.json`.
+- `BUNDLE_MANIFEST.json`: 10,543 file/directory/symlink entries with permissions,
+  file lengths/SHA-256 and link targets; SHA-256
+  `770b5114ff67148d67b42d2a653930cf443b63e7b5aeb04427f10b5d54cc04d8`.
+  All entries were reverified after the complete runtime sample.
 
 The approved `/tmp/stoneforge-el-ptim-151b314/sf task sync el-1zar` with shared
-`STONEFORGE_ROOT=/Users/citius/Desktop/Work/Stoneforge` fast-forwarded only the
-assigned branch to local master. All 299 approved CLI hashes and its manifest hash
-were reverified. `evidence/source-preflight.json` records ancestry of el-2kc,
-el-ptim, el-3514, Logs el-31ag, harness el-4d52, gate/docs el-1r6, workload el-4p9h,
-piped CLI output el-3num, and metrics el-5psa/el-33hc/el-10qu. No target publication,
-branch switch, force, merge-status workaround or installed-CLI delivery was used.
+`STONEFORGE_ROOT=/Users/citius/Desktop/Work/Stoneforge` merged local master into
+only the assigned branch, without conflicts. All 299 approved CLI hashes and
+BUILD_INFO SHA-256 were reverified. `evidence/source-preflight.json` records clean
+source, target and ancestry of el-2kc/el-ptim/el-3514, Logs el-31ag, harness el-4d52,
+gate/docs el-1r6, workload el-4p9h, piped CLI el-3num and metrics
+el-5psa/el-33hc/el-10qu/el-1onu. No branch switch, target publication, force,
+merge-status workaround or installed-CLI delivery was used.
 
-## Verification evidence
+## Current verification evidence
 
-Shared workspace runbook: `sf document show el-1l2t` (category `runbook`, in the
-Documentation library and Directory). Related references el-36q and el-1uyc link
-this blocked candidate without removing their historical accepted artifacts.
-
-Every command's output/exit is retained under the artifact directory. Source gate
-logs are copied there, rather than depending on the temporary runner directory.
-Runtime fixtures use only temporary repositories/projects and separate app-data.
+Shared runbook: `sf document show el-1l2t` (category `runbook`, Documentation
+library/Directory); related references el-36q and el-1uyc preserve prior evidence.
+All commands, exit codes and durations are in `evidence/*.json` with full logs.
+`evidence/gate-steps/` preserves every gate command/output after temp cleanup.
 Test children clear inherited `STONEFORGE_*`, `SF_*`, `ORCHESTRATOR_URL` and
-`ELECTRON_RUN_AS_NODE`; shared `sf` operations retain the real project root.
+`ELECTRON_RUN_AS_NODE`; shared sf retains the real root. Only temporary repositories,
+projects and separate app-data were used. No live provider calls or external publish.
 
 | Command | Result | Evidence |
 |---|---|---|
-| `pnpm install --frozen-lockfile` | exit 0, 12.00s, unchanged lockfile | `evidence/install.{log,json}` |
-| `pnpm check:merge` | exit 0, 180/180 steps, 388.07s wall | `evidence/gate.{log,json}`, `evidence/gate-steps/` |
-| `pnpm --filter @stoneforge/desktop package:mac` | exit 0, 44.97s; fresh web assets, bundled SQLite ABI, real PTY spawn/output/exit | `evidence/package.{log,json}` |
-| Bundled Node + `apps/desktop/scripts/check-safeguards.mjs` | exit 0, 15 checks | `evidence/safeguards.{log,json}` |
-| `SF_TEST_CLI=<app>/Contents/Resources/runtime/sf bun test` with task-merge-status, task-merge-status-arguments, merge-arguments and target-delivery Bun files | exit 0, 69 tests / 404 assertions, 56.64s runner | `evidence/cli-matrix.{log,json}` |
-| `DESKTOP_APP=<exact relocated app> node apps/desktop/scripts/check-app.mjs`, fixed runs 1/2/3 | **each exit 1**, 24.51s / 25.26s / 24.94s; native Logs focus timeout | `SMOKE_RESULTS.json`, `evidence/smoke-{1,2,3}.log` |
-| Same `DESKTOP_APP`, `node apps/desktop/scripts/check-launch-services.mjs` | exit 0, 3.81s; Unicode path, packaged runtime, parent-loss cleanup | `evidence/launch-services.log` |
-| `node apps/desktop/scripts/bundle-manifest.mjs verify <app> <manifest>` after all runtime checks | exit 0; all 10,543 entries unchanged | `evidence/manifest-after.json` |
+| `pnpm install --frozen-lockfile` | exit 0, 5.378s; lock unchanged | `install.{log,json}` |
+| **`pnpm check:merge`** | exit 0, **180/180**, 188.570s wall | `gate.{log,json}`, `gate-steps/` |
+| `pnpm --filter @stoneforge/desktop package:mac` | exit 0, 29.636s; fresh UI, native SQLite ABI, real PTY spawn/output/exit | `package.{log,json}` |
+| Bundled Node + `apps/desktop/scripts/check-safeguards.mjs` | exit 0, **15/15**, 6.143s | `safeguards.{log,json}` |
+| `SF_TEST_CLI=<exact app>/Contents/Resources/runtime/sf bun test` on task-merge-status, task-merge-status-arguments, merge-arguments and target-delivery files | exit 0, **69 tests / 404 assertions**, 36.647s | `cli-matrix.{log,json}` |
+| `DESKTOP_APP=<exact app> node apps/desktop/scripts/check-app.mjs`, predeclared runs 1/2/3 | **all exit 0**, 19.836 / 18.110 / 17.167s | `smoke-{1,2,3}.{log,json}`, adjacent `SMOKE_RESULTS.json` |
+| Same app, `node apps/desktop/scripts/check-launch-services.mjs` | exit 0, 3.546s | `launch-services.{log,json}` |
+| `node apps/desktop/scripts/bundle-manifest.mjs verify <app> <manifest>` after all runtime checks | exit 0, **10,543 entries unchanged** | `manifest-after.{log,json}` |
 
-The source gate includes uncached typecheck (17/17), fresh Desktop build, Bun
-8,536 passed / 29 existing skips, Smithy Vitest 325, Desktop Node 6 and gate runner
-regressions 5. It ran once; no failed check was excluded or retried. Packaging
-warnings about Browserslist age, bundle size and deprecated prebuild-install are
-retained. Frozen install warned about not-yet-built workspace CLI links.
-This is an unsigned local macOS arm64 preview. Signing/notarization, Intel/other
-platforms, full browser/root test suites and live provider calls were not checked.
-The source gate's 29 existing skips are retained, not counted as passing coverage.
+The single gate includes uncached typecheck 17/17, fresh Desktop build, Bun
+8,536 pass / 29 existing skips, Smithy Vitest 325, Desktop Node 6 and gate regressions
+5. No check was excluded or retried. pnpm 8.15.5, Bun 1.3.11, host Node 22.23.3.
+Nonfatal Browserslist/bundle-size/deprecated-package warnings remain in logs.
+Unsigned local preview: signing/notarization, Intel/other platforms, full root/browser
+suites, live provider operation and billing were not checked. Existing skips are
+not counted as passing coverage. A temporary evidence parser initially assumed
+an array from ioreg and raised KeyError; corrected to accept macOS's dictionary
+shape before collecting lock state. This was not an app/test failure or test retry.
 
-`check-safeguards.mjs` requires the selected app's actual Node executable and
-imports production JS only from its backend. It exercises real temporary Git
-repositories and SQLite: local-descendant creation/triage and CLI sync; remote
-publication refusal; failed local delivery retaining REVIEW/source/target;
-squash/no-ff literal messages and marker absence; merge-status literal refs/hash
-and refusal of local-only delivery even with force; divergent-target rejection;
-five canonical/default/conflicting workload capacity cases; unavailable versus
-measured-zero usage; Codex deduplication/cache categories, unknown pricing and
-resumed-thread suppression. These are packaged behavior checks, not source-only
-tests or string searches. They do not spawn provider sessions.
+`check-safeguards.mjs` requires this app's actual Node and imports production JS
+only from its backend. It exercises real temp Git/SQLite: local-descendant worktree
+creation/triage and CLI sync; remote publication refusal; failed local delivery
+retaining REVIEW/source/target; squash/no-ff literal argv/messages and marker absence;
+merge-status literal refs/hash, force refusal for local-only delivery and divergent
+target rejection; five workload/capacity limit cases; unavailable versus measured-zero
+usage; Codex deduplication/cache categories, unknown pricing and resume suppression.
+The 69-test matrix uses bundled Node/CLI for subprocesses but source under Bun for
+direct helper/service calls; it is not 69 direct packaged-module checks.
 
-All 296 deployed workspace JS files (Smithy 125, Quarry 117, storage 9, core 30,
-shared routes 15) and 186 built web files match the clean-source build byte for byte;
-see `evidence/source-bundle-byte-match.json`. This proves which UI build was packaged,
-not successful GUI coverage of the Metrics screen.
+`source-bundle-byte-match.json` verifies 296 deployed workspace JS files (Smithy
+125, Quarry 117, storage 9, core 30, shared routes 15) and all 186 built web files
+against the clean-source build byte for byte. This proves inclusion of el-1onu's
+production UI build; it does not claim live provider or full Metrics-screen coverage.
 
-The 69-test matrix's CLI subprocesses use this app's bundled Node/CLI; direct
-helper/service calls in those Bun files still execute source. Do not describe all
-69 as direct packaged-module tests. The separate 15-check Node script above imports
-only packaged production modules. All Git remotes in both fixtures are local temp
-repositories; no live project, provider session or external publication is involved.
+Native console snapshots before build, immediately before smoke, between runs and
+after runtime report `IOConsoleLocked=false`, on-console=true. Director acknowledged
+this resolved precondition and continuation in the same session. The fixed three-run
+sample was declared before execution; every result is retained, no retries/bypass.
+All runs include Logs bounds at 600px work area, actual scrolling, text security,
+Close/Esc/native close and focus/reopen; delayed onboarding's pending -> active ->
+normal Skip -> persisted completion; real Start Session clicks with mocked visible
+PTY failure immediately and after navigation; repositories, initialization, isolated
+storage, HTTP/WS/SSE and external-server adoption. No provider sessions are started.
 
-Recheck the exact artifact from any source checkout containing these scripts:
+Fixtures: `stoneforge-electron-lYpv0C`, `stoneforge-electron-bxOBQe`,
+`stoneforge-electron-gdpD2U`; LaunchServices: `stoneforge-launch-ffUEnJ`.
+PNG/JSON copied under `evidence/smoke-{1,2,3}/`; Logs end-scroll/native z-order,
+active onboarding and completed-navigation screenshots visually inspected. Native
+Logs is above the project with visible Close/footer identity. Onboarding JSON in
+every run records `(null,null,false) -> (null,"0",true) -> ("true",null,false)`.
+Mocked error visibility is asserted by Playwright locators; screenshots are supporting
+evidence, not a replacement for those assertions. LaunchServices verifies minimal
+PATH, Unicode workspace, bundled runtime and parent-loss cleanup on its own fixture.
+
+Recheck the exact app from a checkout with the scripts, or use standalone copies
+under the artifact's `evidence/tools/` (GUI copies still need repository dependencies):
 
 ```sh
-DESKTOP_APP='/Users/citius/Desktop/Work/Stoneforge-artifacts/el-1zar-d121628/Stoneforge Desktop.app'
+DESKTOP_APP='/Users/citius/Desktop/Work/Stoneforge-artifacts/el-1zar-5f53cef/Stoneforge Desktop.app'
 node apps/desktop/scripts/bundle-manifest.mjs verify "$DESKTOP_APP" \
-  /Users/citius/Desktop/Work/Stoneforge-artifacts/el-1zar-d121628/BUNDLE_MANIFEST.json
+  /Users/citius/Desktop/Work/Stoneforge-artifacts/el-1zar-5f53cef/BUNDLE_MANIFEST.json
 DESKTOP_APP="$DESKTOP_APP" "$DESKTOP_APP/Contents/Resources/runtime/node" \
   apps/desktop/scripts/check-safeguards.mjs
 ```
 
-Standalone copies of the manifest and bundled-safeguards scripts are also retained
-in `evidence/tools/` beside the artifact and can be run from there after worktree
-cleanup. The GUI harness copies are audit evidence; running them still requires
-the repository's installed Playwright dependencies and directory structure.
+## Historical candidate and failures — retained, not superseded as evidence
 
-The GUI stability sample was fixed at three full `check-app.mjs` invocations on
-this same app, followed by one `check-launch-services.mjs`. `SMOKE_RESULTS.json`
-records every outcome. Each smoke passed real PTY, footer identity, three-project
-rendering/isolation, HTTP/WS/SSE authentication and project switching, then failed
-at `check-logs.mjs:39` / first open at line 108: `Native focus did not settle`.
-No Logs visual/scroll/focus acceptance or onboarding acceptance is claimed. Empty
-`logs-observations.json` files are retained; failure preceded screenshots/onboarding
-artifacts. Fixtures: `stoneforge-electron-aq5yyM`, `stoneforge-electron-Gm7kqN`,
-`stoneforge-electron-I75xH3`. Launch fixture: `stoneforge-launch-FNmIAK`.
-
-At `2026-09-26T15:57:58.355669Z`, read-only `ioreg -n Root -d1` reported
-`IOConsoleLocked=Yes` and `CGSSessionScreenIsLocked=Yes`; the sanitized snapshot is
-`evidence/gui-environment.json`. This is a confirmed environmental obstacle to
-native focus, not proof that no production issue can remain. It was captured after
-the matrix, not continuously during each run. No unlock, focus assertion bypass,
-GUI harness change, extra sleep or retry-until-green was attempted. After Human
-provides an unlocked graphical session, verify that precondition and declare a new
-bounded sample before running it. Keep these three failures permanently visible.
-Independent steward verification of the same exact app remains outstanding.
+The previous clean d121628 app is frozen at
+`/Users/citius/Desktop/Work/Stoneforge-artifacts/el-1zar-d121628` with its original
+`VERIFICATION.md`, `HANDOFF.json`, all logs/scripts and 10,543-entry manifest SHA-256
+`be78ee5cf176e0f81ac813306cb75213ad3f09848e28a467d6717d8c6908cd18`.
+It passed gate 180/180 (388.07s), package/native PTY, bundled checks 15/15, CLI matrix
+69/404 and LaunchServices, but **all three fixed GUI runs failed** at first Logs
+native focus (24.51 / 25.26 / 24.94s); onboarding was not reached. The subsequent
+15:57:58Z snapshot reported IOConsoleLocked/CGSSessionScreenIsLocked=Yes. No retries,
+unlock or assertion bypass were attempted. Source then advanced with el-1onu.
+It is not the current candidate and has no GUI acceptance. Its failures remain
+visible even though the new-source, unlocked-console sample passed. Earlier
+el-31ag/el-4d52 failures remain in reference el-1uyc and their original artifacts.
 
 ## Metrics included and remaining limits
 
-This app includes el-5psa attribution/usage coverage, el-33hc availability UI/CLI,
-and el-10qu summary/model/total cache denominator. The latter uses
-`read / (uncached + read + creation)`, weighted by token counts; unknown legacy
-coverage and measured-empty denominators are N/A. See workspace reference el-1fqa
-and `provider-metrics-el-5psa.md` for evidence and historical failures.
+The new app includes attribution/usage coverage el-5psa, availability UI/CLI el-33hc,
+summary/model/total denominator el-10qu and **active-agent card el-1onu**. Cache hit
+uses `read / (uncached + read + creation)`; aggregate ratios are weighted by counts,
+and complete measured coverage is required. Legacy/unsupported or measured-empty
+ratios are N/A; all-cache/creation/measured-empty rows retain their intended display.
+The active-agent fix was independently reviewed before local delivery as 5b58361;
+see el-1fqa and `active-agent-cache-el-1onu.md` for 18 card browser / 22 metrics
+browser / 18 unit tests and gate evidence. Those prior browser suites were not rerun
+as part of this candidate; inclusion is established by ancestry and byte comparison.
 
 Schema 13 adds nullable usage availability. It does not backfill old attribution
 or provider counters. Resumed Codex lifetime totals are deliberately suppressed;
 interactive paths without the collector and unsupported provider usage can remain
 unavailable. Unknown/multiple-model pricing is unavailable, not free usage. No live
-provider calls or billing verification were performed. The active-agent card's
-separate cache ratio defect was already reported to Director (el-1t45); it is outside
-the included summary/model/total fix and is not fixed in this artifact. Its later
-el-1onu source fix is now on local master 5b58361 and must enter the next candidate.
+provider calls, billing verification or guessed counters/costs were introduced.
 
 ## Proposed update runbook — do not execute without separate Human approval
+
 
 ### 1. Review and inventory, before approval
 
@@ -182,7 +176,7 @@ server PID/start time/database and any external/adopted process. Match owners us
 the lock/descriptor and OS database/socket ownership. Resolve discrepancies first.
 
 The preparation snapshot (`evidence/agents.txt`, `daemon.txt`) has daemon running,
-dispatch active, both workers running and the Director running. It is not an
+dispatch active, el-38k9 and Director running, el-4eqh and steward idle. It is not an
 execution-time inventory or permission to interrupt them. Capture a human-readable
 resume list; do not copy raw transcripts or credentials into the review record.
 
@@ -281,16 +275,19 @@ complete pre-update project data and userData while all owners are stopped, then
 launch the old app and repeat identity/ownership/health/readback. Resume the saved
 work list only after this succeeds. Keep both snapshots and candidate for diagnosis.
 
-## Delivery
+## Delivery and independent review
 
-The worker commits/pushes only verification scripts/docs and **hands off** el-1zar
-because GUI acceptance cannot be completed in the locked console. Director was
-notified in el-2o97; no duplicate follow-up/install task was created. The resumed
-worker must first resolve that precondition, finish the fixed packaged Logs/onboarding
-sample and obtain the independent review through the normal task lifecycle. Only
-after worker criteria pass use `sf task complete el-1zar` to enter REVIEW. Steward
-records the exact app verdict and uses only the approved CLI
-`task merge el-1zar --local` with the shared root after explicit required checks.
-No manual PR, source publication to master, installed
-app replacement, daemon/session stop, live-data backup/migration or rollback was
-performed by this task. Human's update decision remains separate.
+Worker commits/pushes the report and uses `sf task complete el-1zar` to enter REVIEW
+only after the worker checks above pass. Steward must independently inspect the
+final source/report commit and **this exact relocated app**, reverify its manifest,
+run required/relevant checks and record its verdict with commit/path/hash/results.
+Do not replace it silently with a separately rebuilt app or infer approval from
+source tests. No independent approval is claimed in this worker report.
+
+After approval, source-only local delivery uses the approved CLI
+`/tmp/stoneforge-el-ptim-151b314/sf task merge el-1zar --local` with the shared root.
+If target changes, sync/review/check again and rebuild a new candidate if production
+contents change; retain prior identities and results. No manual PR or master publish.
+No installed-app replacement, daemon/session stop/restart, live-data backup/migration
+or rollback was performed. Human's update decision remains separate; no automatically
+dispatched installation task may be created as part of this preparation.
