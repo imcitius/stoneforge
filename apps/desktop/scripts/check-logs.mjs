@@ -36,6 +36,14 @@ export async function checkLogs(electron, page, resources, temp) {
     await electron.evaluate((_electron, logs) => { globalThis.__logsFixture = logs; }, logs);
     await page.evaluate(() => window.desktop.command('list'));
   };
+  const nativeFocus = (child) => electron.evaluate(async ({ BrowserWindow }, child) => {
+    const window = BrowserWindow.getAllWindows().find(window => !!window.getParentWindow() === child);
+    if (window.isFocused()) return;
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Native focus did not settle')), 10_000);
+      window.once('focus', () => { clearTimeout(timeout); resolve(); });
+    });
+  }, child);
   const open = async () => {
     const waiting = electron.waitForEvent('window');
     await page.locator('[data-command="logs"]').click();
@@ -43,6 +51,7 @@ export async function checkLogs(electron, page, resources, temp) {
     viewer.on('pageerror', (error) => errors.push(error.message));
     await viewer.locator('#close').waitFor();
     await viewer.waitForFunction(() => document.hasFocus());
+    await nativeFocus(true);
     return viewer;
   };
   const inspect = async (viewer, label) => {
@@ -76,15 +85,20 @@ export async function checkLogs(electron, page, resources, temp) {
     observations.push({ label, ...metrics, text: undefined, native: { ...native, preferences: undefined } });
     return metrics;
   };
+  const closingKey = async (viewer, key) => {
+    // The keydown closes the native window before Playwright sends keyup.
+    await viewer.keyboard.press(key).catch(error => { if (!viewer.isClosed()) throw error; });
+  };
   const close = async (viewer, method) => {
     const closed = viewer.waitForEvent('close');
     if (method === 'button') await viewer.locator('#close').click();
-    else if (method === 'escape') { await viewer.locator('pre').focus(); await viewer.keyboard.press('Escape'); }
+    else if (method === 'escape') { await viewer.locator('pre').focus(); await closingKey(viewer, 'Escape'); }
     else {
       // BrowserWindow.close uses the native close lifecycle (unlike destroy).
       await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getFocusedWindow().close());
     }
     await closed;
+    await nativeFocus(false);
     await page.waitForFunction(() => document.hasFocus() && document.activeElement?.dataset.command === 'logs');
     assert.equal(await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 1);
     observations.push({ closedBy: method, ownerFocusRestored: true });
@@ -135,14 +149,14 @@ export async function checkLogs(electron, page, resources, temp) {
     const reopened = await open();
     assert.equal((await inspect(reopened, 'reopened')).text, '\nFresh snapshot after reopening: 日本語 🪨');
     const commandClosed = reopened.waitForEvent('close');
-    await reopened.keyboard.press('Meta+w'); await commandClosed;
+    await closingKey(reopened, 'Meta+w'); await commandClosed;
     await page.waitForFunction(() => document.hasFocus());
     await setLogs('🪨' + 'x'.repeat(9999));
     const keyboard = await open();
     assert.equal((await keyboard.locator('pre').textContent()).length, 10_000);
     await keyboard.locator('#close').focus();
     const closed = keyboard.waitForEvent('close');
-    await keyboard.keyboard.press('Enter'); await closed;
+    await closingKey(keyboard, 'Enter'); await closed;
     await page.waitForFunction(() => document.hasFocus());
     assert.deepEqual(errors, []);
     console.log('Packaged Logs: 600px work area, text safety, scrolling, Close/Escape/native close, focus, reopening, child above project: passed');
