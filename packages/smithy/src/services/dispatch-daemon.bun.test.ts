@@ -6149,6 +6149,52 @@ describe('assignTaskToWorker - missing agent channel resilience', () => {
     (impl as any).dispatchService.dispatch = originalDispatch;
   });
 
+  for (const boundary of ['before-assignment', 'notification'] as const) {
+    for (const winner of ['own', 'human', 'successor'] as const) {
+      test(`cleanup preserves ${winner} at ${boundary} failure with real assignment/dispatch`, async () => {
+        const worker = await createTestWorker('failed-dispatch-worker');
+        const task = await createTestTask('Conditional cleanup');
+        let snapshot: Task | undefined;
+        const compete = async () => {
+          if (winner === 'human') {
+            snapshot = await api.update<Task>(task.id, { assignee: 'human:owner' as EntityId });
+          } else if (winner === 'successor') {
+            // Same agent, different session/version must also be preserved.
+            snapshot = await taskAssignment.assignToAgent(task.id, worker.id as unknown as EntityId, {
+              sessionId: 'successor-session', markAsStarted: true,
+            });
+          } else {
+            snapshot = (await api.get<Task>(task.id))!;
+          }
+          throw new Error('Agent channel not found: deterministic fixture boundary');
+        };
+        if (boundary === 'before-assignment') {
+          agentRegistry.ensureAgentChannel = async () => compete();
+        } else {
+          const create = api.create.bind(api);
+          api.create = async (...args) => {
+            if (args[0].type === 'document') return compete() as never;
+            return create(...args);
+          };
+        }
+        // Existing fixture substitutes only provider/worktree boundaries; the
+        // task, registry, assignment, dispatch and cleanup use real SQLite APIs.
+        const result = await daemon.pollWorkerAvailability();
+        expect(result.errors).toBe(0);
+        expect(result.processed).toBe(0);
+        expect(snapshot).toBeDefined();
+        const current = (await api.get<Task>(task.id))!;
+        if (winner === 'own' && boundary === 'notification') {
+          expect(current.assignee).toBeUndefined();
+          expect(getOrchestratorTaskMeta(current.metadata)!.assignedAgent).toBeUndefined();
+          expect(getOrchestratorTaskMeta(current.metadata)!.branch).toBe(getOrchestratorTaskMeta(snapshot!.metadata)!.branch);
+        } else {
+          expect(current).toEqual(snapshot!);
+        }
+      });
+    }
+  }
+
   test('re-throws non-channel errors from dispatchService.dispatch', async () => {
     // 1. Register a worker and create a task
     const worker = await createTestWorker('other-error-worker');

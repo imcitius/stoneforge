@@ -192,7 +192,7 @@ describe('TaskAssignmentService', () => {
       await service.assignToAgent(task.id, agentId);
 
       // Then unassign
-      const unassigned = await service.unassignTask(task.id);
+      const unassigned = await service.unassignTask(task.id, { mode: 'admin' });
 
       expect(unassigned.assignee).toBeUndefined();
 
@@ -206,7 +206,7 @@ describe('TaskAssignmentService', () => {
 
     test('throws error when task does not exist', async () => {
       expect(
-        service.unassignTask('el-nonexistent' as ElementId)
+        service.unassignTask('el-nonexistent' as ElementId, { mode: 'admin' })
       ).rejects.toThrow('Task not found');
     });
   });

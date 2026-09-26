@@ -321,11 +321,79 @@ source build, Smithy Node/Vitest, Desktop Node integration and the new Git suite
 `git diff --check` passed. Only this evidence note changes after the gate; production
 and tests remain the tested versions. Independent steward acceptance is pending.
 
+## Conditional cleanup correction — el-j14no, 2026-09-26
+
+The historical unassign DEFECT rows above describe the pre-fix revision. Their
+R1/R2, W1 and split-write failure tests are now preservation regressions; start,
+complete, automatic claim selection and history-ID defects remain explicitly
+labelled pending separate fixes. Atomic assignment regressions/controls remain.
+
+`unassignTask` now requires an explicit discriminated options contract:
+
+- `{ mode: 'failed-dispatch', expectedAssignment: { agentId, sessionId, updatedAt } }`
+  carries the exact committed assignment receipt, including an explicitly absent
+  session ID if that assignment had none. The task must still be OPEN/IN_PROGRESS,
+  with matching assignee, metadata owner, session and version. No identity is
+  inferred from a later read and no conflict is retried.
+- `{ mode: 'admin' }` deliberately releases the current owner, including a Human
+  or terminal task, while preserving its status and closure/schedule fields. It
+  does not reopen work. This is an explicit SDK operation, not an authentication
+  boundary or an implicit fallback for legacy calls with missing options.
+
+Both modes clear assignee/assignedAgent/session/worktree/startedAt in one Quarry
+CAS update. Branch, target/repository context, histories and unrelated metadata
+remain. Admin also guards its read version, so a concurrent decision wins.
+
+Dispatch wraps post-assignment notification failures in `DispatchAssignmentError`
+with the assignment's returned version/identity. The daemon's existing missing-
+channel handler uses this receipt for cleanup. Pre-assignment failure has no
+receipt and performs no release. A later successor/Human/close/defer is preserved
+when notification fails asynchronously. Notification error selection and automatic
+claim policy are unchanged; this does not fix the separate stale candidate defect.
+
+Tests use deterministic boundaries over isolated SQLite/Quarry connections.
+Failures before the first write and after transactional SQL mutations preserve
+all task fields/events and keep assigned work out of the ready/unassigned pool.
+The old second-write tripwire is retained: a coherent release commits once, then
+a competitor commits, with no second write to damage its snapshot/events. Positive
+controls cover own cleanup, admin current-owner/terminal release, and admin CAS.
+Real dispatch tests capture receipts at notification failure; the existing daemon
+fixture also exercises actual assignment/dispatch/cleanup with synthetic provider
+and worktree boundaries, without starting providers or touching live sessions.
+
+Verification results and independent-review status are recorded with the final
+worker result below. No installed app update, maintenance, gate change, live task
+fixture or worker merge is part of this correction.
+
+### Worker verification for el-j14no
+
+Approved standalone CLI sync succeeded against local master `a4f73af2fee9cd62d7c820ede3dfdcdac58f3d99`.
+`pnpm install --frozen-lockfile` and Smithy typecheck exited 0; lockfile unchanged.
+Focused assignment/lifecycle run: **107 pass, 0 fail, 508 assertions**. Daemon
+suite: **146 pass, 0 fail, 2 existing skips, 435 assertions**. No failing trial
+runs or gate retries occurred.
+
+One full `pnpm check:merge`: **185/185, exit 0, 215.54s**. Uncached workspace
+typecheck 17/17, Desktop build, Bun **8,706 pass / 0 fail / 29 existing skips**,
+Smithy Node/Vitest 325, Desktop Node 6 and gate tests 5 pass. Lifecycle matrix is
+70/70 (412 assertions); assignment 37/37; daemon 146 pass/2 skips. `git diff
+--check` passes. After this run only verification documentation changed.
+
+Exact commands, exits and step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-hpL0d0/results.json`.
+Worker logs: `/tmp/el-j14no-{install,typecheck,focused,daemon,gate}.log`.
+Separate root build/lint/test, Quarry Node, browser/packaged GUI, real providers
+and cross-platform tests were not run. Existing skips do not count as coverage.
+Independent steward review of the final commit and approved CLI local delivery
+remain pending; the implementation worker neither approves nor merges this work.
+Installed Desktop5f53cef, live daemon/sessions and completed el-1clm are unchanged.
+
 ## Worker completion and history follow-up — el-20qt0, 2026-09-26
 
 This section supersedes **only completion/history** observations above. Historical
 measurements remain evidence of the original defect, not desired behavior. The
-start/unassign/automatic-dispatch DEFECT groups remain explicitly unfixed here.
+start/automatic-dispatch DEFECT groups remain explicitly unfixed here. Unassign is
+covered by the independently delivered el-j14no correction above.
 The separate literal-argv correction is retained.
 
 Director's accepted contract permits durable operation audit **after** acquisition
@@ -369,7 +437,9 @@ and assigned a fresh internal session, the next claim archives the old operation
 in `completionHistory`. Both operation records and full session history survive
 assignment/reassignment, reopen and reset; pending claims cannot be erased by
 these normal paths. Direct arbitrary metadata replacement is outside this narrow
-contract, as are unresolved stale start/unassign/dispatch writers listed above.
+contract, as are unresolved stale start/dispatch writers listed above and the legacy SDK
+OrchestratorAPI.assignTaskToAgent metadata snapshot write. These can still replace
+metadata outside this protocol; they require separate fixes, reported to Director.
 
 Each phase/final write has SQL CAS on the exact preceding task version. Each
 continuation checks current version, ownership, claim and session before an effect.
@@ -465,3 +535,25 @@ protocol+Git 89/89; assignment/history-preservation set 154/154. Smithy Node com
 actually ran all 13 Vitest files: 325/325 (the wrapper did not filter). Frozen install
 and Smithy typecheck passed. The first typecheck found only narrowing errors in
 the new helper and was corrected; that failed attempt is retained in task logs.
+
+
+### Worker integration evidence (before final integrated gate)
+
+Source `921f3ec0c09ad8de147fdcd8de2c936764866474` received independent advisory
+code review, **179/179 tests, 901 assertions**, with no remaining blocking finding.
+The review's earlier missing-worktree finding was fixed with two reject/preserve
+regressions before this commit. This is not the registered SF steward's final
+approval. The isolated orchestration mock also passed (mode=mock,
+skipDaemonStart=true, fresh SQLite/Git fixture), now using a real internal history
+identity and expecting REVIEW rather than the obsolete CLOSED assertion.
+
+Pre-integration `pnpm check:merge` passed **186/186**, exit 0, **381.84s**;
+logs `/tmp/el-20qt0-final-gate.log`,
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-btk0at/results.json`.
+An earlier in-progress-source gate also passed 186/186 (277.27s), but is not final
+acceptance. Both results are retained. Local master advanced during verification
+to `f30b41ad841d1cea6ca5d274403baba950a85a0d` (conditional unassign); approved
+CLI sync reported conflicts only in this report and the evidence matrix. Both
+sets of corrections and historical records are retained, with assign/complete/
+unassign now using the shared rejection branch of the R1/R2 matrix. Production
+files auto-merged. The next gate validates this integrated revision.

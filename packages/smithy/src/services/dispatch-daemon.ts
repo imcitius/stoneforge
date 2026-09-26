@@ -44,7 +44,7 @@ import { isRateLimitMessage, parseRateLimitResetTime, getFallbackResetTime } fro
 import type { AgentRegistry, AgentEntity } from './agent-registry.js';
 import { getAgentMetadata, isAgentDisabled } from './agent-registry.js';
 import type { SessionManager, SessionRecord } from '../runtime/session-manager.js';
-import type { DispatchService, DispatchOptions } from './dispatch-service.js';
+import { DispatchAssignmentError, type DispatchService, type DispatchOptions } from './dispatch-service.js';
 import type { WorktreeManager, CreateWorktreeResult } from '../git/worktree-manager.js';
 import type { SyncResult } from '../cli/commands/task.js';
 import type { TaskAssignmentService } from './task-assignment-service.js';
@@ -2853,11 +2853,16 @@ export class DispatchDaemonImpl implements DispatchDaemon {
           `Skipping worker with missing channel: ${worker.name} (${workerId}) for task ${task.id}`,
           { agentId: workerId, taskId: task.id }
         );
-        // Defensively unassign the task in case it was partially assigned
-        try {
-          await this.taskAssignment.unassignTask(task.id);
-        } catch {
-          // Task may not have been assigned yet — ignore
+        // Only a post-assignment error carries a receipt. Never infer ownership
+        // by reading the current task after the asynchronous notification failure.
+        if (error instanceof DispatchAssignmentError && error.taskId === task.id) {
+          try {
+            await this.taskAssignment.unassignTask(task.id, {
+              mode: 'failed-dispatch', expectedAssignment: error.assignment,
+            });
+          } catch {
+            // A successor or another mutation won; preserve it without retry.
+          }
         }
         return false;
       }
