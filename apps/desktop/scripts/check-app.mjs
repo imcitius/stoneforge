@@ -1,6 +1,7 @@
 /** Packaged Electron smoke test. Uses temporary workspaces and real provider calls with --live. */
 import assert from 'node:assert/strict';
 import { checkLogs } from './check-logs.mjs';
+import { skipNewProjectOnboarding, checkDirectorStartFailure } from './check-onboarding.mjs';
 import { mkdtemp, mkdir, writeFile, cp, rm, access, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join, dirname } from 'node:path';
@@ -41,6 +42,7 @@ try {
   });
   const page = await electron.firstWindow();
   const expectedBuild = JSON.parse(await readFile(join(resources, 'app/build-info.json'), 'utf8'));
+  console.log('Packaged app:', bundle, JSON.stringify(expectedBuild));
   await page.waitForFunction(commit => document.getElementById('build').textContent.includes(commit), expectedBuild.commit.slice(0, 12));
   assert((await page.locator('#build').getAttribute('title')).includes(expectedBuild.builtAt));
   const errors = [];
@@ -146,6 +148,16 @@ try {
   const taskPage = electron.context().pages().find(p => p.url().startsWith(new URL(freshView.url).origin));
   assert(taskPage, 'Project web contents accessible to UI test');
   taskPage.on('pageerror', error => console.error('Project UI error:', error.message));
+  await skipNewProjectOnboarding(taskPage, new URL('/activity', freshView.url).href, temp);
+  await checkDirectorStartFailure(taskPage, 'just-skipped', temp);
+  // Observe every subsequent document from before React starts. Persisted completion
+  // must survive full navigation; even a transient returning backdrop is a failure.
+  await taskPage.addInitScript(() => {
+    window.__desktopOnboardingReturned = false;
+    new MutationObserver(() => {
+      if (document.querySelector('[data-testid="onboarding-backdrop"]')) window.__desktopOnboardingReturned = true;
+    }).observe(document, { childList: true, subtree: true });
+  });
   await taskPage.goto(new URL('/tasks', freshView.url).href);
   await taskPage.getByText('Repository UI fixture', { exact: true }).first().click();
   try { await taskPage.getByLabel('Repository', { exact: true }).selectOption('repo-b', { timeout: 5000 }); }
@@ -158,14 +170,9 @@ try {
   await taskPage.screenshot({ path: join(temp, 'repositories.png') });
   console.log('Packaged repository registration and task selection: passed');
   // A rejected director start must be visible, without launching a real provider.
+  assert.equal(await taskPage.evaluate(() => window.__desktopOnboardingReturned), false);
   await taskPage.goto(new URL('/activity', freshView.url).href);
-  await taskPage.route('**/api/agents/*/start', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'PTY launch failure fixture' } }) }));
-  await taskPage.locator('button[aria-label="Open director"]').click();
-  await taskPage.getByRole('button', { name: 'Start Session', exact: true }).first().click();
-  await taskPage.getByText('Could not start agent session', { exact: true }).waitFor();
-  await taskPage.getByText('PTY launch failure fixture', { exact: true }).waitFor();
-  await taskPage.unroute('**/api/agents/*/start');
-  console.log('Packaged director start failure is visible: passed');
+  await checkDirectorStartFailure(taskPage, 'completed-after-navigation', temp);
 
 
   const outside = join(temp, 'External'); await mkdir(outside);
@@ -246,6 +253,7 @@ try {
     console.log(`Packaged ${providerNames.join(' + ')} interactive sessions, resize and switching: passed`);
   }
   assert.deepEqual(errors, []);
+  assert.equal(await taskPage.evaluate(() => window.__desktopOnboardingReturned), false, 'Completed tour must not return');
   console.log(`Diagnostics and screenshot: ${temp}`);
 } finally {
   if (externalFixture && externalFixture.exitCode === null) externalFixture.kill('SIGTERM');
