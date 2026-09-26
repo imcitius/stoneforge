@@ -141,7 +141,7 @@ export interface OrchestratorTaskMeta {
   /** History of all handoffs for this task */
   readonly handoffHistory?: HandoffHistoryEntry[];
 
-  /** History of all sessions (worker and steward) that worked on this task */
+  /** Recent sessions (worker and steward); append retains at most 50 entries, not a full audit */
   readonly sessionHistory?: readonly TaskSessionHistoryEntry[];
 
   // ----------------------------------------

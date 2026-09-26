@@ -387,3 +387,12 @@ and cross-platform tests were not run. Existing skips do not count as coverage.
 Independent steward review of the final commit and approved CLI local delivery
 remain pending; the implementation worker neither approves nor merges this work.
 Installed Desktop5f53cef, live daemon/sessions and completed el-1clm are unchanged.
+
+## Retention clarification — el-2y8n3
+
+See [task-session-retention.md](workspace/task-session-retention.md): append keeps
+only the last 50 entries, including unfinished/claim-referenced eviction. Preserving
+existing entries is not unlimited history. Audit availability and recovery authority
+are separate; provider-ID ambiguity can disappear after eviction. That handoff
+limitation is characterized and proposed to Director, not fixed here. Pending
+completion candidate probes remain explicitly separate from accepted master.
