@@ -13,7 +13,7 @@ import { ProjectRepositories } from '../../git/project-repositories.js';
 
 import type { Command, GlobalOptions, CommandResult, CommandOption } from '@stoneforge/quarry/cli';
 import { success, failure, ExitCode, getOutputMode } from '@stoneforge/quarry/cli';
-import type { ElementId, Task } from '@stoneforge/core';
+import type { ElementId, EntityId, Task } from '@stoneforge/core';
 import { TaskStatus, createTimestamp } from '@stoneforge/core';
 
 // ============================================================================
@@ -89,11 +89,11 @@ async function createOrchestratorApi(options: GlobalOptions): Promise<{
 }
 
 /**
- * Gets the current session ID from environment or generates a placeholder
+ * Gets the caller session ID without inferring authority from current task data
  */
-function getCurrentSessionId(): string {
+function getCurrentSessionId(): string | undefined {
   // Check for session ID in environment (set by spawner or agent)
-  return process.env.STONEFORGE_SESSION_ID || `cli-${Date.now()}`;
+  return process.env.STONEFORGE_SESSION_ID;
 }
 
 // ============================================================================
@@ -151,9 +151,13 @@ async function taskHandoffHandler(
 
   try {
     const sessionId = options.sessionId || getCurrentSessionId();
+    if (!sessionId?.trim()) {
+      return failure('Handoff requires --sessionId or STONEFORGE_SESSION_ID for the current owning session.', ExitCode.INVALID_ARGUMENTS);
+    }
 
     const task = await service.handoffTask(taskId as ElementId, {
       sessionId,
+      agentId: process.env.SF_ENTITY_ID as EntityId | undefined,
       message: options.message,
       branch: options.branch,
       worktree: options.worktree,
@@ -204,6 +208,10 @@ export const taskHandoffCommand: Command = {
   description: 'Hand off a task to another agent',
   usage: 'sf task handoff <task-id> [options]',
   help: `Hand off a task to be picked up by another agent.
+
+Requires an active task owned by the current session. Closed, deferred, review,
+and reassigned tasks are rejected without changes. Use task reopen explicitly
+for closed work. Older sessions must supply their own --sessionId; no ID is inferred.
 
 This command:
 1. Preserves the branch and worktree references in task metadata

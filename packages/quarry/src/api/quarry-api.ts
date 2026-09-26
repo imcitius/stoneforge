@@ -1336,7 +1336,9 @@ export class QuarryAPIImpl implements QuarryAPI {
     const actor = options?.actor ?? existing.createdBy;
 
     // Apply updates
-    const now = createTimestamp();
+    // updatedAt is the public optimistic concurrency token. Distinct writes must
+    // not share it, even within one millisecond or after a clock adjustment.
+    const now = new Date(Math.max(Date.now(), Date.parse(existing.updatedAt) + 1)).toISOString() as Timestamp;
     let updated: T = {
       ...existing,
       ...updates,
@@ -1365,6 +1367,21 @@ export class QuarryAPIImpl implements QuarryAPI {
 
     // Update in a transaction
     this.backend.transaction((tx) => {
+      // Update the element
+      const result = tx.run(
+        `UPDATE elements SET data = ?, content_hash = ?, updated_at = ?, deleted_at = ?
+         WHERE id = ?${options?.expectedUpdatedAt !== undefined ? ' AND updated_at = ?' : ''}`,
+        [serialized.data, serialized.content_hash, serialized.updated_at, serialized.deleted_at, id,
+          ...(options?.expectedUpdatedAt !== undefined ? [options.expectedUpdatedAt] : [])]
+      );
+      if (options?.expectedUpdatedAt !== undefined && result.changes !== 1) {
+        throw new ConflictError(
+          `Element was modified by another process: ${id}`,
+          ErrorCode.CONCURRENT_MODIFICATION,
+          { elementId: id, expectedUpdatedAt: options.expectedUpdatedAt }
+        );
+      }
+
       // For documents, save current version to version history before updating (only on content changes)
       if (isDocument(existing) && ('content' in updates || 'contentType' in updates)) {
         const doc = existing as Document;
@@ -1387,13 +1404,6 @@ export class QuarryAPIImpl implements QuarryAPI {
           [doc.id, doc.version, versionData, doc.updatedAt]
         );
       }
-
-      // Update the element
-      tx.run(
-        `UPDATE elements SET data = ?, content_hash = ?, updated_at = ?, deleted_at = ?
-         WHERE id = ?`,
-        [serialized.data, serialized.content_hash, serialized.updated_at, serialized.deleted_at, id]
-      );
 
       // Update tags if they changed
       if (updates.tags !== undefined) {

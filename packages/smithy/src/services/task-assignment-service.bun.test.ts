@@ -310,6 +310,7 @@ describe('TaskAssignmentService', () => {
 
       // Assign with branch and worktree
       await service.assignToAgent(task.id, agentId, {
+        sessionId: 'sess-123',
         branch: 'feature/my-task',
         worktree: '.stoneforge/.worktrees/my-task',
         markAsStarted: true,
@@ -345,6 +346,7 @@ describe('TaskAssignmentService', () => {
 
       // First agent works on it
       await service.assignToAgent(task.id, worker1.id as unknown as EntityId, {
+        sessionId: 'sess-1',
         branch: 'feature/task-1',
         markAsStarted: true,
       });
@@ -357,6 +359,7 @@ describe('TaskAssignmentService', () => {
 
       // Second agent picks it up
       await service.assignToAgent(task.id, worker2.id as unknown as EntityId, {
+        sessionId: 'sess-2',
         markAsStarted: true,
       });
 
@@ -383,16 +386,16 @@ describe('TaskAssignmentService', () => {
       ).rejects.toThrow('Task not found');
     });
 
-    test('resets REVIEW task to OPEN and clears mergeStatus on handoff', async () => {
-      // This test verifies the fix for the infinite loop bug where a merge steward
-      // hands off a task but it stays in REVIEW with mergeStatus, causing the
-      // merge steward to pick it up again instead of the dispatch daemon.
+    test('hands off active assigned work and clears mergeStatus', async () => {
+      // markAsStarted below changes REVIEW to IN_PROGRESS. Actual REVIEW work
+      // must use the explicit review/reject lifecycle, not worker handoff.
       const task = await createTestTask('Task in review', TaskStatus.REVIEW);
       const steward = await createTestWorker('merge-steward');
       const stewardId = steward.id as unknown as EntityId;
 
       // Assign to steward and set mergeStatus (simulating task in review)
       await service.assignToAgent(task.id, stewardId, {
+        sessionId: 'steward-sess-1',
         branch: 'feature/review-task',
         worktree: '.stoneforge/.worktrees/review-task',
         markAsStarted: true,

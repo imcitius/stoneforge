@@ -46,14 +46,31 @@ When a worker can't finish a task, it hands off — the task returns to the pool
 
 ```typescript
 await assignmentService.handoffTask(taskId, {
-  sessionId: 'session-123',
+  sessionId: 'session-123', // Current internal session ID
+  agentId, // Optional caller identity, checked against the owner when supplied
   message: 'Completed API integration, needs CORS fix',
   branch: 'agent/worker-1/abc123-implement-login',
   worktree: '.stoneforge/.worktrees/worker-1-implement-login',
 });
 ```
 
-The message is appended as `[AGENT HANDOFF NOTE]` to the task description. Handoff history is recorded in metadata.
+Handoff requires `open` or `in_progress` status, matching task and orchestrator
+ownership, and the current session identity. The latest session-history entry must
+be active and owned by the assignee. Historical or ambiguous resumed provider IDs
+are rejected. For legacy tasks without history, the stored session ID must match.
+An optional `agentId` adds a caller/owner check; session identity is still required.
+This is a stale-operation guard, not a security boundary against callers that can
+read and deliberately submit another session's identity.
+
+The task update uses `expectedUpdatedAt` and atomic SQLite compare-and-swap.
+Conflicts return `CONCURRENT_MODIFICATION` without reopening, clearing ownership,
+changing schedule fields, or appending evidence. Do not retry with a newly read
+session identity. Explicit reopen and review/reject remain separate operations.
+
+Handoff history is appended atomically to task metadata. After success, the message
+is appended as `[AGENT HANDOFF NOTE]` to the description on a best-effort basis,
+with its own concurrency check. Existing handoff history is retained even if the
+description is unavailable or concurrently edited.
 
 #### Workload queries
 

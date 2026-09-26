@@ -944,6 +944,8 @@ export class SpawnerServiceImpl implements SpawnerService {
         environmentVariables: {
           ...this.defaultConfig.environmentVariables,
           ...options?.environmentVariables,
+          STONEFORGE_SESSION_ID: session.id,
+          SF_ENTITY_ID: session.agentId,
         },
         stoneforgeRoot: options?.stoneforgeRoot ?? this.defaultConfig.stoneforgeRoot,
         timeout: options?.timeout ?? this.defaultConfig.timeout,
@@ -1112,6 +1114,8 @@ export class SpawnerServiceImpl implements SpawnerService {
         environmentVariables: {
           ...this.defaultConfig.environmentVariables,
           ...options?.environmentVariables,
+          STONEFORGE_SESSION_ID: session.id,
+          SF_ENTITY_ID: session.agentId,
         },
         stoneforgeRoot: options?.stoneforgeRoot ?? this.defaultConfig.stoneforgeRoot,
         cols: options?.cols,
