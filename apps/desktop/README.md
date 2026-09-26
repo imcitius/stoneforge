@@ -59,7 +59,13 @@ This metadata is baked into the application, independent of subsequent source ed
 The registry is `projects.json` in Electron's application userData directory.
 Project databases, JSONL exports, prompts and worktrees remain in their workspace.
 Runtime logs are capped at 128 KB per project and persisted under `userData/logs`;
-the Logs dialog shows the last 10 KB from the current run.
+the Logs viewer shows a snapshot of the last 10,000 characters from the current run.
+It opens in a separate child window above the project dashboard, sized to the
+owner display’s available work area (at most 800 × 560 including native chrome).
+Long lines wrap and the log region scrolls while Close stays visible. Close, Esc,
+and the native window close action return focus to the owner. Reopening takes a
+fresh snapshot; an empty run shows “No logs yet”. Log text cannot execute HTML or
+scripts, and the viewer exposes no Node or desktop command bridge.
 
 ## Repositories within a project
 
@@ -134,9 +140,26 @@ node apps/desktop/scripts/check-launch-services.mjs
 
 `check-app.mjs` uses the workspace's Playwright installation to verify the actual
 packaged Electron views, HTTP/WS/SSE authentication, isolated storage and project
-switching. `check-launch-services.mjs` launches through macOS LaunchServices with
+switching. Its Logs regression injects snapshots into only the temporary manager,
+constrains the reported work area to 600px, and checks actual wheel/keyboard
+scrolling, long lines, empty logs, Close/Esc/native close, focus, reopening, and
+the child window above an open project. It retains viewer PNGs and
+`logs-observations.json`; `logs-native-desktop.png` captures native z-order when
+macOS screen capture permission is available. The work-area override is test-side;
+it does not change the host display configuration. `check-launch-services.mjs` launches through macOS LaunchServices with
 a minimal PATH and a Unicode workspace path, and checks parent-loss cleanup.
-Both use temporary fixtures and a separate app-data directory. Diagnostics stay
+Both use temporary fixtures and a separate app-data directory. When running backend
+tests or LaunchServices from a managed agent session, clear inherited routing
+variables for the test process only:
+
+```sh
+env -u STONEFORGE_ROOT -u STONEFORGE_DESKTOP_INSTANCE_ID \
+  -u STONEFORGE_DB_PATH -u STONEFORGE_UPLOAD_DIR -u ELECTRON_RUN_AS_NODE \
+  pnpm --filter @stoneforge/desktop test
+# Use the same env prefix for node apps/desktop/scripts/check-launch-services.mjs.
+```
+
+The packaged UI smoke clears these variables in its fixture environment itself. Diagnostics stay
 in the printed temporary directory. `DESKTOP_APP` can select a relocated bundle.
 
 Opt-in provider validation makes real API calls through the packaged terminal:
