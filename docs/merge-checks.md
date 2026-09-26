@@ -76,10 +76,10 @@ Review warnings/skips and run additional checks needed for the changed area.
 A known failure still blocks acceptance; do not bypass the gate or replace tests
 with compilation. Track unrelated defects separately rather than weakening checks.
 
-This document and command do **not** activate a repository merge policy.
-The shared `repositories.json` still requires a separate, explicitly reviewed
-activation task after this change is merged. Do not infer that the old
-`pnpm typecheck` policy executes this gate.
+The existing core registration now uses exactly `pnpm check:merge`, activated
+by el-1r6 after its successful run on integrated local master. See the final
+activation record below. Independent steward review of el-1r6 remains required.
+The standalone local merge command does not run the gate; execute it explicitly.
 
 ## Recorded validation — 2026-09-26, task el-5xd
 
@@ -250,3 +250,31 @@ The current target remained 00847ad at completion. This is worker validation;
 the steward must independently review and run the gate on the final proposed
 merge revision before approved local delivery. Activation remains separate el-1r6.
 AGENTS.md, repositories.json, installed Desktop and running sessions were unchanged.
+
+
+## Активация и итоговая worker-приёмка el-1r6 — 2026-09-26
+
+После закрытия/доставки всех семи блокеров approved el-ptim CLI (299 hashes match)
+синхронизировал assigned worktree с local master
+`3722db9626db16f401eb464dab1239f8d0f1224f`. Frozen install exit 0;
+один полный **`pnpm check:merge` exit 0, 176/176 steps**, 162.91 s runner /
+163.249 s wall. Uncached typecheck 17/17 (0 cached), 8,492 Bun pass / 29 existing
+skips, 325 Vitest, 6 Desktop, 5 gate regressions; fresh Desktop build exit 0.
+Node 22.23.3, pnpm 8.15.5, Bun 1.3.11, macOS arm64. Реализация gate не менялась;
+исторические failures и исключения выше сохранены, live/packaged GUI не проверялись.
+
+После этого изменено только `core.testCommand` на точное `pnpm check:merge` в
+shared repositories.json с exclusive lock и atomic rename; update API отсутствует.
+Id/path/targetBranch/gitCommonDir сохранены. Аутентифицированный текущий backend
+GET /api/repositories и installed sf repo list сразу показывают новое значение;
+endpoint/project/instance identity прежние, restart не нужен. Это настройка и её
+видимость в текущем сервере; standalone task merge --local сам gate не запускает.
+
+Полный отчёт/санитизированные snapshots/patches находятся в core
+`docs/workspace/merge-acceptance-2026-09-26.{md,json}`,
+`docs/workspace/core-merge-gate.patch`, `docs/workspace/root-agents-storage.patch`.
+Логи: `/tmp/el-1r6-evidence/{install.log,gate.log,gate.json}`; все команды/exits/
+длительности — `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Z9wDEd/results.json`.
+Это worker acceptance/activation; независимое ревью steward текущего commit и
+общих изменений обязательно до закрытия el-1r6 и local delivery. Приложение и
+сессии не заменялись/не перезапускались; installed dispatch ещё требует ancestry check.
