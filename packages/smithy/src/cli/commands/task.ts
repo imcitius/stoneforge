@@ -1011,18 +1011,18 @@ export async function verifyMergeStatus(params: {
   effectiveTarget: string;
   mergeCommitHash?: string;
   force?: boolean;
-  execAsync: (cmd: string, opts: Record<string, unknown>) => Promise<{ stdout: string; stderr: string }>;
+  execFileAsync: (file: string, args: string[], opts: Record<string, unknown>) => Promise<{ stdout: string; stderr: string }>;
   workspaceRoot: string;
 }): Promise<{ status: 'ok' | 'error' | 'forced'; message?: string }> {
-  const { branch, effectiveTarget, mergeCommitHash, force, execAsync, workspaceRoot } = params;
+  const { branch, effectiveTarget, mergeCommitHash, force, execFileAsync, workspaceRoot } = params;
 
   try {
     // Fetch latest from origin
-    await execAsync('git fetch origin', { cwd: workspaceRoot, encoding: 'utf8', timeout: 60_000 });
+    await execFileAsync('git', ['fetch', 'origin'], { cwd: workspaceRoot, encoding: 'utf8', timeout: 60_000 });
 
     // Check if the source branch has commits not on origin/{targetBranch}
-    const { stdout: countStr } = await execAsync(
-      `git rev-list --count origin/${effectiveTarget}..${branch}`,
+    const { stdout: countStr } = await execFileAsync(
+      'git', ['rev-list', '--count', '--end-of-options', branch, `^origin/${effectiveTarget}`, '--'],
       { cwd: workspaceRoot, encoding: 'utf8' }
     );
     const count = parseInt(countStr.trim(), 10);
@@ -1041,8 +1041,8 @@ export async function verifyMergeStatus(params: {
       // Source branch was deleted — try to verify via merge commit hash
       if (mergeCommitHash) {
         try {
-          await execAsync(
-            `git merge-base --is-ancestor ${mergeCommitHash} origin/${effectiveTarget}`,
+          await execFileAsync(
+            'git', ['merge-base', '--is-ancestor', '--', mergeCommitHash, `origin/${effectiveTarget}`],
             { cwd: workspaceRoot, encoding: 'utf8' }
           );
           return { status: 'ok' };
@@ -1132,9 +1132,9 @@ async function taskMergeStatusHandler(
 
           if (stoneforgeDir) {
             const { default: path } = await import('node:path');
-            const { exec } = await import('node:child_process');
+            const { execFile } = await import('node:child_process');
             const { promisify } = await import('node:util');
-            const execAsync = promisify(exec);
+            const execFileAsync = promisify(execFile);
             const repositories = new ProjectRepositories(path.dirname(stoneforgeDir));
             const repository = await repositories.repositoryForTask(task);
             const workspaceRoot = path.resolve(repositories.root, repository.path);
@@ -1142,7 +1142,7 @@ async function taskMergeStatusHandler(
             // Check if a remote exists (skip verification for local-only workspaces)
             let hasRemote = false;
             try {
-              const { stdout } = await execAsync('git remote', { cwd: workspaceRoot, encoding: 'utf8' });
+              const { stdout } = await execFileAsync('git', ['remote'], { cwd: workspaceRoot, encoding: 'utf8' });
               hasRemote = stdout.trim().length > 0;
             } catch { /* no remote */ }
 
@@ -1157,7 +1157,7 @@ async function taskMergeStatusHandler(
                 effectiveTarget,
                 mergeCommitHash,
                 force: options.force,
-                execAsync,
+                execFileAsync,
                 workspaceRoot,
               });
 
