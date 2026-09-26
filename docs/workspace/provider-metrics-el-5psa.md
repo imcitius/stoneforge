@@ -259,3 +259,41 @@ tracked gate failure, rerun the full required gate on the final revision, obtain
 independent final-commit steward review, then use approved CLI local delivery.
 No PR was created manually; no task merge, installed-app change, live migration,
 backfill, paid provider request or session restart occurred.
+
+
+### Integrated worker acceptance after el-16z5 — el-33hc, 2026-09-26
+
+The blocker el-16z5 was independently reviewed and delivered as local master
+`dca7189e8e28111c0fb643a33650222f69b3eb99`. All 299 approved el-ptim CLI
+artifact hashes matched. Its `task sync el-33hc` merged that target without
+conflicts into tested commit `d7cc1494c5e7dcaa7f849fcbeb7f648c9ba70da1`.
+No metrics implementation or tests changed during this resumed acceptance.
+The historical failed gate above is preserved: the collision defect is proven,
+but attribution of that original failure remains unresolved (see el-43jm).
+
+- `pnpm install --frozen-lockfile`: exit 0, lockfile unchanged.
+- One integrated `pnpm check:merge`: **exit 0, 180/180 checks, 177.09 s**.
+  Uncached typecheck 17/17; Bun 8,535 pass / 0 fail / 29 existing skips;
+  Smithy Vitest 325 pass; Desktop Node 6 pass; gate regressions 5 pass;
+  Desktop source build passed. This includes the real Node CLI metrics output
+  suite (9), existing metrics command suite (14), and playbook suite (36).
+- The isolated Playwright command above: **9/9 pass**, retries=0, 9.8 s.
+  The partial-state screenshot was inspected: labels and subtotals are visible.
+  The known duplicated responsive chart title remains separately tracked by
+  el-2ohr; its unmerged source fix is not included in this acceptance.
+- The coverage Vitest command above: **3/3 pass**.
+- `git diff --check` and local-target ancestry: exit 0; target remained dca7189.
+
+Logs: `/tmp/el-33hc-resume-{install,gate,browser,unit}.log`. Exact gate
+commands, exits, durations and per-step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-c8mGBn/results.json`.
+Node 22.23.3, pnpm 8.15.5, Bun 1.3.11, macOS arm64. Subsequent changes only
+record these results in documentation. Shared el-1fqa and Directory updates
+preserve other contributors' entries, including el-2ohr.
+
+This is worker acceptance for transition to REVIEW, not independent approval.
+Steward must review the final commit and use the approved CLI for local delivery;
+if the target changes, sync and verify the resulting revision. No manual PR,
+merge bypass, installed-app update, live project migration, provider calls,
+backfill or session restart. Full browser suites, packaged GUI/LaunchServices,
+standalone root build/lint/test and cross-platform checks were not run.
