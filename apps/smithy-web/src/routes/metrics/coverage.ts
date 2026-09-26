@@ -12,6 +12,44 @@ export function summarizeUsage(records: UsageCoverage[]) {
   return { sessionCount, usageSessionCount, legacySessionCount, usageStatus };
 }
 
+export interface CacheRate {
+  cacheHitRate: number | null;
+  cacheHitRateStatus: MetricStatus;
+}
+
+/**
+ * Codex's mapper separates inclusive provider input into uncached/read/creation;
+ * Claude reports those categories separately. Sum each once, excluding output.
+ * Legacy totals have no verified semantics or observed-only token breakdown:
+ * never derive a ratio from them, including when mixed with observed records.
+ */
+export function summarizeCacheRate(records: AggregatedProviderMetrics[]): CacheRate {
+  const coverage = summarizeUsage(records);
+  if (coverage.legacySessionCount > 0) return { cacheHitRate: null, cacheHitRateStatus: 'unknown' };
+  if (coverage.usageStatus !== 'available' && coverage.usageStatus !== 'partial') {
+    return { cacheHitRate: null, cacheHitRateStatus: coverage.usageStatus };
+  }
+  let read = 0;
+  let input = 0;
+  for (const record of records) {
+    const categories = [record.totalInputTokens, record.totalCacheReadTokens, record.totalCacheCreationTokens];
+    if (!categories.every(value => Number.isFinite(value) && value >= 0)) {
+      return { cacheHitRate: null, cacheHitRateStatus: 'unknown' };
+    }
+    read += record.totalCacheReadTokens;
+    input += categories.reduce((sum, value) => sum + value, 0);
+  }
+  return {
+    cacheHitRate: input > 0 ? Math.round(read / input * 100) : null,
+    cacheHitRateStatus: coverage.usageStatus,
+  };
+}
+
+export function cacheRateValue(rate: CacheRate): string {
+  return metricValue(rate.cacheHitRate === null ? 'N/A (no input tokens)' : `${rate.cacheHitRate}%`,
+    rate.cacheHitRateStatus, 'recorded ratio');
+}
+
 export function summarizeMetrics(records: AggregatedProviderMetrics[]) {
   const usage = summarizeUsage(records);
   const totalInputTokens = records.reduce((s, m) => s + m.totalInputTokens, 0);
@@ -29,7 +67,7 @@ export function summarizeMetrics(records: AggregatedProviderMetrics[]) {
     totalTokens: totalInputTokens + totalOutputTokens,
     estimatedCost: pricedRecords.reduce((s, m) => s + (m.estimatedCost?.totalCost ?? 0), 0),
     estimatedCostStatus, pricedSessionCount,
-    cacheHitRate: totalInputTokens > 0 ? Math.round(totalCacheReadTokens / totalInputTokens * 100) : 0,
+    ...summarizeCacheRate(records),
   };
 }
 
