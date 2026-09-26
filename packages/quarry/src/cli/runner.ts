@@ -424,5 +424,17 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<neve
   }
 
   const exitCode = await run(argv);
+  // Node can buffer console/handler output when stdout or stderr is a pipe.
+  // Wait for a trailing write on both streams before forcing exit; its callback
+  // runs after earlier writes, including large output that hit backpressure.
+  // Keep the explicit exit so command/plugin handles cannot keep the CLI alive.
+  await Promise.all([process.stdout, process.stderr].map(stream =>
+    new Promise<void>((resolve, reject) => {
+      stream.write('', error => {
+        if (error) reject(error);
+        else resolve();
+      });
+    })
+  ));
   process.exit(exitCode);
 }
