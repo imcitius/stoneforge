@@ -976,3 +976,72 @@ Local master ancestry and diff checks pass. Only report text changed after this
 gate. Original failures and pre-sync result are retained. Independent steward
 review of the final commit and approved CLI local merge remain required; this
 worker record is not a merge verdict or installed application update.
+
+## Claude SDK cleanup retry — el-1mo5c, 2026-09-26
+
+Baseline is delivered local master `3c22b53`, including Spawner el-1c5so and
+SessionManager el-1q2vv. No pending branch was copied. Implementation `c9f32d3`
+changes only ClaudeHeadlessSession close bookkeeping: `closed` continues to stop
+input/iteration immediately; `cleanupComplete` is set only after the captured
+SDK query's synchronous close returns. Throws remain visible to the caller and
+leave cleanup retryable on that exact query. Successful cleanup is idempotent.
+Input is never reopened; pre-close queued messages retain their existing drain
+order, new messages after close begins are dropped. Interrupt remains separate
+and does not set either close latch. No new provider-wide state or handle lookup.
+
+The locked SDK is @anthropic-ai/claude-agent-sdk 0.3.282. Its local Query declaration
+has close(): void and documents process/MCP/pending-request cleanup. Tests invoke
+the actual exported ClaudeHeadlessProvider.spawn and session wrapper, mocking only
+SDK query creation with inert queues/methods. No live SDK query, OS child or provider
+is invoked; the fixture does not estimate real SDK exception frequency or promise
+that retrying SDK internals reverses a partial external side effect.
+
+New Vitest suite `packages/smithy/src/providers/claude/headless-close.test.ts`:
+first throw/success/completed no-op; distinct repeated throws then success; waiting
+input closed before throwing cleanup (including reentrant send); old queue ordering;
+post-failure output suppression plus cleanup after iterator end; natural end cleanup;
+interrupt error/success/input preservation; AbortError completion; composed real
+Spawner/Claude adapter retry with shared caller error, skipped successful interrupt,
+original query and untouched same-agent/same-provider-ID successor.
+
+Baseline with all 9 final regressions and original production file: **4 fail/5 pass,
+exit1**, `/tmp/el-1mo5c-baseline-final.log`. Prior raw baseline and refined diagnostic
+are retained in `/tmp/el-1mo5c-baseline.log` and `-baseline-refined.log`: first composed
+case hit Vitest timeout; fake-time refinement exposed `Session termination unconfirmed`.
+An intermediate post-fix run had 23/24 passing: advancing 5 seconds removed the already
+terminated session via the existing retention timer. The final fixture advances zero
+fake milliseconds and checks SDK call count before awaiting retry, giving deterministic
+baseline failure and retaining the termination-state assertion. No production timer or
+threshold was changed. Intermediate log `/tmp/el-1mo5c-focused.log` is retained.
+
+Verification:
+- `pnpm install --frozen-lockfile`: exit0, lockfile unchanged; install log
+  `/tmp/el-1mo5c-install.log`.
+- `pnpm --filter @stoneforge/smithy typecheck`: exit0,
+  `/tmp/el-1mo5c-typecheck.log`.
+- `pnpm --filter @stoneforge/smithy test:node src/providers/claude/headless-close.test.ts src/runtime/spawner-terminate.test.ts`:
+  **24/24 pass**, `/tmp/el-1mo5c-focused-final.log`.
+- `bun test packages/smithy/src/providers/claude/headless.bun.test.ts`:
+  **17/17 pass,48 assertions**, `/tmp/el-1mo5c-adapter.log` (isolated process).
+- `bun test packages/smithy/src/runtime/spawner.bun.test.ts packages/smithy/src/runtime/session-manager.bun.test.ts packages/smithy/src/services/dispatch-claim.bun.test.ts`:
+  **187/187 pass,478 assertions**, `/tmp/el-1mo5c-runtime.log`.
+
+Iterator end is NOT proof of resource cleanup. The adapter's retry latch remains
+incomplete across iterator end, proven directly. Existing Spawner treats ended
+provider output as terminated, so a subsequent Spawner terminate can return before
+reaching this adapter if output already ended independently. This separate runtime
+boundary is unchanged and reported to Director; composed coverage here tests retry
+while output is still pending after the SDK throw, then ends on successful cleanup.
+No universal process-tree/resource-release guarantee is claimed.
+
+Required gate result follows below. Separate root build/lint/test, browser/packaged
+GUI, cross-platform and live-provider checks are omitted; the gate runs its declared
+checks. Installed application, live sessions/daemon and maintenance were untouched.
+Independent steward review of the exact final commit and approved CLI local merge
+are required after worker completion; worker does not claim either.
+
+First required `pnpm check:merge`: **189/189, exit0,315.77s**, including Smithy
+Vitest349/349. Log `/tmp/el-1mo5c-gate.log`; exact per-step results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-LVCg2k/results.json`.
+Local master advanced to delivered handoff fix beac945 during verification; approved
+CLI sync and integration verification follow, preserving the first gate evidence.
