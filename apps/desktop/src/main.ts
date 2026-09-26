@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ProjectManager, type Instance, type WorkflowPreset } from './manager.js';
+import { showLogs } from './logs-window.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -213,7 +214,7 @@ async function boot(): Promise<void> {
       if (command === 'restart') await openProject(id);
       if (command === 'remove') { await manager.remove(id); if (active === id) active = undefined; }
     } else if (command === 'logs') {
-      await dialog.showMessageBox(window, { message: manager.projects.get(id)!.name + ' — Logs', detail: manager.logs.get(id)?.slice(-10_000) || 'No logs yet', buttons: ['Close'] });
+      await showLogs(window, id, manager.projects.get(id)!.name, manager.logs.get(id));
     } else throw new Error('Unknown command');
     update(); return snapshot();
     } catch (error) {

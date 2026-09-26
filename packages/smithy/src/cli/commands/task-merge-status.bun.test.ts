@@ -66,31 +66,54 @@ describe('verifyMergeStatus', () => {
     workspaceRoot: '/workspace',
   };
 
-  // Helper to create a mock execAsync
+  // Helper to create a mock execFileAsync
   function createMockExec(responses: Record<string, { stdout?: string; error?: Error }>) {
-    return mock(async (cmd: string, _opts: Record<string, unknown>) => {
+    return mock(async (file: string, args: string[], _opts: Record<string, unknown>) => {
       for (const [pattern, response] of Object.entries(responses)) {
-        if (cmd.includes(pattern)) {
+        if (file === 'git' && args[0] === pattern) {
           if (response.error) {
             throw response.error;
           }
           return { stdout: response.stdout ?? '', stderr: '' };
         }
       }
-      return { stdout: '', stderr: '' };
+      throw new Error(`Unexpected command: ${file} ${JSON.stringify(args)}`);
     });
   }
 
+  it('passes literal refs and hashes as separate Git arguments', async () => {
+    const branch = 'feature/$(echo${IFS}branch);&';
+    const effectiveTarget = 'release/`echo${IFS}target`';
+    const mergeCommitHash = 'hash; echo "literal"';
+    const execFileAsync = createMockExec({
+      fetch: {},
+      'rev-list': { error: new Error('bad revision') },
+      'merge-base': {},
+    });
+    const result = await verifyMergeStatus({
+      ...baseParams, branch, effectiveTarget, mergeCommitHash, execFileAsync,
+    });
+
+    expect(result.status).toBe('ok');
+    expect(execFileAsync.mock.calls).toEqual([
+      ['git', ['fetch', 'origin'], { cwd: '/workspace', encoding: 'utf8', timeout: 60_000 }],
+      ['git', ['rev-list', '--count', '--end-of-options', branch, `^origin/${effectiveTarget}`, '--'],
+        { cwd: '/workspace', encoding: 'utf8' }],
+      ['git', ['merge-base', '--is-ancestor', '--', mergeCommitHash, `origin/${effectiveTarget}`],
+        { cwd: '/workspace', encoding: 'utf8' }],
+    ]);
+  });
+
   describe('when branch exists and all commits are on target', () => {
     it('should return ok', async () => {
-      const execAsync = createMockExec({
-        'git fetch origin': { stdout: '' },
-        'git rev-list --count': { stdout: '0\n' },
+      const execFileAsync = createMockExec({
+        fetch: { stdout: '' },
+        'rev-list': { stdout: '0\n' },
       });
 
       const result = await verifyMergeStatus({
         ...baseParams,
-        execAsync,
+        execFileAsync,
       });
 
       expect(result.status).toBe('ok');
@@ -99,14 +122,14 @@ describe('verifyMergeStatus', () => {
 
   describe('when branch exists and has unmerged commits', () => {
     it('should return error with commit count', async () => {
-      const execAsync = createMockExec({
-        'git fetch origin': { stdout: '' },
-        'git rev-list --count': { stdout: '3\n' },
+      const execFileAsync = createMockExec({
+        fetch: { stdout: '' },
+        'rev-list': { stdout: '3\n' },
       });
 
       const result = await verifyMergeStatus({
         ...baseParams,
-        execAsync,
+        execFileAsync,
       });
 
       expect(result.status).toBe('error');
@@ -117,15 +140,15 @@ describe('verifyMergeStatus', () => {
 
   describe('when source branch is deleted (unknown revision)', () => {
     it('should fail when no merge commit hash is recorded', async () => {
-      const execAsync = createMockExec({
-        'git fetch origin': { stdout: '' },
-        'git rev-list --count': { error: new Error('fatal: bad revision \'origin/master..feature/my-branch\'') },
+      const execFileAsync = createMockExec({
+        fetch: { stdout: '' },
+        'rev-list': { error: new Error('fatal: bad revision \'origin/master..feature/my-branch\'') },
       });
 
       const result = await verifyMergeStatus({
         ...baseParams,
         mergeCommitHash: undefined,
-        execAsync,
+        execFileAsync,
       });
 
       expect(result.status).toBe('error');
@@ -135,15 +158,15 @@ describe('verifyMergeStatus', () => {
     });
 
     it('should fail when unknown revision error is used', async () => {
-      const execAsync = createMockExec({
-        'git fetch origin': { stdout: '' },
-        'git rev-list --count': { error: new Error('unknown revision or path not in the working tree') },
+      const execFileAsync = createMockExec({
+        fetch: { stdout: '' },
+        'rev-list': { error: new Error('unknown revision or path not in the working tree') },
       });
 
       const result = await verifyMergeStatus({
         ...baseParams,
         mergeCommitHash: undefined,
-        execAsync,
+        execFileAsync,
       });
 
       expect(result.status).toBe('error');
@@ -152,16 +175,16 @@ describe('verifyMergeStatus', () => {
 
     it('should succeed when merge commit hash IS on target', async () => {
       const commitHash = 'abc123def456';
-      const execAsync = createMockExec({
-        'git fetch origin': { stdout: '' },
-        'git rev-list --count': { error: new Error('bad revision') },
-        'git merge-base --is-ancestor': { stdout: '' }, // exit 0 = is ancestor
+      const execFileAsync = createMockExec({
+        fetch: { stdout: '' },
+        'rev-list': { error: new Error('bad revision') },
+        'merge-base': { stdout: '' }, // exit 0 = is ancestor
       });
 
       const result = await verifyMergeStatus({
         ...baseParams,
         mergeCommitHash: commitHash,
-        execAsync,
+        execFileAsync,
       });
 
       expect(result.status).toBe('ok');
@@ -169,16 +192,16 @@ describe('verifyMergeStatus', () => {
 
     it('should fail when merge commit hash is NOT on target', async () => {
       const commitHash = 'abc123def456';
-      const execAsync = createMockExec({
-        'git fetch origin': { stdout: '' },
-        'git rev-list --count': { error: new Error('bad revision') },
-        'git merge-base --is-ancestor': { error: new Error('exit code 1') },
+      const execFileAsync = createMockExec({
+        fetch: { stdout: '' },
+        'rev-list': { error: new Error('bad revision') },
+        'merge-base': { error: new Error('exit code 1') },
       });
 
       const result = await verifyMergeStatus({
         ...baseParams,
         mergeCommitHash: commitHash,
-        execAsync,
+        execFileAsync,
       });
 
       expect(result.status).toBe('error');
@@ -189,16 +212,16 @@ describe('verifyMergeStatus', () => {
 
   describe('--force flag', () => {
     it('should bypass when branch is deleted and no commit hash', async () => {
-      const execAsync = createMockExec({
-        'git fetch origin': { stdout: '' },
-        'git rev-list --count': { error: new Error('bad revision') },
+      const execFileAsync = createMockExec({
+        fetch: { stdout: '' },
+        'rev-list': { error: new Error('bad revision') },
       });
 
       const result = await verifyMergeStatus({
         ...baseParams,
         mergeCommitHash: undefined,
         force: true,
-        execAsync,
+        execFileAsync,
       });
 
       expect(result.status).toBe('forced');
@@ -208,17 +231,17 @@ describe('verifyMergeStatus', () => {
 
     it('should bypass when branch is deleted and commit hash not on target', async () => {
       const commitHash = 'abc123def456';
-      const execAsync = createMockExec({
-        'git fetch origin': { stdout: '' },
-        'git rev-list --count': { error: new Error('bad revision') },
-        'git merge-base --is-ancestor': { error: new Error('exit code 1') },
+      const execFileAsync = createMockExec({
+        fetch: { stdout: '' },
+        'rev-list': { error: new Error('bad revision') },
+        'merge-base': { error: new Error('exit code 1') },
       });
 
       const result = await verifyMergeStatus({
         ...baseParams,
         mergeCommitHash: commitHash,
         force: true,
-        execAsync,
+        execFileAsync,
       });
 
       expect(result.status).toBe('forced');
@@ -228,10 +251,10 @@ describe('verifyMergeStatus', () => {
 
     it('should not be needed when merge commit hash IS on target', async () => {
       const commitHash = 'abc123def456';
-      const execAsync = createMockExec({
-        'git fetch origin': { stdout: '' },
-        'git rev-list --count': { error: new Error('bad revision') },
-        'git merge-base --is-ancestor': { stdout: '' },
+      const execFileAsync = createMockExec({
+        fetch: { stdout: '' },
+        'rev-list': { error: new Error('bad revision') },
+        'merge-base': { stdout: '' },
       });
 
       // Even with force=true, when commit is on target, result should be ok (not forced)
@@ -239,7 +262,7 @@ describe('verifyMergeStatus', () => {
         ...baseParams,
         mergeCommitHash: commitHash,
         force: true,
-        execAsync,
+        execFileAsync,
       });
 
       expect(result.status).toBe('ok');
@@ -248,14 +271,14 @@ describe('verifyMergeStatus', () => {
 
   describe('other git errors', () => {
     it('should propagate non-revision errors', async () => {
-      const execAsync = createMockExec({
-        'git fetch origin': { stdout: '' },
-        'git rev-list --count': { error: new Error('fatal: not a git repository') },
+      const execFileAsync = createMockExec({
+        fetch: { stdout: '' },
+        'rev-list': { error: new Error('fatal: not a git repository') },
       });
 
       const result = await verifyMergeStatus({
         ...baseParams,
-        execAsync,
+        execFileAsync,
       });
 
       expect(result.status).toBe('error');
