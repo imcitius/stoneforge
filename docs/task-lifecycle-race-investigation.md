@@ -245,3 +245,11 @@ Separate root build/lint/test, browser/packaged GUI, live providers and cross-pl
 checks are omitted. Source changes do not update Desktop5f53cef or reopen completed
 maintenance el-1clm. Independent steward review of the exact final commit and explicit
 checks remain required before approved CLI `task merge --local`; worker does not merge.
+
+Worker required gate on production/test commit `d714841`: **pnpm check:merge exit 0,
+185/185 steps, 224.54s**, one run. Includes uncached workspace typecheck, Desktop
+source build, Smithy Node/Vitest, Desktop Node integration and the new Git suite
+19/19. Exact commands/exits/durations and per-step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-VRcL9Z/results.json`.
+`git diff --check` passed. Only this evidence note changes after the gate; production
+and tests remain the tested versions. Independent steward acceptance is pending.
