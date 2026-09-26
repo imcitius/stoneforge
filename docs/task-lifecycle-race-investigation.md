@@ -1054,3 +1054,9 @@ All dispatch, lifecycle, typecheck, Node and Desktop source checks passed.
 Director notified. This failed gate is retained, not described as green acceptance.
 During the run local master advanced to delivered handoff fix `beac945`; the
 approved CLI's manifest and all299 hashes were verified before integrating it.
+
+Approved CLI sync with delivered handoff `beac945` succeeded without conflicts as
+`8fa6a5b`. Integrated required **pnpm check:merge189/189, exit0, 256.13s**:
+`/tmp/el-hkutb-integrated-gate.log`, exact results
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-bYbZs8/results.json`.
+Quarry scaling35/35 passed unchanged; this does not establish the original cause.
