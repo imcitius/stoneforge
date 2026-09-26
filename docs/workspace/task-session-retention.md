@@ -169,3 +169,13 @@ without discarding other entries. No new workspace document or task was needed.
 Separate root build/lint/test, Quarry Node, browser/packaged GUI, live provider,
 cross-platform and application installation checks were not run; gate includes
 its declared typecheck/build/runtime suites. Existing skips are not coverage.
+
+Final integrated **`pnpm check:merge`: 187/187, exit 0, 228.24s**.
+`/tmp/el-2y8n3-integrated-gate.log`; exact commands/results/per-step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-LzHsWR/results.json`.
+Includes uncached workspace typecheck, Desktop build, all discovered Bun suites
+(including retention 12, handoff 26, completion protocol 69), Smithy Node/Vitest,
+Desktop Node and gate regressions. No check/threshold was changed or failure
+retried away. Only documentation results changed after the tested source commit
+`687a11f`; independent steward must review the final documentation commit too.
+Target remained `3420c56`; `git diff --check` and target ancestry passed.
