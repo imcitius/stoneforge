@@ -157,3 +157,78 @@ steward review and approved CLI local delivery are still required.
 Workspace reference: `el-1fqa`, added via `sf docs add`; existing runbook `el-of6`
 and audit `el-3d6` link the diagnosis. Directory `el-1s1` was reread immediately
 before updates and other agents' entries were preserved.
+
+## Shared chart responsive titles — el-2ohr, 2026-09-26
+
+Approved CLI sync brought the assigned worktree to local master
+`e7c00526cc23e312e4def0bea8e259b77359e80f`. The duplicate title observed in
+el-33hc is independently reproduced on that master in both an isolated
+MetricsPage fixture and the real `/metrics` app entrypoint. All HTTP APIs and
+WebSockets are intercepted; no backend, installed app or real project/session
+is used. At 1280px both title spans display inline. This is a confirmed source
+styling defect, independent of el-33hc's coverage/metric changes.
+
+Cause: Smithy Web's Tailwind/PostCSS automatic source scan starts at the app
+root. `packages/ui/src` is outside that scan. The desktop `sm:inline` utility
+happens to be generated because FileContentSearch uses it in app source;
+`sm:hidden` has no app usage and is absent from the generated stylesheet.
+The shared TrendLineChart markup already requests both utilities correctly.
+The three-line production diff explicitly registers `../../../packages/ui/src`
+as a Tailwind `@source` in `apps/smithy-web/src/index.css`. No component, metric
+calculation, caption, API or dependency is changed. Other existing shared UI
+utilities (including responsive padding/type sizes) now compile consistently too.
+
+The regression spec avoids utility-class literals that could themselves supply
+missing candidates. It checks mutually exclusive spans and actual visible
+heading text at widths 320, 639, 640, 768, 1280 and 1440, with real app CSS,
+visible metric cards/table and no page errors. Both fixture and full app failed
+at the original desktop visibility assertion. The first full-app harness also
+failed because its mocked `/api/elements/all` lacked `data`; that fixture-only
+error is preserved in the logs and corrected before the full-app reproduction.
+The initial test's unused mobile expected-text typo was corrected before mobile
+verification. Removing only the new source directive after the fix made both
+final tests fail again at 1280px; restoring it passes both. This negative control
+and the before/after CSS establish causality, rather than an unexplained pass.
+
+Commands (Node 22.23.3, pnpm 8.15.5, Bun 1.3.11, macOS arm64):
+
+```sh
+pnpm install --frozen-lockfile
+PLAYWRIGHT_BROWSERS_PATH=/tmp/el-33hc-browsers pnpm --filter @stoneforge/smithy-web exec playwright test --config playwright.responsive-title.config.ts
+pnpm --filter @stoneforge/smithy-web build:web
+pnpm check:merge
+```
+
+Frozen install passed. Final browser regressions: 2/2 pass, retries=0, 4.6s.
+Frontend production build passed (10.07s); generated production CSS contains
+both responsive display rules. Baseline and fixed PostCSS output are retained.
+The existing el-33hc browser suite was additionally run with its ten frontend/UI
+files from commit `c9a48d3` temporarily overlaid **only in this assigned worktree**:
+9/9 pass (6.6s), covering measured zero, unavailable, legacy unknown, partial,
+unpriced, old-server, mixed-bucket gaps and empty/error states. Partial labels
+remain visible in cards/table/chart caption; the screenshot shows a single full
+chart title. The overlay was restored byte-for-byte/removed afterward and is
+not included in this task diff. This is compatibility evidence, not integration
+or acceptance of the pending el-33hc task.
+
+Required `pnpm check:merge`: **exit 0, 179/179 steps, 159.05s**, one full run.
+Exact commands/exits/durations and step logs are retained at
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-StD1t3/results.json`.
+This gate includes uncached workspace typecheck, the Desktop source build,
+isolated Bun files, Smithy Vitest and Desktop Node integration; it does not
+include the separately executed browser tests. Tested implementation/test tree
+is committed as `e2af265`; subsequent documentation records this result.
+`git diff --check` passed; local master remains e7c0052.
+
+Evidence is retained in `/tmp/el-2ohr-evidence/`: `baseline-browser.log`,
+`full-app-harness.log`, `full-app-baseline.log`, `negative-control.log`,
+`fixed-browser.log`, `final-browser.log`, `pending-metrics-integration.log`,
+`install.log`, `build-web.log`, `gate.log`, `baseline.css`, `fixed.css`, and
+corresponding `*-results/` screenshots/error contexts. Original el-33hc screenshot
+and its unrelated historical playbook gate failure remain preserved. No retry
+until green or weakened assertions/gate. Browser coverage is Chromium only;
+installed/packaged app, live providers and other browsers were not tested.
+
+Independent steward review of the final commit and approved CLI local delivery
+are still required; this worker report does not claim independent approval or
+an installed-app update.
