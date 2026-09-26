@@ -1069,3 +1069,22 @@ suites. Local master advanced to delivered Spawner fix `3c22b53` during that run
 Approved safe sync preserves both implementations; only an additive report conflict
 needed resolution, retaining both reports. The integrated revision is checked again
 below; the earlier result remains evidence for its original source.
+
+### el-2hrsm final integrated worker verification
+
+Integrated source `d95fcae` includes delivered local master `3c22b53`. Final
+`pnpm check:merge`: **190/190, exit0,258.81s**, log
+`/tmp/el-2hrsm-gate-integrated.log`; exact commands and step results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-X6o7Pl/results.json`.
+The gate includes uncached workspace typecheck, all declared isolated Bun suites,
+Smithy Node/Vitest340/340 (including the delivered Spawner tests), Desktop build
+and Node integration. The five focused suites inside the final gate total
+**236/236,1155 assertions**: explicit API30, API integration27, assignment37,
+completion69, lifecycle73. Existing skips in other suites are not passing coverage.
+Earlier focused234/234 and first gate190/190 remain historical results above.
+
+Local master ancestry, diff check and clean source status passed. Only this result
+record changed after the integrated gate; production/test files remain the tested
+versions. Exact-final-commit independent steward review and approved CLI local merge
+are still required. Caller process/worktree effects and recovery limits above remain;
+no installed app, live session/daemon, provider or maintenance changes were made.
