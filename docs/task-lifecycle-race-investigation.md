@@ -557,3 +557,33 @@ CLI sync reported conflicts only in this report and the evidence matrix. Both
 sets of corrections and historical records are retained, with assign/complete/
 unassign now using the shared rejection branch of the R1/R2 matrix. Production
 files auto-merged. The next gate validates this integrated revision.
+
+### Final worker verification for el-20qt0
+
+Integrated source is `e0887b164e2e887ffe0ad8261ebc49400f31ffd8`, against local
+master `f30b41ad841d1cea6ca5d274403baba950a85a0d`. A second independent advisory
+review compared the merge against both parents and found no blocking integration
+concerns; historical evidence and both corrections were retained. The only later
+test change, `41381df`, explicitly adds closed-task CLI rejection and description
+preservation; it was committed before the final gate executed that matrix.
+
+Final **`pnpm check:merge`: 186/186, exit 0, 224.77s**. Includes uncached
+workspace typecheck 17/17, Desktop build, Bun **8,780 pass / 0 fail / 29 existing
+skips**, Smithy Node/Vitest 325, Desktop Node 6 and gate regressions 5 pass.
+Completion protocol 69, local Git 23, lifecycle matrix 71 and assignment 37 all
+passed in that gate (**200 focused tests**). `git diff --check` passed; worktree
+was clean before this documentation-only verification addition.
+
+Exact commands, exit codes and per-step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-sGhU4A/results.json`.
+Worker summary log: `/tmp/el-20qt0-integrated-gate.log`. Earlier results above are
+retained, not substituted for final integrated validation. Separate root build/
+lint/test, Quarry Node, browser/packaged GUI, real provider and cross-platform
+checks were omitted; skips are not coverage. No gate/threshold changes, installed
+Desktop updates, maintenance actions or live session/task fixtures occurred.
+Only the assigned source branch was pushed; no external MR was created.
+
+Existing workspace reference el-4aqnn and Documentation Directory are updated.
+Registered SF steward review of the **exact final commit**, followed by explicit
+checks and approved CLI local merge, remains required. Advisory sub-agent review
+is not a claim that this orchestration review or delivery has occurred.
