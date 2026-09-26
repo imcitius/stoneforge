@@ -1,3 +1,4 @@
+import { collectBuildInfo } from './build-info.mjs';
 import { packager } from '@electron/packager';
 import { cp, mkdir, rm, writeFile, chmod, readdir, readlink } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -10,6 +11,8 @@ const root = resolve(desktop, '../..');
 const stage = join(desktop, 'dist/stage');
 const bundle = join(stage, 'app');
 const resources = join(stage, 'resources');
+const { version } = require('../package.json');
+const build = collectBuildInfo(root, version);
 await rm(stage, { recursive: true, force: true });
 await mkdir(bundle, { recursive: true });
 await mkdir(resources, { recursive: true });
@@ -18,7 +21,8 @@ for (const name of ['main.js', 'manager.js', 'preload.cjs', 'shell.html', 'shell
 }
 // The discovery module has only Node built-ins; copy it without pulling SDK/native code into Electron.
 await cp(join(root, 'packages/quarry/dist/cli/server-discovery.js'), join(bundle, 'external.js'));
-await writeFile(join(bundle, 'package.json'), JSON.stringify({ name: 'stoneforge-desktop', productName: 'Stoneforge Desktop', version: '0.1.0', type: 'module', main: 'main.js' }));
+await writeFile(join(bundle, 'package.json'), JSON.stringify({ name: 'stoneforge-desktop', productName: 'Stoneforge Desktop', version, type: 'module', main: 'main.js' }));
+await writeFile(join(bundle, 'build-info.json'), JSON.stringify(build, null, 2) + '\n');
 // Build the UI immediately before deployment so a cached SDK build cannot ship stale assets.
 execFileSync('pnpm', ['--filter', '@stoneforge/smithy-web', 'build:web'], { cwd: root, stdio: 'inherit' });
 execFileSync('pnpm', ['--filter', '@stoneforge/smithy', 'deploy', '--prod', join(resources, 'backend')], { cwd: root, stdio: 'inherit' });

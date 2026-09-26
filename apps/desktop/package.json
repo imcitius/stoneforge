@@ -6,7 +6,7 @@
   "main": "dist/main.js",
   "description": "Stoneforge Desktop for macOS",
   "scripts": {
-    "build": "tsc && cp src/preload.cjs src/shell.html src/shell.css src/shell.js dist/",
+    "build": "tsc && cp src/preload.cjs src/shell.html src/shell.css src/shell.js dist/ && node scripts/build-info.mjs",
     "typecheck": "tsc --noEmit",
     "dev": "pnpm build && electron .",
     "package:mac": "node scripts/package.mjs",

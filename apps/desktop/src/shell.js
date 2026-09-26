@@ -11,6 +11,11 @@ async function command(name, id) {
 }
 function render(next) {
   state = next;
+  if (state.build) {
+    const { version, commit, branch, dirty, builtAt } = state.build;
+    $('build').textContent = `v${version} · ${commit.slice(0, 12)}${dirty ? ' (modified)' : ''}`;
+    $('build').title = `Commit: ${commit}\nBranch: ${branch}\nBuilt: ${builtAt ?? 'unknown'}`;
+  }
   for (const id of ['add', 'add-empty']) $(id).disabled = adding || !!state.progress;
   $('add-progress').hidden = !adding && !state.progress;
   $('add-progress').textContent = state.progress || (adding ? 'Adding project…' : '');

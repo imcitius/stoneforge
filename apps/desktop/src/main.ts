@@ -1,4 +1,5 @@
 import { app, BrowserWindow, WebContentsView, session, ipcMain, dialog, Menu } from 'electron';
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -6,6 +7,10 @@ import { ProjectManager, type Instance, type WorkflowPreset } from './manager.js
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
+const build: { version: string; commit: string; branch: string; dirty: boolean; builtAt?: string } = (() => {
+  try { return JSON.parse(readFileSync(join(here, 'build-info.json'), 'utf8')); }
+  catch { return { version: app.getVersion(), commit: 'unknown', branch: 'unknown', dirty: false }; }
+})();
 const root = app.isPackaged ? process.resourcesPath : resolve(here, '../../..');
 const backend = app.isPackaged ? join(root, 'backend') : join(root, 'packages/smithy');
 const nodePath = app.isPackaged ? join(root, 'runtime/node') : require.resolve('node/bin/node');
@@ -27,7 +32,7 @@ else {
   });
 }
 
-function snapshot() { return { projects: manager.list(), active, progress }; }
+function snapshot() { return { projects: manager.list(), active, progress, build }; }
 function update(): void {
   if (window && !window.isDestroyed()) window.webContents.send('desktop:state', snapshot());
 }
@@ -219,6 +224,9 @@ async function boot(): Promise<void> {
       return snapshot();
     }
   });
+  app.setAboutPanelOptions({ applicationName: 'Stoneforge Desktop', applicationVersion: build.version,
+    version: `${build.commit.slice(0, 12)}${build.dirty ? ' (modified)' : ''}`,
+    credits: `Branch: ${build.branch}\nBuilt: ${build.builtAt ?? 'unknown'}` });
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     { label: 'Stoneforge', submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'hide' }, { role: 'quit' }] },
     { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },

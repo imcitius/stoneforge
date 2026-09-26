@@ -1,6 +1,6 @@
 /** Packaged Electron smoke test. Uses temporary workspaces and real provider calls with --live. */
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, cp, rm, access } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, cp, rm, access, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,6 +37,9 @@ try {
     timeout: 30_000,
   });
   const page = await electron.firstWindow();
+  const expectedBuild = JSON.parse(await readFile(join(resources, 'app/build-info.json'), 'utf8'));
+  await page.waitForFunction(commit => document.getElementById('build').textContent.includes(commit), expectedBuild.commit.slice(0, 12));
+  assert((await page.locator('#build').getAttribute('title')).includes(expectedBuild.builtAt));
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.locator('nav button').filter({ hasText: 'Cedar' }).waitFor({ timeout: 30_000 });

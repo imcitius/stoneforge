@@ -33,6 +33,11 @@ PATH="$PWD/apps/desktop/node_modules/node/bin:$PATH" pnpm --filter @stoneforge/s
 pnpm --filter @stoneforge/desktop dev
 ```
 
+The sidebar footer shows the bundled version and commit hash. Hover for the full
+commit, branch and build time; the macOS About panel shows the same identity.
+A `(modified)` suffix means the build included uncommitted source changes.
+This metadata is baked into the application, independent of subsequent source edits.
+
 ## Use
 
 1. Existing local `sf serve` processes can stay running. On macOS Desktop finds

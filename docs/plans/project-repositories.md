@@ -37,7 +37,7 @@ repository; a change spanning repositories is a plan with dependent tasks.
 ## Commands and UI
 
 ```sh
-sf repo add core ./stoneforge-desktop --target-branch codex/desktop-workspaces --test-command 'pnpm typecheck'
+sf repo add core ./stoneforge --target-branch master --test-command 'pnpm typecheck'
 sf repo list
 sf task create --title 'Fix an issue' --repository core
 sf task update <task-id> --repository core
@@ -59,12 +59,12 @@ accepted by `sf repo add` and stored in the registry; they can be edited there.
 
 ## This workspace
 
-`stoneforge/` is the main checkout, holding `.git`. `stoneforge-desktop/` is a linked
-worktree of the SAME repository, containing the desktop branch and `apps/desktop`.
-They must not be registered as independent repositories or deleted blindly. The main
-checkout also has untracked `docs/` user files. A future consolidation requires
-preserving those files, merging/reviewing the feature branch, then removing a linked
-worktree using Git. It is not part of this change.
+`stoneforge/` is the single code checkout, including `apps/desktop`. The earlier
+`stoneforge-desktop/` directory was a linked worktree of this same repository,
+not an independent Desktop repository. Consolidation fast-forwards local `master`,
+preserves local documentation in an external backup, and removes the linked
+worktree using Git. The shared project remains the parent `Stoneforge/` folder.
+Register only `core` at `./stoneforge`; do not initialize a wrapper Git to run tasks.
 
 ## Self-hosted development
 
