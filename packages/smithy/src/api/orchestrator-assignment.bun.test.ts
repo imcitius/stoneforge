@@ -140,7 +140,7 @@ for (const race of [false, true]) {
     const result = cli(['agent', 'start', successor, '--taskId', task.id, '--json'], true, race);
     expect(result.error).toBeUndefined();
     const effects = JSON.parse(readFileSync(path.join(root, 'spawn.json'), 'utf8'));
-    expect(effects.spawns).toBe(1); expect(effects.terminations).toBe(0);
+    expect(effects.spawns).toBe(1); expect(effects.terminations).toBe(race ? 1 : 0);
     if (race) {
       expect(result.status).not.toBe(0); expect(result.stderr + result.stdout).toContain('modified');
       const expected = JSON.parse(readFileSync(path.join(root, 'winner.json'), 'utf8'));

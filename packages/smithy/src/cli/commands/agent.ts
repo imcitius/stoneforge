@@ -962,11 +962,36 @@ async function agentStartHandler(
 
     // If task ID is provided, assign the task to this agent
     if (options.taskId) {
-      await api.assignTaskToAgent(
-        options.taskId as ElementId,
-        id as EntityId,
-        { sessionId: result.session.id }
-      );
+      try {
+        await api.assignTaskToAgent(
+          options.taskId as ElementId,
+          id as EntityId,
+          { sessionId: result.session.id }
+        );
+      } catch (assignmentError) {
+        // This invocation owns only the returned internal session. Never discover
+        // an agent's current session or release task state: assignment may have
+        // committed before throwing, or another caller may already own the task.
+        let cleanupTimer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([
+            spawner.terminate(result.session.id, false),
+            new Promise<never>((_, reject) => {
+              cleanupTimer = setTimeout(() => reject(new Error('Session cleanup timed out after 10000ms; termination unconfirmed')), 10000);
+            }),
+          ]);
+        } catch (cleanupError) {
+          const primary = assignmentError instanceof Error ? assignmentError.message : String(assignmentError);
+          const cleanup = cleanupError instanceof Error ? cleanupError.message : String(cleanupError);
+          return failure(
+            `Failed to start agent: ${primary}\nCleanup failed for session ${result.session.id}: ${cleanup}`,
+            ExitCode.GENERAL_ERROR
+          );
+        } finally {
+          clearTimeout(cleanupTimer);
+        }
+        throw assignmentError;
+      }
     }
 
     // If --stream is set, stream the session output
