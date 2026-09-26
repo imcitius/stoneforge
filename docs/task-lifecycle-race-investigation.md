@@ -1171,3 +1171,20 @@ record changed after the integrated gate; production/test files remain the teste
 versions. Exact-final-commit independent steward review and approved CLI local merge
 are still required. Caller process/worktree effects and recovery limits above remain;
 no installed app, live session/daemon, provider or maintenance changes were made.
+
+### el-hkutb final integrated worker verification
+
+Approved CLI sync with explicit API assignment master `8c8cca9` produced `c1ba041`.
+Only the appended lifecycle report conflicted; both reports were preserved. Code
+merged without conflict, and the non-merge steward implementation is unchanged.
+Final **pnpm check:merge190/190, exit0, 289.34s**:
+`/tmp/el-hkutb-final-gate.log`; exact per-step commands/results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Yvaz3t/results.json`.
+The gate includes the new explicit API assignment coverage, delivered handoff,
+completion/claim/cleanup/Spawner regressions, uncached workspace typecheck,
+Desktop source build, Smithy Node/Vitest and Desktop Node tests. Earlier failed
+scaling evidence and the subsequent189/189 result remain above; no test threshold
+or unrelated implementation was changed. Target ancestry/diff checks pass.
+Only verification documentation changes after this gate. Independent review must
+name the exact final worker commit (or its subsequently synchronized replacement)
+before approved CLI local merge. No worker merge or installed/live changes.
