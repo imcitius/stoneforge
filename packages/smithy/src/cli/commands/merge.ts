@@ -12,6 +12,7 @@ import { dirname, resolve } from 'node:path';
 
 import type { Command, GlobalOptions, CommandResult, CommandOption } from '@stoneforge/quarry/cli';
 import { success, failure, ExitCode, getOutputMode } from '@stoneforge/quarry/cli';
+import { resolveTarget, requireRemoteTarget } from '../../git/target.js';
 import { detectTargetBranch } from '../../git/merge.js';
 
 // ============================================================================
@@ -110,7 +111,8 @@ async function mergeHandler(
     }
 
     // 1. Fetch latest from origin
-    await execAsync('git fetch origin', { cwd });
+    const target = await resolveTarget(repositoryRoot, targetBranch, 'required');
+    requireRemoteTarget(target, targetBranch);
 
     // 2. Create a temporary merge worktree at target branch
     const path = await import('node:path');
@@ -123,7 +125,7 @@ async function mergeHandler(
 
     try {
       await execAsync(
-        `git worktree add --detach "${mergeDir}" origin/${targetBranch}`,
+        `git worktree add --detach "${mergeDir}" ${target.commit}`,
         { cwd: workspaceRoot }
       );
 

@@ -1,3 +1,4 @@
+import { resolveTarget, requireRemoteTarget } from '../git/target.js';
 import { createGitHubMergeProvider } from './merge-request-provider.js';
 import { ProjectRepositories } from '../git/project-repositories.js';
 /**
@@ -1277,6 +1278,10 @@ export class MergeStewardServiceImpl implements MergeStewardService {
       };
     }
 
+    const targetBranch = await this.getTargetBranchForTask(task);
+    const target = await resolveTarget(this.config.workspaceRoot, targetBranch);
+    if (await hasRemote(this.config.workspaceRoot)) requireRemoteTarget(target, targetBranch);
+
     // Ensure branch is pushed to remote
     try {
       const remoteExists = await hasRemote(this.config.workspaceRoot);
@@ -1290,8 +1295,6 @@ export class MergeStewardServiceImpl implements MergeStewardService {
       // Push may fail if already up to date — that's fine
       logger.debug(`Push attempt for ${sourceBranch}: ${pushError instanceof Error ? pushError.message : String(pushError)}`);
     }
-
-    const targetBranch = await this.getTargetBranchForTask(task);
 
     // Build PR title with task ID prefix
     const prTitle = `[${taskId}] ${task.title}`;
@@ -1313,7 +1316,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     // Add change summary via git diff stat
     try {
       const { stdout: diffStat } = await execAsync(
-        `git diff --stat origin/${targetBranch}...origin/${sourceBranch}`,
+        `git diff --stat ${target.commit}...${sourceBranch}`,
         { cwd: this.config.workspaceRoot, encoding: 'utf8' }
       );
       if (diffStat.trim()) {
@@ -1429,24 +1432,11 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     const remoteExists = await hasRemote(this.config.workspaceRoot);
 
     try {
-      // When remote exists, fetch first and compare remote refs
-      if (remoteExists) {
-        await execAsync('git fetch origin', {
-          cwd: this.config.workspaceRoot,
-          encoding: 'utf8',
-        });
-        const targetRef = `origin/${targetBranch}`;
-        const sourceRef = `origin/${sourceBranch}`;
-        const { stdout } = await execAsync(
-          `git rev-list --count ${targetRef}..${sourceRef}`,
-          { cwd: this.config.workspaceRoot, encoding: 'utf8' }
-        );
-        return parseInt(stdout.trim(), 10) > 0;
-      }
-
-      // Local-only: compare local refs
+      const target = await resolveTarget(this.config.workspaceRoot, targetBranch, remoteExists ? 'required' : 'none');
+      if (remoteExists) requireRemoteTarget(target, targetBranch);
+      // Match the actual merge's local source, including unpushed commits.
       const { stdout } = await execAsync(
-        `git rev-list --count ${targetBranch}..${sourceBranch}`,
+        `git rev-list --count ${target.commit}..${sourceBranch}`,
         { cwd: this.config.workspaceRoot, encoding: 'utf8' }
       );
       return parseInt(stdout.trim(), 10) > 0;

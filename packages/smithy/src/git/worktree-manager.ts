@@ -26,6 +26,7 @@ import {
   createSlugFromTitle,
 } from '../types/task-meta.js';
 import { detectTargetBranch } from './merge.js';
+import { resolveTarget } from './target.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -482,32 +483,11 @@ export class WorktreeManagerImpl implements WorktreeManager {
       }
     }
 
-    // Track state
-    this.worktreeStates.set(relativePath, 'creating');
-
     let branchCreated = false;
     const baseBranch = options.baseBranch ?? await this.getDefaultBranch();
 
-    // Fetch latest remote state so origin/<baseBranch> is up to date.
-    // Without this, worktrees branch from the (possibly stale) local ref
-    // and may be missing recently merged dependencies/code.
-    try {
-      await this.execGit(['fetch', 'origin', baseBranch]);
-    } catch {
-      // Non-fatal: remote may not exist or be unreachable
-    }
-
-    // Use origin/<baseBranch> as the start point for new worktrees so they
-    // always include the latest merged code, even when the local branch ref
-    // has fallen behind.  Falls back to the local branch if the remote ref
-    // doesn't exist (e.g. no remote configured).
-    let startPoint = baseBranch;
-    try {
-      await this.execGit(['rev-parse', '--verify', `origin/${baseBranch}`]);
-      startPoint = `origin/${baseBranch}`;
-    } catch {
-      // origin/<baseBranch> doesn't exist — use local branch
-    }
+    const { commit: startPoint } = await resolveTarget(this.getRepositoryRoot(), baseBranch);
+    this.worktreeStates.set(relativePath, 'creating');
 
     // Prune stale worktree entries before adding, in case git's list is stale
     // (directory was deleted but git still has it registered)
@@ -521,7 +501,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
         // Branch exists, create worktree checking out existing branch
         await this.execGit(['worktree', 'add', fullPath, branch]);
       } else {
-        // Create new branch from the latest remote base
+        // Create new branch from the resolved target commit
         await this.execGit(['worktree', 'add', '-b', branch, fullPath, startPoint]);
         branchCreated = true;
 
@@ -621,21 +601,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
     try {
       const baseBranch = await this.getDefaultBranch();
 
-      // Fetch latest remote state so read-only worktrees see the latest code
-      try {
-        await this.execGit(['fetch', 'origin', baseBranch]);
-      } catch {
-        // Non-fatal: remote may not exist
-      }
-
-      // Use origin/<baseBranch> if available for latest code
-      let startPoint = baseBranch;
-      try {
-        await this.execGit(['rev-parse', '--verify', `origin/${baseBranch}`]);
-        startPoint = `origin/${baseBranch}`;
-      } catch {
-        // origin/<baseBranch> doesn't exist — use local branch
-      }
+      const { commit: startPoint } = await resolveTarget(this.getRepositoryRoot(), baseBranch);
 
       // Prune stale worktree entries before adding, in case git's list is stale
       await this.execGit(['worktree', 'prune']);
