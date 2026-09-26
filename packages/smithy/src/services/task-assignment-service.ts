@@ -382,8 +382,8 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     // Note: Previously there was a guard against reassignment here, but
     // the dispatch service needs to support task reassignment. The dispatch
     // layer is responsible for determining when reassignment is appropriate
-    // (e.g., for handoffs). Callers who want to prevent reassignment should
-    // check task.assignee before calling assignToAgent.
+    // (e.g., for handoffs). This guards changes after our snapshot; it does not
+    // turn an earlier dispatch candidate read into an atomic unassigned claim.
 
     // Get and validate the agent
     const agent = await this.api.get<AgentEntity>(asElementId(agentId));
@@ -402,9 +402,6 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     const slug = createSlugFromTitle(task.title);
     const branch = options?.branch ?? generateBranchName(agent.name, taskId, slug);
     const worktree = options?.worktree ?? repositoryManager?.getWorktreePath(agent.name, task.title) ?? generateWorktreePath(agent.name, slug);
-
-    // Update task assignee
-    await this.api.update<Task>(taskId, { assignee: agentId });
 
     // Get existing orchestrator metadata to preserve handoff history
     const existingMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
@@ -433,12 +430,14 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     const newMetadata = setOrchestratorTaskMeta(currentMeta, orchestratorMeta as OrchestratorTaskMeta);
 
     // Update status to active if marking as started
-    const updates: Partial<Task> = { metadata: newMetadata };
+    const updates: Partial<Task> = { assignee: agentId, metadata: newMetadata };
     if (options?.markAsStarted) {
       updates.status = TaskStatus.IN_PROGRESS;
     }
 
-    return this.api.update<Task>(taskId, updates);
+    // Commit ownership, status and metadata together against the original task
+    // snapshot. A conflict must propagate without retrying on a newer owner.
+    return this.api.update<Task>(taskId, updates, { expectedUpdatedAt: task.updatedAt });
   }
 
   async unassignTask(taskId: ElementId): Promise<Task> {
