@@ -218,7 +218,9 @@ export interface OrchestratorAPI extends QuarryAPI {
   getTaskOrchestratorMeta(taskId: ElementId): Promise<OrchestratorTaskMeta | undefined>;
 
   /**
-   * Assigns a task to an agent (sets orchestrator metadata)
+   * Explicitly assigns/reassigns a task atomically against its original snapshot.
+   * Concurrent changes reject without retry; completion claims/history are retained.
+   * This is not an automatic ready/unassigned eligibility claim.
    */
   assignTaskToAgent(
     taskId: ElementId,
@@ -579,22 +581,21 @@ export class OrchestratorAPIImpl extends QuarryAPIImpl implements OrchestratorAP
     const branch = options?.branch ?? generateBranchName(agent.name, taskId, slug);
     const worktree = options?.worktree ?? generateWorktreePath(agent.name, slug);
 
-    // Update task with assignee (and status if markAsStarted)
-    const updates: Partial<Task> = { assignee: agentId };
-    if (options?.markAsStarted) {
-      updates.status = 'in_progress';
-    }
-    await this.update<Task>(taskId, updates);
-
-    // Set orchestrator metadata
-    return this.setTaskOrchestratorMeta(taskId, {
-      ...getOrchestratorTaskMeta(task.metadata),
+    // Preserve completion claims/history and commit ownership, optional status
+    // and metadata together. Never retry against a newer snapshot: an explicit
+    // reassignment does not authorize overwriting a concurrent lifecycle decision.
+    const metadata = updateOrchestratorTaskMeta(task.metadata, {
       assignedAgent: agentId,
       branch,
       worktree,
       sessionId: options?.sessionId,
       startedAt: createTimestamp(),
     });
+    const updates: Partial<Task> = { assignee: agentId, metadata };
+    if (options?.markAsStarted) {
+      updates.status = 'in_progress';
+    }
+    return this.update<Task>(taskId, updates, { expectedUpdatedAt: task.updatedAt });
   }
 
   // ----------------------------------------
