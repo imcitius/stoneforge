@@ -883,3 +883,15 @@ Log `/tmp/el-1q2vv-retry-gate-final.log`; exact commands/exits and per-step logs
 All final production/test edits were present; only this result documentation was
 added afterward. This supersedes neither the historical rejection nor omitted
 live-provider coverage. Independent exact-commit review remains required.
+
+## Handoff internal identity after eviction — el-2pujj
+
+The retention investigation's provider fallback is now removed: worker handoff
+requires the exact unique current unfinished internal entry plus existing
+owner/status/version checks. Provider-shaped metadata remains valid data, but
+provider caller IDs and unprovable empty/absent history reject. This aligns with
+the delivered worker completion and dispatch internal-identity contracts, without
+changing their admin paths, cap50 or audit/history storage. See
+`docs/workspace/worker-handoff-ownership.md` for isolated failing baseline,
+CLI/spawner audit, regression matrix and verification. Earlier DEFECT evidence
+and independent acceptance records retain their original scope and revisions.

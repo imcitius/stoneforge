@@ -48,10 +48,12 @@ identity fails instead of being guessed from the latest task metadata.
 
 Handoff requires OPEN or IN_PROGRESS, an assignee matching assignedAgent, and a
 current session. With history, the latest entry must be unended, owned by that
-assignee, and associated with the current metadata session. Either its internal
-ID or an unambiguous provider ID may identify it. Repeated provider IDs across
-resumes require the unique internal ID. Legacy tasks without session history
-require the exact stored session ID. Incomplete/inconsistent identity fails closed.
+assignee, and associated with the current metadata session. The caller must supply its exact unique internal
+ID. Provider-shaped metadata remains valid, but a provider ID never substitutes
+for caller identity, including after retention eviction (el-2pujj). Empty/absent
+history cannot prove internal identity and rejects worker handoff; use existing
+explicit administrative recovery, including reopen for closed work. No history
+migration or identity inference is performed. Inconsistent identity fails closed.
 This guards stale operations; it is not authentication against callers that can
 read and deliberately submit another session's ID.
 
@@ -132,3 +134,61 @@ The ambiguity count above is over retained metadata, not lifetime provider usage
 and acceptance after old duplicate eviction at 51. Unique internal callers remain
 correctly guarded. Director received the narrow proposal to require internal IDs
 when history exists; this report does not implement it or change legacy policy.
+
+## Internal-only caller identity — el-2pujj
+
+Baseline local master `90b3ad8b960aef3e7dc73656fe54852fa3fa2cb1` includes the
+independently delivered completion, dispatch/cleanup, retention and export fixes.
+Assigned worktree HEAD equals that target; no branch switch or sync conflict.
+The historical provider fallback above and in el-2y8n3 is superseded here, while
+its original failure evidence remains intact.
+
+Worker handoff now requires the exact internal ID of the latest unfinished entry,
+unique by internal ID within history, with matching task/orchestrator/entry owner,
+active status and existing task-version CAS. Metadata may still contain that
+entry's provider ID. Caller provider IDs never authorize handoff, regardless of
+retained uniqueness, resumes or eviction. Empty/absent history cannot prove an
+internal identity, even if its metadata ID looks internal: reject with diagnostic
+and use existing explicit administrative recovery (reopen for closed work).
+No new admin bypass, migration, history source, cap, journal or schema is added.
+Other unfinished older entries are allowed, consistently with completion; only
+the latest entry can identify the caller and duplicate internal IDs reject.
+This is stale-operation protection, not an authentication boundary.
+
+Caller audit: the sole production `handoffTask` caller is the task CLI; it passes
+explicit `--sessionId` or `STONEFORGE_SESSION_ID`, plus optional `SF_ENTITY_ID`,
+without consulting current task data. Both headless and interactive Spawner paths
+supply the fresh internal `session.id` and owner, overriding inherited values;
+existing mock-provider tests cover both. Runtime HandoffService's self/agent
+handoff is a separate session suspend/context API, not a caller of this task
+release method. Public CLI/SDK docs and option help now require internal identity.
+Offline assignment tests explicitly record dispatch-style internal history before
+handoff; assignment metadata alone no longer authorizes worker release.
+
+Isolated SQLite/source CLI regressions retain terminal/owner/CAS races and explicit
+admin reopen, and cover duplicate internal history, empty/absent history,
+metadata/entry/assigned-owner mismatch, current provider-shaped metadata, exact
+internal positive calls, repeated provider IDs at 2/50/51/100, real CLI at
+50/51/100, and task/description/event preservation. Old audit/export fixtures and
+historical candidate probe source are not rewritten as a new history source.
+
+Verification:
+- `pnpm install --frozen-lockfile`: exit0; lock unchanged. Initial missing-dist bin
+  warnings are retained in `/tmp/el-2pujj-install.log`.
+- Desired rejection tests before production edits: **42 pass / 9 fail**, 259
+  assertions, `/tmp/el-2pujj-baseline.log`. Failures demonstrate 51/100 eviction,
+  provider CLI environment/option, absent/empty history and duplicated internal
+  identity. Existing internal positives and 2/50 reused-provider negatives pass.
+- Final focused handoff/retention/assignment/spawner/dispatch-claim run: **194 pass,
+  0 fail**, 778 assertions, `/tmp/el-2pujj-focused-final.log`. An incorrectly named
+  completion path in that command matched no suite; separate actual
+  `bun test packages/smithy/src/services/task-completion-protocol.bun.test.ts`
+  passed **69/69**, 374 assertions, `/tmp/el-2pujj-completion.log`.
+- Required `pnpm check:merge`: final result appended below.
+
+All behavior tests use isolated SQLite and inert provider mocks, without live
+session/task/daemon reproduction, installed-app changes or maintenance. Separate
+root build/lint/test, Quarry Node, packaged GUI/browser, cross-platform and live
+provider runs are omitted; the required gate runs its declared source checks.
+Independent steward exact-final-commit review and approved CLI local delivery
+remain required after worker completion; this report is not merge approval.

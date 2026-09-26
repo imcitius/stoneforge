@@ -340,10 +340,13 @@ tombstoned, reassigned, and stale-session handoffs fail without changing the tas
 or its description. A concurrent task update also rejects the handoff.
 Use `sf task reopen` as a separate explicit action for closed tasks.
 
-Prefer the internal session ID. A legacy provider ID is accepted only when it
-identifies the current session unambiguously; resumed sessions can share a provider
-ID and must use their distinct internal IDs. Older tasks without session history
-require an exact match with their stored session ID and consistent ownership.
+The caller must supply the exact internal ID of the unique latest unfinished
+session-history entry. Provider IDs may remain in task metadata, but never replace
+the caller's internal ID, even if unique in the retained history. Empty or absent
+history cannot prove internal identity and rejects worker handoff. Use the existing
+explicit administrative recovery workflow; do not copy another session's identity
+or manufacture history to bypass rejection. `sf task reopen` remains available for
+closed work. This guards stale operations, not authentication.
 
 ```bash
 sf task handoff <task-id> [options]

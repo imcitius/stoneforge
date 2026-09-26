@@ -129,7 +129,7 @@ const taskHandoffOptions: CommandOption[] = [
   {
     name: 'sessionId',
     short: 's',
-    description: 'Session ID of the agent handing off (defaults to current session)',
+    description: 'Internal session ID of the agent handing off (defaults to STONEFORGE_SESSION_ID)',
     hasValue: true,
   },
 ];
@@ -152,7 +152,7 @@ async function taskHandoffHandler(
   try {
     const sessionId = options.sessionId || getCurrentSessionId();
     if (!sessionId?.trim()) {
-      return failure('Handoff requires --sessionId or STONEFORGE_SESSION_ID for the current owning session.', ExitCode.INVALID_ARGUMENTS);
+      return failure('Handoff requires --sessionId or STONEFORGE_SESSION_ID for the current owning internal session.', ExitCode.INVALID_ARGUMENTS);
     }
 
     const task = await service.handoffTask(taskId as ElementId, {

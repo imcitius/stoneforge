@@ -1,8 +1,8 @@
-/** Characterization only: bounded metadata is not an exhaustive identity/audit ledger. */
+/** Bounded metadata is not an exhaustive identity/audit ledger. */
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { createStorage, initializeSchema, type StorageBackend } from '@stoneforge/storage';
 import { createQuarryAPI, type QuarryAPI } from '@stoneforge/quarry';
-import { createEntity, createTask, EntityTypeValue, TaskStatus, type EntityId, type Task } from '@stoneforge/core';
+import { createEntity, createTask, createDocument, EntityTypeValue, TaskStatus, type Document, type EntityId, type Task } from '@stoneforge/core';
 import { appendTaskSessionHistory, closeTaskSessionHistory, getOrchestratorTaskMeta, type TaskSessionHistoryEntry } from '../types/task-meta.js';
 import { createTaskAssignmentService } from './task-assignment-service.js';
 
@@ -12,7 +12,9 @@ beforeEach(async () => {
   api = createQuarryAPI(storage);
   const entity = await createEntity({ name: 'retention-fixture', entityType: EntityTypeValue.SYSTEM, createdBy: 'system:test' as EntityId });
   owner = (await api.create(entity as unknown as Parameters<QuarryAPI['create']>[0])).id as unknown as EntityId;
-  const raw = await createTask({ title: 'Isolated retention fixture', createdBy: owner });
+  const doc = await createDocument({ content: 'Preserved retention evidence', contentType: 'markdown', createdBy: owner });
+  const saved = await api.create<Document>(doc as unknown as Parameters<QuarryAPI['create']>[0]);
+  const raw = await createTask({ title: 'Isolated retention fixture', createdBy: owner, descriptionRef: saved.id as Task['descriptionRef'] });
   task = await api.create<Task>(raw as unknown as Parameters<QuarryAPI['create']>[0]);
 });
 afterEach(() => storage.close());
@@ -53,7 +55,7 @@ test('eviction is available in ordinary API audit snapshots, but absent from cur
   expect(exported).not.toContain('internal-1\"');
   expect(exported).toContain('internal-51');
 });
-for (const count of [50, 51]) {
+for (const count of [2, 50, 51, 100]) {
   test(`current internal identity succeeds at ${count}; evicted/stale internal identity rejects`, async () => {
     await seed(count);
     await expect(createTaskAssignmentService(api).handoffTask(task.id, { sessionId: 'internal-1', agentId: owner, message: 'stale' })).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
@@ -62,18 +64,16 @@ for (const count of [50, 51]) {
     expect(history(result.metadata).at(-1)!.endedAt).toBeDefined();
   });
 }
-for (const count of [50, 51]) {
-  test(`CHARACTERIZATION provider reuse ambiguity at ${count} entries`, async () => {
+for (const count of [2, 50, 51, 100]) {
+  test(`provider reuse cannot authorize handoff at ${count} entries`, async () => {
     await seed(count, true);
+    const description = await api.get(task.descriptionRef!);
+    const events = await api.getEvents(task.id);
     const action = createTaskAssignmentService(api).handoffTask(task.id, { sessionId: 'reused', agentId: owner, message: 'legacy provider caller' });
-    if (count === 50) {
-      await expect(action).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
-      expect(await api.get(task.id)).toEqual(task);
-    } else {
-      // Both the old and current process know this provider ID. Eviction erases
-      // the ambiguity evidence; this success is a limitation, NOT a safe contract.
-      expect((await action).status).toBe(TaskStatus.OPEN);
-    }
+    await expect(action).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+    expect(await api.get(task.id)).toEqual(task);
+    expect(await api.get(task.descriptionRef!)).toEqual(description);
+    expect(await api.getEvents(task.id)).toEqual(events);
   });
 }
 

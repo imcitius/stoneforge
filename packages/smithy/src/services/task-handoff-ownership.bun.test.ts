@@ -9,7 +9,7 @@ import { createQuarryAPI, type QuarryAPI } from '@stoneforge/quarry';
 import { createTask, createDocument, createEntity, EntityTypeValue, TaskStatus, type Task, type Document, type EntityId, type Timestamp } from '@stoneforge/core';
 import { createTaskAssignmentService } from './task-assignment-service.js';
 import { createAgentRegistry } from './agent-registry.js';
-import { getOrchestratorTaskMeta } from '../types/task-meta.js';
+import { appendTaskSessionHistory, getOrchestratorTaskMeta } from '../types/task-meta.js';
 
 let root: string, storage: StorageBackend, otherStorage: StorageBackend;
 let api: QuarryAPI, other: QuarryAPI, task: Task, owner: EntityId, successor: EntityId;
@@ -109,7 +109,7 @@ for (const kind of ['closed', 'deferred', 'reassign', 'human']) {
   }
 }
 
-for (const sessionId of ['internal-old', 'provider-old']) {
+for (const sessionId of ['internal-old']) {
   test(`current owner can hand off with ${sessionId}, preserving and appending history`, async () => {
     const result = await createTaskAssignmentService(api).handoffTask(task.id, { sessionId, agentId: owner, message: 'Continue here' });
     expect(result.status).toBe(TaskStatus.OPEN);
@@ -195,4 +195,86 @@ test('CLI accepts explicit current session ID for a legacy caller without enviro
   const result = cli(['task', 'handoff', task.id, '--sessionId', 'internal-old']);
   expect(result.status).toBe(0);
   expect((await api.get<Task>(task.id))!.status).toBe(TaskStatus.OPEN);
+});
+
+for (const shape of ['absent', 'empty', 'duplicate', 'metadata-mismatch', 'entry-owner', 'assigned-owner']) {
+  test(`unprovable internal identity (${shape}) rejects with task/description/events preserved`, async () => {
+    const meta = getOrchestratorTaskMeta(task.metadata)!;
+    const entry = meta.sessionHistory![0];
+    task = await api.update<Task>(task.id, { metadata: { ...task.metadata, orchestrator: {
+      ...meta,
+      ...(shape === 'absent' ? { sessionHistory: undefined } : {}),
+      ...(shape === 'empty' ? { sessionHistory: [] } : {}),
+      ...(shape === 'duplicate' ? { sessionHistory: [{ ...entry, endedAt: task.updatedAt }, entry] } : {}),
+      ...(shape === 'metadata-mismatch' ? { sessionId: 'other-provider' } : {}),
+      ...(shape === 'entry-owner' ? { sessionHistory: [{ ...entry, agentId: successor }] } : {}),
+      ...(shape === 'assigned-owner' ? { assignedAgent: successor } : {}),
+    } } });
+    const description = (await api.get<Document>(task.descriptionRef!))!;
+    const events = storage.query('SELECT * FROM events ORDER BY id');
+    for (const sessionId of ['internal-old', 'provider-old']) {
+      await expect(createTaskAssignmentService(api).handoffTask(task.id, { sessionId, message: 'Do not append' }))
+        .rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+      await assertUnchanged(task, description, events);
+    }
+  });
+}
+
+for (const explicit of [false, true]) {
+  test(`CLI rejects provider caller (${explicit ? 'option' : 'environment'}), accepts own internal ID`, async () => {
+    const description = (await api.get<Document>(task.descriptionRef!))!;
+    const events = storage.query('SELECT * FROM events ORDER BY id');
+    const args = ['task', 'handoff', task.id, '--message', 'Provider caller'];
+    if (explicit) args.push('--sessionId', 'provider-old');
+    const result = cli(args, explicit ? undefined : 'provider-old');
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('internal');
+    await assertUnchanged(task, description, events);
+    expect(cli(['task', 'handoff', task.id], 'internal-old').status).toBe(0);
+  });
+}
+
+for (const sessionHistory of [undefined, []]) {
+  test(`legacy ${sessionHistory ? 'empty' : 'absent'} history cannot prove identity even with internal-shaped metadata`, async () => {
+    const meta = getOrchestratorTaskMeta(task.metadata)!;
+    task = await api.update<Task>(task.id, { metadata: { ...task.metadata, orchestrator: {
+      ...meta, sessionId: 'internal-old', sessionHistory,
+    } } });
+    const description = (await api.get<Document>(task.descriptionRef!))!;
+    const events = storage.query('SELECT * FROM events ORDER BY id');
+    const result = cli(['task', 'handoff', task.id], 'internal-old');
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('internal');
+    expect(result.stderr).toContain('reopen');
+    await assertUnchanged(task, description, events);
+  });
+}
+
+for (const count of [50, 51, 100]) {
+  test(`real CLI rejects reused provider after ${count} sessions and preserves evidence`, async () => {
+    let metadata = task.metadata;
+    const entry = getOrchestratorTaskMeta(metadata)!.sessionHistory![0];
+    for (let i = 2; i <= count; i++) metadata = appendTaskSessionHistory(metadata, {
+      ...entry, sessionId: `internal-${i}`, providerSessionId: i === count ? 'provider-old' : `provider-${i}`,
+    });
+    task = await api.update<Task>(task.id, { metadata });
+    const description = (await api.get<Document>(task.descriptionRef!))!;
+    const events = storage.query('SELECT * FROM events ORDER BY id');
+    for (const id of ['provider-old', 'internal-old']) {
+      const result = cli(['task', 'handoff', task.id, '--message', 'Stale after eviction'], id);
+      expect(result.status).not.toBe(0);
+      await assertUnchanged(task, description, events);
+    }
+    expect(cli(['task', 'handoff', task.id], `internal-${count}`).status).toBe(0);
+    const result = (await api.get<Task>(task.id))!;
+    expect(getOrchestratorTaskMeta(result.metadata)!.sessionHistory!.at(-1)!.endedAt).toBeDefined();
+  });
+}
+
+test('internal metadata and OPEN status permit exact current internal caller', async () => {
+  const meta = getOrchestratorTaskMeta(task.metadata)!;
+  task = await api.update<Task>(task.id, { status: TaskStatus.OPEN, metadata: {
+    ...task.metadata, orchestrator: { ...meta, sessionId: 'internal-old' },
+  } });
+  expect((await createTaskAssignmentService(api).handoffTask(task.id, { sessionId: 'internal-old' })).assignee).toBeUndefined();
 });

@@ -105,7 +105,7 @@ export interface CompleteTaskOptions {
  * Options for handing off a task
  */
 export interface HandoffTaskOptions {
-  /** Current internal session ID (or an unambiguous legacy provider session ID). */
+  /** Exact internal ID of the unique current unfinished session-history entry. */
   sessionId: string;
   /** Caller identity, when available (CLI uses SF_ENTITY_ID). */
   agentId?: EntityId;
@@ -557,15 +557,13 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     // for a matching caller or infer the caller from the task's current session.
     const history = currentMeta?.sessionHistory;
     const currentSession = history?.[history.length - 1];
-    const matchesSession = currentSession
-      ? currentSession.endedAt === undefined && currentSession.agentId === task.assignee &&
-        (currentMeta?.sessionId === currentSession.sessionId || currentMeta?.sessionId === currentSession.providerSessionId) && (
-        currentSession.sessionId === sessionId || (
-          currentSession.providerSessionId === sessionId &&
-          history!.filter(entry => entry.providerSessionId === sessionId).length === 1
-        )
-      )
-      : currentMeta?.sessionId === sessionId;
+    // A bounded history cannot prove provider-ID uniqueness across evictions.
+    // No history means no provable internal identity, even for internal-shaped IDs.
+    const matchesSession = currentSession !== undefined &&
+      currentSession.endedAt === undefined && currentSession.agentId === task.assignee &&
+      history!.filter(entry => entry.sessionId === currentSession.sessionId).length === 1 &&
+      (currentMeta?.sessionId === currentSession.sessionId || currentMeta?.sessionId === currentSession.providerSessionId) &&
+      currentSession.sessionId === sessionId;
     if (
       (task.status !== TaskStatus.OPEN && task.status !== TaskStatus.IN_PROGRESS) ||
       !task.assignee || task.assignee !== currentMeta?.assignedAgent ||
@@ -573,14 +571,15 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
       !sessionId?.trim() || !matchesSession
     ) {
       throw new ConflictError(
-        `Cannot hand off task ${taskId}: requires an active task owned by the current session. ` +
-        'Refresh task ownership; use explicit task reopen for closed work.',
+        `Cannot hand off task ${taskId}: requires an active task owned by the unique current unfinished internal session-history entry. ` +
+        'Supply your own internal session ID, never a provider ID. Missing history cannot prove ownership; ' +
+        'use the explicit administrative recovery path (task reopen for closed work).',
         ConflictErrorCode.CONCURRENT_MODIFICATION,
         { taskId, status: task.status, sessionId }
       );
     }
 
-    const currentSessionId = currentSession?.sessionId ?? currentMeta?.sessionId;
+    const currentSessionId = currentSession!.sessionId;
     let metadataWithClosedSession = task.metadata as Record<string, unknown> | undefined;
     if (currentSessionId) {
       metadataWithClosedSession = closeTaskSessionHistory(
