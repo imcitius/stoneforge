@@ -1,0 +1,292 @@
+{
+  "task": "el-1r6",
+  "testedCommit": "3722db9626db16f401eb464dab1239f8d0f1224f",
+  "platform": "darwin-arm64",
+  "tools": {
+    "node": "22.23.3",
+    "pnpm": "8.15.5",
+    "bun": "1.3.11",
+    "vitest": "4.0.18"
+  },
+  "gate": {
+    "command": "pnpm check:merge",
+    "commit": "3722db9626db16f401eb464dab1239f8d0f1224f",
+    "code": 0,
+    "wallSeconds": 163.249
+  },
+  "install": {
+    "command": "pnpm install --frozen-lockfile",
+    "code": 0,
+    "log": "/tmp/el-1r6-evidence/install.log"
+  },
+  "gateLog": "/tmp/el-1r6-evidence/gate.log",
+  "stepResults": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Z9wDEd/results.json",
+  "counts": {
+    "steps": 176,
+    "failedSteps": 0,
+    "bunPassed": 8492,
+    "bunSkipped": 29,
+    "vitestPassed": 325,
+    "desktopPassed": 6,
+    "gateRegressionsPassed": 5,
+    "typecheckTasks": 17,
+    "cachedTasks": 0
+  },
+  "agents": [
+    {
+      "id": "el-3jso",
+      "name": "m-steward-1",
+      "agentRole": "steward",
+      "stewardFocus": "merge",
+      "triggers": [],
+      "sessionStatus": "idle",
+      "maxConcurrentTasks": 1,
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "id": "el-38k9",
+      "name": "e-worker-2",
+      "agentRole": "worker",
+      "workerMode": "ephemeral",
+      "sessionStatus": "running",
+      "maxConcurrentTasks": 1,
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "id": "el-4eqh",
+      "name": "e-worker-1",
+      "agentRole": "worker",
+      "workerMode": "ephemeral",
+      "sessionStatus": "running",
+      "maxConcurrentTasks": 1,
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "id": "el-3kyh",
+      "name": "director",
+      "agentRole": "director",
+      "sessionStatus": "running",
+      "maxConcurrentTasks": 1,
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    }
+  ],
+  "snapshots": {
+    "daemon": {
+      "success": true,
+      "data": {
+        "isRunning": true,
+        "available": true,
+        "serverManaged": false,
+        "config": {
+          "pollIntervalMs": 5000,
+          "workerAvailabilityPollEnabled": true,
+          "inboxPollEnabled": true,
+          "stewardTriggerPollEnabled": true,
+          "workflowTaskPollEnabled": true,
+          "directorInboxForwardingEnabled": true
+        },
+        "rateLimit": {
+          "isPaused": false,
+          "limits": []
+        }
+      }
+    },
+    "scheduler": {
+      "isRunning": true,
+      "stats": {
+        "registeredStewards": 0,
+        "activeCronJobs": 0,
+        "activeEventSubscriptions": 0,
+        "totalExecutions": 0,
+        "successfulExecutions": 0,
+        "failedExecutions": 0,
+        "runningExecutions": 0
+      }
+    },
+    "jobs": {
+      "jobs": []
+    },
+    "metrics-model": {
+      "success": true,
+      "data": {
+        "timeRange": {
+          "days": 7,
+          "label": "7d"
+        },
+        "groupBy": "model",
+        "metrics": [
+          {
+            "group": "unknown",
+            "totalInputTokens": 0,
+            "totalOutputTokens": 0,
+            "totalCacheReadTokens": 0,
+            "totalCacheCreationTokens": 0,
+            "totalTokens": 0,
+            "sessionCount": 51,
+            "avgDurationMs": 241297,
+            "errorRate": 0,
+            "failedCount": 0,
+            "rateLimitedCount": 0,
+            "estimatedCost": {
+              "inputCost": 0,
+              "outputCost": 0,
+              "cacheReadCost": 0,
+              "cacheCreationCost": 0,
+              "totalCost": 0
+            }
+          }
+        ],
+        "totals": {
+          "totalInputTokens": 0,
+          "totalOutputTokens": 0,
+          "totalTokens": 0,
+          "sessionCount": 51,
+          "estimatedCost": {
+            "inputCost": 0,
+            "outputCost": 0,
+            "cacheReadCost": 0,
+            "cacheCreationCost": 0,
+            "totalCost": 0
+          }
+        }
+      }
+    },
+    "metrics-provider": {
+      "success": true,
+      "data": {
+        "timeRange": {
+          "days": 7,
+          "label": "7d"
+        },
+        "groupBy": "provider",
+        "metrics": [
+          {
+            "group": "claude-code",
+            "totalInputTokens": 0,
+            "totalOutputTokens": 0,
+            "totalCacheReadTokens": 0,
+            "totalCacheCreationTokens": 0,
+            "totalTokens": 0,
+            "sessionCount": 51,
+            "avgDurationMs": 241297,
+            "errorRate": 0,
+            "failedCount": 0,
+            "rateLimitedCount": 0,
+            "estimatedCost": {
+              "inputCost": 0,
+              "outputCost": 0,
+              "cacheReadCost": 0,
+              "cacheCreationCost": 0,
+              "totalCost": 0
+            }
+          }
+        ],
+        "totals": {
+          "totalInputTokens": 0,
+          "totalOutputTokens": 0,
+          "totalTokens": 0,
+          "sessionCount": 51,
+          "estimatedCost": {
+            "inputCost": 0,
+            "outputCost": 0,
+            "cacheReadCost": 0,
+            "cacheCreationCost": 0,
+            "totalCost": 0
+          }
+        }
+      }
+    },
+    "el-38k9-workload": {
+      "agentId": "el-38k9",
+      "agentName": "e-worker-2",
+      "workload": {
+        "agentId": "el-38k9",
+        "totalTasks": 1,
+        "byStatus": {
+          "open": 0,
+          "in_progress": 1,
+          "blocked": 0,
+          "deferred": 0,
+          "backlog": 0,
+          "review": 0,
+          "closed": 0,
+          "tombstone": 0
+        },
+        "inProgressCount": 1,
+        "awaitingMergeCount": 0
+      },
+      "hasCapacity": false,
+      "maxConcurrentTasks": 3
+    },
+    "el-4eqh-workload": {
+      "agentId": "el-4eqh",
+      "agentName": "e-worker-1",
+      "workload": {
+        "agentId": "el-4eqh",
+        "totalTasks": 1,
+        "byStatus": {
+          "open": 0,
+          "in_progress": 1,
+          "blocked": 0,
+          "deferred": 0,
+          "backlog": 0,
+          "review": 0,
+          "closed": 0,
+          "tombstone": 0
+        },
+        "inProgressCount": 1,
+        "awaitingMergeCount": 0
+      },
+      "hasCapacity": false,
+      "maxConcurrentTasks": 3
+    },
+    "repos-api-before": {
+      "repositories": [
+        {
+          "id": "core",
+          "path": "stoneforge",
+          "targetBranch": "master",
+          "testCommand": "pnpm typecheck",
+          "gitCommonDir": "/Users/citius/Desktop/Work/Stoneforge/stoneforge/.git"
+        }
+      ]
+    },
+    "repos-api-after": {
+      "repositories": [
+        {
+          "id": "core",
+          "path": "stoneforge",
+          "targetBranch": "master",
+          "testCommand": "pnpm check:merge",
+          "gitCommonDir": "/Users/citius/Desktop/Work/Stoneforge/stoneforge/.git"
+        }
+      ]
+    },
+    "server-identity-before": {
+      "projectId": "d20c5626-8992-4352-9fbe-bfbf10d61e03",
+      "instanceId": "bd3c1536-517e-4d14-86d8-5e44504fe2b7",
+      "protocolVersion": 1,
+      "projectRoot": "/Users/citius/Desktop/Work/Stoneforge",
+      "endpoint": "http://127.0.0.1:62746"
+    },
+    "server-identity-after": {
+      "projectId": "d20c5626-8992-4352-9fbe-bfbf10d61e03",
+      "instanceId": "bd3c1536-517e-4d14-86d8-5e44504fe2b7",
+      "protocolVersion": 1,
+      "projectRoot": "/Users/citius/Desktop/Work/Stoneforge",
+      "endpoint": "http://127.0.0.1:62746"
+    }
+  },
+  "sha256": {
+    "root-AGENTS.before.md": "a63fba37ae9e14a508b58dce0f47189850cec1d6efd17cb0532af11902835c21",
+    "root-AGENTS.after.md": "b02af9f3e12b85e6f66724d65814a626dc87d45ad500c165cb0a8e32138181cc",
+    "repositories.before.json": "2683901645973f2b5aebff01d9f98be339a9e9fb8d5f984e9107e67a6cb6e9c2",
+    "repositories.after.json": "c8983e31ac89b9a1cf262dc07fe14b50fa919d2f857ac6da16e251fc2a41bc68",
+    "gate.log": "2152b0fe7f8e1966ac9224afc2991369bd70e475ac808bf7e8c3c257a22f43a3"
+  },
+  "promptSha256": "9d9c87cb767d98fa0cd81bb589aae53d328b35b251ba153a0df4ffb9e88f707d"
+}
