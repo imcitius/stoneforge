@@ -85,8 +85,11 @@ await assignmentService.handoffTask(taskId, {
 
 Handoff requires `open` or `in_progress` status, matching task and orchestrator
 ownership, and the current session identity. The latest session-history entry must
-be active and owned by the assignee. Historical or ambiguous resumed provider IDs
-are rejected. For legacy tasks without history, the stored session ID must match.
+be unfinished, have a unique internal ID, and be owned by the assignee. The caller
+must supply that exact internal ID. Provider-shaped metadata is accepted, but
+provider caller IDs are always rejected, including after history eviction. Empty
+or absent history cannot prove identity and rejects worker handoff; use the existing
+explicit administrative recovery path (including reopen for closed work).
 An optional `agentId` adds a caller/owner check; session identity is still required.
 This is a stale-operation guard, not a security boundary against callers that can
 read and deliberately submit another session's identity.

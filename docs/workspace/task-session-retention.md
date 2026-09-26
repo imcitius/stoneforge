@@ -192,3 +192,15 @@ Default/false JSONL format, retention and audit APIs are unchanged. See
 preservation regressions and final integrated verification. Successful JSONL
 export is still not a complete audit backup. The archived candidate probe remains
 historical, not a current regression command or a reason to restore silent success.
+
+## Internal handoff identity follow-up — el-2pujj
+
+Historical 50/51 provider-fallback acceptance above is preserved as baseline
+research evidence. Current handoff requires the exact unique latest unfinished
+internal entry and rejects provider caller IDs before and after eviction. The
+permanent characterization is converted to reject/preserve regression coverage
+at 2/50/51/100; current internal calls still succeed. Empty/absent history rejects
+worker handoff rather than inferring identity from provider-shaped metadata.
+See `worker-handoff-ownership.md` for the failing baseline, caller audit, current
+contract and checks. Cap50, audit/export and completion recovery are unchanged;
+the archived candidate fixture remains historical evidence, not a current suite.
