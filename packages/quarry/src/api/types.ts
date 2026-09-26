@@ -548,7 +548,7 @@ export interface ExportOptions {
   includeDependencies?: boolean;
   /** Unsupported: true rejects with INVALID_INPUT before export; omitted/false excludes audit events. */
   includeEvents?: boolean;
-  /** Output file path (if not provided, returns string) */
+  /** Output directory path (if not provided, returns string) */
   outputPath?: string;
 }
 
