@@ -35,7 +35,7 @@ An interrupted run is incomplete and must never count as acceptance.
 | `pnpm --filter @stoneforge/desktop build` | Fresh Desktop JavaScript and shell resources; backend SDK builds were prerequisites of Desktop typecheck. |
 | `bun test ./<file>` for every `*.bun.test.ts` under `packages/{core,storage,quarry,smithy}/src` | Core types/config/errors, real Bun SQLite/schema, Quarry API/CLI/dependencies/sync and Smithy orchestration/runtime/providers/Git/repository routing. Each file runs in its own process so Bun module mocks cannot leak into other files. |
 | `pnpm --filter @stoneforge/smithy test:node` | Existing Vitest config: Node routes, permissions, stewardship/merge/worker lifecycle and a real PTY fixture using a fake provider executable. |
-| `pnpm --filter @stoneforge/desktop test` | All four existing Node backend tests: workspace initialization, external-server adoption, multi-project HTTP/WS identity/isolation/restart and real CLI multi-repository registration/binding/merge after restart. Uses real temporary Git repositories and Node SQLite. |
+| `pnpm --filter @stoneforge/desktop test` | All Desktop Node tests: four backend tests covering workspace initialization, external-server adoption, multi-project HTTP/WS identity/isolation/restart and real CLI multi-repository registration/binding/merge after restart, plus two Logs bounds/escaping tests. Uses real temporary Git repositories and Node SQLite. |
 
 The pricing test uses `bun:test`, so it is named `model-pricing.bun.test.ts`.
 Core, storage and quarry currently have **no Vitest tests**; their `test:node`
@@ -202,3 +202,51 @@ worktree until el-2z6 is integrated, then sync using an independently approved C
 run the final gate and obtain independent steward review before local delivery.
 Do not use installed remote-first merge or merge-status as a workaround. Activation
 remains el-1r6; repositories.json and AGENTS.md were not edited by this task.
+
+## Integrated gate after reviewed fixes — 2026-09-26
+
+After independently approved el-2z6 was delivered, the approved standalone
+`/tmp/stoneforge-el-ptim-151b314/sf task sync el-5xd` with
+`STONEFORGE_ROOT=/Users/citius/Desktop/Work/Stoneforge` returned **0** and included
+local master **`00847ad3dca80b601aa7f9009708319df5f119bf`**. The tested revision is
+**`0ed8c8e80e0cae0d0918b0bb01df15d99a152c65`**. All 299 artifact manifest entries
+matched their hashes. The target now includes el-52s, el-2z6, Desktop Logs and
+merge-status argv fixes. The task still changes only the original six gate/docs
+files relative to master. No gate implementation, thresholds or exclusions changed
+in this resumption. Only this documentation was updated after the test run.
+
+The assigned worktree had empty `git status --porcelain` before and after the run;
+`git merge-base --is-ancestor master HEAD` and `git diff --check` returned 0.
+Tool versions remain macOS arm64, Node 22.23.3, pnpm 8.15.5, Bun 1.3.11 and
+lockfile Vitest 4.0.18. Frozen install left the lockfile unchanged. Typecheck rebuilt
+dependencies without cache and Desktop output was freshly built by the gate.
+
+| Command / group | Exit | Seconds | Result |
+| --- | --- | --- | --- |
+| `pnpm install --frozen-lockfile` | 0 | 3.66 wall | Existing lockfile and dependencies. |
+| `node --test scripts/check-merge.test.mjs` | 0 | 0.43 | 5 pass; first/middle/last failure, missing executable, signal and log preservation covered. |
+| `pnpm typecheck --force` | 0 | 23.54 | 17 successful tasks, 0 cached. |
+| `pnpm --filter @stoneforge/desktop build` | 0 | 1.49 | Fresh source build, including Logs. |
+| Core Bun, 24 files | All 0 | 1.92 | 2,737 pass, 22 skip. |
+| Storage Bun, 3 files | All 0 | 0.31 | 137 pass. |
+| Quarry Bun, 96 files | All 0 | 35.73 | 4,263 pass, 1 skip; performance 35/35. |
+| Smithy Bun, 48 files | All 0 | 87.37 | 1,355 pass, 6 skip; includes new merge-status argv coverage. |
+| `pnpm --filter @stoneforge/smithy test:node` | 0 | 3.79 | 325 pass in 13 files. |
+| `pnpm --filter @stoneforge/desktop test` | 0 | 5.90 | 6 pass: 4 backend integrations and 2 Logs tests. |
+| **`pnpm check:merge`** | **0** | **160.48 runner / 161.13 wall** | **176/176 steps pass; 8,492 Bun pass, 29 existing skips.** |
+
+One complete gate was run after this sync, with no retry-until-green. The previous
+failed runs above remain evidence that a real failure produces a nonzero final
+exit despite later passing checks. The el-2z6 change stabilizes measurement;
+it does not establish the cause of historical create ratio 7.216375 or prove
+cross-platform performance. Its method and limits remain in
+`docs/query-performance-investigation.md` and workspace reference el-47e2.
+
+Evidence: `/tmp/el-5xd-integrated-install.log` and `.json`,
+`/tmp/el-5xd-integrated-gate.log` and `.json`; all 176 exact commands, exit codes,
+durations and full per-step logs are in
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-pqv08E/results.json`.
+The current target remained 00847ad at completion. This is worker validation;
+the steward must independently review and run the gate on the final proposed
+merge revision before approved local delivery. Activation remains separate el-1r6.
+AGENTS.md, repositories.json, installed Desktop and running sessions were unchanged.
