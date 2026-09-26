@@ -57,6 +57,8 @@ export {
 export {
   // Types
   type AssignTaskOptions,
+  type AssignmentIdentity,
+  type UnassignTaskOptions,
   type CompleteTaskOptions,
   type HandoffTaskOptions,
   type TaskCompletionResult,
@@ -83,6 +85,7 @@ export {
   type DispatchService,
   // Implementation
   DispatchServiceImpl,
+  DispatchAssignmentError,
   // Factory
   createDispatchService,
 } from './dispatch-service.js';

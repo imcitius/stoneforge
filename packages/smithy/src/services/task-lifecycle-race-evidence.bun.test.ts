@@ -14,7 +14,7 @@ import { createStorage, initializeSchema, type StorageBackend } from '@stoneforg
 import { createQuarryAPI, type QuarryAPI } from '@stoneforge/quarry';
 import { createTask, createDocument, createEntity, EntityTypeValue, TaskStatus, type Task, type Document, type EntityId, type Timestamp } from '@stoneforge/core';
 import { createTaskAssignmentService } from './task-assignment-service.js';
-import { createDispatchService } from './dispatch-service.js';
+import { createDispatchService, DispatchAssignmentError } from './dispatch-service.js';
 import { createAgentRegistry } from './agent-registry.js';
 import { getOrchestratorTaskMeta } from '../types/task-meta.js';
 
@@ -65,6 +65,12 @@ async function change(kind: string) {
   });
 }
 
+function cleanupOptions() {
+  return { mode: 'failed-dispatch' as const, expectedAssignment: {
+    agentId: owner, sessionId: 'provider-old', updatedAt: task.updatedAt,
+  } };
+}
+
 type Operation = 'assign' | 'start' | 'complete' | 'unassign';
 async function run(operation: Operation) {
   const service = createTaskAssignmentService(api);
@@ -72,15 +78,15 @@ async function run(operation: Operation) {
     case 'assign': return service.assignToAgent(task.id, owner, { markAsStarted: true, sessionId: 'stale-session' });
     case 'start': return service.startTask(task.id, 'stale-session');
     case 'complete': return (await service.completeTask(task.id, { createMergeRequest: false })).task;
-    case 'unassign': return service.unassignTask(task.id);
+    case 'unassign': return service.unassignTask(task.id, cleanupOptions());
   }
 }
 
 for (const operation of ['assign', 'start', 'complete', 'unassign'] as const) {
   for (const kind of ['closed', 'deferred', 'reassign', 'human']) {
     for (const readNumber of [1, 2]) {
-      test(operation === 'assign'
-        ? `REGRESSION: assign rejects and preserves ${kind} at read ${readNumber}`
+      test(operation === 'assign' || operation === 'unassign'
+        ? `REGRESSION: ${operation} rejects and preserves ${kind} at read ${readNumber}`
         : `DEFECT evidence: ${operation} overwrites ${kind} at read ${readNumber}`, async () => {
         const get = api.get.bind(api);
         let reads = 0;
@@ -94,7 +100,7 @@ for (const operation of ['assign', 'start', 'complete', 'unassign'] as const) {
           }
           return result;
         };
-        if (operation === 'assign') {
+        if (operation === 'assign' || operation === 'unassign') {
           const update = api.update.bind(api);
           let attempts = 0;
           api.update = async (...args) => {
@@ -116,11 +122,11 @@ for (const operation of ['assign', 'start', 'complete', 'unassign'] as const) {
         expect(winner).toBeDefined();
         expect(await api.get(task.id)).toEqual(result);
         expect(result).not.toEqual(winner!);
-        expect(result.status).toBe(operation === 'complete' ? TaskStatus.REVIEW : operation === 'unassign' && readNumber === 1 ? winner!.status : TaskStatus.IN_PROGRESS);
-        expect(result.assignee).toBe(operation === 'complete' || operation === 'unassign' ? undefined : readNumber === 2 ? owner : winner!.assignee);
+        expect(result.status).toBe(operation === 'complete' ? TaskStatus.REVIEW : TaskStatus.IN_PROGRESS);
+        expect(result.assignee).toBe(operation === 'complete' ? undefined : readNumber === 2 ? owner : winner!.assignee);
         const meta = getOrchestratorTaskMeta(result.metadata)!;
-        expect(meta.assignedAgent).toBe(operation === 'unassign' ? undefined : owner);
-        expect(meta.sessionId).toBe(operation === 'unassign' ? undefined : operation === 'complete' ? 'provider-old' : 'stale-session');
+        expect(meta.assignedAgent).toBe(owner);
+        expect(meta.sessionId).toBe(operation === 'complete' ? 'provider-old' : 'stale-session');
         if (kind === 'closed' || kind === 'deferred') {
           expect(result.scheduledFor).toBe(readNumber === 1 ? future : undefined);
           expect(result.deadline).toBe(readNumber === 1 ? future : undefined);
@@ -134,43 +140,66 @@ for (const operation of ['assign', 'start', 'complete', 'unassign'] as const) {
   }
 }
 
-for (const operation of ['unassign'] as const) {
-  test(`DEFECT evidence: ${operation} exposes split ownership and leaves partial state on second-write failure`, async () => {
-    const update = api.update.bind(api);
-    let writes = 0;
-    let intermediate: Task | undefined;
-    api.update = async (...args) => {
-      if (args[0] === task.id && ++writes === 2) {
-        intermediate = (await other.get<Task>(task.id))!;
-        throw new Error('fixture: second write failed');
-      }
-      return update(...args);
-    };
-    const service = createTaskAssignmentService(api);
-    await expect(service.unassignTask(task.id)).rejects.toThrow('fixture: second write failed');
-    expect(intermediate!.assignee).toBeUndefined();
-    expect(getOrchestratorTaskMeta(intermediate!.metadata)!.assignedAgent).toBe(owner);
-    expect(await other.get(task.id)).toEqual(intermediate!);
-    expect((await other.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(1);
-  });
+// Former unassign W1/second-write DEFECT evidence: no second write remains.
+test('REGRESSION: unassign commits coherent release before W1 and preserves successor/events', async () => {
+  const update = api.update.bind(api);
+  let writes = 0;
+  let winner: Task | undefined;
+  let events: unknown[] = [];
+  api.update = async (...args) => {
+    if (args[0] === task.id && ++writes > 1) throw new Error('fixture: second write failed');
+    const result = await update(...args);
+    if (args[0] === task.id) {
+      expect(await other.get(task.id)).toEqual(result);
+      expect(result.assignee).toBeUndefined();
+      expect(getOrchestratorTaskMeta(result.metadata)!.assignedAgent).toBeUndefined();
+      expect(getOrchestratorTaskMeta(result.metadata)!.sessionId).toBeUndefined();
+      winner = await change('reassign');
+      events = storage.query('SELECT * FROM events ORDER BY id');
+    }
+    return result;
+  };
+  const result = await run('unassign');
+  expect(writes).toBe(1);
+  expect(result.assignee).toBeUndefined();
+  expect(await other.get(task.id)).toEqual(winner!);
+  expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
+  expect((await other.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(0);
+});
 
-  test(`DEFECT evidence: ${operation} races a full reassignment between its writes`, async () => {
+for (const boundary of ['first-write', 'metadata-transaction'] as const) {
+  test(`REGRESSION: unassign ${boundary} failure preserves full assignment/events and ready pool`, async () => {
+    const events = storage.query('SELECT * FROM events ORDER BY id');
     const update = api.update.bind(api);
-    let writes = 0;
+    const transaction = storage.transaction.bind(storage);
+    let fail = false;
+    let injected = false;
     api.update = async (...args) => {
-      const result = await update(...args);
-      if (args[0] === task.id && ++writes === 1) await change('reassign');
-      return result;
+      fail = args[0] === task.id;
+      if (fail && boundary === 'first-write') {
+        injected = true;
+        throw new Error('fixture: release failed');
+      }
+      try { return await update(...args); }
+      finally { fail = false; }
     };
-    const result = await run(operation);
-    expect(result.assignee).toBe(successor);
-    expect(getOrchestratorTaskMeta(result.metadata)!.assignedAgent).toBeUndefined();
-    expect(getOrchestratorTaskMeta(result.metadata)!.sessionId).toBeUndefined();
+    storage.transaction = (fn, options) => transaction(tx => {
+      const result = fn(tx);
+      if (fail) {
+        injected = true;
+        throw new Error('fixture: release failed');
+      }
+      return result;
+    }, options);
+    await expect(run('unassign')).rejects.toThrow('fixture: release failed');
+    expect(injected).toBe(true);
+    expect(await other.get(task.id)).toEqual(task);
+    expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
+    expect((await other.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(0);
   });
 }
 
 // Converted assignment W1/failure evidence: the old second write is gone.
-// Keep unassign's corresponding DEFECT cases above until its separate fix.
 test('REGRESSION: assign commits coherent ownership before W1 and preserves a subsequent winner', async () => {
   const update = api.update.bind(api);
   let writes = 0;
@@ -261,7 +290,7 @@ test('CONTROL: current worker completion enters review, clears owner and ends se
 
 for (const kind of ['closed', 'deferred', 'human', 'reassign']) {
   test(`DEFECT evidence: stale automatic-dispatch candidate wins over ${kind} and sends notification`, async () => {
-    await createTaskAssignmentService(api).unassignTask(task.id);
+    await createTaskAssignmentService(api).unassignTask(task.id, { mode: 'admin' });
     expect((await api.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(1);
     const get = api.get.bind(api);
     let injected = false;
@@ -328,5 +357,111 @@ for (const readNumber of [1, 2]) {
     expect(await other.get(task.id)).toEqual(winner!);
     expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
     expect((await other.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(0);
+  });
+}
+
+
+test('CONTROL: own cleanup preserves branch/status/histories and atomically releases assignment', async () => {
+  const result = await run('unassign');
+  expect(result.assignee).toBeUndefined();
+  expect(result.status).toBe(task.status);
+  const before = getOrchestratorTaskMeta(task.metadata)!;
+  const after = getOrchestratorTaskMeta(result.metadata)!;
+  expect(after).toEqual({ ...before, assignedAgent: undefined, sessionId: undefined, worktree: undefined, startedAt: undefined });
+  expect((await other.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(1);
+});
+
+for (const kind of ['closed', 'deferred', 'reassign', 'human', 'same-owner-new-session', 'same-owner-new-version']) {
+  test(`REGRESSION: delayed cleanup preserves already committed ${kind}`, async () => {
+    const winner = kind.startsWith('same-owner')
+      ? await other.update<Task>(task.id, kind === 'same-owner-new-session'
+        ? { metadata: { ...task.metadata, orchestrator: { ...getOrchestratorTaskMeta(task.metadata), sessionId: 'new-session' } } }
+        : { title: 'New decision with same owner/session' })
+      : await change(kind);
+    const events = storage.query('SELECT * FROM events ORDER BY id');
+    await expect(run('unassign')).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+    expect(await other.get(task.id)).toEqual(winner);
+    expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
+    expect((await other.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(0);
+  });
+}
+
+for (const options of [undefined, { mode: 'failed-dispatch' }, { mode: 'failed-dispatch', expectedAssignment: { agentId: 'missing-version' } }]) {
+  test('REGRESSION: missing cleanup identity never implicitly becomes admin', async () => {
+    const events = storage.query('SELECT * FROM events ORDER BY id');
+    // Simulate a JavaScript/legacy caller outside the typed contract.
+    await expect(createTaskAssignmentService(api).unassignTask(task.id, options as any)).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+    expect(await other.get(task.id)).toEqual(task);
+    expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
+  });
+}
+
+for (const kind of ['human', 'closed']) {
+  test(`CONTROL: explicit admin releases current ${kind} without reopening`, async () => {
+    const winner = await change(kind);
+    const result = await createTaskAssignmentService(api).unassignTask(task.id, { mode: 'admin' });
+    expect(result.assignee).toBeUndefined();
+    expect(result.status).toBe(winner.status);
+    expect(result.closedAt).toBe(winner.closedAt);
+    expect(result.scheduledFor).toBe(winner.scheduledFor);
+    expect(getOrchestratorTaskMeta(result.metadata)!.branch).toBe(getOrchestratorTaskMeta(winner.metadata)!.branch);
+  });
+}
+
+for (const readNumber of [1, 2]) {
+  test(`REGRESSION: explicit admin also preserves concurrent Human at read ${readNumber}`, async () => {
+    const get = api.get.bind(api);
+    let reads = 0;
+    let winner: Task | undefined;
+    let events: unknown[] = [];
+    api.get = async (...args) => {
+      const result = await get(...args);
+      if (args[0] === task.id && ++reads === readNumber) {
+        winner = await change('human');
+        events = storage.query('SELECT * FROM events ORDER BY id');
+      }
+      return result;
+    };
+    await expect(createTaskAssignmentService(api).unassignTask(task.id, { mode: 'admin' })).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+    expect(await other.get(task.id)).toEqual(winner!);
+    expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
+  });
+}
+
+for (const kind of ['own', 'human', 'reassign', 'closed', 'deferred']) {
+  test(`REGRESSION: asynchronous notification failure carries only failed assignment receipt (${kind})`, async () => {
+    const registry = createAgentRegistry(api);
+    const service = createTaskAssignmentService(api);
+    const dispatch = createDispatchService(api, service, registry);
+    const create = api.create.bind(api);
+    let winner: Task | undefined;
+    let events: unknown[] = [];
+    // Real notification document creation is the deterministic async failure boundary.
+    api.create = async (...args) => {
+      if (args[0].type === 'document') {
+        if (kind !== 'own') winner = await change(kind);
+        events = storage.query('SELECT * FROM events ORDER BY id');
+        throw new Error('Agent channel not found: fixture notification failure');
+      }
+      return create(...args);
+    };
+    let failure: DispatchAssignmentError | undefined;
+    try { await dispatch.dispatch(task.id, owner, { sessionId: 'failed-session', markAsStarted: true }); }
+    catch (error) {
+      expect(error).toBeInstanceOf(DispatchAssignmentError);
+      failure = error as DispatchAssignmentError;
+    }
+    expect(failure).toBeDefined();
+    expect(failure!.assignment.agentId).toBe(owner);
+    expect(failure!.assignment.sessionId).toBe('failed-session');
+    const cleanup = service.unassignTask(task.id, { mode: 'failed-dispatch', expectedAssignment: failure!.assignment });
+    if (kind === 'own') {
+      expect((await cleanup).assignee).toBeUndefined();
+    } else {
+      await expect(cleanup).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+      expect(await other.get(task.id)).toEqual(winner!);
+      expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
+      expect((await other.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(0);
+    }
   });
 }

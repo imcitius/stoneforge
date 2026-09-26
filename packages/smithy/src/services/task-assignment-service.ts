@@ -65,6 +65,18 @@ export interface AssignTaskOptions {
   markAsStarted?: boolean;
 }
 
+/** Exact committed assignment returned by dispatch, never reconstructed after failure. */
+export interface AssignmentIdentity {
+  agentId: EntityId;
+  sessionId: string | undefined;
+  updatedAt: Task['updatedAt'];
+}
+
+/** Administrative release is deliberate; automatic cleanup must supply its receipt. */
+export type UnassignTaskOptions =
+  | { mode: 'failed-dispatch'; expectedAssignment: AssignmentIdentity }
+  | { mode: 'admin' };
+
 /**
  * Options for completing a task
  */
@@ -217,10 +229,12 @@ export interface TaskAssignmentService {
    * This clears the assignee field and removes agent-specific orchestrator metadata,
    * but preserves branch information for potential reassignment.
    *
+   * Cleanup requires the exact failed assignment receipt; admin explicitly releases
+   * the current owner. Both modes use CAS and preserve status (never reopen).
    * @param taskId - The task to unassign
    * @returns The updated task
    */
-  unassignTask(taskId: ElementId): Promise<Task>;
+  unassignTask(taskId: ElementId, options: UnassignTaskOptions): Promise<Task>;
 
   /**
    * Marks a task as started by the assigned agent.
@@ -440,31 +454,39 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     return this.api.update<Task>(taskId, updates, { expectedUpdatedAt: task.updatedAt });
   }
 
-  async unassignTask(taskId: ElementId): Promise<Task> {
+  async unassignTask(taskId: ElementId, options: UnassignTaskOptions): Promise<Task> {
     const task = await this.api.get<Task>(taskId);
     if (!task || task.type !== ElementType.TASK) {
       throw new Error(`Task not found: ${taskId}`);
     }
 
-    // Clear assignee
-    await this.api.update<Task>(taskId, { assignee: undefined });
-
-    // Update orchestrator metadata - preserve branch info but clear agent-specific data
-    const currentMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
-    if (currentMeta) {
-      const newMeta = updateOrchestratorTaskMeta(
-        task.metadata as Record<string, unknown> | undefined,
-        {
-          assignedAgent: undefined,
-          sessionId: undefined,
-          worktree: undefined,
-          startedAt: undefined,
-        }
+    const currentMeta = getOrchestratorTaskMeta(task.metadata);
+    const expected = options?.mode === 'failed-dispatch' ? options.expectedAssignment : undefined;
+    // No implicit administrative fallback for omitted/malformed cleanup identity.
+    if (options?.mode !== 'admin' && (
+      options?.mode !== 'failed-dispatch' || !expected?.agentId || !expected.updatedAt ||
+      (task.status !== TaskStatus.OPEN && task.status !== TaskStatus.IN_PROGRESS) ||
+      task.assignee !== expected.agentId || currentMeta?.assignedAgent !== expected.agentId ||
+      currentMeta?.sessionId !== expected.sessionId || task.updatedAt !== expected.updatedAt
+    )) {
+      throw new ConflictError(
+        `Cannot unassign task ${taskId}: failed dispatch no longer owns this assignment.`,
+        ConflictErrorCode.CONCURRENT_MODIFICATION,
+        { taskId }
       );
-      return this.api.update<Task>(taskId, { metadata: newMeta });
     }
 
-    return this.api.get<Task>(taskId) as Promise<Task>;
+    // Preserve status, branch, histories and unrelated metadata. Admin deliberately
+    // releases the current owner (including Human/terminal tasks), without reopening.
+    const metadata = currentMeta ? updateOrchestratorTaskMeta(task.metadata, {
+      assignedAgent: undefined,
+      sessionId: undefined,
+      worktree: undefined,
+      startedAt: undefined,
+    }) : task.metadata;
+    return this.api.update<Task>(taskId, { assignee: undefined, metadata }, {
+      expectedUpdatedAt: expected?.updatedAt ?? task.updatedAt,
+    });
   }
 
   async startTask(taskId: ElementId, sessionId?: string): Promise<Task> {
