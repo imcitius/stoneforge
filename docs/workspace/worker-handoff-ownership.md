@@ -192,3 +192,25 @@ root build/lint/test, Quarry Node, packaged GUI/browser, cross-platform and live
 provider runs are omitted; the required gate runs its declared source checks.
 Independent steward exact-final-commit review and approved CLI local delivery
 remain required after worker completion; this report is not merge approval.
+
+First required gate on implementation `0ad1165`: **189/189, exit0, 300.05s**.
+Log `/tmp/el-2pujj-gate.log`; exact per-step commands and results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-o2pHvy/results.json`.
+Public docs build: `pnpm --filter @stoneforge/docs build`, exit0, 38 pages,
+`/tmp/el-2pujj-docs-build.log`. During verification local master advanced only by
+el-1npax's ExportOptions.outputPath comment to `a98c67e`. Approved el-ptim CLI
+manifest and all 299 hashes verified; `task sync el-2pujj` merged that target
+without conflicts as `e3dc521`. Implementation remains unchanged; target ancestry
+and diff checks pass. Integrated required gate result follows below.
+
+Integrated gate on `e3dc521`: **187/189, exit1, 319.94s**. This is a failed
+required check, not green acceptance. Results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/results.json`,
+log `/tmp/el-2pujj-integrated-gate.log`. Unchanged Quarry query-performance list
+scaling measured medians 0.200684/0.424850/0.636896ms, ratio3.173624 against `<3`;
+unchanged PluginExecutor simple-command test timed out after5000ms. Both files
+and their implementation paths match original90b3ad8, and passed the first gate;
+no causal attribution to host load is claimed (recorded loadavg11.80/11.95/10.97).
+All handoff/completion/dispatch/spawner suites passed. Director notified; no
+out-of-scope fix, threshold change or duplicate task. One isolated diagnostic run
+and integration of newly delivered master3c22b53 follow; failures remain evidence.
