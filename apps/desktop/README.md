@@ -162,6 +162,27 @@ env -u STONEFORGE_ROOT -u STONEFORGE_DESKTOP_INSTANCE_ID \
 The packaged UI smoke clears these variables in its fixture environment itself. Diagnostics stay
 in the printed temporary directory. `DESKTOP_APP` can select a relocated bundle.
 
+The fresh-project regression holds the real workflow-preset request until the
+activity page renders, proving that an initially absent tour can appear later.
+It waits for the active tour and clicks its normal **Skip tour** button, then
+requires persisted completion, cleared step storage and detached tour elements
+before navigating to Tasks. It exercises the real **Start Session** click and
+visible mocked PTY launch error both immediately after Skip and after full
+navigation with completed onboarding. A DOM observer detects returning backdrops
+through the remainder of the smoke; it never changes the page. No completion flag
+is injected, and no provider session is launched by these mocked checks.
+This requires the configured fixture's normal tour to become available; a missing
+tour fails the check rather than silently bypassing it.
+
+Onboarding evidence is retained alongside Logs evidence as
+`onboarding-observations.json`, `onboarding-active.png`, `onboarding-skipped.png`
+and `director-start-*.png`. For stability acceptance, run a fixed set of three
+complete smoke invocations against the same identified, separately built `.app`.
+Each invocation creates new projects and userData. Save every invocation's output
+and exit code, including failures; a later pass does not erase a failed outcome.
+The smoke completes onboarding through UI synchronization, without force clicks,
+overlay removal, added sleeps, or retrying whole runs until green.
+
 Opt-in provider validation makes real API calls through the packaged terminal:
 
 ```sh
