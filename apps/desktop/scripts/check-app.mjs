@@ -157,6 +157,7 @@ try {
   // A rejected director start must be visible, without launching a real provider.
   await taskPage.goto(new URL('/activity', freshView.url).href);
   await taskPage.route('**/api/agents/*/start', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'PTY launch failure fixture' } }) }));
+  await taskPage.locator('button[aria-label="Open director"]').click();
   await taskPage.getByRole('button', { name: 'Start Session', exact: true }).first().click();
   await taskPage.getByText('Could not start agent session', { exact: true }).waitFor();
   await taskPage.getByText('PTY launch failure fixture', { exact: true }).waitFor();
