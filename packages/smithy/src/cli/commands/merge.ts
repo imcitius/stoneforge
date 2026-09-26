@@ -12,6 +12,7 @@ import { dirname, resolve } from 'node:path';
 
 import type { Command, GlobalOptions, CommandResult, CommandOption } from '@stoneforge/quarry/cli';
 import { success, failure, ExitCode, getOutputMode } from '@stoneforge/quarry/cli';
+import { resolveTarget, requireRemoteTarget } from '../../git/target.js';
 import { detectTargetBranch } from '../../git/merge.js';
 
 // ============================================================================
@@ -30,18 +31,18 @@ interface MergeOptions {
 // Helpers
 // ============================================================================
 
-async function execAsync(
-  cmd: string,
+async function execGit(
+  args: string[],
   options: { cwd?: string } = {}
 ): Promise<{ stdout: string; stderr: string }> {
-  const { exec } = await import('node:child_process');
+  const { execFile } = await import('node:child_process');
   const { promisify } = await import('node:util');
-  const execPromise = promisify(exec);
-  return execPromise(cmd, { ...options, encoding: 'utf8', timeout: 120_000 });
+  const execPromise = promisify(execFile);
+  return execPromise('git', args, { ...options, encoding: 'utf8', timeout: 120_000 });
 }
 
 async function detectCurrentBranch(cwd?: string): Promise<string> {
-  const { stdout } = await execAsync('git rev-parse --abbrev-ref HEAD', { cwd });
+  const { stdout } = await execGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd });
   return stdout.trim();
 }
 
@@ -110,7 +111,8 @@ async function mergeHandler(
     }
 
     // 1. Fetch latest from origin
-    await execAsync('git fetch origin', { cwd });
+    const target = await resolveTarget(repositoryRoot, targetBranch, 'required');
+    requireRemoteTarget(target, targetBranch);
 
     // 2. Create a temporary merge worktree at target branch
     const path = await import('node:path');
@@ -122,29 +124,28 @@ async function mergeHandler(
     const mergeDir = path.join(workspaceRoot, '.stoneforge/.worktrees', mergeDirName);
 
     try {
-      await execAsync(
-        `git worktree add --detach "${mergeDir}" origin/${targetBranch}`,
+      await execGit(
+        ['worktree', 'add', '--detach', '--', mergeDir, target.commit],
         { cwd: workspaceRoot }
       );
 
       // 3. Squash merge source branch
-      await execAsync(`git merge --squash ${sourceBranch}`, { cwd: mergeDir });
+      await execGit(['merge', '--squash', '--', sourceBranch], { cwd: mergeDir });
 
       // 4. Commit
-      const escapedMessage = commitMessage.replace(/"/g, '\\"');
-      await execAsync(`git commit -m "${escapedMessage}"`, { cwd: mergeDir });
+      await execGit(['commit', '--cleanup=verbatim', '-m', commitMessage], { cwd: mergeDir });
 
       // 5. Get commit hash
-      const { stdout: hashOutput } = await execAsync('git rev-parse HEAD', {
+      const { stdout: hashOutput } = await execGit(['rev-parse', 'HEAD'], {
         cwd: mergeDir,
       });
       const commitHash = hashOutput.trim();
 
       // 6. Push to origin
-      await execAsync(`git push origin HEAD:${targetBranch}`, { cwd: mergeDir });
+      await execGit(['push', '--', 'origin', `HEAD:${targetBranch}`], { cwd: mergeDir });
 
       // 7. Remove temp merge worktree
-      await execAsync(`git worktree remove --force "${mergeDir}"`, {
+      await execGit(['worktree', 'remove', '--force', '--', mergeDir], {
         cwd: workspaceRoot,
       });
 
@@ -153,7 +154,7 @@ async function mergeHandler(
         // Find and remove the source worktree (the cwd if it's a worktree)
         try {
           // Try to remove the current worktree
-          const { stdout: worktreeList } = await execAsync('git worktree list --porcelain', {
+          const { stdout: worktreeList } = await execGit(['worktree', 'list', '--porcelain'], {
             cwd: workspaceRoot,
           });
 
@@ -169,7 +170,7 @@ async function mergeHandler(
                 const isBare = lines.some(l => l === 'bare');
                 const branchLine = lines.find(l => l.startsWith('branch '));
                 if (!isBare && branchLine) {
-                  await execAsync(`git worktree remove --force "${wtPath}"`, {
+                  await execGit(['worktree', 'remove', '--force', '--', wtPath], {
                     cwd: workspaceRoot,
                   });
                 }
@@ -183,12 +184,12 @@ async function mergeHandler(
 
         // Delete source branch locally and remotely
         try {
-          await execAsync(`git branch -D ${sourceBranch}`, { cwd: workspaceRoot });
+          await execGit(['branch', '-D', '--', sourceBranch], { cwd: workspaceRoot });
         } catch {
           // Branch may not exist locally
         }
         try {
-          await execAsync(`git push origin --delete ${sourceBranch}`, {
+          await execGit(['push', '--delete', '--', 'origin', sourceBranch], {
             cwd: workspaceRoot,
           });
         } catch {
@@ -228,7 +229,7 @@ async function mergeHandler(
     } catch (error) {
       // Cleanup merge worktree on failure
       try {
-        await execAsync(`git worktree remove --force "${mergeDir}"`, {
+        await execGit(['worktree', 'remove', '--force', '--', mergeDir], {
           cwd: workspaceRoot,
         });
       } catch {
