@@ -1388,3 +1388,38 @@ or unrelated implementation was changed. Target ancestry/diff checks pass.
 Only verification documentation changes after this gate. Independent review must
 name the exact final worker commit (or its subsequently synchronized replacement)
 before approved CLI local merge. No worker merge or installed/live changes.
+
+### el-4bwuz integrated gate failure and handoff
+
+Approved CLI sync with delivered `4c29bb0` produced `cdc223c`; only additive
+lifecycle-report conflict resolution was needed, preserving both reports.
+**Required integrated `pnpm check:merge`:189/190,exit1,313.94s — FAILED**.
+Log `/tmp/el-4bwuz-gate-integrated.log`; exact results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-uVtHnx/results.json`.
+Failing step131 is `packages/smithy/src/api/orchestrator-api.integration.bun.test.ts`:
+`getDirector returns the director` fails during beforeEach registerWorker ->
+createAgentChannel -> QuarryAPI.create with `UNIQUE constraint failed: elements.id`
+(ALREADY_EXISTS), **26pass/1fail**. Its raw log is `131.log` in that directory.
+This API/test/Quarry path is unchanged from delivered2bb427b; no evidence establishes
+its collision cause or a Spawner regression. Dedicated follow-up **el-2zj6n** tracks
+investigation. No production/threshold/retry change was made outside task scope.
+
+Exactly one isolated diagnostic rerun of that suite with clean test environment
+passed **27/27,92 assertions,exit0**, `/tmp/el-4bwuz-api-diagnostic.log`.
+This is non-reproduction evidence, **not acceptance**, and does not supersede the
+failed integrated gate. No third full gate was run to obtain a green result.
+The earlier pre-integration190/190 pass remains historical evidence only.
+Integrated focused Spawner/Claude37/37 and all Smithy Node/Vitest362/362 passed;
+all other189 gate steps, including runtime/dispatch and Desktop, passed.
+
+During the second gate master delivered documentation-only research24df339.
+Approved CLI sync staged that conflict-free merge but reported a generic merge
+failure; command-scoped Git author/committer configuration completed the existing
+merge as `8377ed6`. Diff from tested cdc223c is exclusively under docs/, and current
+master ancestry passes. This documentation merge does not cure the gate failure;
+no untested production delta or unrelated fix was introduced.
+
+Implementation and reports are committed/pushed; task is handed off rather than
+completed because required acceptance is not green. Director must determine the
+next acceptance/investigation step. Independent exact-final steward review and
+approved CLI local merge are still required. No installed/live changes.
