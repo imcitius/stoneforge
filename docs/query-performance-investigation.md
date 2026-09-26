@@ -346,3 +346,52 @@ This bounded validation supports improved local measurement stability while
 retaining sensitivity to the demonstrated quadratic-work controls. It does
 not establish the cause or resolution of the original production-cost concern,
 nor guarantee that the list threshold is valid on every host.
+
+## Validation after approved local-target sync — 2026-09-26
+
+Independent review of implementation `9813ff1513eba2eb905d5d53dca904505df54206`
+was approved in workspace record el-47ni. That review ran three focused processes
+(4/4 each) and one 171-step sequence (exit 0, 116.038 s); its evidence remains in
+`/tmp/el-2z6-steward-review.json`. Those results do not erase the earlier failures.
+
+After el-2kc and el-ptim closed, the approved separate CLI
+`/tmp/stoneforge-el-ptim-151b314/sf task sync el-2z6`, with
+`STONEFORGE_ROOT=/Users/citius/Desktop/Work/Stoneforge`, merged local master
+`0f0a7ad4c767d9ac85ce0fb3408f031ee2f9bf91` into the assigned branch as
+`71ffb7c405666f7019a44052d9583a39594b6304`. All 299 artifact manifest entries
+matched their SHA-256. The three task files were identical to the approved
+implementation before appending this evidence. No measurement changes were made.
+
+`pnpm install --frozen-lockfile` returned 0. One predeclared full sequence used
+the same isolated per-file recipe above, now with 173 steps because the target
+added two Smithy Bun files. It returned **0**, taking **164.439 s** summed child
+wall time. Every command/exit/duration and all raw scaling samples are appended
+under `syncedValidation` in `query-performance-validation.json`. Full output is
+in `/tmp/el-2z6-synced-full/{000..172}.log` and `results.json`; install output is
+`/tmp/el-2z6-synced-install.log`. Exact runner command:
+`python3 /tmp/el-2z6-postchange-runs.py full /tmp/el-2z6-synced-full`.
+
+- All 96 Quarry files passed; performance was **35/35**, 6.903 s wall time,
+  create ratio **0.975900 <4**, list ratio **2.660769 <3**. Both quadratic controls
+  were rejected (9.181818 and 8.766244); both linear controls passed.
+- Uncached typecheck passed **17/17**, Desktop source build passed, Smithy Node
+  tests passed **325/325**, and Desktop backend tests passed **4/4**.
+- The previously failing project-repositories fixture passed **5/5** on this
+  base containing its separately reviewed el-52s correction.
+
+During that sequence, local master advanced with independently delivered Desktop
+Logs and merge-status changes. A second approved-CLI sync produced
+`eb87390df3177f221631ec5009d44cdea5167d70` from target
+`e5792805d92fd07dc81406da2b95c2e9dc83fbb0`. Quarry code remained identical.
+The bounded delta checks were uncached workspace typecheck, Desktop source build,
+both merge-status Bun files, Smithy Node tests, and Desktop tests. All returned
+**0**; exact commands, durations and logs are recorded in `subsequentSync` and
+`/tmp/el-2z6-synced-delta/`. No additional baseline campaign or pass-dependent
+scaling retry occurred.
+
+This is worker validation of the combined revision, requiring independent final
+review before local delivery. Despite the coincidental 173-step count, it is
+**not `pnpm check:merge`**: that command and its runner self-tests remain absent
+on this branch. Final integrated acceptance/activation remains el-1r6. The cause
+of historical create ratio **7.216375** remains unestablished. No installed
+Desktop update, session interruption, target publication or gate activation occurred.
