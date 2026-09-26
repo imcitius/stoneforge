@@ -47,7 +47,7 @@ export interface CodexClient {
       approvalPolicy?: string;
       sandbox?: string;
       config?: Record<string, unknown>;
-    }): Promise<{ thread: { id: string } }>;
+    }): Promise<{ thread: { id: string }; model?: string }>;
     resume(params: {
       threadId: string;
       model?: string;
@@ -55,7 +55,7 @@ export interface CodexClient {
       approvalPolicy?: string;
       sandbox?: string;
       config?: Record<string, unknown>;
-    }): Promise<{ thread: { id: string } }>;
+    }): Promise<{ thread: { id: string }; model?: string }>;
     read(params: { threadId: string }): Promise<{ thread: { id: string } }>;
   };
   turn: {
@@ -224,8 +224,8 @@ class CodexServerManager {
         list: (params) => rpcClient.request('model/list', params ?? {}) as Promise<CodexModelList>,
       },
       thread: {
-        start: (params) => rpcClient.request('thread/start', params) as Promise<{ thread: { id: string } }>,
-        resume: (params) => rpcClient.request('thread/resume', params) as Promise<{ thread: { id: string } }>,
+        start: (params) => rpcClient.request('thread/start', params) as Promise<{ thread: { id: string }; model?: string }>,
+        resume: (params) => rpcClient.request('thread/resume', params) as Promise<{ thread: { id: string }; model?: string }>,
         read: (params) => rpcClient.request('thread/read', params) as Promise<{ thread: { id: string } }>,
       },
       turn: {

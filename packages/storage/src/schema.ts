@@ -14,7 +14,7 @@ import type { Migration, MigrationResult, StorageBackend } from './index.js';
 /**
  * Current schema version
  */
-export const CURRENT_SCHEMA_VERSION = 12;
+export const CURRENT_SCHEMA_VERSION = 13;
 
 // ============================================================================
 // Migrations
@@ -553,10 +553,18 @@ ALTER TABLE provider_metrics DROP COLUMN cache_creation_tokens;
 `,
 };
 
+/** Availability is unknown for legacy rows; do not infer usage from old zeroes. */
+const migration013: Migration = {
+  version: 13,
+  description: 'Track provider metrics usage availability without rewriting history',
+  up: `ALTER TABLE provider_metrics ADD COLUMN usage_available INTEGER CHECK (usage_available IN (0, 1));`,
+  down: `ALTER TABLE provider_metrics DROP COLUMN usage_available;`,
+};
+
 /**
  * All migrations in order
  */
-export const MIGRATIONS: readonly Migration[] = [migration001, migration002, migration003, migration004, migration005, migration006, migration007, migration008, migration009, migration010, migration011, migration012];
+export const MIGRATIONS: readonly Migration[] = [migration001, migration002, migration003, migration004, migration005, migration006, migration007, migration008, migration009, migration010, migration011, migration012, migration013];
 
 // ============================================================================
 // Schema Functions

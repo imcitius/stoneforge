@@ -116,8 +116,8 @@ export interface StreamJsonEvent {
   readonly tool?: string;
   readonly tool_use_id?: string;
   readonly tool_input?: unknown;
-  /** Content (for assistant/user messages) */
-  readonly message?: string;
+  /** Raw SDK message object or legacy text; parsed text lives on SpawnedSessionEvent. */
+  readonly message?: unknown;
   readonly content?: string;
   /** Timestamp */
   readonly timestamp?: string;
@@ -171,6 +171,9 @@ export const SessionStatusTransitions: Record<SessionStatus, SessionStatus[]> = 
  * Spawned session information
  */
 export interface SpawnedSession {
+  /** Provider and model selected for this spawn, independent of later agent settings. */
+  readonly provider?: string;
+  readonly model?: string;
   /** Internal session ID (unique per spawn) */
   readonly id: string;
   /** Provider session ID (for resume) */
@@ -530,6 +533,8 @@ export class SpawnerServiceImpl implements SpawnerService {
     // Create session record
     const session: InternalSession = {
       id: sessionId,
+      provider: (options?.provider ?? this.provider).name,
+      model: options?.model,
       agentId,
       agentRole,
       workerMode: this.getWorkerMode(agentRole, options?.mode),
@@ -1010,6 +1015,8 @@ export class SpawnerServiceImpl implements SpawnerService {
 
           // Extract provider session ID from system init message
           if (message.type === 'system' && message.subtype === 'init' && message.sessionId) {
+            const model = (message.raw as { model?: unknown } | null)?.model;
+            if (typeof model === 'string' && model) (session as { model: string }).model = model;
             (session as { providerSessionId: string }).providerSessionId = message.sessionId;
             session.events.emit('provider-session-id', message.sessionId);
           }
@@ -1073,7 +1080,7 @@ export class SpawnerServiceImpl implements SpawnerService {
       type: message.type,
       subtype: message.subtype,
       session_id: message.sessionId,
-      message: message.content,
+      message: sdkData.message ?? message.content,
       ...(message.tool ? {
         tool: message.tool.name,
         tool_use_id: message.tool.id,
@@ -1386,6 +1393,8 @@ export class SpawnerServiceImpl implements SpawnerService {
   private toPublicSession(session: InternalSession): SpawnedSession {
     return {
       id: session.id,
+      provider: session.provider,
+      model: session.model,
       providerSessionId: session.providerSessionId,
       agentId: session.agentId,
       agentRole: session.agentRole,

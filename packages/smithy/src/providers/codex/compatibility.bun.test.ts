@@ -1,3 +1,6 @@
+import type { EntityId } from '@stoneforge/core';
+import { SpawnerServiceImpl } from '../../runtime/spawner.js';
+import { SessionMetricsTracker } from '../../services/session-metrics.js';
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test';
 import { CodexAgentProvider } from './index.js';
 import { CodexHeadlessProvider } from './headless.js';
@@ -34,6 +37,37 @@ describe('Codex app-server compatibility', () => {
   });
 
   afterEach(() => { acquire.mockRestore(); release.mockRestore(); });
+
+  it('forwards resolved model and usage through the real provider and spawner', async () => {
+    client.thread.start = mock(async () => ({ thread: { id: threadId }, model: 'resolved-model' }));
+    const spawner = new SpawnerServiceImpl({ provider: new CodexAgentProvider(), workingDirectory: '/workspace', timeout: 1000 });
+    const { session, events } = await spawner.spawn('el-worker' as EntityId, 'worker', { model: 'requested-model' });
+    expect(session).toMatchObject({ provider: 'codex', model: 'resolved-model' });
+    const tracker = new SessionMetricsTracker(session.provider!, session.model);
+    events.on('event', event => tracker.observe(event));
+    const observed = new Promise(resolve => events.once('event', resolve));
+    const total = { inputTokens: 100, outputTokens: 10, cachedInputTokens: 80,
+      reasoningOutputTokens: 5, totalTokens: 110 };
+    notify('thread/tokenUsage/updated', { threadId, turnId: 'turn-1', tokenUsage: { total, last: total } });
+    await observed;
+    expect(tracker.snapshot()).toMatchObject({ provider: 'codex', model: 'resolved-model',
+      inputTokens: 20, outputTokens: 10, cacheReadTokens: 80, cacheCreationTokens: 0, usageAvailable: true });
+    await spawner.terminate(session.id, false);
+    await Bun.sleep(0);
+  });
+
+  it('does not attribute resumed thread lifetime totals to the new session', async () => {
+    const session = await new CodexHeadlessProvider().spawn({ workingDirectory: '/workspace', resumeSessionId: threadId });
+    const iterator = session[Symbol.asyncIterator]();
+    await iterator.next(); // init
+    const total = { inputTokens: 10000, outputTokens: 100, cachedInputTokens: 8000,
+      reasoningOutputTokens: 50, totalTokens: 10100 };
+    notify('thread/tokenUsage/updated', { threadId, turnId: 'turn-1', tokenUsage: { total, last: total } });
+    notify('turn/completed', { threadId, turn: { id: 'turn-1', status: 'completed' } });
+    expect((await iterator.next()).value.type).toBe('result');
+    session.close();
+    await Bun.sleep(0);
+  });
 
   it('uses wire IDs, display names, pagination and the server-selected default', async () => {
     client.model.list = mock(async ({ cursor } = {}) => cursor

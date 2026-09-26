@@ -80,6 +80,8 @@ export interface CodexNotification {
  * message when the next non-text event arrives.
  */
 export class CodexEventMapper {
+  // Thread totals cannot be attributed to a resumed spawn without a baseline.
+  constructor(private readonly collectUsage = true) {}
   private emittedToolUses = new Set<string>();
   private emittedToolResults = new Set<string>();
   private pendingText: { itemId: string; content: string } | null = null;
@@ -100,6 +102,9 @@ export class CodexEventMapper {
     }
 
     switch (notification.method) {
+      case 'thread/tokenUsage/updated':
+        return this.handleTokenUsage(notification, threadId);
+
       case 'item/agentMessage/delta':
         return this.handleTextDelta(notification);
 
@@ -152,6 +157,30 @@ export class CodexEventMapper {
   // ----------------------------------------
   // Private
   // ----------------------------------------
+
+  private handleTokenUsage(notification: CodexNotification, threadId: string): AgentMessage[] {
+    if (!this.collectUsage || notification.params?.threadId !== threadId) return [];
+    const tokenUsage = notification.params.tokenUsage as { total?: Record<string, unknown> } | undefined;
+    const total = tokenUsage?.total;
+    if (!total) return [];
+    const values = [total.inputTokens, total.outputTokens, total.cachedInputTokens,
+      total.cacheWriteInputTokens ?? 0];
+    if (!values.every(value => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0)) return [];
+    const [input, output, cached, created] = values as number[];
+    if (cached + created > input) return [];
+    return [{
+      type: 'system',
+      subtype: 'usage',
+      // Normalize to the existing metrics convention: uncached input and cache
+      // categories are disjoint. Reasoning is already included in outputTokens.
+      raw: { ...notification, usage: {
+        input_tokens: input - cached - created,
+        output_tokens: output,
+        cache_read_input_tokens: cached,
+        cache_creation_input_tokens: created,
+      } },
+    }];
+  }
 
   private handleServerError(notification: CodexNotification): AgentMessage[] {
     const params = notification.params as Record<string, unknown> | undefined;
