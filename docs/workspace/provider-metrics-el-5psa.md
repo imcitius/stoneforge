@@ -371,3 +371,97 @@ installed/packaged app, live providers and other browsers were not tested.
 Independent steward review of the final commit and approved CLI local delivery
 are still required; this worker report does not claim independent approval or
 an installed-app update.
+
+## Cache hit rate denominator and legacy policy — el-10qu, 2026-09-26
+
+The dashboard now uses one calculation for the provider summary card, each
+model row, and the model total:
+
+`100 * sum(cacheRead) / sum(uncachedInput + cacheRead + cacheCreation)`
+
+Rounding happens once after summing tokens, not by averaging model percentages.
+No clamp is used. For example, normalized input=20/read=80 gives 80%; input=0/
+read=100 gives 100%; input=100/read=0 gives 0%; input=20/read=60/create=20
+gives 60%. Cache creation/write is input but is not a cache hit. Output and
+reasoning tokens do not belong in the denominator. The measured empty
+input denominator is undefined, rendered **N/A (no input tokens)**, never 0%.
+
+Source semantics checked in `providers/codex/event-mapper.ts` and
+`services/session-metrics.ts`: Codex provider `inputTokens` includes cached
+input. The mapper subtracts `cachedInputTokens` and optional
+`cacheWriteInputTokens`, storing three disjoint input categories. Claude raw
+`input_tokens`, `cache_read_input_tokens`, and `cache_creation_input_tokens`
+are tracked separately. Result/modelUsage cache counters reconcile with maxima,
+not another addition; duplicate decomposed Claude messages are deduplicated.
+The regression exercises repeated Codex write/read updates through mapper,
+tracker, real temporary SQLite and API, retaining 20/60/20 and the existing
+`totalTokens=30` with output=10. Existing Claude spawner/API tests exercise
+100 uncached + 30 read + 10 creation. This fix does not alter collection,
+pricing, public numeric token totals, storage, or historical records.
+
+The existing coverage contract governs ratio availability, with a stricter
+legacy rule because retained token sums have no observed-only breakdown:
+
+- All observed records: numeric rate, or N/A for the measured empty denominator.
+- Partial usage with explicitly zero legacy records: recorded ratio labelled
+  `partial; recorded ratio`; it does not estimate the missing usage. An empty
+  denominator similarly remains N/A with the partial label.
+- Any legacy records, missing old-server coverage fields, or invalid numeric
+  categories: **unknown**, including aggregates that also contain measured rows.
+  No percentage is calculated from ambiguous historical values or selectively
+  chosen known groups. This preserves consistent aggregate behavior regardless
+  of provider/model grouping boundaries. Individual measured rows remain usable.
+- No observed usage and no legacy, including an empty response: **unavailable**.
+
+Other numeric subtotals intentionally retain the existing unverified legacy
+values and their existing labels. Usage coverage and ratio availability can
+therefore differ: a partial token subtotal containing legacy has an unknown
+cache ratio. Existing documents' earlier denominator-defect note describes the
+historical el-33hc state; el-10qu corrects it in source only.
+
+Implementation/test commit: `7c8a760`. Frozen pnpm install passed, lockfiles
+unchanged (pnpm 8.15.5, Node 22.23.3, Bun 1.3.11, macOS arm64).
+
+- Before the fix, the new unit suite failed 8/13 cases, including 400% instead
+  of 80%, all-cache 0% instead of 100%, creation and mixed weighted aggregates.
+- `pnpm --filter @stoneforge/smithy-web exec vitest run src/routes/metrics/coverage.test.ts`:
+  13/13 pass after the fix.
+- `bun test packages/smithy/src/services/session-metrics.bun.test.ts`:
+  7/7 pass, 55 assertions (includes the new cache-write ingestion regression).
+- `PLAYWRIGHT_BROWSERS_PATH=/tmp/el-33hc-browsers pnpm --filter @stoneforge/smithy-web exec playwright test --config playwright.metrics.config.ts --output /tmp/el-10qu/browser-results`:
+  22/22 pass, retries=0, 13.4s. Actual MetricsPage with intercepted API only;
+  no backend/live project. Checks card/model/total agreement for 80%, 100%, 0%,
+  empty denominator, creation, weighted models, partial, legacy, old-server and
+  unavailable; existing responsive widths 320/768/1024/1440, keyboard selector,
+  chart gaps/tooltips, page errors and empty/error responses also pass. Weighted
+  screenshot inspected: 80% and 0% rows, 8% card and total are visible.
+
+Logs and browser artifacts: `/tmp/el-10qu/` (`unit-baseline.log`, `unit.log`,
+`ingestion.log`, `browser.log`, `browser-results/`, `install.log`). Full required
+gate and independent final-commit review are recorded separately below.
+Installed Desktop, live projects and sessions were not modified. No provider
+calls, backfill, migration of live data, packaged GUI or full browser suite.
+
+### Final worker gate — el-10qu
+
+One full explicit `pnpm check:merge` on implementation/test commit
+`7c8a76033e7731241e09f24ac5ffaf2c2787ad80`: **exit 0, 180/180 steps,
+271.21s**. Uncached typecheck 17/17 (0 cached); Bun 8,536 pass / 0 fail /
+29 existing skips; Smithy Vitest 325 pass; Desktop Node integration 6 pass;
+gate regressions 5 pass; Desktop source build pass. No gate changes, bypass,
+or reruns. The separately run frontend unit/browser checks above are not
+implicitly part of this gate.
+
+Full log `/tmp/el-10qu/gate.log`, exit `/tmp/el-10qu/gate.exit`;
+exact commands, exits, durations and per-step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-52FK0P/results.json`.
+`git diff --check` and local target ancestry pass; source target remains
+`dad94699d5cad27a7104d236c8df23e0c1eb14c2`. The following commit changes only
+this report. Shared document el-1fqa and Directory el-1s1 were reread before
+updates, preserving other entries; no new document or channel was created.
+
+Worker source acceptance is complete. Independent steward review of the final
+commit remains required before approved CLI `task merge el-10qu --local`.
+Worker uses `sf task complete` to enter that review lifecycle, not manual PR
+creation or self-merge. This report does not claim independent approval or an
+installed-app update; installed app, projects and running sessions are unchanged.
