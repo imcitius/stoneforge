@@ -123,6 +123,10 @@ Provider accounts and their account limits remain shared.
 
 ## Verification
 
+For the routine source merge gate (including the Desktop backend tests), use
+[`pnpm check:merge`](../../docs/merge-checks.md). The packaged GUI and
+LaunchServices checks below remain separate acceptance checks for app artifacts.
+
 ```sh
 pnpm typecheck
 pnpm --filter @stoneforge/desktop build

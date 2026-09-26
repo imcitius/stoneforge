@@ -10,6 +10,7 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
+    "check:merge": "node scripts/check-merge.mjs",
     "clean": "turbo run clean && rm -rf node_modules",
     "dev:smithy": "turbo run dev --filter=@stoneforge/smithy-server --filter=@stoneforge/smithy-web",
     "dev:platform": "turbo run dev --filter=@stoneforge/quarry-server --filter=@stoneforge/quarry-web",
