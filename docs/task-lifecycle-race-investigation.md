@@ -1344,3 +1344,23 @@ lock unchanged, `/tmp/el-420pr-install.log`. Required gate/final results follow.
 No live provider, session, daemon, installed application or maintenance operation
 is used. Independent exact-final steward review and approved CLI local delivery
 remain required; worker verification is not merge approval.
+
+Final worker verification on source `43d0115`, local target `24df339`:
+- Final typed-validation CLI fixture: **21/21,134 assertions**, exit0,
+  `/tmp/el-420pr-final-cli.log`.
+- Required **pnpm check:merge191/191,exit0,318.46s**, one run,
+  `/tmp/el-420pr-gate.log`; exact commands/results and per-step logs:
+  `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-8ab1Ct/results.json`.
+- Relevant suites inside that gate: CLI21 + explicit API30 + SessionManager85 +
+  dispatch-claim53 + completion69 = **258/258,1174 assertions**; Smithy Node/Vitest
+  **349/349**, Desktop Node **6/6**. Workspace uncached typecheck and Desktop source
+  build passed. Existing skips elsewhere are not passing coverage.
+- Local target ancestry and `git diff --check` pass; only verification text changed
+  after the gate. Separate root build/lint/test, public docs build, browser/packaged
+  GUI, cross-platform and live-provider tests were not run. Gate is source
+  acceptance, not an installed-app update or independent merge approval.
+
+Initial commit attempt lacked Git identity; retried with command-scoped worker
+identity, without global Git config changes. No implementation/test failures after
+correction. Final documentation commit must receive exact-final independent review
+before approved standalone CLI local delivery.
