@@ -71,7 +71,7 @@ function cleanup(repoDir: string, remoteDir: string) {
 describe('execGitSafe', () => {
   test('refuses to run in workspace root', async () => {
     await expect(
-      execGitSafe('status', '/some/root', '/some/root')
+      execGitSafe(['status'], '/some/root', '/some/root')
     ).rejects.toThrow('SAFETY');
   });
 
@@ -80,7 +80,7 @@ describe('execGitSafe', () => {
     try {
       const sub = path.join(repo, 'sub');
       fs.mkdirSync(sub);
-      const result = await execGitSafe('status', sub, repo);
+      const result = await execGitSafe(['status'], sub, repo);
       expect(result.stdout).toBeDefined();
     } finally {
       rmrf(repo);

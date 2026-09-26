@@ -84,13 +84,15 @@ test('an assigned task cannot switch repositories or resume a foreign worktree',
   const a = repo('a', 'main'), b = repo('b', 'main');
   const repositories = new ProjectRepositories(root, api);
   await repositories.add({ id: 'a', path: a }); await repositories.add({ id: 'b', path: b });
-  const t = await task('a');
-  await api.update(t.id, { metadata: { orchestrator: { repositoryId: 'a', branch: 'feature/test' } } });
+  const created = await task('a');
+  // forTask pins the repository using this snapshot's updatedAt and metadata.
+  const t = await api.update<Task>(created.id, { metadata: { orchestrator: { repositoryId: 'a', branch: 'feature/test' } } });
   await expect(api.update(t.id, { metadata: { orchestrator: { repositoryId: 'b', branch: 'feature/test' } } })).rejects.toThrow('Cannot change repository');
   await expect(api.update(t.id, { metadata: {} })).rejects.toThrow('Cannot change repository');
   const bad = { ...t, metadata: { orchestrator: { repositoryId: 'a', worktree: b } } };
   await expect(repositories.forTask(bad)).rejects.toThrow('another repository');
   const manager = await repositories.forTask(t);
+  expect((await api.get<Task>(t.id))?.metadata.orchestrator).toMatchObject({ repositoryId: 'a', repositoryLocked: true, branch: 'feature/test' });
   await expect(manager.createWorktree({ agentName: 'worker', taskId: t.id, customPath: '../outside' })).rejects.toThrow('managed directory');
 });
 

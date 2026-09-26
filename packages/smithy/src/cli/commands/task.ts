@@ -1,3 +1,4 @@
+import { resolveTarget } from '../../git/target.js';
 import { ProjectRepositories } from '../../git/project-repositories.js';
 /**
  * Task Commands - CLI operations for orchestrator task management
@@ -372,10 +373,12 @@ Examples:
 // ============================================================================
 
 interface TaskMergeOptions {
+  local?: boolean;
   summary?: string;
 }
 
 const taskMergeOptions: CommandOption[] = [
+  { name: 'local', description: 'Deliver to the local target branch without any remote push; verify delivery before closing' },
   {
     name: 'summary',
     short: 's',
@@ -434,17 +437,21 @@ async function taskMergeHandler(
 
     targetBranch ??= repository.targetBranch;
 
-    // 3. Call mergeBranch() with syncLocal disabled (we'll do it after bookkeeping)
+    // 3. Local delivery must finish before verification, bookkeeping or cleanup.
     const { mergeBranch, syncLocalBranch, hasRemote } = await import('../../git/merge.js');
     const { detectTargetBranch } = await import('../../git/merge.js');
+    targetBranch ??= await detectTargetBranch(workspaceRoot);
+    if (sourceBranch === targetBranch) return failure('Source branch must differ from target branch.', ExitCode.GENERAL_ERROR);
     const commitMessage = `${task.title} (${taskId})`;
+    const localDelivery = options.local === true || !await hasRemote(workspaceRoot);
 
     const mergeResult = await mergeBranch({
       workspaceRoot,
       sourceBranch,
       targetBranch,
       commitMessage,
-      syncLocal: !await hasRemote(workspaceRoot),
+      localOnly: localDelivery,
+      syncLocal: localDelivery,
     });
 
     if (!mergeResult.success) {
@@ -458,17 +465,17 @@ async function taskMergeHandler(
       return failure(lines.join('\n'), ExitCode.GENERAL_ERROR);
     }
 
-    // 3b. Post-merge verification: confirm commits landed on origin before marking as merged
-    const { exec: execCb } = await import('node:child_process');
+    // 3b. Verify delivery to the selected target before marking as merged
+    const { execFile: execCb } = await import('node:child_process');
     const { promisify: promisifyUtil } = await import('node:util');
     const execVerify = promisifyUtil(execCb);
     const effectiveTargetForVerify = targetBranch ?? await detectTargetBranch(workspaceRoot);
 
-    const remoteExists = await hasRemote(workspaceRoot);
+    const remoteExists = !localDelivery;
     const verificationRef = remoteExists ? `origin/${effectiveTargetForVerify}` : effectiveTargetForVerify;
     if (remoteExists) {
       try {
-        await execVerify(`git fetch origin ${effectiveTargetForVerify}`, { cwd: workspaceRoot });
+        await execVerify('git', ['fetch', '--', 'origin', effectiveTargetForVerify], { cwd: workspaceRoot });
       } catch (fetchErr) {
         const fetchMsg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
         return failure(
@@ -483,7 +490,7 @@ async function taskMergeHandler(
       // Verify the merge commit is an ancestor of origin/{targetBranch}
       try {
         await execVerify(
-          `git merge-base --is-ancestor ${mergeResult.commitHash} ${verificationRef}`,
+          'git', ['merge-base', '--is-ancestor', '--', mergeResult.commitHash, verificationRef],
           { cwd: workspaceRoot }
         );
       } catch {
@@ -497,7 +504,7 @@ async function taskMergeHandler(
       // Verify the local source branch has no commits ahead of origin/{targetBranch}
       try {
         const { stdout: countStr } = await execVerify(
-          `git rev-list --count ${verificationRef}..${sourceBranch}`,
+          'git', ['rev-list', '--count', '--end-of-options', `${verificationRef}..${sourceBranch}`, '--'],
           { cwd: workspaceRoot, encoding: 'utf8' }
         );
         const aheadCount = parseInt(countStr.trim(), 10);
@@ -540,23 +547,23 @@ async function taskMergeHandler(
 
     // 5. Clean up: delete source branch and remove task worktree (best-effort)
     try {
-      await execVerify(`git branch -D ${sourceBranch}`, { cwd: workspaceRoot });
-    } catch { /* branch may not exist locally */ }
-
-    try {
-      await execVerify(`git push origin --delete ${sourceBranch}`, { cwd: workspaceRoot });
+      if (!localDelivery) await execVerify('git', ['push', '--delete', '--', 'origin', sourceBranch], { cwd: workspaceRoot });
     } catch { /* branch may not exist on remote */ }
 
     const worktreePath = orchestratorMeta?.worktree;
     if (worktreePath) {
       try {
-        await execVerify(`git worktree remove --force "${worktreePath}"`, { cwd: workspaceRoot });
+        await execVerify('git', ['worktree', 'remove', '--force', '--', worktreePath], { cwd: workspaceRoot });
       } catch { /* worktree may already be gone */ }
     }
 
+    try {
+      await execVerify('git', ['branch', '-D', '--', sourceBranch], { cwd: workspaceRoot });
+    } catch { /* branch may not exist locally */ }
+
     // 6. Sync local target branch (best-effort, after all bookkeeping is done)
     try {
-      await execVerify('git fetch origin', { cwd: workspaceRoot, encoding: 'utf8' });
+      if (!localDelivery) await execVerify('git fetch origin', { cwd: workspaceRoot, encoding: 'utf8' });
     } catch { /* best-effort */ }
     if (remoteExists) await syncLocalBranch(workspaceRoot, effectiveTargetForVerify);
 
@@ -596,20 +603,23 @@ export const taskMergeCommand: Command = {
   name: 'merge',
   description: 'Squash-merge a task branch and close the task',
   usage: 'sf task merge <task-id> [options]',
-  help: `Squash-merge a task's branch into the target branch and close it.
+  help: `Use --local for verified delivery to the local target without remote operations.
+
+Squash-merge a task's branch into the target branch and close it.
 
 This command:
 1. Validates the task is in REVIEW status with an associated branch
 2. Squash-merges the branch into the target branch (auto-detected)
-3. Pushes to remote
+3. Delivers and verifies on origin (default) or the local target (--local)
 4. Atomically sets merge status to "merged" and closes the task
-5. Cleans up the source branch (local + remote) and worktree
+5. Cleans up the source branch and worktree (remote cleanup only in remote mode)
 
 Arguments:
   task-id    Task identifier to merge
 
 Options:
   -s, --summary <text>    Summary of the merge
+  --local                Deliver locally without fetch/push; keep task open on failure
 
 Examples:
   sf task merge el-abc123
@@ -836,52 +846,15 @@ async function taskSyncHandler(
       ? worktreePath
       : path.join(workspaceRoot, worktreePath);
 
-    const remoteAvailable = await worktreeManager.ensureWorktreeRemote(fullWorktreePath);
-    if (!remoteAvailable) {
-      const syncResult: SyncResult = {
-        success: false,
-        error: 'No origin remote is configured for this workspace or worktree',
-        message: 'Git origin remote is not configured',
-        worktreePath,
-        branch,
-      };
-      const mode = getOutputMode(options);
-      if (mode === 'json') {
-        return success(syncResult);
-      }
-      return failure(syncResult.message, ExitCode.GENERAL_ERROR);
-    }
-
-    // Fetch from origin
-    try {
-      await execFileAsync('git', ['fetch', 'origin'], {
-        cwd: fullWorktreePath,
-        encoding: 'utf8',
-        timeout: 60_000,
-      });
-    } catch (fetchError) {
-      const syncResult: SyncResult = {
-        success: false,
-        error: `Failed to fetch from origin: ${(fetchError as Error).message}`,
-        message: 'Git fetch failed',
-        worktreePath,
-        branch,
-      };
-      const mode = getOutputMode(options);
-      if (mode === 'json') {
-        return success(syncResult);
-      }
-      return failure(syncResult.message, ExitCode.GENERAL_ERROR);
-    }
-
-    // Use the task's targetBranch if set, otherwise fall back to default branch
-    const targetBranch = orchestratorMeta?.targetBranch as string | undefined;
-    const syncBranch = targetBranch ?? await worktreeManager.getDefaultBranch();
-    const remoteBranch = `origin/${syncBranch}`;
+    await worktreeManager.ensureWorktreeRemote(fullWorktreePath);
+    const syncBranch = (orchestratorMeta?.targetBranch as string | undefined)
+      ?? await worktreeManager.getDefaultBranch();
+    const target = await resolveTarget(fullWorktreePath, syncBranch);
+    const targetDescription = `${target.ref} (${target.commit})`;
 
     // Attempt to merge
     try {
-      await execFileAsync('git', ['merge', remoteBranch, '--no-edit'], {
+      await execFileAsync('git', ['merge', target.commit, '--no-edit'], {
         cwd: fullWorktreePath,
         encoding: 'utf8',
         timeout: 120_000,
@@ -890,7 +863,7 @@ async function taskSyncHandler(
       // Merge succeeded
       const syncResult: SyncResult = {
         success: true,
-        message: `Branch synced with ${remoteBranch}`,
+        message: `Branch synced with ${targetDescription}`,
         worktreePath,
         branch,
       };
@@ -902,7 +875,7 @@ async function taskSyncHandler(
       if (mode === 'quiet') {
         return success('synced');
       }
-      return success(syncResult, `✓ Branch synced with ${remoteBranch}`);
+      return success(syncResult, `✓ Branch synced with ${targetDescription}`);
     } catch (mergeError) {
       // Check for merge conflicts
       try {
@@ -990,8 +963,8 @@ export const taskSyncCommand: Command = {
 
 This command:
 1. Looks up the task's worktree path and branch from metadata
-2. Runs \`git fetch origin\` in the worktree
-3. Attempts \`git merge origin/main\` (or origin/master)
+2. Fetches the configured target when available (offline uses known refs)
+3. Merges the newer local/origin target commit; refuses divergent target histories
 4. Reports success, conflicts, or errors
 
 This is typically run by the dispatch daemon before spawning a merge steward,
