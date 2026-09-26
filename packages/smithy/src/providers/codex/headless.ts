@@ -171,12 +171,14 @@ export class CodexHeadlessProvider implements HeadlessProvider {
     // The app-server is shared, but tool environments belong to each thread.
     // In particular SF_ENTITY_ID must never come from another agent's session.
     const environment = {
+      ...(options.stoneforgeRoot ? { PATH: process.env.PATH ?? '' } : {}),
       ...options.environmentVariables,
       ...(options.stoneforgeRoot ? { STONEFORGE_ROOT: options.stoneforgeRoot } : {}),
       ...(process.env.STONEFORGE_DESKTOP_INSTANCE_ID ? { STONEFORGE_DESKTOP_INSTANCE_ID: process.env.STONEFORGE_DESKTOP_INSTANCE_ID } : {}),
     };
     const threadConfig = Object.keys(environment).length
-      ? { config: { 'shell_environment_policy.set': environment } }
+      ? { config: { 'shell_environment_policy.set': environment,
+        ...(options.stoneforgeRoot ? { allow_login_shell: false, 'features.shell_snapshot': false } : {}) } }
       : {};
 
     try {

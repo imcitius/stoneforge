@@ -23,7 +23,7 @@ import { shellQuote } from '../shell-quote.js';
 
 type CodexInteractiveArgOptions = Pick<
   InteractiveSpawnOptions,
-  'resumeSessionId' | 'workingDirectory' | 'model'
+  'resumeSessionId' | 'workingDirectory' | 'model' | 'stoneforgeRoot' | 'environmentVariables'
 >;
 
 const CODEX_RESUME_SESSION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -80,6 +80,29 @@ export function buildCodexInteractiveArgs(
 
   if (options.model) {
     args.push('--model', quote(options.model));
+  }
+
+  if (options.stoneforgeRoot) {
+    // Pin command-tool context as well as the Codex process environment. Login
+    // profiles and a persisted shell snapshot can otherwise restore an old PATH.
+    const environment = {
+      PATH: options.environmentVariables?.PATH ?? process.env.PATH ?? '',
+      ...options.environmentVariables,
+      STONEFORGE_ROOT: options.stoneforgeRoot,
+      ...(process.env.STONEFORGE_DESKTOP_INSTANCE_ID ? { STONEFORGE_DESKTOP_INSTANCE_ID: process.env.STONEFORGE_DESKTOP_INSTANCE_ID } : {}),
+    };
+    args.push('-c', quote('allow_login_shell=false'), '-c', quote('features.shell_snapshot=false'));
+    if (process.env.STONEFORGE_DESKTOP_INSTANCE_ID) {
+      // sf daemon/agent commands reach this session's authenticated loopback API.
+      args.push('-c', quote('sandbox_workspace_write.network_access=true'));
+    }
+    for (const [key, value] of Object.entries(environment)) {
+      if (['PATH', 'SF_ENTITY_ID', 'STONEFORGE_ROOT', 'STONEFORGE_DESKTOP_INSTANCE_ID'].includes(key)) {
+        args.push('-c', quote(`shell_environment_policy.set.${key}=${JSON.stringify(value)}`));
+      }
+    }
+    // Agent worktrees share workspace data with the project root.
+    args.push('--add-dir', quote(options.stoneforgeRoot));
   }
 
   return args;
@@ -182,7 +205,7 @@ export class CodexInteractiveProvider implements InteractiveProvider {
 
     // Build the CLI command string (simple args only — not the prompt).
     // Use `exec` so the CLI replaces the shell process.
-    const codexCommand = 'exec ' + [shellQuote(this.executablePath), ...args].join(' ');
+    const codexCommand = (process.platform === 'win32' ? '' : `export PATH=${shellQuote(env.PATH ?? '')}; exec `) + [shellQuote(this.executablePath), ...args].join(' ');
 
     // Spawn PTY using bash -l -c to run the command in a login shell.
     // When an initial prompt is provided, it's passed as a bash positional

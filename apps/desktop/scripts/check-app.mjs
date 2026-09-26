@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
-import { execFileSync } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
+import { findExternalServer } from '../../../packages/quarry/dist/cli/server-discovery.js';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(join(root, 'apps/smithy-web/package.json'));
 const { _electron } = require('playwright');
@@ -19,6 +20,7 @@ const temp = await mkdtemp(join(tmpdir(), 'stoneforge-electron-'));
 const live = process.argv.includes('--live') || process.argv.includes('--claude-only');
 const providerNames = process.argv.includes('--claude-only') ? ['director'] : ['director', 'codex-director'];
 let electron;
+let externalFixture;
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
   const a = join(temp, 'Atlas'); await mkdir(a);
@@ -109,6 +111,28 @@ try {
   assert.equal(dialogs.at(-1).message, 'Could not add project', 'Errors use a native dialog above the project view');
   assert.match(dialogs.at(-1).detail, /ENOENT/);
   console.log('Packaged Add project: cancel, initialize, keyboard activation, deduplicate, visible error: passed');
+
+  const outside = join(temp, 'External'); await mkdir(outside);
+  execFileSync(node, [cli, 'init', '--preset', 'approve'], { cwd: outside, env, stdio: 'pipe' });
+  externalFixture = spawn(node, [cli, 'serve', '--no-open', '--host', '127.0.0.1', '--port', '0'], { cwd: outside, env: { ...env, DAEMON_AUTO_START: 'false' }, stdio: 'ignore' });
+  let detected;
+  for (let i = 0; i < 80; i++) { detected = await findExternalServer(outside); if (detected) break; await pause(100); }
+  assert.equal(detected?.pid, externalFixture.pid);
+  await electron.evaluate((_electron, path) => { globalThis.__addPath = path; }, outside);
+  await page.locator('#add').click();
+  await page.waitForFunction(() => [...document.querySelectorAll('nav button')].some((el) => el.textContent.includes('External') && el.textContent.includes('ready')));
+  for (const name of ['Atlas', 'External', 'Cedar', 'External']) {
+    await page.locator('nav button').filter({ hasText: name }).click();
+    await page.waitForFunction((expected) => document.getElementById('name').textContent === expected, name);
+  }
+  assert.equal((await findExternalServer(outside)).pid, externalFixture.pid, 'Switching must reuse the same external process');
+  // Simulate the external terminal closing. Desktop must invalidate its view.
+  externalFixture.kill('SIGTERM');
+  await page.waitForFunction(() => [...document.querySelectorAll('nav button')].some((el) => el.textContent.includes('External') && el.textContent.includes('error')), { timeout: 15_000 });
+  await page.locator('nav button').filter({ hasText: 'Atlas' }).click();
+  assert.equal(await page.locator('#name').textContent(), 'Atlas');
+  console.log('Packaged adoption: external PID reused, project switching, external exit invalidation: passed');
+
   if (live) {
     // Start real TUI sessions in separate renderers; all traffic goes through session header injection.
     for (const [index, name] of providerNames.entries()) {
@@ -168,6 +192,7 @@ try {
   assert.deepEqual(errors, []);
   console.log(`Diagnostics and screenshot: ${temp}`);
 } finally {
+  if (externalFixture && externalFixture.exitCode === null) externalFixture.kill('SIGTERM');
   if (electron) {
     // Simulate parent crash; children must observe IPC loss and close themselves.
     await electron.evaluate(({ app }) => app.exit(0)).catch(() => {});

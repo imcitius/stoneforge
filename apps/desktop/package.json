@@ -13,7 +13,8 @@
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@stoneforge/smithy": "workspace:*"
+    "@stoneforge/smithy": "workspace:*",
+    "@stoneforge/quarry": "workspace:*"
   },
   "devDependencies": {
     "@electron/packager": "20.3.0",

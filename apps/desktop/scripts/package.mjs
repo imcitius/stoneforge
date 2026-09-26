@@ -16,6 +16,8 @@ await mkdir(resources, { recursive: true });
 for (const name of ['main.js', 'manager.js', 'preload.cjs', 'shell.html', 'shell.css', 'shell.js']) {
   await cp(join(desktop, 'dist', name), join(bundle, name));
 }
+// The discovery module has only Node built-ins; copy it without pulling SDK/native code into Electron.
+await cp(join(root, 'packages/quarry/dist/cli/server-discovery.js'), join(bundle, 'external.js'));
 await writeFile(join(bundle, 'package.json'), JSON.stringify({ name: 'stoneforge-desktop', productName: 'Stoneforge Desktop', version: '0.1.0', type: 'module', main: 'main.js' }));
 execFileSync('pnpm', ['--filter', '@stoneforge/smithy', 'deploy', '--prod', join(resources, 'backend')], { cwd: root, stdio: 'inherit' });
 // Build native SQLite for the shipped Node ABI, regardless of the developer's system Node.

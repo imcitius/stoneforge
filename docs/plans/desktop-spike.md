@@ -37,8 +37,29 @@
   83 CLI/provider compatibility, 7 transport/serve; typecheck 17/17. Packaged Add
   покрывает отмену, инициализацию, клавиатуру, повторное добавление и видимую ошибку.
   Повторный LaunchServices smoke test прошёл.
-- Это изменение касается встроенного CLI Desktop. Старый глобальный CLI и
-  unmanaged standalone серверы не получают эту гарантию автоматически.
+- Первое изменение касалось встроенного CLI Desktop. Следующий срез ниже
+  добавляет обнаружение standalone серверов и восстанавливает global launcher.
+
+## Подключение существующих серверов и окружение CLI
+
+- macOS: Desktop находит владельца конкретной SQLite через lsof, проверяет
+  PID/start time, listening socket и health с точным путём базы. Подключается без
+  второго backend; мониторинг и проверка запросов отключают умерший сервер.
+  Для нового протокола дополнительно используется существующая авторизация.
+- Stop/Restart/Quit останавливают также принятые серверы: daemon/session API,
+  затем SIGTERM только проверенному PID. Ошибка открытия возвращает прошлый проект.
+- Тот же discovery используется сетевыми командами CLI для standalone workspace.
+- Codex получает PATH, STONEFORGE_ROOT и идентичность агента в tool environment;
+  login shell/snapshot не подменяют их. Root доступен из agent worktree.
+- Локальный global launcher после переезда исходников восстановлен: `sf` делегирует
+  встроенному Node/CLI установленного Desktop, а не старому пути в Documents.
+
+Дополнительная проверка: 3 desktop integration tests, 121 CLI/provider tests
+(120 в общем прогоне и добавленный тест среды), typecheck 17/17. Packaged UI
+проверяет переиспользование PID standalone сервера, переключение проектов и
+отключение представления после завершения внешнего процесса.
+
+Настройки shell environment сверены с [OpenAI configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference).
 
 ## Проверки и результаты
 

@@ -1075,7 +1075,7 @@ async function tryReconcileDisabledViaServer(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 1500);
   try {
-    const response = await orchestratorFetch(`${getOrchestratorUrl()}/api/agents/${encodeURIComponent(id)}`, {
+    const response = await orchestratorFetch(`${await getOrchestratorUrl()}/api/agents/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ disabled }),

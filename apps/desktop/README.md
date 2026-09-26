@@ -35,7 +35,9 @@ pnpm --filter @stoneforge/desktop dev
 
 ## Use
 
-1. Stop the project's previous `sf serve` instance.
+1. Existing local `sf serve` processes can stay running. On macOS Desktop finds
+   the selected database's owner, checks its listening socket and workspace health,
+   and connects to that process. It never guesses the project from port 3457.
 2. Choose **Add project** and select a project folder. If it has no database,
    Desktop offers initialization with the bundled CLI. Choose Review, Auto, or
    Approve; existing configuration and exported data are reused when present.
@@ -57,7 +59,12 @@ the Logs dialog shows the last 10 KB from the current run.
 
 New Desktop and `sf serve` share `.stoneforge/server.lock`. On macOS, startup also
 checks existing database holders with `lsof` to catch old servers without locks.
-It never attaches to or kills an unrelated process. Start/stop and normal parent
+It never attaches to or kills an unrelated process. Discovered external servers
+are monitored by PID, process start time, open database and listening socket;
+requests are blocked when that ownership disappears. Stop/Restart/Quit also stop
+adopted servers gracefully through their daemon/session APIs before SIGTERM.
+A legacy server has no identity-token protocol: its routing is checked through
+local OS ownership and health; restart it from Desktop to use the current backend. Start/stop and normal parent
 exit release the lock. A hard-killed backend can leave a stale lock: read its
 `owner.json`, check the recorded process and any remaining agents, and only after
 verifying no server/agents still own that workspace remove the `server.lock`
@@ -71,7 +78,14 @@ through `STONEFORGE_ROOT`, authenticates and verifies project/root/instance befo
 HTTP mutations, and rejects a conflicting `--server`. Restart removes the old
 connection and invalidates old agent instance IDs. Task/document/message commands
 use the workspace SQLite directly; HTTP commands no longer assume port 3457 in
-Desktop. The CLI defaults for unmanaged standalone workspaces remain unchanged.
+Desktop. On macOS, CLI commands in standalone workspaces use the same database/socket
+discovery and reject a different server; they no longer fall back to a different
+project on port 3457. Outside a workspace, explicit server URLs remain supported.
+Codex receives PATH and workspace variables in its tool environment, disables
+login-shell overrides and shell snapshots for these sessions, and can write shared
+workspace data from worktrees. Provider login shells restore the supplied PATH
+after profile loading. `sf serve` inside a managed session reports the already
+running backend instead of launching another.
 Explicitly overriding agent environment or using another CLI version is outside
 this routing guarantee; this is not an OS sandbox.
 HTTP, SSE and all WebSocket upgrades require the project and instance identity.

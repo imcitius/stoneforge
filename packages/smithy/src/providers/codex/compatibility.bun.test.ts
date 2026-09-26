@@ -129,12 +129,12 @@ describe('Codex app-server compatibility', () => {
       environmentVariables: { SF_ENTITY_ID: 'steward-b' },
     });
     expect(client.thread.start).toHaveBeenCalledWith(expect.objectContaining({
-      config: { 'shell_environment_policy.set': {
+      config: { allow_login_shell: false, 'features.shell_snapshot': false, 'shell_environment_policy.set': {
         SF_ENTITY_ID: 'worker-a', PATH: '/custom/bin', STONEFORGE_ROOT: '/project-a',
       } },
     }));
     expect(client.thread.resume).toHaveBeenCalledWith(expect.objectContaining({
-      config: { 'shell_environment_policy.set': { SF_ENTITY_ID: 'steward-b', STONEFORGE_ROOT: '/project-b' } },
+      config: { allow_login_shell: false, 'features.shell_snapshot': false, 'shell_environment_policy.set': { PATH: process.env.PATH ?? '', SF_ENTITY_ID: 'steward-b', STONEFORGE_ROOT: '/project-b' } },
     }));
     worker.close();
     steward.close();

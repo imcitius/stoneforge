@@ -64,7 +64,13 @@
       "import": "./dist/external-sync/index.js",
       "default": "./dist/external-sync/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./server-discovery": {
+      "types": "./src/cli/server-discovery.ts",
+      "bun": "./src/cli/server-discovery.ts",
+      "import": "./dist/cli/server-discovery.js",
+      "default": "./dist/cli/server-discovery.js"
+    }
   },
   "scripts": {
     "build": "tsc && chmod +x dist/bin/sf.js",

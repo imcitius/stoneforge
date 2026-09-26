@@ -1,6 +1,7 @@
 /** Bind CLI HTTP requests to the workspace's live Desktop instance. */
 import { readFileSync, realpathSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { findExternalServer, externalServerAlive } from './server-discovery.js';
 import { findStoneforgeDir } from '../config/file.js';
 
 interface DesktopConnection {
@@ -34,18 +35,32 @@ function desktopConnection(): DesktopConnection | undefined {
   return data;
 }
 
-export function getOrchestratorUrl(explicit?: string): string {
+export async function getOrchestratorUrl(explicit?: string): Promise<string> {
   const desktop = desktopConnection();
   if (desktop) {
     if (explicit && explicit.replace(/\/$/, '') !== desktop.endpoint) throw new Error('Cannot override the server of a Desktop workspace.');
     return desktop.endpoint;
+  }
+  const directory = findStoneforgeDir(process.cwd());
+  if (directory && process.platform === 'darwin') {
+    const external = await findExternalServer(dirname(realpathSync(directory)));
+    if (!external) throw new Error('No running server found for this workspace. Open it in Desktop.');
+    if (explicit && explicit.replace(/\/$/, '') !== external.endpoint) throw new Error('The requested server does not own this workspace.');
+    return external.endpoint;
   }
   return (explicit || process.env.STONEFORGE_API_URL || process.env.ORCHESTRATOR_URL || 'http://localhost:3457').replace(/\/$/, '');
 }
 
 export async function orchestratorFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const desktop = desktopConnection();
-  if (!desktop) return fetch(url, init);
+  if (!desktop) {
+    const directory = findStoneforgeDir(process.cwd());
+    if (directory && process.platform === 'darwin') {
+      const external = await findExternalServer(dirname(realpathSync(directory)));
+      if (!external || new URL(url).origin !== external.endpoint || !await externalServerAlive(external)) throw new Error('The server no longer owns this workspace. Request was not sent.');
+    }
+    return fetch(url, { ...init, redirect: 'error' });
+  }
   if (new URL(url).origin !== desktop.endpoint) throw new Error('Refusing a request to another project server.');
   const headers = new Headers(init.headers);
   headers.set('x-stoneforge-project', desktop.projectId);

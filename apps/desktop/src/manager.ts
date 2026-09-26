@@ -4,6 +4,7 @@ import { realpath, readFile, writeFile, mkdir, access, rename, lstat, stat } fro
 import { basename, dirname, join } from 'node:path';
 import { EventEmitter } from 'node:events';
 import { promisify } from 'node:util';
+import { findExternalServer, externalServerAlive, type ExternalServer } from './external.js';
 
 const runFile = promisify(execFile);
 export type WorkflowPreset = 'auto' | 'review' | 'approve';
@@ -20,7 +21,9 @@ export interface Instance {
   instanceId: string;
   secret: string;
   endpoint?: string;
-  child: ChildProcess;
+  child?: ChildProcess;
+  external?: ExternalServer;
+  monitor?: ReturnType<typeof setInterval>;
   ready: Promise<Instance>;
   exited: Promise<void>;
   stopping?: Promise<void>;
@@ -40,6 +43,7 @@ export class ProjectManager extends EventEmitter {
   readonly logs = new Map<string, string>();
   private saving: Promise<void> = Promise.resolve();
   private logWrites: Promise<void> = Promise.resolve();
+  private starts = new Map<string, Promise<Instance>>();
   constructor(readonly options: ManagerOptions) { super(); }
 
   async load(): Promise<void> {
@@ -137,6 +141,46 @@ export class ProjectManager extends EventEmitter {
   start(id: string): Promise<Instance> {
     const existing = this.instances.get(id);
     if (existing) return existing.ready;
+    const pending = this.starts.get(id);
+    if (pending) return pending;
+    const starting = this.connectOrStart(id).finally(() => this.starts.delete(id));
+    this.starts.set(id, starting);
+    return starting;
+  }
+  private async connectOrStart(id: string): Promise<Instance> {
+    const project = this.projects.get(id);
+    if (!project) throw new Error('Unknown project');
+    project.state = 'starting'; delete project.error; this.changed();
+    try {
+      const external = await findExternalServer(project.root);
+      if (!external) return await this.spawn(id);
+      const instance: Instance = {
+        projectId: external.credentials?.projectId ?? id, instanceId: external.credentials?.instanceId ?? randomUUID(),
+        secret: external.credentials?.secret ?? '', endpoint: external.endpoint, external,
+        ready: undefined as unknown as Promise<Instance>, exited: Promise.resolve(),
+      };
+      instance.ready = Promise.resolve(instance);
+      this.instances.set(id, instance);
+      this.logs.set(id, `Connected to existing workspace server (PID ${external.pid}) at ${external.endpoint}.\n`);
+      instance.monitor = setInterval(() => { void this.isCurrent(id, instance); }, 2000);
+      instance.monitor.unref();
+      project.state = 'ready'; this.changed(); return instance;
+    } catch (error) {
+      project.state = 'error'; project.error = error instanceof Error ? error.message : String(error); this.changed(); throw error;
+    }
+  }
+  async isCurrent(id: string, instance: Instance): Promise<boolean> {
+    if (this.instances.get(id) !== instance) return false;
+    const alive = !instance.external || await externalServerAlive(instance.external);
+    if (this.instances.get(id) !== instance) return false;
+    if (alive) return true;
+    clearInterval(instance.monitor); this.instances.delete(id);
+    const project = this.projects.get(id)!;
+    project.state = instance.stopping ? 'stopped' : 'error';
+    if (!instance.stopping) project.error = 'The external server stopped. Select the project to start it again.';
+    this.emit('stopped', id); this.changed(); return false;
+  }
+  private spawn(id: string): Promise<Instance> {
     const project = this.projects.get(id);
     if (!project) return Promise.reject(new Error('Unknown project'));
     project.state = 'starting'; delete project.error; this.changed();
@@ -200,22 +244,49 @@ export class ProjectManager extends EventEmitter {
     return ready;
   }
   headers(instance: Instance): Record<string, string> {
+    if (instance.external && !instance.external.credentials) return {};
     return { 'x-stoneforge-project': instance.projectId, 'x-stoneforge-instance': instance.instanceId, 'x-stoneforge-secret': instance.secret };
   }
   async stop(id: string): Promise<void> {
+    await this.starts.get(id)?.catch(() => {});
     const instance = this.instances.get(id);
     if (!instance) return;
     if (instance.stopping) return instance.stopping;
     const project = this.projects.get(id)!;
     project.state = 'stopping'; this.changed();
     instance.stopping = (async () => {
+      if (instance.external) {
+        const external = instance.external;
+        for (const path of ['/api/daemon/stop', '/api/sessions/stop-all']) {
+          if (!await this.isCurrent(id, instance)) return;
+          const response = await fetch(instance.endpoint + path, { method: 'POST',
+            headers: { ...this.headers(instance), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ graceful: true }), signal: AbortSignal.timeout(30_000), redirect: 'error' });
+          if (!response.ok) {
+            if (path === '/api/daemon/stop' && response.status === 503) {
+              const status = await fetch(instance.endpoint + '/api/daemon/status', { headers: this.headers(instance), signal: AbortSignal.timeout(3000), redirect: 'error' });
+              if (status.ok && (await status.json() as { available?: boolean }).available === false) continue;
+            }
+            throw new Error(`Could not stop external server sessions (${response.status})`);
+          }
+        }
+        if (await this.isCurrent(id, instance)) process.kill(external.pid, 'SIGTERM');
+        for (let attempt = 0; attempt < 100; attempt++) {
+          if (!await this.isCurrent(id, instance)) return;
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        throw new Error('External server did not stop. Check its terminal.');
+      }
       // Disconnect also handles shutdown if sending the stop message fails.
-      if (instance.child.connected) instance.child.send({ type: 'stop' });
-      const timeout = setTimeout(() => instance.child.kill('SIGTERM'), 46_000);
-      const forceTimeout = setTimeout(() => instance.child.kill('SIGKILL'), 51_000);
+      if (instance.child!.connected) instance.child!.send({ type: 'stop' });
+      const timeout = setTimeout(() => instance.child!.kill('SIGTERM'), 46_000);
+      const forceTimeout = setTimeout(() => instance.child!.kill('SIGKILL'), 51_000);
       try { await instance.exited; } finally { clearTimeout(timeout); clearTimeout(forceTimeout); }
     })();
-    return instance.stopping;
+    try { await instance.stopping; } catch (error) { instance.stopping = undefined; project.state = 'error'; project.error = String(error); this.changed(); throw error; }
   }
-  async close(): Promise<void> { await Promise.all([...this.instances.keys()].map((id) => this.stop(id))); await this.logWrites; }
+  async close(): Promise<void> {
+    await Promise.allSettled([...this.starts.values()]);
+    await Promise.all([...this.instances.keys()].map((id) => this.stop(id))); await this.logWrites;
+  }
 }

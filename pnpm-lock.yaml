@@ -23,6 +23,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@stoneforge/quarry':
+        specifier: workspace:*
+        version: link:../../packages/quarry
       '@stoneforge/smithy':
         specifier: workspace:*
         version: link:../../packages/smithy

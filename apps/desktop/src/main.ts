@@ -47,7 +47,9 @@ function dispose(id: string): void {
 }
 async function openProject(id: string): Promise<void> {
   if (!manager.projects.has(id)) throw new Error('Unknown project');
+  const previous = active;
   active = id; layout(); update();
+  try {
   const instance = await manager.start(id);
   let entry = views.get(id);
   if (entry && entry.instance !== instance) { dispose(id); entry = undefined; }
@@ -59,7 +61,8 @@ async function openProject(id: string): Promise<void> {
       const url = new URL(details.url);
       const allowed = ['http:', 'ws:'].includes(url.protocol) && url.host === new URL(instance.endpoint!).host;
       // Block stale connections before they can reach a newly reused port.
-      callback({ cancel: !allowed || manager.instances.get(id) !== instance || manager.projects.get(id)?.state !== 'ready' });
+      if (!allowed || manager.projects.get(id)?.state !== 'ready') { callback({ cancel: true }); return; }
+      void manager.isCurrent(id, instance).then((current) => callback({ cancel: !current }), () => callback({ cancel: true }));
     });
     partition.webRequest.onBeforeSendHeaders((details, callback) => {
       const headers = { ...details.requestHeaders };
@@ -83,6 +86,10 @@ async function openProject(id: string): Promise<void> {
     await view.webContents.loadURL(instance.endpoint!);
   }
   layout(); update();
+  } catch (error) {
+    if (active === id && previous && manager.projects.get(previous)?.state === 'ready') active = previous;
+    layout(); update(); throw error;
+  }
 }
 
 async function boot(): Promise<void> {

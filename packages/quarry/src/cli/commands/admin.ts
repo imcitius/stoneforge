@@ -549,7 +549,7 @@ async function collectRuntimeDiagnostics(
   let diagnosticsUrl: string | undefined;
   let data: RuntimeDiagnosticsResponse;
   try {
-    diagnosticsUrl = `${getOrchestratorUrl()}/api/health/diagnostics`;
+    diagnosticsUrl = `${await getOrchestratorUrl()}/api/health/diagnostics`;
     const response = await orchestratorFetch(diagnosticsUrl, { signal: AbortSignal.timeout(5000) });
 
     if (!response.ok) {

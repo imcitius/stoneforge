@@ -25,8 +25,8 @@ test('Desktop CLI authenticates the right instance and fails closed on stale, wr
     const lock = join(root, '.stoneforge/server.lock'); mkdirSync(lock, { recursive: true });
     const endpoint = `http://127.0.0.1:${server.port}`;
     writeFileSync(join(lock, 'desktop.json'), JSON.stringify({ endpoint, projectRoot: root, projectId: 'project-a', instanceId: 'instance-a', secret: 'test-secret' }));
-    expect(getOrchestratorUrl()).toBe(endpoint);
-    expect(() => getOrchestratorUrl('http://localhost:3457')).toThrow('Cannot override');
+    expect(await getOrchestratorUrl()).toBe(endpoint);
+    await expect(getOrchestratorUrl('http://localhost:3457')).rejects.toThrow('Cannot override');
     expect((await orchestratorFetch(endpoint + '/mutation', { method: 'POST' })).ok).toBe(true);
     expect(mutations).toBe(1);
     mode = 'wrong';
@@ -35,11 +35,11 @@ test('Desktop CLI authenticates the right instance and fails closed on stale, wr
     await expect(orchestratorFetch(endpoint + '/mutation', { method: 'POST' })).rejects.toThrow();
     expect(mutations).toBe(1);
     process.env.STONEFORGE_DESKTOP_INSTANCE_ID = 'old-instance';
-    expect(() => getOrchestratorUrl()).toThrow('does not match');
+    await expect(getOrchestratorUrl()).rejects.toThrow('does not match');
     rmSync(join(lock, 'desktop.json'));
-    expect(() => getOrchestratorUrl()).toThrow('unavailable');
+    await expect(getOrchestratorUrl()).rejects.toThrow('unavailable');
     process.env.STONEFORGE_ROOT = join(root, 'missing');
-    expect(() => getOrchestratorUrl()).toThrow('refusing to fall back');
+    await expect(getOrchestratorUrl()).rejects.toThrow('refusing to fall back');
   } finally {
     server.stop(true);
     if (savedRoot === undefined) delete process.env.STONEFORGE_ROOT; else process.env.STONEFORGE_ROOT = savedRoot;

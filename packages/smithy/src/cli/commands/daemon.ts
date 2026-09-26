@@ -26,7 +26,7 @@ const DEFAULT_SERVER_URL = 'http://localhost:3457';
 /**
  * Gets the server URL from options or default
  */
-function getServerUrl(options: DaemonOptions): string {
+async function getServerUrl(options: DaemonOptions): Promise<string> {
   return getOrchestratorUrl(options.server);
 }
 
@@ -111,7 +111,7 @@ async function daemonStartHandler(
   _args: string[],
   options: GlobalOptions & DaemonOptions
 ): Promise<CommandResult> {
-  const serverUrl = getServerUrl(options);
+  const serverUrl = await getServerUrl(options);
   const url = `${serverUrl}/api/daemon/start`;
 
   const result = await serverRequest(url, 'POST');
@@ -174,7 +174,7 @@ async function daemonStopHandler(
   _args: string[],
   options: GlobalOptions & DaemonStopOptions
 ): Promise<CommandResult> {
-  const serverUrl = getServerUrl(options);
+  const serverUrl = await getServerUrl(options);
 
   // First check the daemon status
   const statusUrl = `${serverUrl}/api/daemon/status`;
@@ -256,7 +256,7 @@ async function daemonStatusHandler(
   _args: string[],
   options: GlobalOptions & DaemonOptions
 ): Promise<CommandResult> {
-  const serverUrl = getServerUrl(options);
+  const serverUrl = await getServerUrl(options);
   const url = `${serverUrl}/api/daemon/status`;
 
   const result = await serverRequest(url, 'GET');
@@ -407,7 +407,7 @@ async function daemonSleepHandler(
   _args: string[],
   options: GlobalOptions & DaemonSleepOptions
 ): Promise<CommandResult> {
-  const serverUrl = getServerUrl(options);
+  const serverUrl = await getServerUrl(options);
   const url = `${serverUrl}/api/daemon/sleep`;
 
   if (!options.until && !options.duration) {
@@ -507,7 +507,7 @@ async function daemonWakeHandler(
   _args: string[],
   options: GlobalOptions & DaemonOptions
 ): Promise<CommandResult> {
-  const serverUrl = getServerUrl(options);
+  const serverUrl = await getServerUrl(options);
   const url = `${serverUrl}/api/daemon/wake`;
 
   const result = await serverRequest(url, 'POST');

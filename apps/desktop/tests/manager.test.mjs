@@ -54,6 +54,7 @@ test('three real backends isolate identical agent IDs, credentials and events; r
     // Desktop context must select A's database AND authenticated HTTP endpoint.
     const runCli = (...args) => execFileSync(node, [cli, ...args], { cwd: projects[1].root, env: cliEnv, stdio: 'pipe', timeout: 15_000 }).toString();
     runCli('daemon', 'status', '--json');
+    assert.match(runCli('serve', '--no-open'), /already served/);
     runCli('agent', 'disable', ids[0]);
     assert.equal((await read(instances[0], '/api/agents')).agents.find((a) => a.id === ids[0]).metadata.agent.disabled, true);
     assert.notEqual((await read(instances[1], '/api/agents')).agents.find((a) => a.id === ids[0]).metadata.agent.disabled, true);

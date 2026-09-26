@@ -12,7 +12,8 @@ import { exec } from 'node:child_process';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Command, GlobalOptions, CommandResult } from '../types.js';
-import { failure, ExitCode } from '../types.js';
+import { failure, success, ExitCode } from '../types.js';
+import { getOrchestratorUrl, orchestratorFetch } from '../server-client.js';
 import { findStoneforgeDir } from '../../config/file.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -402,6 +403,7 @@ async function startSmithy(options: GlobalOptions): Promise<CommandResult> {
     startSmithyServer = mod.startSmithyServer;
   } else {
     try {
+
       // @ts-ignore — smithy is an optional runtime dependency, may not be installed
       const mod = await import('@stoneforge/smithy/server');
       startSmithyServer = mod.startSmithyServer;
@@ -501,6 +503,12 @@ export const serveCommand: Command = {
     const target = args[0];
 
     try {
+      if (process.env.STONEFORGE_DESKTOP_INSTANCE_ID && (!target || target === 'smithy')) {
+        const endpoint = await getOrchestratorUrl();
+        const response = await orchestratorFetch(endpoint + '/api/health');
+        if (!response.ok) throw new Error('The Desktop project server is unavailable. Restart it from Desktop.');
+        return success({ endpoint, alreadyRunning: true }, 'This workspace is already served by Stoneforge Desktop. Use sf daemon start to enable dispatch; do not start another server.');
+      }
       if (target === 'quarry') {
         return await startQuarry(options);
       }

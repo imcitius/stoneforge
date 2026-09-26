@@ -129,7 +129,7 @@ export class ClaudeInteractiveProvider implements InteractiveProvider {
     const rows = options.rows ?? 30;
 
     // Build the CLI command string (simple args only — not the prompt)
-    const claudeCommand = [shellQuote(this.executablePath), ...args].join(' ');
+    const claudeCommand = (process.platform === 'win32' ? '' : `export PATH=${shellQuote(env.PATH ?? '')}; exec `) + [shellQuote(this.executablePath), ...args].join(' ');
 
     // Spawn PTY using bash -l -c to run the command in a login shell.
     // When an initial prompt is provided, it's passed as a bash positional

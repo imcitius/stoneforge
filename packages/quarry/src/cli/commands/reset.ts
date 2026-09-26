@@ -232,7 +232,7 @@ async function resetHandler(
   const results: string[] = [];
 
   // 1. Stop daemon
-  const serverUrl = getOrchestratorUrl(options.server);
+  const serverUrl = await getOrchestratorUrl(options.server);
   const daemonResult = await tryStopDaemon(serverUrl);
   if (daemonResult.stopped) {
     results.push('Stopped daemon');
