@@ -89,6 +89,19 @@ describe('TaskAssignmentService', () => {
     return service.completeTask(taskId, { mode: 'admin', agentId: systemEntity, createMergeRequest: false });
   }
 
+  // Assignment metadata alone is not an internal session identity. Real dispatch
+  // records this entry after spawning; these offline fixtures do so explicitly.
+  async function recordInternalSession(taskId: ElementId, sessionId: string) {
+    const current = (await api.get<Task>(taskId))!;
+    const meta = getOrchestratorTaskMeta(current.metadata)!;
+    await api.update<Task>(taskId, { metadata: { ...current.metadata, orchestrator: {
+      ...meta, sessionHistory: [...(meta.sessionHistory ?? []), {
+        sessionId, agentId: current.assignee!, agentName: 'fixture',
+        agentRole: 'worker', startedAt: current.updatedAt,
+      }],
+    } } });
+  }
+
   // Helper function to register a test worker
   async function createTestWorker(name: string, maxConcurrentTasks?: number) {
     return registry.registerWorker({
@@ -328,6 +341,7 @@ describe('TaskAssignmentService', () => {
       });
 
       // Hand off the task
+      await recordInternalSession(task.id, 'sess-123');
       const handedOff = await service.handoffTask(task.id, {
         sessionId: 'sess-123',
         message: 'Completed backend, need frontend help',
@@ -363,6 +377,7 @@ describe('TaskAssignmentService', () => {
       });
 
       // First handoff
+      await recordInternalSession(task.id, 'sess-1');
       await service.handoffTask(task.id, {
         sessionId: 'sess-1',
         message: 'First handoff note',
@@ -375,6 +390,7 @@ describe('TaskAssignmentService', () => {
       });
 
       // Second handoff
+      await recordInternalSession(task.id, 'sess-2');
       const result = await service.handoffTask(task.id, {
         sessionId: 'sess-2',
         message: 'Second handoff note',
@@ -426,6 +442,7 @@ describe('TaskAssignmentService', () => {
       });
 
       // Steward hands off the task (e.g., needs worker to address review feedback)
+      await recordInternalSession(task.id, 'steward-sess-1');
       const handedOff = await service.handoffTask(task.id, {
         sessionId: 'steward-sess-1',
         message: 'Tests failed, worker needs to fix issues',
