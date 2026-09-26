@@ -38,6 +38,10 @@ An interrupted run is incomplete and must never count as acceptance.
 | `pnpm --filter @stoneforge/desktop test` | All Desktop Node tests: four backend tests covering workspace initialization, external-server adoption, multi-project HTTP/WS identity/isolation/restart and real CLI multi-repository registration/binding/merge after restart, plus two Logs bounds/escaping tests. Uses real temporary Git repositories and Node SQLite. |
 
 The pricing test uses `bun:test`, so it is named `model-pricing.bun.test.ts`.
+The Quarry `piped-output.bun.test.ts` regression also rebuilds Quarry and Smithy
+and spawns their real Node CLI entrypoints with subprocess stdout/stderr pipes.
+It checks complete large Unicode JSON/plain output and error exit codes; see
+[CLI piped output](cli-piped-output.md) for the reproduction and exact coverage.
 Core, storage and quarry currently have **no Vitest tests**; their `test:node`
 scripts would report no tests. Smithy uses both runners. `bun test` at the root,
 `bun test src` in Smithy and `pnpm test` are not substitutes for this gate: they
@@ -76,10 +80,11 @@ Review warnings/skips and run additional checks needed for the changed area.
 A known failure still blocks acceptance; do not bypass the gate or replace tests
 with compilation. Track unrelated defects separately rather than weakening checks.
 
-This document and command do **not** activate a repository merge policy.
-The shared `repositories.json` still requires a separate, explicitly reviewed
-activation task after this change is merged. Do not infer that the old
-`pnpm typecheck` policy executes this gate.
+This document and command do **not** themselves activate a repository merge policy.
+The separate el-1r6 activation set core's shared `testCommand` to
+`pnpm check:merge`; inspect `sf repo list` for the current value. Activation and
+independent review evidence are recorded in
+`docs/workspace/merge-acceptance-2026-09-26.md` and workspace document el-241.
 
 ## Recorded validation — 2026-09-26, task el-5xd
 
