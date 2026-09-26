@@ -4,6 +4,9 @@
 /* Import Tailwind */
 @import "tailwindcss";
 
+/* Shared UI sources live outside Tailwind's automatic app-root scan. */
+@source "../../../packages/ui/src";
+
 /* Configure Tailwind to use class-based dark mode instead of prefers-color-scheme */
 @custom-variant dark (&:where(.dark, .dark *));
 
