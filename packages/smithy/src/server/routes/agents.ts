@@ -10,6 +10,7 @@ import { getProviderRegistry, ProviderError } from '@stoneforge/smithy/providers
 import type { Services } from '../services.js';
 import { formatSessionRecord } from '../formatters.js';
 import { createLogger } from '../../utils/logger.js';
+import { getAgentMetadata } from '../../api/orchestrator-api.js';
 
 const logger = createLogger('orchestrator');
 
@@ -501,8 +502,8 @@ export function createAgentRoutes(services: Services) {
 
       const workload = await taskAssignmentService.getAgentWorkload(agentId);
       const hasCapacity = await taskAssignmentService.agentHasCapacity(agentId);
-      const agentMeta = (agent.metadata as { agent?: { capabilities?: { maxConcurrentTasks?: number } } })?.agent;
-      const maxConcurrentTasks = agentMeta?.capabilities?.maxConcurrentTasks ?? 3;
+      // Match the metadata source and default used by agentHasCapacity.
+      const maxConcurrentTasks = getAgentMetadata(agent)?.maxConcurrentTasks ?? 1;
 
       return c.json({ agentId, agentName: agent.name, workload, hasCapacity, maxConcurrentTasks });
     } catch (error) {
