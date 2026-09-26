@@ -1,5 +1,9 @@
 # Task session history: retention, audit and recovery — el-2y8n3
 
+Current integration: accepted local master `3420c56` now includes el-20qt0.
+The historical baseline and pending-candidate results below are preserved; see
+the final integration section for checks on the delivered completion protocol.
+
 Worker investigation, 2026-09-26. Accepted baseline: local core/master
 `f30b41ad841d1cea6ca5d274403baba950a85a0d`. Approved el-ptim CLI's 299
 manifest hashes matched; `task sync el-2y8n3` succeeded without conflicts.
@@ -60,7 +64,11 @@ provider, server or direct SQL writes. Six tests cover:
   know that ID. Retained-window uniqueness does not establish lifetime uniqueness.
 
 This is a demonstrated boundary weakness in the legacy provider-ID handoff
-fallback, not evidence that completion is broken by the cap. Proposal sent to
+fallback, not evidence that completion is broken by the cap. The fixture requires
+a provider ID reused after enough intervening entries to evict its prior occurrence;
+it does not prove the normal daemon generates that sequence or its frequency.
+Repeated consecutive resumes of the same provider retain duplicates within the
+window and still reject the provider fallback. No live stale-call incident is claimed. Proposal sent to
 Director (message el-9355r): require the internal ID whenever history exists;
 consider no-history legacy policy separately. Alternatively a durable ambiguity
 marker needs an explicit design/migration. Do not remove the cap or infer safety
@@ -142,3 +150,22 @@ The completion module's SHA-256 equals the earlier probe module
 `d28c1d13831ec741f593108bce4d2886f6ff66a3587317ff9a7036b1d51a0aa5`.
 The pending-language above records the investigation chronology, not the current
 delivery status after this point. Integration and a new gate follow below.
+
+## Final integration with delivered completion
+
+Approved sync with `3420c56198517a39d1219a2c1acfd0099d526429` produced one
+append conflict in the lifecycle report; both sections were preserved. Production
+merged unchanged. Permanent `task-session-retention.bun.test.ts` now has 12 tests,
+including actual accepted `TaskCompletionProtocol` completion at 50/51 and
+reconciliation at 1/2/50/51. Claim fixtures explicitly disable push/MR creation;
+no external effects run. **107/107 focused tests, 576 assertions**, including
+existing handoff and completion protocol suites, passed after sync. Historical
+hybrid probe results above remain separately labelled, not substituted for these.
+
+`git diff --check` passes. The type comment now says recent sessions rather than
+all sessions; the lifecycle report's blanket full-history claim is corrected.
+Workspace references el-4aqnn/el-2pglm and Directory were reread and updated
+without discarding other entries. No new workspace document or task was needed.
+Separate root build/lint/test, Quarry Node, browser/packaged GUI, live provider,
+cross-platform and application installation checks were not run; gate includes
+its declared typecheck/build/runtime suites. Existing skips are not coverage.

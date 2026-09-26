@@ -75,3 +75,23 @@ for (const count of [50, 51]) {
     }
   });
 }
+
+import { TaskCompletionProtocol } from './task-completion.js';
+for (const count of [1, 2, 50, 51]) {
+ test(`recovery claim internal-1 with ${count} entries`, async () => {
+  await seed(count);
+  const op = { operationId: 'claim', phase: 'claimed', mode: 'worker', agentId: owner, sessionId: 'internal-1', owner, assignedAgent: owner, push: false, createMR: false, taskVersion: task.updatedAt, baseBranch: 'main', title: task.title, body: 'isolated fixture' };
+  task = await api.update<Task>(task.id, { metadata: { ...task.metadata, orchestrator: { ...getOrchestratorTaskMeta(task.metadata), completionOperation: op } } });
+  const result = new TaskCompletionProtocol(api).reconcile(task.id, { operationId: 'claim', operatorId: owner, reason: 'isolated fixture' });
+  if (count === 1) expect((await result).task.status).toBe(TaskStatus.REVIEW);
+  else { await expect(result).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' }); expect(await api.get(task.id)).toEqual(task); }
+ });
+}
+for (const count of [50, 51]) {
+ test(`complete current internal identity at ${count}`, async () => {
+  await seed(count);
+  const result = await new TaskCompletionProtocol(api).complete(task.id, { agentId: owner, sessionId: `internal-${count}`, createMergeRequest: false });
+  expect(result.task.status).toBe(TaskStatus.REVIEW);
+  expect(history(result.task.metadata).at(-1)!.endedAt).toBeDefined();
+ });
+}

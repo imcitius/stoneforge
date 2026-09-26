@@ -442,8 +442,8 @@ These identity fields are **not an authentication/authorization boundary**.
 mode/internal entry, original owner, repository/branch/worktree, resolved commitOid,
 request contents and phase. After a finalized operation is explicitly reopened
 and assigned a fresh internal session, the next claim archives the old operation
-in `completionHistory`. Both operation records and full session history survive
-assignment/reassignment, reopen and reset; pending claims cannot be erased by
+in `completionHistory`. Both operation records and existing session entries survive
+assignment/reassignment, reopen and reset (append still retains only the last 50); pending claims cannot be erased by
 these normal paths. Direct arbitrary metadata replacement is outside this narrow
 contract, as are unresolved stale start/dispatch writers listed above and the legacy SDK
 OrchestratorAPI.assignTaskToAgent metadata snapshot write. These can still replace
