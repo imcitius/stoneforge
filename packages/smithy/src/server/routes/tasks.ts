@@ -591,6 +591,9 @@ export function createTaskRoutes(services: Services) {
         summary?: string;
         commitHash?: string;
         performedBy?: string;
+        sessionId?: string;
+        mode?: 'worker' | 'admin';
+        operationId?: string;
       };
 
       const task = await api.get<Task>(taskId);
@@ -600,6 +603,9 @@ export function createTaskRoutes(services: Services) {
 
       const result = await workerTaskService.completeTask(taskId, {
         summary: body.summary,
+        sessionId: body.sessionId,
+        mode: body.mode,
+        operationId: body.operationId,
         commitHash: body.commitHash,
         performedBy: body.performedBy as EntityId | undefined,
       });
@@ -614,6 +620,9 @@ export function createTaskRoutes(services: Services) {
         completedAt: result.completedAt,
       });
     } catch (error) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'CONCURRENT_MODIFICATION') {
+        return c.json({ error: { code: 'CONCURRENT_MODIFICATION', message: String(error) } }, 409);
+      }
       logger.error('Failed to complete task:', error);
       return c.json({ error: { code: 'INTERNAL_ERROR', message: String(error) } }, 500);
     }
