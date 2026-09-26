@@ -1,5 +1,6 @@
 /** Packaged Electron smoke test. Uses temporary workspaces and real provider calls with --live. */
 import assert from 'node:assert/strict';
+import { checkLogs } from './check-logs.mjs';
 import { mkdtemp, mkdir, writeFile, cp, rm, access, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join, dirname } from 'node:path';
@@ -25,7 +26,8 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
   execFileSync(node, [join(root, 'apps/desktop/scripts/check-pty.mjs'), resources], { stdio: 'inherit' });
   const a = join(temp, 'Atlas'); await mkdir(a);
-  const env = { ...process.env }; delete env.STONEFORGE_ROOT; delete env.ELECTRON_RUN_AS_NODE;
+  const env = { ...process.env };
+  for (const key of ['STONEFORGE_ROOT', 'STONEFORGE_DESKTOP_INSTANCE_ID', 'STONEFORGE_DB_PATH', 'STONEFORGE_UPLOAD_DIR', 'ELECTRON_RUN_AS_NODE']) delete env[key];
   const sf = (...args) => execFileSync(node, [cli, ...args], { cwd: a, env, stdio: 'pipe' });
   sf('init', '--preset', 'auto', '--name', 'desktop-fixture');
   sf('agent', 'register', 'codex-director', '--role', 'director', '--provider', 'codex');
@@ -62,10 +64,10 @@ try {
       const identity = await (await fetch('/api/desktop/identity')).json();
       const socket = await new Promise((resolve) => { const ws = new WebSocket('ws://' + location.host + '/ws/events'); ws.onopen = () => { ws.close(); resolve(true); }; ws.onerror = () => resolve(false); });
       const sse = await new Promise((resolve) => { const source = new EventSource('/api/events/stream'); const timeout = setTimeout(() => { source.close(); resolve(false); }, 5000); source.onopen = () => { clearTimeout(timeout); source.close(); resolve(true); }; source.onerror = () => { clearTimeout(timeout); source.close(); resolve(false); }; });
-      return { identity, socket, sse, node: typeof require, text: document.body.innerText.slice(0, 200) };
+      return { identity, socket, sse, node: typeof require, bridge: typeof window.desktop, text: document.body.innerText.slice(0, 200) };
     })()`);
     assert(result.socket, 'WebSocket header injection'); assert(result.sse, 'EventSource header injection');
-    assert.equal(result.node, 'undefined'); assert(result.text.length > 40, 'Project UI rendered'); identities.push(result.identity);
+    assert.equal(result.node, 'undefined'); assert.equal(result.bridge, 'undefined'); assert(result.text.length > 40, 'Project UI rendered'); identities.push(result.identity);
     await run(view.id, `localStorage.setItem('desktop-test-marker', ${JSON.stringify(result.identity.projectId)})`);
   }
   assert.equal(new Set(identities.map((i) => i.projectId)).size, 3);
@@ -78,6 +80,7 @@ try {
     assert.equal(await run(views[i].id, `localStorage.getItem('desktop-test-marker')`), identities[i].projectId);
   }
   console.log('Packaged UI: three projects, isolated storage, HTTP + WS + SSE, switching: passed');
+  await checkLogs(electron, page, resources, temp);
   await page.screenshot({ path: join(temp, 'desktop.png') });
   const projectImage = await electron.evaluate(async ({ webContents }, id) => (await webContents.fromId(id).capturePage()).toPNG().toString('base64'), views[0].id);
   await writeFile(join(temp, 'project.png'), Buffer.from(projectImage, 'base64'));
