@@ -20,13 +20,13 @@
  * @module
  */
 
-import { exec, execFile } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { resolveTarget, requireRemoteTarget } from './target.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /** Well-known default branch names that should never be auto-created */
 const MAIN_BRANCH_NAMES = new Set(['main', 'master']);
@@ -79,20 +79,20 @@ export interface MergeBranchResult {
 // ============================================================================
 
 /**
- * Run a git command in a worktree directory.
+ * Run Git directly with literal argv in a worktree directory (never a shell).
  * Refuses to run in the workspace root to prevent corrupting the main repo HEAD.
  */
 export async function execGitSafe(
-  command: string,
+  args: string[],
   worktreePath: string,
   workspaceRoot: string
 ): Promise<{ stdout: string; stderr: string }> {
   if (path.resolve(worktreePath) === path.resolve(workspaceRoot)) {
     throw new Error(
-      `SAFETY: Refusing to run "git ${command}" in main repo. Use a worktree.`
+      `SAFETY: Refusing to run "git ${args.join(' ')}" in main repo. Use a worktree.`
     );
   }
-  return execAsync(`git ${command}`, { cwd: worktreePath, encoding: 'utf8' });
+  return execFileAsync('git', args, { cwd: worktreePath, encoding: 'utf8' });
 }
 
 /**
@@ -106,7 +106,7 @@ export async function hasRemote(
   remoteName = 'origin'
 ): Promise<boolean> {
   try {
-    await execAsync(`git remote get-url ${remoteName}`, {
+    await execFileAsync('git', ['remote', 'get-url', '--', remoteName], {
       cwd: workspaceRoot,
       encoding: 'utf8',
     });
@@ -147,7 +147,7 @@ export async function detectTargetBranch(
   if (remoteExists) {
     // 2. Try origin/HEAD symref (most reliable)
     try {
-      const { stdout } = await execAsync('git symbolic-ref refs/remotes/origin/HEAD', {
+      const { stdout } = await execFileAsync('git', ['symbolic-ref', 'refs/remotes/origin/HEAD'], {
         cwd: workspaceRoot,
         encoding: 'utf8',
       });
@@ -159,7 +159,7 @@ export async function detectTargetBranch(
 
     // 3. Try `git remote show origin` HEAD branch
     try {
-      const { stdout } = await execAsync('git remote show origin', {
+      const { stdout } = await execFileAsync('git', ['remote', 'show', 'origin'], {
         cwd: workspaceRoot,
         encoding: 'utf8',
       });
@@ -175,7 +175,7 @@ export async function detectTargetBranch(
     // 4. Check existence of origin/main, then origin/master
     for (const name of ['main', 'master']) {
       try {
-        await execAsync(`git rev-parse --verify origin/${name}`, {
+        await execFileAsync('git', ['rev-parse', '--verify', '--end-of-options', `origin/${name}`], {
           cwd: workspaceRoot,
           encoding: 'utf8',
         });
@@ -189,7 +189,7 @@ export async function detectTargetBranch(
   // 5. No remote or remote detection failed — try local branches
   for (const name of ['main', 'master']) {
     try {
-      await execAsync(`git rev-parse --verify refs/heads/${name}`, {
+      await execFileAsync('git', ['rev-parse', '--verify', '--end-of-options', `refs/heads/${name}`], {
         cwd: workspaceRoot,
         encoding: 'utf8',
       });
@@ -253,7 +253,7 @@ export async function ensureTargetBranchExists(
   // fetch has been performed yet in this session.
   if (hasOrigin && !localOnly) {
     try {
-      await execAsync(`git fetch origin ${mainBranch}`, {
+      await execFileAsync('git', ['fetch', '--', 'origin', mainBranch], {
         cwd: workspaceRoot,
         encoding: 'utf8',
       });
@@ -269,14 +269,14 @@ export async function ensureTargetBranchExists(
   const baseRef = base.commit;
 
   // Create the branch locally from the main branch HEAD
-  await execAsync(`git branch ${targetBranch} ${baseRef}`, {
+  await execFileAsync('git', ['branch', '--', targetBranch, baseRef], {
     cwd: workspaceRoot,
     encoding: 'utf8',
   });
 
   // Push to remote if we have one
   if (!localOnly && hasOrigin) {
-    await execAsync(`git push -u origin ${targetBranch}`, {
+    await execFileAsync('git', ['push', '-u', '--', 'origin', targetBranch], {
       cwd: workspaceRoot,
       encoding: 'utf8',
     });
@@ -291,7 +291,7 @@ async function branchExistsLocally(
   branchName: string
 ): Promise<boolean> {
   try {
-    await execAsync(`git rev-parse --verify refs/heads/${branchName}`, {
+    await execFileAsync('git', ['rev-parse', '--verify', '--end-of-options', `refs/heads/${branchName}`], {
       cwd: workspaceRoot,
       encoding: 'utf8',
     });
@@ -309,7 +309,7 @@ async function branchExistsOnRemote(
   branchName: string
 ): Promise<boolean> {
   try {
-    await execAsync(`git rev-parse --verify refs/remotes/origin/${branchName}`, {
+    await execFileAsync('git', ['rev-parse', '--verify', '--end-of-options', `refs/remotes/origin/${branchName}`], {
       cwd: workspaceRoot,
       encoding: 'utf8',
     });
@@ -347,7 +347,7 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
   // Must happen before ensureTargetBranchExists so that origin/<mainBranch>
   // is available as a valid ref when creating new branches from remote HEAD.
   if (!localOnly) {
-    await execAsync('git fetch origin', { cwd: workspaceRoot, encoding: 'utf8' });
+    await execFileAsync('git', ['fetch', 'origin'], { cwd: workspaceRoot, encoding: 'utf8' });
   }
 
   // Ensure the target branch exists (auto-creates review branches from main)
@@ -370,8 +370,8 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
     // operates on the local sourceBranch, so the pre-check must match.
     // Using origin/${sourceBranch} would miss unpushed local commits.
     const sourceRef = sourceBranch;
-    const { stdout: countStr } = await execAsync(
-      `git rev-list --count ${targetRef}..${sourceRef}`,
+    const { stdout: countStr } = await execFileAsync(
+      'git', ['rev-list', '--count', `${targetRef}..${sourceRef}`, '--'],
       { cwd: workspaceRoot, encoding: 'utf8' }
     );
     const commitsAhead = parseInt(countStr.trim(), 10);
@@ -398,12 +398,12 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
   if (preflight) {
     const preflightRef = targetRef;
     try {
-      const { stdout: mergeBase } = await execAsync(
-        `git merge-base ${preflightRef} ${sourceBranch}`,
+      const { stdout: mergeBase } = await execFileAsync(
+        'git', ['merge-base', '--', preflightRef, sourceBranch],
         { cwd: workspaceRoot, encoding: 'utf8' }
       );
-      const dryRun = await execAsync(
-        `git merge-tree ${mergeBase.trim()} ${preflightRef} ${sourceBranch}`,
+      const dryRun = await execFileAsync(
+        'git', ['merge-tree', '--', mergeBase.trim(), preflightRef, sourceBranch],
         { cwd: workspaceRoot, encoding: 'utf8' }
       ).catch((e: { stdout?: string }) => e);
       if (/^<{7} .+/m.test((dryRun as { stdout?: string }).stdout ?? '')) {
@@ -428,14 +428,14 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
 
   // Clean up leftover worktree from a previously crashed run
   if (fs.existsSync(mergeDir)) {
-    await execAsync(`git worktree remove --force "${mergeDir}"`, {
+    await execFileAsync('git', ['worktree', 'remove', '--force', '--', mergeDir], {
       cwd: workspaceRoot, encoding: 'utf8',
     });
   }
 
   // Pin the resolved target snapshot for the whole merge.
   const worktreeStartRef = targetRef;
-  await execAsync(`git worktree add --detach "${mergeDir}" ${worktreeStartRef}`, {
+  await execFileAsync('git', ['worktree', 'add', '--detach', '--', mergeDir, worktreeStartRef], {
     cwd: workspaceRoot, encoding: 'utf8',
   });
 
@@ -446,16 +446,16 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
     let commitHash: string;
 
     if (mergeStrategy === 'squash') {
-      await execGitSafe(`merge --squash ${sourceBranch}`, mergeDir, workspaceRoot);
-      await execGitSafe(`commit -m "${message.replace(/"/g, '\\"')}"`, mergeDir, workspaceRoot);
-      const { stdout: hash } = await execGitSafe('rev-parse HEAD', mergeDir, workspaceRoot);
+      await execGitSafe(['merge', '--squash', '--', sourceBranch], mergeDir, workspaceRoot);
+      await execGitSafe(['commit', '--cleanup=verbatim', '-m', message], mergeDir, workspaceRoot);
+      const { stdout: hash } = await execGitSafe(['rev-parse', 'HEAD'], mergeDir, workspaceRoot);
       commitHash = hash.trim();
     } else {
       await execGitSafe(
-        `merge --no-ff -m "${message.replace(/"/g, '\\"')}" ${sourceBranch}`,
+        ['merge', '--no-ff', '--cleanup=verbatim', '-m', message, '--', sourceBranch],
         mergeDir, workspaceRoot
       );
-      const { stdout: hash } = await execGitSafe('rev-parse HEAD', mergeDir, workspaceRoot);
+      const { stdout: hash } = await execGitSafe(['rev-parse', 'HEAD'], mergeDir, workspaceRoot);
       commitHash = hash.trim();
     }
 
@@ -463,13 +463,13 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
     let pushFailed = false;
     if (autoPush && !localOnly) {
       try {
-        await execGitSafe(`push origin HEAD:${targetBranch}`, mergeDir, workspaceRoot);
+        await execGitSafe(['push', '--', 'origin', `HEAD:${targetBranch}`], mergeDir, workspaceRoot);
 
         // Verify push landed on remote
         try {
-          await execAsync(`git fetch origin ${targetBranch}`, { cwd: workspaceRoot, encoding: 'utf8' });
+          await execFileAsync('git', ['fetch', '--', 'origin', targetBranch], { cwd: workspaceRoot, encoding: 'utf8' });
           // git merge-base --is-ancestor exits 0 if commitHash is ancestor of origin/targetBranch
-          await execAsync(`git merge-base --is-ancestor ${commitHash} origin/${targetBranch}`, {
+          await execFileAsync('git', ['merge-base', '--is-ancestor', '--', commitHash, `origin/${targetBranch}`], {
             cwd: workspaceRoot, encoding: 'utf8',
           });
         } catch {
@@ -516,9 +516,9 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
       // Abort the merge to clean up
       try {
         if (mergeStrategy === 'squash') {
-          await execGitSafe('reset --hard HEAD', mergeDir, workspaceRoot);
+          await execGitSafe(['reset', '--hard', 'HEAD', '--'], mergeDir, workspaceRoot);
         } else {
-          await execGitSafe('merge --abort', mergeDir, workspaceRoot);
+          await execGitSafe(['merge', '--abort'], mergeDir, workspaceRoot);
         }
       } catch {
         // Ignore abort errors
@@ -546,7 +546,7 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
   } finally {
     // 7. Retain undelivered local merge commits for recovery; clean other temp worktrees
     try {
-      if (!preserveMergeWorktree) await execAsync(`git worktree remove --force "${mergeDir}"`, {
+      if (!preserveMergeWorktree) await execFileAsync('git', ['worktree', 'remove', '--force', '--', mergeDir], {
         cwd: workspaceRoot, encoding: 'utf8',
       });
     } catch {
@@ -581,8 +581,8 @@ export async function syncLocalBranch(
     // Determine current branch (may be detached HEAD in worktrees)
     let currentBranch: string | undefined;
     try {
-      const { stdout } = await execAsync(
-        'git symbolic-ref --short HEAD',
+      const { stdout } = await execFileAsync(
+        'git', ['symbolic-ref', '--short', 'HEAD'],
         { cwd: workspaceRoot, encoding: 'utf8' }
       );
       currentBranch = stdout.trim();
@@ -597,12 +597,12 @@ export async function syncLocalBranch(
 
     if (currentBranch === targetBranch) {
       // We're on the target branch — fast-forward in place
-      await execAsync(`git merge --ff-only origin/${targetBranch}`, {
+      await execFileAsync('git', ['merge', '--ff-only', '--', `origin/${targetBranch}`], {
         cwd: workspaceRoot, encoding: 'utf8',
       });
     } else {
       // Not on target branch — update the ref without touching the worktree
-      await execAsync(`git fetch origin ${targetBranch}:${targetBranch}`, {
+      await execFileAsync('git', ['fetch', '--', 'origin', `${targetBranch}:${targetBranch}`], {
         cwd: workspaceRoot, encoding: 'utf8',
       });
     }
@@ -627,7 +627,7 @@ export async function syncLocalBranchFromCommit(
     (await run('git', args, { cwd, encoding: 'utf8' })).stdout.trim();
   const ref = `refs/heads/${targetBranch}`;
   const oldCommit = await git(workspaceRoot, 'rev-parse', '--verify', ref);
-  await git(workspaceRoot, 'merge-base', '--is-ancestor', oldCommit, commitHash);
+  await git(workspaceRoot, 'merge-base', '--is-ancestor', '--', oldCommit, commitHash);
   const worktrees = await git(workspaceRoot, 'worktree', 'list', '--porcelain', '-z');
   const targetCheckout = worktrees.split('\0\0').find(block => block.split('\0').includes(`branch ${ref}`));
   if (targetCheckout) {
@@ -637,10 +637,10 @@ export async function syncLocalBranchFromCommit(
     if (await git(checkout, 'status', '--porcelain', '--untracked-files=no')) {
       throw new Error(`Target checkout ${checkout} is dirty; commit or stash its changes before delivery.`);
     }
-    await git(checkout, 'merge', '--ff-only', commitHash);
+    await git(checkout, 'merge', '--ff-only', '--', commitHash);
   } else {
     // Compare-and-swap protects a concurrent target update; no force/reset.
-    await git(workspaceRoot, 'update-ref', ref, commitHash, oldCommit);
+    await git(workspaceRoot, 'update-ref', '--', ref, commitHash, oldCommit);
   }
-  await git(workspaceRoot, 'merge-base', '--is-ancestor', commitHash, ref);
+  await git(workspaceRoot, 'merge-base', '--is-ancestor', '--', commitHash, ref);
 }

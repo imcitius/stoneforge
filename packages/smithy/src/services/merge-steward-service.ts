@@ -20,7 +20,7 @@ import { ProjectRepositories } from '../git/project-repositories.js';
  * @module
  */
 
-import { exec } from 'node:child_process';
+import { exec, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import type {
   Task,
@@ -52,6 +52,7 @@ import type { MergeRequestProvider } from './merge-request-provider.js';
 const logger = createLogger('merge-steward');
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 // ============================================================================
 // Types
@@ -673,7 +674,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
       const remoteExists = await hasRemote(this.config.workspaceRoot);
       if (remoteExists) {
         try {
-          await execAsync('git fetch origin', { cwd: this.config.workspaceRoot, encoding: 'utf8' });
+          await execFileAsync('git', ['fetch', 'origin'], { cwd: this.config.workspaceRoot, encoding: 'utf8' });
         } catch { /* best-effort */ }
         await syncLocalBranch(this.config.workspaceRoot, targetBranch);
       }
@@ -1102,7 +1103,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
           const remoteExists = await hasRemote(this.config.workspaceRoot);
           if (remoteExists) {
             try {
-              await execAsync('git fetch origin', { cwd: this.config.workspaceRoot, encoding: 'utf8' });
+              await execFileAsync('git', ['fetch', 'origin'], { cwd: this.config.workspaceRoot, encoding: 'utf8' });
             } catch { /* best-effort */ }
             await syncLocalBranch(this.config.workspaceRoot, targetBranch);
           }
@@ -1286,7 +1287,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     try {
       const remoteExists = await hasRemote(this.config.workspaceRoot);
       if (remoteExists) {
-        await execAsync(`git push origin ${sourceBranch}`, {
+        await execFileAsync('git', ['push', '--', 'origin', sourceBranch], {
           cwd: this.config.workspaceRoot,
           encoding: 'utf8',
         });
@@ -1315,8 +1316,8 @@ export class MergeStewardServiceImpl implements MergeStewardService {
 
     // Add change summary via git diff stat
     try {
-      const { stdout: diffStat } = await execAsync(
-        `git diff --stat ${target.commit}...${sourceBranch}`,
+      const { stdout: diffStat } = await execFileAsync(
+        'git', ['diff', '--stat', `${target.commit}...${sourceBranch}`, '--'],
         { cwd: this.config.workspaceRoot, encoding: 'utf8' }
       );
       if (diffStat.trim()) {
@@ -1435,8 +1436,8 @@ export class MergeStewardServiceImpl implements MergeStewardService {
       const target = await resolveTarget(this.config.workspaceRoot, targetBranch, remoteExists ? 'required' : 'none');
       if (remoteExists) requireRemoteTarget(target, targetBranch);
       // Match the actual merge's local source, including unpushed commits.
-      const { stdout } = await execAsync(
-        `git rev-list --count ${target.commit}..${sourceBranch}`,
+      const { stdout } = await execFileAsync(
+        'git', ['rev-list', '--count', `${target.commit}..${sourceBranch}`, '--'],
         { cwd: this.config.workspaceRoot, encoding: 'utf8' }
       );
       return parseInt(stdout.trim(), 10) > 0;
