@@ -42,10 +42,10 @@ import {
 } from '../api/orchestrator-api.js';
 import type { MergeRequestProvider } from './merge-request-provider.js';
 import { hasRemote } from '../git/merge.js';
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 // ============================================================================
 // Types
@@ -519,9 +519,20 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
       if (pushCwd) {
         const remoteExists = await hasRemote(pushCwd);
         if (remoteExists) {
+          // Validate literal branch names before any remote side effects. The full-ref
+          // check also rejects revision shorthand that --branch can expand.
+          const localRef = `refs/heads/${branch}`;
+          const remoteRef = `refs/remotes/origin/${branch}`;
+          const git = (args: string[]) => execFileAsync('git', args, { cwd: pushCwd, encoding: 'utf8' });
+          await git(['check-ref-format', localRef]);
+          await git(['check-ref-format', '--branch', branch]);
+          const { stdout: localCommit } = await git([
+            'rev-parse', '--verify', '--end-of-options', `${localRef}^{commit}`,
+          ]);
+
           // Fetch latest remote state
           try {
-            await execAsync('git fetch origin', { cwd: pushCwd, encoding: 'utf8' });
+            await git(['fetch', '--', 'origin']);
           } catch {
             // fetch failure is non-fatal — continue to check unpushed commits
           }
@@ -529,10 +540,12 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
           // Check if the remote branch exists and if there are unpushed commits
           let needsPush = false;
           try {
-            const { stdout } = await execAsync(
-              `git rev-list --count origin/${branch}..${branch}`,
-              { cwd: pushCwd, encoding: 'utf8' }
-            );
+            const { stdout: remoteCommit } = await git([
+              'rev-parse', '--verify', '--end-of-options', `${remoteRef}^{commit}`,
+            ]);
+            const { stdout } = await git([
+              'rev-list', '--count', `${remoteCommit.trim()}..${localCommit.trim()}`, '--',
+            ]);
             const unpushedCount = parseInt(stdout.trim(), 10);
             needsPush = unpushedCount > 0;
           } catch {
@@ -542,7 +555,7 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
 
           if (needsPush) {
             try {
-              await execAsync(`git push origin ${branch}`, { cwd: pushCwd, encoding: 'utf8' });
+              await git(['push', '--', 'origin', `${localRef}:${localRef}`]);
             } catch (pushErr) {
               const pushMessage = pushErr instanceof Error ? pushErr.message : String(pushErr);
               throw new Error(

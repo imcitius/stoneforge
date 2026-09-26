@@ -201,3 +201,47 @@ report and characterization assertions, validate the proposed split and re-run
 relevant tests/required gate on the final revision before approved local delivery.
 Worker does not self-approve or merge. Separate root build/lint/test, browser,
 packaged GUI, live providers, Quarry Node and cross-platform checks are not run.
+
+## Git completion argv correction — el-50c9s, 2026-09-26
+
+The separate source risk reported above is addressed in
+`services/task-assignment-service.ts`. On synced local master `072b530`, source
+inspection confirmed branch metadata interpolation into shell `git rev-list` and
+`git push`; no injection payload was executed against that original path.
+Fetch, revision lookup/count and push now use execFile argv. Git check-ref-format
+validates both full head ref and branch syntax, rejecting option-like names and
+revision shorthand. Full refs resolve with rev-parse --verify --end-of-options to
+commit OIDs before comparison; push uses -- and an explicit heads-to-heads refspec.
+Valid shell-special characters stay literal, including dollar/backtick forms.
+Configured testCommand shell execution is untouched.
+
+`services/task-completion-git.bun.test.ts` uses new temporary SQLite/Git fixtures
+and local bare remotes only. Its 19 tests cover literal special-character refs,
+missing/invalid/option-like revisions, absence of harmless marker files, new and
+ahead branch push, no-push with an unreachable push URL, rejected push, nonfatal
+fetch with cached refs, unreachable origin failure, and no-origin completion.
+Successful completion still enters REVIEW, clears assignee and closes internal-ID
+session history; failures preserve the entire task snapshot. No external remote,
+live daemon/provider/session/task or installed Desktop was a test fixture.
+
+Safe negative control: restoring only the original production file temporarily
+and selecting the ordinary `main` branch plus same-named tag test yields **1 fail**:
+completion returns REVIEW while remote main remains behind, because the ambiguous
+revision resolves to the tag. The fixed path passes that test. All payload-bearing
+tests were filtered out during the original-code control; the fix was restored in
+finally. Log: `/tmp/el-50c9s-negative.log`.
+
+Focused Git suite: **19 pass, 100 assertions**. Existing assignment/lifecycle
+suites: **87 pass, 440 assertions**. These include the original **50 DEFECT/control**
+cases unchanged: status/owner/dispatch/start/unassign races and provider-history
+mapping remain open defects requiring their separate fixes. There was no Git
+injection characterization test to convert; its original source-risk report above
+is preserved, and new assertions enforce rejection/preservation and literal refs.
+
+Frozen pnpm install passed (3.1s; initial missing-dist bin warnings). Required gate
+and final commit/review status are recorded below. Logs:
+`/tmp/el-50c9s-{install,focused,existing,negative,gate}.log`.
+Separate root build/lint/test, browser/packaged GUI, live providers and cross-platform
+checks are omitted. Source changes do not update Desktop5f53cef or reopen completed
+maintenance el-1clm. Independent steward review of the exact final commit and explicit
+checks remain required before approved CLI `task merge --local`; worker does not merge.
