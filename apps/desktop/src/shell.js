@@ -1,12 +1,19 @@
 const $ = (id) => document.getElementById(id);
 let state = { projects: [] };
+let adding = false;
 async function command(name, id) {
+  if (name === 'add' && adding) return;
+  if (name === 'add') { adding = true; render(state); }
   $('error').hidden = true;
   try { render(await window.desktop.command(name, id)); }
   catch (error) { $('error').textContent = error.message; $('error').hidden = false; }
+  finally { if (name === 'add') { adding = false; render(state); } }
 }
 function render(next) {
   state = next;
+  for (const id of ['add', 'add-empty']) $(id).disabled = adding || !!state.progress;
+  $('add-progress').hidden = !adding && !state.progress;
+  $('add-progress').textContent = state.progress || (adding ? 'Adding project…' : '');
   const focused = document.activeElement?.dataset.project;
   $('projects').replaceChildren(...state.projects.map((project) => {
     const button = document.createElement('button'); button.dataset.project = project.id;

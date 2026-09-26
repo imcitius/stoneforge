@@ -1,6 +1,6 @@
 /** Packaged Electron smoke test. Uses temporary workspaces and real provider calls with --live. */
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, cp, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, cp, rm, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -75,6 +75,40 @@ try {
   await page.screenshot({ path: join(temp, 'desktop.png') });
   const projectImage = await electron.evaluate(async ({ webContents }, id) => (await webContents.fromId(id).capturePage()).toPNG().toString('base64'), views[0].id);
   await writeFile(join(temp, 'project.png'), Buffer.from(projectImage, 'base64'));
+  // Exercise the actual Add command while another WebContentsView is visible.
+  // Native dialog answers are deterministic; UI state and real initialization run normally.
+  const fresh = join(temp, 'Fresh проект'); await mkdir(fresh);
+  await electron.evaluate(({ dialog }, fresh) => {
+    globalThis.__addDialogs = [];
+    globalThis.__addResponse = 0;
+    globalThis.__addPath = fresh;
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [globalThis.__addPath] });
+    dialog.showMessageBox = async (_window, options) => {
+      globalThis.__addDialogs.push(options);
+      return { response: globalThis.__addResponse, checkboxChecked: false };
+    };
+  }, fresh);
+  await page.locator('#add').click();
+  await page.waitForFunction(() => !document.getElementById('add').disabled);
+  await assert.rejects(access(join(fresh, '.stoneforge')), 'Cancel must not initialize');
+  assert.equal(await page.locator('nav button').count(), 3);
+  await electron.evaluate(() => { globalThis.__addResponse = 1; });
+  await page.locator('#add').focus(); await page.keyboard.press('Enter');
+  await page.waitForFunction(() => [...document.querySelectorAll('nav button')].some((el) => el.textContent.includes('Fresh проект') && el.textContent.includes('ready')), { timeout: 30_000 });
+  assert.equal(await page.locator('nav button').count(), 4);
+  await access(join(fresh, '.stoneforge/stoneforge.db'));
+  await page.waitForFunction(() => !document.getElementById('add').disabled);
+  await page.locator('#add').click();
+  await page.waitForFunction(() => !document.getElementById('add').disabled);
+  assert.equal(await page.locator('nav button').count(), 4, 'Re-add must deduplicate');
+  await electron.evaluate(() => { globalThis.__addPath += '/missing'; });
+  await page.locator('#add').click();
+  await page.waitForFunction(() => !document.getElementById('add').disabled);
+  const dialogs = await electron.evaluate(() => globalThis.__addDialogs);
+  assert.equal(dialogs.filter((d) => d.message.startsWith('Set up Stoneforge')).length, 2);
+  assert.equal(dialogs.at(-1).message, 'Could not add project', 'Errors use a native dialog above the project view');
+  assert.match(dialogs.at(-1).detail, /ENOENT/);
+  console.log('Packaged Add project: cancel, initialize, keyboard activation, deduplicate, visible error: passed');
   if (live) {
     // Start real TUI sessions in separate renderers; all traffic goes through session header injection.
     for (const [index, name] of providerNames.entries()) {

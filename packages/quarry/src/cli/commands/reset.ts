@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 import type { Command, GlobalOptions, CommandResult } from '../types.js';
 import { success, failure, ExitCode } from '../types.js';
+import { getOrchestratorUrl, orchestratorFetch } from '../server-client.js';
 
 // ============================================================================
 // Constants
@@ -49,7 +50,7 @@ async function confirm(message: string): Promise<boolean> {
  */
 async function tryStopDaemon(serverUrl: string): Promise<{ stopped: boolean; error?: string }> {
   try {
-    const response = await fetch(`${serverUrl}/api/daemon/stop`, {
+    const response = await orchestratorFetch(`${serverUrl}/api/daemon/stop`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -231,7 +232,7 @@ async function resetHandler(
   const results: string[] = [];
 
   // 1. Stop daemon
-  const serverUrl = options.server ?? process.env.ORCHESTRATOR_URL ?? DEFAULT_SMITHY_URL;
+  const serverUrl = getOrchestratorUrl(options.server);
   const daemonResult = await tryStopDaemon(serverUrl);
   if (daemonResult.stopped) {
     results.push('Stopped daemon');

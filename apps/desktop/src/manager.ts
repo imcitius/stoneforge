@@ -1,8 +1,12 @@
-import { fork, type ChildProcess } from 'node:child_process';
+import { execFile, fork, type ChildProcess } from 'node:child_process';
 import { randomUUID, randomBytes } from 'node:crypto';
-import { realpath, readFile, writeFile, mkdir, access, rename } from 'node:fs/promises';
+import { realpath, readFile, writeFile, mkdir, access, rename, lstat, stat } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { EventEmitter } from 'node:events';
+import { promisify } from 'node:util';
+
+const runFile = promisify(execFile);
+export type WorkflowPreset = 'auto' | 'review' | 'approve';
 
 export interface Project {
   id: string;
@@ -62,6 +66,45 @@ export class ProjectManager extends EventEmitter {
     });
     return this.saving;
   }
+  async inspect(path: string): Promise<{ root: string; initialized: boolean; hasConfig: boolean }> {
+    let root = await realpath(path);
+    if (!(await stat(root)).isDirectory()) throw new Error('Choose a project folder.');
+    const dataPath = join(root, '.stoneforge');
+    // Only a genuinely missing directory is a new workspace. Broken links and
+    // permission errors must not trigger initialization in a different location.
+    try { await lstat(dataPath); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { root, initialized: false, hasConfig: false };
+      throw error;
+    }
+    const dataRoot = await realpath(dataPath);
+    if (!(await stat(dataRoot)).isDirectory()) throw new Error('.stoneforge must be a directory.');
+    root = dirname(dataRoot);
+    const exists = async (file: string) => {
+      try { await access(file); return true; }
+      catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false; throw error; }
+    };
+    return { root, initialized: await exists(join(dataRoot, 'stoneforge.db')), hasConfig: await exists(join(dataRoot, 'config.yaml')) };
+  }
+  async initialize(path: string, preset: WorkflowPreset = 'review'): Promise<Project> {
+    if (!['auto', 'review', 'approve'].includes(preset)) throw new Error('Invalid workflow preset');
+    const workspace = await this.inspect(path);
+    if (!workspace.initialized) {
+      // Use the shipped CLI/runtime, never a potentially unrelated global sf.
+      const cli = join(dirname(this.options.entry), '../bin/sf.js');
+      const args = [cli, 'init'];
+      // A cloned/partially initialized workspace keeps its existing configuration.
+      if (!workspace.hasConfig) args.push('--preset', preset);
+      try {
+        await runFile(this.options.node, args, { cwd: workspace.root, env: this.environment(workspace.root), timeout: 120_000, maxBuffer: 1024 * 1024 });
+      } catch (error) {
+        const failure = error as Error & { stdout?: string; stderr?: string; killed?: boolean };
+        const detail = (failure.stderr || failure.stdout || failure.message).trim().slice(-8000);
+        throw new Error(`Could not initialize ${workspace.root}.\n${failure.killed ? 'Initialization timed out.\n' : ''}${detail}`);
+      }
+    }
+    return this.add(workspace.root);
+  }
   async add(path: string): Promise<Project> {
     // realpath the data directory too: worktrees can share it through a symlink.
     const dataRoot = await realpath(join(path, '.stoneforge'));
@@ -77,12 +120,7 @@ export class ProjectManager extends EventEmitter {
     await this.stop(id);
     this.projects.delete(id); await this.save(); this.changed();
   }
-  start(id: string): Promise<Instance> {
-    const existing = this.instances.get(id);
-    if (existing) return existing.ready;
-    const project = this.projects.get(id);
-    if (!project) return Promise.reject(new Error('Unknown project'));
-    project.state = 'starting'; delete project.error; this.changed();
+  private environment(root: string): NodeJS.ProcessEnv {
     const env = { ...process.env };
     for (const key of Object.keys(env)) {
       if (key.startsWith('STONEFORGE_') || key.startsWith('SF_') || key.startsWith('ELECTRON_') ||
@@ -93,7 +131,16 @@ export class ProjectManager extends EventEmitter {
     }
     // Finder's PATH omits common CLI installations. Bundled sf and Node take precedence.
     env.PATH = [this.options.binDir, dirname(this.options.node), join(process.env.HOME ?? '', '.local/bin'), '/opt/homebrew/bin', '/usr/local/bin', env.PATH ?? '/usr/bin:/bin'].join(':');
-    env.STONEFORGE_ROOT = project.root;
+    env.STONEFORGE_ROOT = root;
+    return env;
+  }
+  start(id: string): Promise<Instance> {
+    const existing = this.instances.get(id);
+    if (existing) return existing.ready;
+    const project = this.projects.get(id);
+    if (!project) return Promise.reject(new Error('Unknown project'));
+    project.state = 'starting'; delete project.error; this.changed();
+    const env = this.environment(project.root);
     const child = fork(this.options.entry, [], { execPath: this.options.node, execArgv: [], cwd: project.root, env, silent: true });
     let resolveReady!: (instance: Instance) => void;
     let rejectReady!: (error: Error) => void;

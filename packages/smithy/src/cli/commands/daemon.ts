@@ -11,7 +11,7 @@
 
 import * as readline from 'node:readline';
 import type { Command, GlobalOptions, CommandResult, CommandOption } from '@stoneforge/quarry/cli';
-import { success, failure, ExitCode, getOutputMode } from '@stoneforge/quarry/cli';
+import { success, failure, ExitCode, getOutputMode, getOrchestratorUrl, orchestratorFetch } from '@stoneforge/quarry/cli';
 
 // ============================================================================
 // Constants
@@ -27,7 +27,7 @@ const DEFAULT_SERVER_URL = 'http://localhost:3457';
  * Gets the server URL from options or default
  */
 function getServerUrl(options: DaemonOptions): string {
-  return options.server ?? DEFAULT_SERVER_URL;
+  return getOrchestratorUrl(options.server);
 }
 
 /**
@@ -39,7 +39,7 @@ async function serverRequest(
   body?: unknown
 ): Promise<{ ok: boolean; data?: unknown; error?: string }> {
   try {
-    const response = await fetch(url, {
+    const response = await orchestratorFetch(url, {
       method,
       headers: {
         'Content-Type': 'application/json',

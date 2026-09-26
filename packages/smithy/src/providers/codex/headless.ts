@@ -173,6 +173,7 @@ export class CodexHeadlessProvider implements HeadlessProvider {
     const environment = {
       ...options.environmentVariables,
       ...(options.stoneforgeRoot ? { STONEFORGE_ROOT: options.stoneforgeRoot } : {}),
+      ...(process.env.STONEFORGE_DESKTOP_INSTANCE_ID ? { STONEFORGE_DESKTOP_INSTANCE_ID: process.env.STONEFORGE_DESKTOP_INSTANCE_ID } : {}),
     };
     const threadConfig = Object.keys(environment).length
       ? { config: { 'shell_environment_policy.set': environment } }

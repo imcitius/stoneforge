@@ -11,7 +11,7 @@
  */
 
 import type { Command, GlobalOptions, CommandResult, CommandOption } from '@stoneforge/quarry/cli';
-import { success, failure, ExitCode, getFormatter, getOutputMode, OPERATOR_ENTITY_ID } from '@stoneforge/quarry/cli';
+import { success, failure, ExitCode, getFormatter, getOutputMode, OPERATOR_ENTITY_ID, getOrchestratorUrl, orchestratorFetch } from '@stoneforge/quarry/cli';
 import type { EntityId, ElementId } from '@stoneforge/core';
 import type { AgentRole, WorkerMode, StewardFocus, AgentMetadata } from '../../types/index.js';
 import type { OrchestratorAPI, AgentEntity } from '../../api/index.js';
@@ -1072,11 +1072,10 @@ async function tryReconcileDisabledViaServer(
   id: string,
   disabled: boolean
 ): Promise<boolean> {
-  const apiUrl = (process.env.STONEFORGE_API_URL || 'http://localhost:3457').replace(/\/$/, '');
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 1500);
   try {
-    const response = await fetch(`${apiUrl}/api/agents/${encodeURIComponent(id)}`, {
+    const response = await orchestratorFetch(`${getOrchestratorUrl()}/api/agents/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ disabled }),

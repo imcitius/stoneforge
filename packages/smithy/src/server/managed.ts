@@ -1,5 +1,5 @@
 /** Desktop-only child entry point. Load server modules only AFTER fixing workspace context. */
-import { realpathSync, existsSync } from 'node:fs';
+import { realpathSync, existsSync, writeFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { timingSafeEqual } from 'node:crypto';
 import type { SmithyServerResult } from './index.js';
@@ -52,6 +52,7 @@ async function start(message: Record<string, unknown>): Promise<void> {
   process.env.DAEMON_AUTO_START = 'false';
   delete process.env.SF_ENTITY_ID;
   const identity = { projectId: message.projectId as string, instanceId: message.instanceId as string, protocolVersion: 1 };
+  process.env.STONEFORGE_DESKTOP_INSTANCE_ID = identity.instanceId;
   const secret = Buffer.from(message.secret as string);
   const { startSmithyServer } = await import('./index.js');
   server = await startSmithyServer({
@@ -64,5 +65,10 @@ async function start(message: Record<string, unknown>): Promise<void> {
         provided.length === secret.length && timingSafeEqual(provided, secret);
     },
   });
+  // The lock owns this private connection file; releasing the lock removes it.
+  // CLI tools discover it through STONEFORGE_ROOT, including inside worktrees.
+  writeFileSync(join(projectRoot, '.stoneforge/server.lock/desktop.json'), JSON.stringify({
+    ...identity, projectRoot, endpoint: `http://127.0.0.1:${server.port}`, secret: message.secret,
+  }), { mode: 0o600 });
   if (!stopping) process.send?.({ type: 'ready', ...identity, projectRoot, pid: process.pid, port: server.port });
 }

@@ -1,6 +1,6 @@
 # Stoneforge Desktop — macOS technical preview
 
-A single window for existing local Stoneforge workspaces. Each project has an
+A single window for local Stoneforge workspaces. Each project has an
 independent Node backend, browser session and dashboard. Switching projects keeps
 its agents running. The app ships Node 22.23.3, SQLite, PTY and the existing web UI.
 Codex and Claude Code must already be installed and authenticated on the Mac.
@@ -36,7 +36,11 @@ pnpm --filter @stoneforge/desktop dev
 ## Use
 
 1. Stop the project's previous `sf serve` instance.
-2. Choose **Add project** and select its initialized workspace directory.
+2. Choose **Add project** and select a project folder. If it has no database,
+   Desktop offers initialization with the bundled CLI. Choose Review, Auto, or
+   Approve; existing configuration and exported data are reused when present.
+   Cancel leaves the folder unchanged. Setup progress appears in the sidebar,
+   and failures use a native dialog visible above an open project.
 3. Select projects in the sidebar. Start agents using the existing dashboard.
    Opening a project does not resume directors or start its dispatch daemon.
 4. **Stop**, **Restart**, **Logs**, and **Remove** apply to the selected project.
@@ -60,7 +64,16 @@ verifying no server/agents still own that workspace remove the `server.lock`
 directory. Automatic stale-lock recovery is intentionally not implemented yet;
 a dead or reused PID alone is insufficient proof of ownership.
 
-The secret travels through parent/child IPC, not the command line or registry.
+The secret travels through parent/child IPC, never the command line or registry.
+The backend also writes a private connection descriptor inside `server.lock`
+(directory mode 0700, file mode 0600, ignored by Git). Bundled `sf` discovers this
+through `STONEFORGE_ROOT`, authenticates and verifies project/root/instance before
+HTTP mutations, and rejects a conflicting `--server`. Restart removes the old
+connection and invalidates old agent instance IDs. Task/document/message commands
+use the workspace SQLite directly; HTTP commands no longer assume port 3457 in
+Desktop. The CLI defaults for unmanaged standalone workspaces remain unchanged.
+Explicitly overriding agent environment or using another CLI version is outside
+this routing guarantee; this is not an OS sandbox.
 HTTP, SSE and all WebSocket upgrades require the project and instance identity.
 The main process injects headers only into that project's endpoint. Each project
 renderer is sandboxed, has no Node integration, and gets no desktop IPC bridge.

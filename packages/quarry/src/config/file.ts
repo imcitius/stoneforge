@@ -59,10 +59,16 @@ export function findStoneforgeDir(startDir: string): string | undefined {
   // When agents work in git worktrees, they need to access the main
   // workspace's .stoneforge directory where the SQLite database lives
   const envRoot = process.env.STONEFORGE_ROOT;
+  if (process.env.STONEFORGE_DESKTOP_INSTANCE_ID && !envRoot) {
+    throw new Error('Desktop session is missing its workspace root.');
+  }
   if (envRoot) {
     const stoneforgePath = path.join(envRoot, STONEFORGE_DIR);
     if (fs.existsSync(stoneforgePath) && fs.statSync(stoneforgePath).isDirectory()) {
       return stoneforgePath;
+    }
+    if (process.env.STONEFORGE_DESKTOP_INSTANCE_ID) {
+      throw new Error('Desktop workspace is unavailable; refusing to fall back to another project.');
     }
   }
 

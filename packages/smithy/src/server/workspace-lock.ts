@@ -8,11 +8,13 @@ export function acquireWorkspaceLock(dbPath: string): () => void {
   const absoluteDb = resolve(dbPath);
   mkdirSync(dirname(absoluteDb), { recursive: true });
   const lock = join(realpathSync(dirname(absoluteDb)), 'server.lock');
-  try { mkdirSync(lock); } catch {
+  try { mkdirSync(lock, { mode: 0o700 }); } catch {
     throw new Error(`Workspace is already served, or has a stale lock: ${lock}. Close its owner first. After a crash, verify no server or agents remain before removing this directory.`);
   }
   const release = () => rmSync(lock, { recursive: true, force: true });
   try {
+    // Runtime ownership and connection credentials must never enter a normal git add.
+    writeFileSync(join(lock, '.gitignore'), '*\n', { mode: 0o600 });
     writeFileSync(join(lock, 'owner.json'), JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }), { mode: 0o600 });
     // Older servers do not participate in our lock. On macOS, fail closed if
     // another process already has the SQLite file open. Do not adopt/kill it.

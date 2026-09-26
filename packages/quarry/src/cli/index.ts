@@ -4,6 +4,7 @@
 
 // Types
 export * from './types.js';
+export { getOrchestratorUrl, orchestratorFetch } from './server-client.js';
 
 // Plugin types
 export type { CLIPlugin, PluginsConfig as CLIPluginsConfig, PluginDiscoveryResult, PluginRegistrationResult } from './plugin-types.js';

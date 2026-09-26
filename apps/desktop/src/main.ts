@@ -1,8 +1,8 @@
 import { app, BrowserWindow, WebContentsView, session, ipcMain, dialog, Menu } from 'electron';
 import { createRequire } from 'node:module';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { ProjectManager, type Instance } from './manager.js';
+import { ProjectManager, type Instance, type WorkflowPreset } from './manager.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -14,6 +14,8 @@ let manager: ProjectManager;
 let window: BrowserWindow;
 let active: string | undefined;
 let quitting = false;
+let adding = false;
+let progress: string | undefined;
 const views = new Map<string, { view: WebContentsView; instance: Instance }>();
 const shellURL = pathToFileURL(join(here, 'shell.html')).href;
 
@@ -25,7 +27,7 @@ else {
   });
 }
 
-function snapshot() { return { projects: manager.list(), active }; }
+function snapshot() { return { projects: manager.list(), active, progress }; }
 function update(): void {
   if (window && !window.isDestroyed()) window.webContents.send('desktop:state', snapshot());
 }
@@ -104,6 +106,10 @@ async function boot(): Promise<void> {
     if (quitting) return;
     event.preventDefault();
     void (async () => {
+      if (adding) {
+        await dialog.showMessageBox(window, { message: 'Project setup is in progress', detail: 'Wait for setup to finish before quitting.', buttons: ['OK'] });
+        return;
+      }
       if (manager.instances.size) {
         const answer = await dialog.showMessageBox(window, {
           type: 'question', message: 'Quit Stoneforge?',
@@ -123,11 +129,34 @@ async function boot(): Promise<void> {
   ipcMain.handle('desktop:command', async (event, command: unknown, id?: unknown) => {
     if (event.sender !== window.webContents || event.senderFrame?.url !== shellURL) throw new Error('Untrusted sender');
     if (typeof command !== 'string') throw new Error('Invalid command');
+    try {
     if (command === 'list') return snapshot();
     if (command === 'add') {
-      const result = await dialog.showOpenDialog(window, { properties: ['openDirectory'], title: 'Choose a Stoneforge project' });
-      if (!result.canceled && result.filePaths[0]) {
-        const project = await manager.add(result.filePaths[0]); await openProject(project.id);
+      if (adding) return snapshot();
+      adding = true;
+      try {
+        const result = await dialog.showOpenDialog(window, { properties: ['openDirectory', 'createDirectory'], title: 'Choose a project folder' });
+        if (result.canceled || !result.filePaths[0]) return snapshot();
+        const workspace = await manager.inspect(result.filePaths[0]);
+        let preset: WorkflowPreset = 'review';
+        if (!workspace.initialized) {
+          const answer = await dialog.showMessageBox(window, {
+            type: 'question', message: `Set up Stoneforge in ${basename(workspace.root)}?`,
+            detail: `${workspace.root}\n\nThis folder has no Stoneforge database. Setup creates workspace data, default agents and agent instructions. Agents will stay stopped.\n\n` +
+              (workspace.hasConfig ? 'Existing configuration and exported data will be reused.' :
+                'Review: agents merge to a review branch; you merge to main.\nAuto: agents merge directly to main.\nApprove: restricted agent actions need approval; merges use pull requests.'),
+            buttons: workspace.hasConfig ? ['Cancel', 'Initialize'] : ['Cancel', 'Review', 'Auto', 'Approve'],
+            defaultId: 1, cancelId: 0,
+          });
+          if (answer.response === 0) return snapshot();
+          preset = (['review', 'review', 'auto', 'approve'] as const)[answer.response] ?? 'review';
+          progress = `Setting up ${basename(workspace.root)}…`; update();
+        }
+        const project = workspace.initialized ? await manager.add(workspace.root) : await manager.initialize(workspace.root, preset);
+        progress = `Opening ${project.name}…`; update();
+        await openProject(project.id);
+      } finally {
+        adding = false; progress = undefined; update();
       }
       return snapshot();
     }
@@ -146,6 +175,13 @@ async function boot(): Promise<void> {
       await dialog.showMessageBox(window, { message: manager.projects.get(id)!.name + ' — Logs', detail: manager.logs.get(id)?.slice(-10_000) || 'No logs yet', buttons: ['Close'] });
     } else throw new Error('Unknown command');
     update(); return snapshot();
+    } catch (error) {
+      // A WebContentsView covers shell HTML, including its error banner. Native
+      // dialogs remain visible even when another project's dashboard is open.
+      await dialog.showMessageBox(window, { type: 'error', message: command === 'add' ? 'Could not add project' : 'Could not complete project action',
+        detail: error instanceof Error ? error.message : String(error), buttons: ['OK'] });
+      return snapshot();
+    }
   });
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     { label: 'Stoneforge', submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'hide' }, { role: 'quit' }] },

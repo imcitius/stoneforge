@@ -48,6 +48,20 @@ test('three real backends isolate identical agent IDs, credentials and events; r
     assert.equal(new Set(taskIds).size, 1);
     const ids = agents.map((data) => data.agents.find((a) => a.name === 'director').id);
     assert.equal(new Set(ids).size, 1);
+    const cliEnv = { ...fixtureEnv, STONEFORGE_ROOT: projects[0].root, STONEFORGE_DESKTOP_INSTANCE_ID: instances[0].instanceId,
+      ORCHESTRATOR_URL: instances[1].endpoint, STONEFORGE_API_URL: instances[1].endpoint };
+    // Deliberately use another project's cwd and legacy URL variables. The
+    // Desktop context must select A's database AND authenticated HTTP endpoint.
+    const runCli = (...args) => execFileSync(node, [cli, ...args], { cwd: projects[1].root, env: cliEnv, stdio: 'pipe', timeout: 15_000 }).toString();
+    runCli('daemon', 'status', '--json');
+    runCli('agent', 'disable', ids[0]);
+    assert.equal((await read(instances[0], '/api/agents')).agents.find((a) => a.id === ids[0]).metadata.agent.disabled, true);
+    assert.notEqual((await read(instances[1], '/api/agents')).agents.find((a) => a.id === ids[0]).metadata.agent.disabled, true);
+    runCli('agent', 'enable', ids[0]);
+    runCli('task', 'create', '--title', 'cli-project-A-only');
+    assert((await read(instances[0], '/api/tasks')).tasks.some((t) => t.title === 'cli-project-A-only'));
+    assert(!(await read(instances[1], '/api/tasks')).tasks.some((t) => t.title === 'cli-project-A-only'));
+    assert.throws(() => runCli('daemon', 'stop', '--server', instances[1].endpoint));
     for (let i = 0; i < 3; i++) {
       const instance = instances[i], other = instances[(i + 1) % 3];
       assert.equal((await fetch(instance.endpoint + '/api/agents')).status, 401);
@@ -97,6 +111,7 @@ test('three real backends isolate identical agent IDs, credentials and events; r
     await manager.stop(projects[0].id);
     const restarted = await manager.start(projects[0].id);
     assert.notEqual(restarted.instanceId, instances[0].instanceId);
+    assert.throws(() => runCli('daemon', 'status'), 'Old agent context must not silently attach to a restarted instance');
     assert.equal((await fetch(restarted.endpoint + '/api/health', { headers: manager.headers(instances[0]) })).status, 401);
     assert.equal(manager.projects.get(projects[1].id).state, 'ready');
     // Parent IPC loss performs shutdown and releases the workspace lock.

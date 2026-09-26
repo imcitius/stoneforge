@@ -22,6 +22,7 @@ import {
 } from '@stoneforge/storage';
 import { resolveDatabasePath, STONEFORGE_DIR, DEFAULT_DB_NAME } from '../db.js';
 import { createBlockedCacheService } from '../../services/blocked-cache.js';
+import { getOrchestratorUrl, orchestratorFetch } from '../server-client.js';
 
 // ============================================================================
 // Doctor Command
@@ -488,7 +489,6 @@ async function doctorHandler(
 /**
  * Default smithy-server URL for diagnostics API
  */
-const DEFAULT_SMITHY_URL = 'http://localhost:3457';
 
 /**
  * Diagnostics response from the smithy-server API
@@ -546,15 +546,11 @@ async function collectRuntimeDiagnostics(
   diagnostics: DiagnosticResult[],
   options: GlobalOptions
 ): Promise<void> {
-  const smithyUrl = process.env.ORCHESTRATOR_URL || DEFAULT_SMITHY_URL;
-  const diagnosticsUrl = `${smithyUrl}/api/health/diagnostics`;
-
+  let diagnosticsUrl: string | undefined;
   let data: RuntimeDiagnosticsResponse;
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(diagnosticsUrl, { signal: controller.signal });
-    clearTimeout(timeout);
+    diagnosticsUrl = `${getOrchestratorUrl()}/api/health/diagnostics`;
+    const response = await orchestratorFetch(diagnosticsUrl, { signal: AbortSignal.timeout(5000) });
 
     if (!response.ok) {
       diagnostics.push({
