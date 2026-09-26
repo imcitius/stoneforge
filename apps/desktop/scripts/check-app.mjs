@@ -26,7 +26,8 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
   execFileSync(node, [join(root, 'apps/desktop/scripts/check-pty.mjs'), resources], { stdio: 'inherit' });
   const a = join(temp, 'Atlas'); await mkdir(a);
-  const env = { ...process.env }; delete env.STONEFORGE_ROOT; delete env.ELECTRON_RUN_AS_NODE;
+  const env = { ...process.env };
+  for (const key of ['STONEFORGE_ROOT', 'STONEFORGE_DESKTOP_INSTANCE_ID', 'STONEFORGE_DB_PATH', 'STONEFORGE_UPLOAD_DIR', 'ELECTRON_RUN_AS_NODE']) delete env[key];
   const sf = (...args) => execFileSync(node, [cli, ...args], { cwd: a, env, stdio: 'pipe' });
   sf('init', '--preset', 'auto', '--name', 'desktop-fixture');
   sf('agent', 'register', 'codex-director', '--role', 'director', '--provider', 'codex');

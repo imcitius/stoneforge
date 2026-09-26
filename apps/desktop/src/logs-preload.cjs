@@ -7,3 +7,9 @@ window.addEventListener('DOMContentLoaded', () => {
   close.addEventListener('click', () => ipcRenderer.send('logs:close'));
   close.focus();
 });
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' || (event.metaKey && event.key.toLowerCase() === 'w')) {
+    event.preventDefault();
+    ipcRenderer.send('logs:close');
+  }
+});

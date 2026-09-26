@@ -148,7 +148,18 @@ the child window above an open project. It retains viewer PNGs and
 macOS screen capture permission is available. The work-area override is test-side;
 it does not change the host display configuration. `check-launch-services.mjs` launches through macOS LaunchServices with
 a minimal PATH and a Unicode workspace path, and checks parent-loss cleanup.
-Both use temporary fixtures and a separate app-data directory. Diagnostics stay
+Both use temporary fixtures and a separate app-data directory. When running backend
+tests or LaunchServices from a managed agent session, clear inherited routing
+variables for the test process only:
+
+```sh
+env -u STONEFORGE_ROOT -u STONEFORGE_DESKTOP_INSTANCE_ID \
+  -u STONEFORGE_DB_PATH -u STONEFORGE_UPLOAD_DIR -u ELECTRON_RUN_AS_NODE \
+  pnpm --filter @stoneforge/desktop test
+# Use the same env prefix for node apps/desktop/scripts/check-launch-services.mjs.
+```
+
+The packaged UI smoke clears these variables in its fixture environment itself. Diagnostics stay
 in the printed temporary directory. `DESKTOP_APP` can select a relocated bundle.
 
 Opt-in provider validation makes real API calls through the packaged terminal:

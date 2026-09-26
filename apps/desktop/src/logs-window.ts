@@ -35,9 +35,6 @@ export async function showLogs(owner: BrowserWindow, name: string, logs?: string
   viewer.webContents.ipc.on('logs:close', (event) => {
     if (event.senderFrame === viewer.webContents.mainFrame) viewer.close();
   });
-  viewer.webContents.on('before-input-event', (event, input) => {
-    if (input.type === 'keyDown' && input.key === 'Escape') { event.preventDefault(); viewer.close(); }
-  });
   try {
     await viewer.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(logsHTML(name, logs)));
     if (!viewer.isDestroyed()) viewer.show();

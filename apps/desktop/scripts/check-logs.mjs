@@ -14,7 +14,7 @@ export async function checkLogs(electron, page, resources, temp) {
     const saved = { bounds: owner.getBounds(), minimum: owner.getMinimumSize(), area };
     globalThis.__logsDisplay = screen.getDisplayMatching;
     screen.getDisplayMatching = () => ({ ...display, workArea: area });
-    const { ProjectManager } = await import(managerURL);
+    const { ProjectManager } = process.getBuiltinModule('module').createRequire(managerURL)(process.getBuiltinModule('url').fileURLToPath(managerURL));
     globalThis.__logsList = ProjectManager.prototype.list;
     // Supply deterministic log snapshots through the real manager/command path.
     ProjectManager.prototype.list = function () {
@@ -68,7 +68,7 @@ export async function checkLogs(electron, page, resources, temp) {
     const area = original.area, bounds = native.bounds;
     assert(bounds.x >= area.x && bounds.y >= area.y && bounds.x + bounds.width <= area.x + area.width &&
       bounds.y + bounds.height <= area.y + area.height, 'Native outer bounds must fit the 600px work area');
-    assert(native.visible && native.focused && native.closable && native.projectVisible);
+    assert(native.visible && native.focused && native.closable && native.projectVisible, JSON.stringify(native));
     assert(metrics.close.bottom <= metrics.height && metrics.close.right <= metrics.width && metrics.closeHit);
     assert.equal(metrics.node, 'undefined'); assert.equal(metrics.bridge, 'undefined');
     assert(!metrics.executed && metrics.injectedElements === 0);
@@ -108,7 +108,7 @@ export async function checkLogs(electron, page, resources, temp) {
     assert(end.scrollTop > 0); assert(end.scrollWidth <= end.clientWidth + 1, 'Long lines wrap');
     await viewer.screenshot({ path: join(temp, 'logs-multiline-end.png') });
     try {
-      execFileSync('/usr/sbin/screencapture', ['-x', '-R', `${original.area.x},${original.area.y},${original.area.width},${original.area.height}`, join(temp, 'logs-native-desktop.png')]);
+      execFileSync('/usr/sbin/screencapture', ['-x', '-R', `${original.area.x},${original.area.y},${Math.min(1200, original.area.width)},${original.area.height}`, join(temp, 'logs-native-desktop.png')]);
       observations.push({ nativeScreenshot: 'logs-native-desktop.png' });
     } catch (error) { observations.push({ nativeScreenshotBlocked: String(error) }); }
     // Repeated commands focus the same viewer, rather than stacking windows.
@@ -134,16 +134,20 @@ export async function checkLogs(electron, page, resources, temp) {
     await setLogs('Fresh snapshot after reopening');
     const reopened = await open();
     assert.equal((await inspect(reopened, 'reopened')).text, 'Fresh snapshot after reopening');
-    await reopened.locator('#close').focus();
-    const closed = reopened.waitForEvent('close');
-    await reopened.keyboard.press('Enter'); await closed;
+    const commandClosed = reopened.waitForEvent('close');
+    await reopened.keyboard.press('Meta+w'); await commandClosed;
+    await page.waitForFunction(() => document.hasFocus());
+    const keyboard = await open();
+    await keyboard.locator('#close').focus();
+    const closed = keyboard.waitForEvent('close');
+    await keyboard.keyboard.press('Enter'); await closed;
     await page.waitForFunction(() => document.hasFocus());
     assert.deepEqual(errors, []);
     console.log('Packaged Logs: 600px work area, text safety, scrolling, Close/Escape/native close, focus, reopening, child above project: passed');
   } finally {
     await writeFile(join(temp, 'logs-observations.json'), JSON.stringify({ area: original.area, observations, errors }, null, 2));
     await electron.evaluate(async ({ BrowserWindow, screen }, { managerURL, original }) => {
-      const { ProjectManager } = await import(managerURL);
+      const { ProjectManager } = process.getBuiltinModule('module').createRequire(managerURL)(process.getBuiltinModule('url').fileURLToPath(managerURL));
       ProjectManager.prototype.list = globalThis.__logsList;
       screen.getDisplayMatching = globalThis.__logsDisplay;
       delete globalThis.__logsFixture;
