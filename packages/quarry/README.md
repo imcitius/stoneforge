@@ -217,7 +217,7 @@ Creates a QuarryAPI instance. Requires a `StorageBackend` from `@stoneforge/stor
 
 | Method | Description |
 |--------|-------------|
-| `export(options?)` | Export elements to JSONL format |
+| `export(options?)` | Export elements/dependencies to JSONL; `includeEvents: true` rejects with `INVALID_INPUT` |
 | `import(options)` | Import elements from JSONL format |
 | `stats()` | System-wide statistics (element counts, DB size, etc.) |
 
@@ -243,6 +243,7 @@ initializeSchema(storage);
 const sync = createSyncService(storage);
 
 // Export to JSONL directory
+// JSONL excludes audit events and is not a complete audit backup.
 await sync.export({ outputDir: '.stoneforge/sync' });
 
 // Import from JSONL directory

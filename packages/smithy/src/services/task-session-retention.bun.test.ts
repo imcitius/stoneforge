@@ -46,8 +46,9 @@ test('eviction is available in ordinary API audit snapshots, but absent from cur
   expect(history(eviction!.oldValue!.metadata as Record<string, unknown>)[0].sessionId).toBe('internal-1');
   expect(history(eviction!.newValue!.metadata as Record<string, unknown>)[0].sessionId).toBe('internal-2');
   expect(await api.getEvents(task.id, { limit: 1 })).toHaveLength(1);
-  // The declared includeEvents option is not implemented by this export path.
-  const exported = await api.export({ includeEvents: true });
+  // Event export is explicitly unsupported; ordinary JSONL still omits audit snapshots.
+  await expect(api.export({ includeEvents: true })).rejects.toMatchObject({ code: 'INVALID_INPUT' });
+  const exported = await api.export();
   expect(typeof exported).toBe('string');
   expect(exported).not.toContain('internal-1\"');
   expect(exported).toContain('internal-51');
