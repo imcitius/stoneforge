@@ -131,13 +131,15 @@ export async function checkLogs(electron, page, resources, temp) {
     await empty.screenshot({ path: join(temp, 'logs-empty.png') });
     await close(empty, 'native');
 
-    await setLogs('Fresh snapshot after reopening');
+    await setLogs('\nFresh snapshot after reopening: 日本語 🪨');
     const reopened = await open();
-    assert.equal((await inspect(reopened, 'reopened')).text, 'Fresh snapshot after reopening');
+    assert.equal((await inspect(reopened, 'reopened')).text, '\nFresh snapshot after reopening: 日本語 🪨');
     const commandClosed = reopened.waitForEvent('close');
     await reopened.keyboard.press('Meta+w'); await commandClosed;
     await page.waitForFunction(() => document.hasFocus());
+    await setLogs('🪨' + 'x'.repeat(9999));
     const keyboard = await open();
+    assert.equal((await keyboard.locator('pre').textContent()).length, 10_000);
     await keyboard.locator('#close').focus();
     const closed = keyboard.waitForEvent('close');
     await keyboard.keyboard.press('Enter'); await closed;

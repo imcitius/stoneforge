@@ -36,7 +36,8 @@ export async function showLogs(owner: BrowserWindow, name: string, logs?: string
     if (event.senderFrame === viewer.webContents.mainFrame) viewer.close();
   });
   try {
-    await viewer.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(logsHTML(name, logs)));
+    // UTF-8 encoding also handles a surrogate pair split by the existing tail limit.
+    await viewer.loadURL('data:text/html;charset=utf-8;base64,' + Buffer.from(logsHTML(name, logs)).toString('base64'));
     if (!viewer.isDestroyed()) viewer.show();
     await closed;
   } catch (error) {

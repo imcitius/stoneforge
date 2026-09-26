@@ -28,7 +28,7 @@ footer{display:flex;justify-content:flex-end}button{font:inherit;color:var(--tex
 button:hover{border-color:var(--muted)}:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style></head><body>
 <header><h1>${escapeHTML(name)} — Logs</h1><p>Latest 10,000 characters · Snapshot from this run</p></header>
-<pre tabindex="0" aria-label="Project logs">${escapeHTML(logs?.slice(-10_000) || 'No logs yet')}</pre>
+<pre tabindex="0" aria-label="Project logs"><code>${escapeHTML(logs?.slice(-10_000) || 'No logs yet')}</code></pre>
 <footer><button id="close" type="button" autofocus>Close</button></footer>
 </body></html>`;
 }
