@@ -1,3 +1,4 @@
+import { taskWorktreeManager } from '../git/project-repositories.js';
 /**
  * Worker Task Service
  *
@@ -318,7 +319,8 @@ export class WorkerTaskServiceImpl implements WorkerTaskService {
     let worktreePath: string | undefined = options.worktreePath;
 
     if (this.worktreeManager && !options.skipWorktree) {
-      worktreeResult = await this.worktreeManager.createWorktree({
+      const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
+      worktreeResult = await worktreeManager.createWorktree({
         agentName: agent.name ?? `agent-${agentId.substring(0, 8)}`,
         taskId,
         taskTitle: task.title,

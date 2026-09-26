@@ -29,6 +29,9 @@ import type { EntityId, ElementId, Timestamp } from '@stoneforge/core';
  * ```
  */
 export interface OrchestratorTaskMeta {
+  /** Stable repository ID within the project. Frozen once dispatched. */
+  readonly repositoryId?: string;
+  readonly repositoryLocked?: boolean;
   /** Git branch created for this task (e.g., "agent/alice/task-123-implement-feature") */
   readonly branch?: string;
 

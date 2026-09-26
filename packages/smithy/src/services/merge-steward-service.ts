@@ -1,3 +1,5 @@
+import { createGitHubMergeProvider } from './merge-request-provider.js';
+import { ProjectRepositories } from '../git/project-repositories.js';
 /**
  * Merge Steward Service
  *
@@ -422,6 +424,21 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     };
   }
 
+  private async scoped(taskId: ElementId): Promise<MergeStewardServiceImpl | undefined> {
+    if (!(this.worktreeManager instanceof ProjectRepositories)) return undefined;
+    const task = await this.api.get<Task>(taskId);
+    if (!task) throw new Error(`Task not found: ${taskId}`);
+    const repo = await this.worktreeManager.repositoryForTask(task);
+    const manager = await this.worktreeManager.forTask(task);
+    return new MergeStewardServiceImpl(this.api, this.taskAssignment, this.dispatchService, this.agentRegistry, {
+      ...this.config,
+      workspaceRoot: manager.getRepositoryRoot!(),
+      mergeRequestProvider: this.config.mergeRequestProvider?.name === 'github' ? createGitHubMergeProvider(manager.getRepositoryRoot!()) : this.config.mergeRequestProvider,
+      targetBranch: repo.targetBranch ?? await manager.getDefaultBranch(),
+      testCommand: repo.testCommand ?? this.config.testCommand,
+    }, manager, this.operationLog);
+  }
+
   // ----------------------------------------
   // Task Discovery
   // ----------------------------------------
@@ -443,6 +460,8 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     const processedAt = createTimestamp();
 
     try {
+      const scoped = await this.scoped(taskId);
+      if (scoped) return await scoped.processTask(taskId, options);
       // 1. Get and validate task
       const task = await this.api.get<Task>(taskId);
       if (!task) {
@@ -735,6 +754,8 @@ export class MergeStewardServiceImpl implements MergeStewardService {
   // ----------------------------------------
 
   async runTests(taskId: ElementId): Promise<TestRunResult> {
+    const scoped = await this.scoped(taskId);
+    if (scoped) return scoped.runTests(taskId);
     const startTime = Date.now();
 
     // Get task and worktree info
@@ -816,6 +837,8 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     taskId: ElementId,
     commitMessage?: string
   ): Promise<MergeAttemptResult> {
+    const scoped = await this.scoped(taskId);
+    if (scoped) return scoped.attemptMerge(taskId, commitMessage);
     // Get task info
     const task = await this.api.get<Task>(taskId);
     if (!task) {
@@ -852,7 +875,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
       autoPush: this.config.autoPushAfterMerge,
       commitMessage: commitMessage ?? defaultMessage,
       preflight: true,
-      syncLocal: false,
+      syncLocal: !await hasRemote(this.config.workspaceRoot),
     });
   }
 
@@ -933,6 +956,8 @@ export class MergeStewardServiceImpl implements MergeStewardService {
       metadata: {
         description: lines.join('\n'),
         orchestrator: {
+          repositoryId: orchestratorMeta?.repositoryId,
+          targetBranch: orchestratorMeta?.targetBranch,
           branch: orchestratorMeta?.branch,
           worktree: orchestratorMeta?.worktree,
           assignedAgent: orchestratorMeta?.assignedAgent,
@@ -985,6 +1010,8 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     taskId: ElementId,
     deleteBranch = true
   ): Promise<boolean> {
+    const scoped = await this.scoped(taskId);
+    if (scoped) return scoped.cleanupAfterMerge(taskId, deleteBranch);
     if (!this.worktreeManager) {
       return true; // No worktree manager, nothing to clean up
     }
@@ -1019,7 +1046,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
   // Approval Checking
   // ----------------------------------------
 
-  async checkPendingApprovals(): Promise<ApprovalCheckResult[]> {
+  async checkPendingApprovals(taskIds?: Set<string>): Promise<ApprovalCheckResult[]> {
     const provider = this.config.mergeRequestProvider;
     if (!provider?.getMergeRequestStatus) {
       return [];
@@ -1034,6 +1061,9 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     const results: ApprovalCheckResult[] = [];
 
     for (const { taskId, task } of assignments) {
+      if (taskIds && !taskIds.has(taskId)) continue;
+      const scoped = await this.scoped(taskId);
+      if (scoped) { results.push(...await scoped.checkPendingApprovals(new Set([taskId]))); continue; }
       const orchestratorMeta = getOrchestratorTaskMeta(
         task.metadata as Record<string, unknown>
       );

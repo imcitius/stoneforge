@@ -1,3 +1,4 @@
+import { taskWorktreeManager, ProjectRepositories } from '../git/project-repositories.js';
 /**
  * Dispatch Daemon Service
  *
@@ -614,7 +615,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    * Gets the target branch name, caching it after first detection.
    * Uses the centralized detectTargetBranch() function.
    */
-  private async getTargetBranch(): Promise<string> {
+  private async getTargetBranch(task?: Task): Promise<string> {
+    if (task && this.worktreeManager.forTask) return (await this.worktreeManager.forTask(task)).getDefaultBranch();
     if (!this.cachedTargetBranch) {
       this.cachedTargetBranch = await detectTargetBranch(this.config.projectRoot);
     }
@@ -2261,6 +2263,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     task: Task,
     taskMeta: import('../types/task-meta.js').OrchestratorTaskMeta | undefined
   ): Promise<boolean> {
+    const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
     const workerId = asEntityId(worker.id);
 
     // 0. Check rate limits before attempting any resume or spawn.
@@ -2280,7 +2283,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     let branch = taskMeta?.branch ?? taskMeta?.handoffBranch;
 
     if (worktreePath) {
-      const exists = await this.worktreeManager.worktreeExists(worktreePath);
+      const exists = await worktreeManager.worktreeExists(worktreePath);
       if (!exists) {
         const worktreeResult = await this.createWorktreeForTask(worker, task);
         worktreePath = worktreeResult.path;
@@ -2627,18 +2630,20 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     task: Task,
     taskMeta: import('../types/task-meta.js').OrchestratorTaskMeta | undefined
   ): Promise<void> {
+    const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
     const stewardId = asEntityId(steward.id);
 
     // 1. Resolve worktree — verify it still exists
     let worktreePath = taskMeta?.worktree;
     if (worktreePath) {
-      const exists = await this.worktreeManager.worktreeExists(worktreePath);
+      const exists = await worktreeManager.worktreeExists(worktreePath);
       if (!exists) {
-        logger.warn(`Worktree ${worktreePath} no longer exists for steward task ${task.id}, using project root`);
+        logger.warn(`Worktree ${worktreePath} no longer exists for steward task ${task.id}, recreating its repository worktree`);
         worktreePath = undefined;
       }
     }
-    const workingDirectory = worktreePath ?? this.config.projectRoot;
+    if (!worktreePath) { await this.spawnMergeStewardForTask(steward, task); return; }
+    const workingDirectory = worktreePath;
 
     // 2. Try resume first if we have a previous session ID
     const previousSessionId = taskMeta?.sessionId;
@@ -2719,7 +2724,13 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     }
 
     // ready() already sorts by effective priority, take the first
-    const task = unassignedTasks[0];
+    let task: Task | undefined;
+    let worktreeManager: WorktreeManager = this.worktreeManager;
+    for (const candidate of unassignedTasks) {
+      try { worktreeManager = await taskWorktreeManager(this.worktreeManager, candidate); task = candidate; break; }
+      catch (error) { this.emitWarningOnce(`repository:${candidate.id}`, { type: 'warning', title: 'Task needs a repository', message: `${candidate.id}: ${String(error)}` }); }
+    }
+    if (!task) return false;
     const workerId = asEntityId(worker.id);
 
     // Check pool capacity before spawning
@@ -2769,7 +2780,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       branch = handoffBranch;
 
       // Verify the worktree still exists
-      const exists = await this.worktreeManager.worktreeExists(worktreePath);
+      const exists = await worktreeManager.worktreeExists(worktreePath);
       if (!exists) {
         // Worktree was cleaned up, create a new one
         const worktreeResult = await this.createWorktreeForTask(worker, task);
@@ -2783,7 +2794,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       branch = existingBranch;
 
       // Verify the worktree still exists
-      const exists = await this.worktreeManager.worktreeExists(worktreePath);
+      const exists = await worktreeManager.worktreeExists(worktreePath);
       if (!exists) {
         // Worktree was cleaned up, create a new one
         const worktreeResult = await this.createWorktreeForTask(worker, task);
@@ -2967,16 +2978,17 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    * Includes dependency installation so workers have node_modules available.
    */
   private async createWorktreeForTask(worker: AgentEntity, task: Task): Promise<CreateWorktreeResult> {
+    const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
     const orcMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
     const targetBranch = orcMeta?.targetBranch;
 
     // Ensure the target branch exists before creating worktree from it.
     // Without this, worktree creation fails if the branch doesn't exist locally or on remote.
     if (targetBranch) {
-      await this.config.ensureTargetBranchExists(this.config.projectRoot, targetBranch);
+      await this.config.ensureTargetBranchExists(worktreeManager.getRepositoryRoot?.() ?? this.config.projectRoot, targetBranch);
     }
 
-    return this.worktreeManager.createWorktree({
+    return worktreeManager.createWorktree({
       agentName: worker.name,
       taskId: task.id,
       taskTitle: task.title,
@@ -2993,6 +3005,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    */
   private async buildTaskPrompt(task: Task, workerId: EntityId): Promise<string> {
     const parts: string[] = [];
+    parts.push(`Project data root: ${this.config.projectRoot}. Read its AGENTS.md as well as repository instructions. Use sf for shared project data; all code changes belong in your assigned worktree. Repository: ${getOrchestratorTaskMeta(task.metadata)?.repositoryId ?? 'default'}.`);
+
 
     // Load and include the worker role prompt, framed as operating instructions
     // so Claude understands this is its role definition, not file content
@@ -3120,7 +3134,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const taskOrcMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
 
     if (roleResult) {
-      const baseBranch = taskOrcMeta?.targetBranch ?? await this.getTargetBranch();
+      const baseBranch = taskOrcMeta?.targetBranch ?? await this.getTargetBranch(task);
       const renderedPrompt = renderPromptTemplate(roleResult.prompt, { baseBranch });
       parts.push(
         'Please read and internalize the following operating instructions. These define your role and how you should behave:',
@@ -3222,6 +3236,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    * Respects agent pool capacity limits.
    */
   private async spawnMergeStewardForTask(steward: AgentEntity, task: Task): Promise<void> {
+    const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
     const stewardId = asEntityId(steward.id);
     const meta = getAgentMetadata(steward) as StewardMetadata | undefined;
     const stewardFocus = meta?.stewardFocus ?? 'merge';
@@ -3259,13 +3274,13 @@ export class DispatchDaemonImpl implements DispatchDaemon {
 
     // Verify the worktree still exists; create a fresh one if cleaned up (NEVER fall back to project root)
     if (worktreePath) {
-      const exists = await this.worktreeManager.worktreeExists(worktreePath);
+      const exists = await worktreeManager.worktreeExists(worktreePath);
       if (!exists) {
         logger.warn(`Worktree ${worktreePath} no longer exists for task ${task.id}, creating fresh worktree`);
         const sourceBranch = orchestratorMeta?.branch as string | undefined;
         if (sourceBranch) {
           try {
-            const result = await this.worktreeManager.createReadOnlyWorktree({
+            const result = await worktreeManager.createReadOnlyWorktree({
               agentName: stewardId,
               purpose: `steward-${task.id}`,
             });
@@ -3396,6 +3411,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     taskMeta: import('../types/task-meta.js').OrchestratorTaskMeta | undefined,
     stewardsUsedThisCycle?: Set<string>
   ): Promise<boolean> {
+    const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
     const workerId = asEntityId(worker.id);
 
     // 0. Check session history for rate limit pattern.
@@ -3499,13 +3515,13 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const branch = taskMeta?.branch ?? taskMeta?.handoffBranch;
 
     if (worktreePath) {
-      const exists = await this.worktreeManager.worktreeExists(worktreePath);
+      const exists = await worktreeManager.worktreeExists(worktreePath);
       if (!exists) {
         logger.warn(`Worktree ${worktreePath} no longer exists for stuck task ${task.id}`);
         // Try to create a read-only worktree for the steward
         if (branch) {
           try {
-            const result = await this.worktreeManager.createReadOnlyWorktree({
+            const result = await worktreeManager.createReadOnlyWorktree({
               agentName: stewardId,
               purpose: `recovery-${task.id}`,
             });
@@ -3631,7 +3647,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     // Load the recovery steward role prompt, rendering template variables
     const roleResult = loadRolePrompt('steward', 'recovery' as StewardFocus, { projectRoot: this.config.projectRoot });
     if (roleResult) {
-      const baseBranch = taskMeta?.targetBranch ?? await this.getTargetBranch();
+      const baseBranch = taskMeta?.targetBranch ?? await this.getTargetBranch(task);
       const renderedPrompt = renderPromptTemplate(roleResult.prompt, { baseBranch });
       parts.push(
         'Please read and internalize the following operating instructions. These define your role and how you should behave:',
@@ -3962,32 +3978,38 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     // The path is deterministic ({agentName}-triage), so a stale worktree
     // from a previous crash would cause WORKTREE_EXISTS. Handle by removing
     // the stale worktree and retrying once.
-    let worktreeResult: CreateWorktreeResult;
-    try {
-      worktreeResult = await this.worktreeManager.createReadOnlyWorktree({
-        agentName: agent.name,
-        purpose: 'triage',
-      });
-    } catch (error: unknown) {
-      const errorCode = (error as { code?: string })?.code;
-      if (errorCode === 'WORKTREE_EXISTS') {
-        // Remove stale worktree from a previous crash and retry.
-        // Path must match the relative path used by createReadOnlyWorktree.
-        try {
-          await this.worktreeManager.removeWorktree(
-            `.stoneforge/.worktrees/${agent.name}-triage`,
-            { force: true }
-          );
-        } catch {
-          // Ignore removal errors
-        }
-        worktreeResult = await this.worktreeManager.createReadOnlyWorktree({
+    const projectTriage = this.worktreeManager instanceof ProjectRepositories && (await this.worktreeManager.list()).length !== 1;
+    const triageManager = this.worktreeManager instanceof ProjectRepositories && !projectTriage
+      ? await this.worktreeManager.manager(await this.worktreeManager.resolve()) : this.worktreeManager;
+    let worktreeResult: CreateWorktreeResult | undefined;
+    if (!projectTriage) {
+      try {
+        worktreeResult = await triageManager.createReadOnlyWorktree({
           agentName: agent.name,
           purpose: 'triage',
         });
-      } else {
-        throw error;
+      } catch (error: unknown) {
+        const errorCode = (error as { code?: string })?.code;
+        if (errorCode === 'WORKTREE_EXISTS') {
+          // Remove stale worktree from a previous crash and retry.
+          // Path must match the relative path used by createReadOnlyWorktree.
+          try {
+            await triageManager.removeWorktree(
+              triageManager.getWorktreePath(`${agent.name}-triage`),
+              { force: true }
+            );
+          } catch {
+            // Ignore removal errors
+          }
+          worktreeResult = await triageManager.createReadOnlyWorktree({
+            agentName: agent.name,
+            purpose: 'triage',
+          });
+        } else {
+          throw error;
+        }
       }
+
     }
 
     // Fetch messages and build the triage prompt
@@ -4003,7 +4025,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     // All message fetches failed — nothing to triage; clean up worktree
     if (triageItems.length === 0) {
       try {
-        await this.worktreeManager.removeWorktree(worktreeResult.path);
+        if (worktreeResult) await triageManager.removeWorktree(worktreeResult.path);
       } catch {
         // Ignore cleanup errors
       }
@@ -4014,8 +4036,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
 
     // Start a headless session in the read-only worktree
     const { session, events } = await this.sessionManager.startSession(agentId, {
-      workingDirectory: worktreeResult.path,
-      worktree: worktreeResult.path,
+      workingDirectory: worktreeResult?.path ?? this.config.projectRoot,
+      worktree: worktreeResult?.path,
       initialPrompt,
       interactive: false,
     });
@@ -4039,13 +4061,13 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       }
 
       try {
-        await this.worktreeManager.removeWorktree(worktreeResult.path);
+        if (worktreeResult) await triageManager.removeWorktree(worktreeResult.path);
       } catch {
         // Ignore cleanup errors — worktree may already be removed
       }
     });
 
-    this.emitter.emit('agent:triage-spawned', agentId, channelId, worktreeResult.path);
+    this.emitter.emit('agent:triage-spawned', agentId, channelId, worktreeResult?.path ?? this.config.projectRoot);
   }
 
   /**
@@ -4129,6 +4151,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    * @returns SyncResult with success/conflicts/error status
    */
   private async syncTaskBranch(task: Task): Promise<SyncResult> {
+    const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
     const taskMeta = task.metadata as Record<string, unknown> | undefined;
     const orchestratorMeta = taskMeta?.orchestrator as Record<string, unknown> | undefined;
     const worktreePath = orchestratorMeta?.worktree as string | undefined;
@@ -4144,7 +4167,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     }
 
     // Verify worktree exists
-    const worktreeExists = await this.worktreeManager.worktreeExists(worktreePath);
+    const worktreeExists = await worktreeManager.worktreeExists(worktreePath);
     if (!worktreeExists) {
       return {
         success: false,
@@ -4162,12 +4185,12 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const execFileAsync = promisify(execFile);
 
     // Resolve full worktree path
-    const workspaceRoot = this.worktreeManager.getWorkspaceRoot();
+    const workspaceRoot = worktreeManager.getWorkspaceRoot();
     const fullWorktreePath = path.isAbsolute(worktreePath)
       ? worktreePath
       : path.join(workspaceRoot, worktreePath);
 
-    const remoteAvailable = await this.worktreeManager.ensureWorktreeRemote(fullWorktreePath);
+    const remoteAvailable = await worktreeManager.ensureWorktreeRemote(fullWorktreePath);
     if (!remoteAvailable) {
       return {
         success: false,
@@ -4196,7 +4219,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     }
 
     // Get default branch
-    const defaultBranch = await this.worktreeManager.getDefaultBranch();
+    const defaultBranch = await worktreeManager.getDefaultBranch();
     const remoteBranch = `origin/${defaultBranch}`;
 
     // Attempt to merge

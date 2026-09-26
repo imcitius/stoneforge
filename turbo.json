@@ -3,7 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "../../packages/smithy/web/**", "../../packages/quarry/web/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "dev": {
       "cache": false,
@@ -21,7 +21,19 @@
     },
     "build:web": {
       "dependsOn": ["^build"],
-      "outputs": ["../../packages/smithy/web/**", "../../packages/quarry/web/**"]
+      "outputs": ["dist/**"]
+    },
+    "@stoneforge/smithy-web#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["../../packages/smithy/web/**"]
+    },
+    "@stoneforge/smithy-web#build:web": {
+      "dependsOn": ["^build"],
+      "outputs": ["../../packages/smithy/web/**"]
+    },
+    "@stoneforge/quarry-web#build:web": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "../../packages/quarry/web/**"]
     }
   }
 }

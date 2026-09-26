@@ -26,6 +26,7 @@ import { tryCreateProviderForAutoLink } from './auto-link-helper.js';
 // ============================================================================
 
 interface CreateOptions {
+  repository?: string;
   title?: string;
   name?: string; // Alias for title
   priority?: string;
@@ -39,6 +40,7 @@ interface CreateOptions {
 }
 
 export const createOptions: CommandOption[] = [
+  { name: 'repository', description: 'Code repository ID within the project', hasValue: true },
   {
     name: 'title',
     short: 't',
@@ -190,6 +192,7 @@ export async function createHandler(
     // Create task input (title is guaranteed non-null from validation above)
     const input: CreateTaskInput = {
       title: title!,
+      ...(options.repository && { metadata: { orchestrator: { repositoryId: options.repository } } }),
       createdBy: actor,
       ...(priority !== undefined && { priority }),
       ...(complexity !== undefined && { complexity }),
@@ -743,6 +746,7 @@ Examples:
 // ============================================================================
 
 interface UpdateOptions {
+  repository?: string;
   title?: string;
   priority?: string;
   complexity?: string;
@@ -756,6 +760,7 @@ interface UpdateOptions {
 }
 
 export const updateOptions: CommandOption[] = [
+  { name: 'repository', description: 'Code repository ID within the project', hasValue: true },
   {
     name: 'title',
     short: 't',
@@ -970,6 +975,14 @@ export async function updateHandler(
         }
       }
       updates.metadata = existingMetadata;
+    }
+
+    if (options.repository !== undefined) {
+      if (element.type !== 'task') return failure('--repository is only valid for tasks', ExitCode.VALIDATION);
+      const metadata = (updates.metadata ?? element.metadata ?? {}) as Record<string, unknown>;
+      const orchestrator = (metadata.orchestrator ?? {}) as Record<string, unknown>;
+      if ((orchestrator.repositoryLocked || orchestrator.branch || orchestrator.worktree || orchestrator.sessionId) && orchestrator.repositoryId !== options.repository) return failure('Cannot change repository after dispatch', ExitCode.VALIDATION);
+      updates.metadata = { ...metadata, orchestrator: { ...orchestrator, repositoryId: options.repository } };
     }
 
     // Handle tag operations

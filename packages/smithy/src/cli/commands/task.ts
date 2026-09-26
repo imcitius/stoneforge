@@ -1,3 +1,4 @@
+import { ProjectRepositories } from '../../git/project-repositories.js';
 /**
  * Task Commands - CLI operations for orchestrator task management
  *
@@ -414,7 +415,7 @@ async function taskMergeHandler(
     const { getOrchestratorTaskMeta, updateOrchestratorTaskMeta } = await import('../../types/task-meta.js');
     const orchestratorMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown>);
     const sourceBranch = orchestratorMeta?.branch;
-    const targetBranch = orchestratorMeta?.targetBranch;
+    let targetBranch = orchestratorMeta?.targetBranch;
 
     if (!sourceBranch) {
       return failure(`Task ${taskId} has no branch in orchestrator metadata.`, ExitCode.GENERAL_ERROR);
@@ -427,10 +428,14 @@ async function taskMergeHandler(
       return failure('No .stoneforge directory found. Run "sf init" first.', ExitCode.GENERAL_ERROR);
     }
     const { default: path } = await import('node:path');
-    const workspaceRoot = path.dirname(stoneforgeDir);
+    const repositories = new ProjectRepositories(path.dirname(stoneforgeDir));
+    const repository = await repositories.repositoryForTask(task);
+    const workspaceRoot = path.resolve(repositories.root, repository.path);
+
+    targetBranch ??= repository.targetBranch;
 
     // 3. Call mergeBranch() with syncLocal disabled (we'll do it after bookkeeping)
-    const { mergeBranch, syncLocalBranch } = await import('../../git/merge.js');
+    const { mergeBranch, syncLocalBranch, hasRemote } = await import('../../git/merge.js');
     const { detectTargetBranch } = await import('../../git/merge.js');
     const commitMessage = `${task.title} (${taskId})`;
 
@@ -439,7 +444,7 @@ async function taskMergeHandler(
       sourceBranch,
       targetBranch,
       commitMessage,
-      syncLocal: false,
+      syncLocal: !await hasRemote(workspaceRoot),
     });
 
     if (!mergeResult.success) {
@@ -459,26 +464,31 @@ async function taskMergeHandler(
     const execVerify = promisifyUtil(execCb);
     const effectiveTargetForVerify = targetBranch ?? await detectTargetBranch(workspaceRoot);
 
-    try {
-      await execVerify(`git fetch origin ${effectiveTargetForVerify}`, { cwd: workspaceRoot });
-    } catch (fetchErr) {
-      const fetchMsg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
-      return failure(
-        `Post-merge verification failed: could not fetch origin/${effectiveTargetForVerify}. ${fetchMsg}`,
-        ExitCode.GENERAL_ERROR
-      );
+    const remoteExists = await hasRemote(workspaceRoot);
+    const verificationRef = remoteExists ? `origin/${effectiveTargetForVerify}` : effectiveTargetForVerify;
+    if (remoteExists) {
+      try {
+        await execVerify(`git fetch origin ${effectiveTargetForVerify}`, { cwd: workspaceRoot });
+      } catch (fetchErr) {
+        const fetchMsg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+        return failure(
+          `Post-merge verification failed: could not fetch ${verificationRef}. ${fetchMsg}`,
+          ExitCode.GENERAL_ERROR
+        );
+      }
+
     }
 
     if (mergeResult.commitHash) {
       // Verify the merge commit is an ancestor of origin/{targetBranch}
       try {
         await execVerify(
-          `git merge-base --is-ancestor ${mergeResult.commitHash} origin/${effectiveTargetForVerify}`,
+          `git merge-base --is-ancestor ${mergeResult.commitHash} ${verificationRef}`,
           { cwd: workspaceRoot }
         );
       } catch {
         return failure(
-          `Post-merge verification failed: commit ${mergeResult.commitHash} is not on origin/${effectiveTargetForVerify}. ` +
+          `Post-merge verification failed: commit ${mergeResult.commitHash} is not on ${verificationRef}. ` +
           `The merge commit may not have been delivered to the remote. Please retry or push manually.`,
           ExitCode.GENERAL_ERROR
         );
@@ -487,14 +497,14 @@ async function taskMergeHandler(
       // Verify the local source branch has no commits ahead of origin/{targetBranch}
       try {
         const { stdout: countStr } = await execVerify(
-          `git rev-list --count origin/${effectiveTargetForVerify}..${sourceBranch}`,
+          `git rev-list --count ${verificationRef}..${sourceBranch}`,
           { cwd: workspaceRoot, encoding: 'utf8' }
         );
         const aheadCount = parseInt(countStr.trim(), 10);
         if (aheadCount > 0) {
           return failure(
             `Post-merge verification failed: source branch ${sourceBranch} has ${aheadCount} commit(s) ` +
-            `not on origin/${effectiveTargetForVerify} despite being reported as already merged. ` +
+            `not on ${verificationRef} despite being reported as already merged. ` +
             `The commits may not have been delivered to the remote. Please retry or push manually.`,
             ExitCode.GENERAL_ERROR
           );
@@ -503,7 +513,7 @@ async function taskMergeHandler(
         const revListMsg = revListErr instanceof Error ? revListErr.message : String(revListErr);
         return failure(
           `Post-merge verification failed: could not verify source branch ${sourceBranch} against ` +
-          `origin/${effectiveTargetForVerify}. ${revListMsg}`,
+          `${verificationRef}. ${revListMsg}`,
           ExitCode.GENERAL_ERROR
         );
       }
@@ -548,7 +558,7 @@ async function taskMergeHandler(
     try {
       await execVerify('git fetch origin', { cwd: workspaceRoot, encoding: 'utf8' });
     } catch { /* best-effort */ }
-    await syncLocalBranch(workspaceRoot, effectiveTargetForVerify);
+    if (remoteExists) await syncLocalBranch(workspaceRoot, effectiveTargetForVerify);
 
     // 7. Output result
     const mode = getOutputMode(options);
@@ -797,8 +807,8 @@ async function taskSyncHandler(
     const path = await import('node:path');
     const workspaceRoot = path.dirname(stoneforgeDir);
 
-    const worktreeManager = createWorktreeManager({ workspaceRoot });
-    await worktreeManager.initWorkspace();
+    const repositories = new ProjectRepositories(workspaceRoot);
+    const worktreeManager = await repositories.forTask(task);
 
     const worktreeExists = await worktreeManager.worktreeExists(worktreePath);
     if (!worktreeExists) {
@@ -1152,7 +1162,9 @@ async function taskMergeStatusHandler(
             const { exec } = await import('node:child_process');
             const { promisify } = await import('node:util');
             const execAsync = promisify(exec);
-            const workspaceRoot = path.dirname(stoneforgeDir);
+            const repositories = new ProjectRepositories(path.dirname(stoneforgeDir));
+            const repository = await repositories.repositoryForTask(task);
+            const workspaceRoot = path.resolve(repositories.root, repository.path);
 
             // Check if a remote exists (skip verification for local-only workspaces)
             let hasRemote = false;

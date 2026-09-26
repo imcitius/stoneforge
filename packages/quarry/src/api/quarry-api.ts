@@ -1294,6 +1294,14 @@ export class QuarryAPIImpl implements QuarryAPI {
       );
     }
 
+    if (existing.type === 'task' && updates.metadata !== undefined) {
+      const previous = existing.metadata?.orchestrator as Record<string, unknown> | undefined;
+      const next = updates.metadata?.orchestrator as Record<string, unknown> | undefined;
+      if (previous?.repositoryId && (previous.repositoryLocked || previous.branch || previous.worktree || previous.sessionId || previous.handoffBranch) && (previous.repositoryId !== next?.repositoryId || (previous.repositoryLocked && !next?.repositoryLocked))) {
+        throw new ConstraintError('Cannot change repository after task dispatch', ErrorCode.IMMUTABLE, { elementId: id });
+      }
+    }
+
     // Optimistic concurrency check - fail if element was modified since it was read
     if (options?.expectedUpdatedAt && existing.updatedAt !== options.expectedUpdatedAt) {
       throw new ConflictError(

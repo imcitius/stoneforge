@@ -43,6 +43,7 @@ export function formatTaskResponse(task: Task, hydratedDescription?: string | nu
 
   return {
     id: task.id,
+    repositoryId: meta?.repositoryId,
     title: task.title,
     description,
     status: effectiveStatus,

@@ -1,3 +1,7 @@
+import { existsSync as repositoryConfigExists } from 'node:fs';
+import { createGitHubMergeProvider } from './merge-request-provider.js';
+import { ProjectRepositories } from '../git/project-repositories.js';
+import { resolve as resolveRepoPath } from 'node:path';
 /**
  * Task Assignment Service
  *
@@ -385,10 +389,17 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
       throw new Error(`Agent not found: ${agentId}`);
     }
 
+    let repositoryManager: import('../git/worktree-manager.js').WorktreeManager | undefined;
+    if (this.workspaceRoot && repositoryConfigExists(resolveRepoPath(this.workspaceRoot, '.stoneforge/repositories.json'))) {
+      const repositories = new ProjectRepositories(this.workspaceRoot, this.api);
+      repositoryManager = await repositories.forTask(task);
+      if (options?.worktree) await repositories.repositoryForTask({ ...task, metadata: updateOrchestratorTaskMeta(task.metadata, { worktree: options.worktree }) });
+    }
+
     // Generate branch and worktree names if not provided
     const slug = createSlugFromTitle(task.title);
     const branch = options?.branch ?? generateBranchName(agent.name, taskId, slug);
-    const worktree = options?.worktree ?? generateWorktreePath(agent.name, slug);
+    const worktree = options?.worktree ?? repositoryManager?.getWorktreePath(agent.name, task.title) ?? generateWorktreePath(agent.name, slug);
 
     // Update task assignee
     await this.api.update<Task>(taskId, { assignee: agentId });
@@ -399,6 +410,8 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     // Build new orchestrator metadata, preserving handoff context if this is a reassignment
     const orchestratorMeta: Record<string, unknown> = {
       assignedAgent: agentId,
+      repositoryId: existingMeta?.repositoryId,
+      repositoryLocked: existingMeta?.repositoryLocked,
       branch: options?.branch ?? existingMeta?.handoffBranch ?? branch,
       worktree: options?.worktree ?? existingMeta?.handoffWorktree ?? worktree,
       sessionId: options?.sessionId,
@@ -495,7 +508,12 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
 
     // Enforce push to remote before completing
     if (branch) {
-      const pushCwd = currentMeta?.worktree || this.workspaceRoot;
+      let pushCwd = currentMeta?.worktree || this.workspaceRoot;
+      if (this.workspaceRoot && currentMeta?.repositoryId) {
+        const repos = new ProjectRepositories(this.workspaceRoot);
+        const repo = await repos.repositoryForTask(task);
+        pushCwd = currentMeta.worktree ? resolveRepoPath(this.workspaceRoot, currentMeta.worktree) : resolveRepoPath(this.workspaceRoot, repo.path);
+      }
       if (pushCwd) {
         const remoteExists = await hasRemote(pushCwd);
         if (remoteExists) {
@@ -564,14 +582,23 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     let mergeRequestId: number | undefined;
 
     if (branch && this.mergeRequestProvider && options?.createMergeRequest !== false) {
-      const baseBranch = options?.baseBranch || currentMeta?.targetBranch || 'main';
+      let baseBranch = options?.baseBranch || currentMeta?.targetBranch || 'main';
+      if (this.workspaceRoot && currentMeta?.repositoryId && !options?.baseBranch && !currentMeta.targetBranch) {
+        baseBranch = await (await new ProjectRepositories(this.workspaceRoot).forTask(task)).getDefaultBranch();
+      }
       let body = `## Task\n\n**ID:** ${task.id}\n**Title:** ${task.title}\n\n`;
       if (options?.summary) {
         body += `## Summary\n\n${options.summary}\n\n`;
       }
       body += `---\n_Created by Stoneforge Smithy_`;
 
-      const mrResult = await this.mergeRequestProvider.createMergeRequest(task, {
+      let mergeRequestProvider = this.mergeRequestProvider;
+      if (this.workspaceRoot && currentMeta?.repositoryId && mergeRequestProvider.name === 'github') {
+        const repos = new ProjectRepositories(this.workspaceRoot);
+        const repo = await repos.repositoryForTask(task);
+        mergeRequestProvider = createGitHubMergeProvider(resolveRepoPath(this.workspaceRoot, repo.path));
+      }
+      const mrResult = await mergeRequestProvider.createMergeRequest(task, {
         title: options?.mergeRequestTitle || task.title,
         body: options?.mergeRequestBody || body,
         sourceBranch: branch,

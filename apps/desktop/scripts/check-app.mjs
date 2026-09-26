@@ -112,6 +112,45 @@ try {
   assert.match(dialogs.at(-1).detail, /ENOENT/);
   console.log('Packaged Add project: cancel, initialize, keyboard activation, deduplicate, visible error: passed');
 
+  // Register repositories through the real Desktop command, then select one in task UI.
+  const freshView = (await getViews()).find(v => !views.some(existing => existing.id === v.id));
+  assert(freshView);
+  for (const name of ['repo-a', 'repo-b']) {
+    const repo = join(fresh, name); await mkdir(repo);
+    const git = (...args) => execFileSync('git', args, { cwd: repo, stdio: 'pipe' });
+    git('init', '-q', '-b', 'main'); git('config', 'user.name', 'Fixture'); git('config', 'user.email', 'fixture@example.com');
+    await writeFile(join(repo, 'README'), name); git('add', '.'); git('commit', '-qm', 'initial');
+    await electron.evaluate((_electron, repo) => { globalThis.__addPath = repo; globalThis.__addResponse = 1; }, repo);
+    await page.locator('[data-command="repositories"]').focus(); await page.keyboard.press('Enter');
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const data = await run(freshView.id, `(async () => (await fetch('/api/repositories')).json())()`);
+      if (data.repositories.some(r => r.id === name)) break;
+      await pause(100);
+    }
+  }
+  const registered = await run(freshView.id, `(async () => (await fetch('/api/repositories')).json())()`);
+  assert.equal(registered.repositories.length, 2);
+  await run(freshView.id, `(async () => {
+    await fetch('/api/daemon/stop', { method: 'POST' });
+    const agents = await (await fetch('/api/agents')).json();
+    const response = await fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Repository UI fixture', createdBy: agents.agents[0].id, repositoryId: 'repo-a' }) });
+    if (!response.ok) throw new Error(await response.text());
+  })()`);
+  const taskPage = electron.context().pages().find(p => p.url().startsWith(new URL(freshView.url).origin));
+  assert(taskPage, 'Project web contents accessible to UI test');
+  taskPage.on('pageerror', error => console.error('Project UI error:', error.message));
+  await taskPage.goto(new URL('/tasks', freshView.url).href);
+  await taskPage.getByText('Repository UI fixture', { exact: true }).first().click();
+  try { await taskPage.getByLabel('Repository', { exact: true }).selectOption('repo-b', { timeout: 5000 }); }
+  catch (error) { console.error('Task UI state:', await taskPage.locator('body').innerText()); await taskPage.screenshot({ path: join(temp, 'repository-error.png') }); throw error; }
+  await taskPage.waitForFunction(async () => {
+    const data = await (await fetch('/api/tasks')).json();
+    return data.tasks.find(t => t.title === 'Repository UI fixture')?.repositoryId === 'repo-b';
+  });
+  await taskPage.waitForFunction(() => { const select = document.querySelector('select'); return select?.value === 'repo-b' && !select.disabled; });
+  await taskPage.screenshot({ path: join(temp, 'repositories.png') });
+  console.log('Packaged repository registration and task selection: passed');
+
   const outside = join(temp, 'External'); await mkdir(outside);
   execFileSync(node, [cli, 'init', '--preset', 'approve'], { cwd: outside, env, stdio: 'pipe' });
   externalFixture = spawn(node, [cli, 'serve', '--no-open', '--host', '127.0.0.1', '--port', '0'], { cwd: outside, env: { ...env, DAEMON_AUTO_START: 'false' }, stdio: 'ignore' });

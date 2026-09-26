@@ -21,7 +21,7 @@ pnpm --filter @stoneforge/desktop package:mac
 open 'apps/desktop/dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.app'
 ```
 
-Packaging builds/checks native SQLite against the bundled Node ABI. Native files
+Packaging rebuilds the web UI and builds/checks native SQLite against the bundled Node ABI. Native files
 and the Node executable live outside ASAR. The bundle can be moved independently
 of the checkout. Packaging currently produces an unsigned local `.app`; external
 distribution and notarization are a later step. Intel builds are not verified.
@@ -54,6 +54,20 @@ The registry is `projects.json` in Electron's application userData directory.
 Project databases, JSONL exports, prompts and worktrees remain in their workspace.
 Runtime logs are capped at 128 KB per project and persisted under `userData/logs`;
 the Logs dialog shows the last 10 KB from the current run.
+
+## Repositories within a project
+
+The project folder does not need to be a Git repository. Use **Repositories** in
+Desktop to register existing code checkouts. Tasks select a repository in their
+create/detail form; dispatch binds that choice through worktree, resume, tests and
+merge. A linked worktree of an already registered repository is rejected as a duplicate.
+Existing projects with a committed Git root remain automatic.
+
+The local registry is `.stoneforge/repositories.json`. `sf repo add <id> <path>
+--target-branch <branch> --test-command '<command>'` also configures merge targets
+and checks. Relative paths are resolved against the project folder. `sf task create
+--repository <id>` selects code while retaining the shared project's database.
+See [design and verification](../../docs/plans/project-repositories.md).
 
 ## Ownership and recovery
 

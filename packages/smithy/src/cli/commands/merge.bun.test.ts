@@ -21,7 +21,8 @@ describe('Merge Command Structure', () => {
 
     it('should have options', () => {
       expect(mergeCommand.options).toBeDefined();
-      expect(mergeCommand.options!.length).toBe(4);
+      expect(mergeCommand.options!.length).toBe(5);
+      expect(mergeCommand.options![4].name).toBe('repository');
       expect(mergeCommand.options![0].name).toBe('branch');
       expect(mergeCommand.options![1].name).toBe('into');
       expect(mergeCommand.options![2].name).toBe('message');

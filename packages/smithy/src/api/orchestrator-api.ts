@@ -588,6 +588,7 @@ export class OrchestratorAPIImpl extends QuarryAPIImpl implements OrchestratorAP
 
     // Set orchestrator metadata
     return this.setTaskOrchestratorMeta(taskId, {
+      ...getOrchestratorTaskMeta(task.metadata),
       assignedAgent: agentId,
       branch,
       worktree,

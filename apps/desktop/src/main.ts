@@ -169,6 +169,35 @@ async function boot(): Promise<void> {
     }
     if (typeof id !== 'string' || !manager.projects.has(id)) throw new Error('Unknown project');
     if (command === 'open') await openProject(id);
+    else if (command === 'repositories') {
+      const instance = await manager.start(id);
+      const request = async (method: string, suffix = '', body?: unknown) => {
+        if (!await manager.isCurrent(id, instance)) throw new Error('Project server changed; reopen the project');
+        const response = await fetch(instance.endpoint + '/api/repositories' + suffix, { method,
+          headers: { ...manager.headers(instance), 'Content-Type': 'application/json' },
+          body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000), redirect: 'error' });
+        const result = await response.json();
+        if (!response.ok) throw new Error(typeof result.error === 'string' ? result.error : 'Repository management requires the updated project server. Restart this project.');
+        return result;
+      };
+      const { repositories } = await request('GET') as { repositories: Array<{ id: string; path: string; targetBranch?: string; error?: string }> };
+      const answer = await dialog.showMessageBox(window, { message: 'Code repositories',
+        detail: repositories.length ? repositories.map(r => `${r.id} — ${r.path}\n${r.error ?? `Merge target: ${r.targetBranch ?? 'repository default'}`}`).join('\n\n') : 'This project has no code repositories. Add an existing Git checkout with at least one commit. The project folder itself does not need Git.',
+        buttons: ['Close', 'Add repository', ...repositories.map(r => `Manage ${r.id}`)], defaultId: 0, cancelId: 0 });
+      if (answer.response === 1) {
+        const folder = await dialog.showOpenDialog(window, { title: 'Choose a code repository', properties: ['openDirectory'] });
+        if (!folder.canceled && folder.filePaths[0]) {
+          const repoPath = folder.filePaths[0];
+          const repoId = basename(repoPath).toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/^[^a-z0-9]+/, '') || 'repository';
+          const created = await request('POST', '', { id: repoId, path: repoPath });
+          await dialog.showMessageBox(window, { message: `Repository ${created.repository.id} added`, detail: 'Use this repository when creating tasks. Its default branch is used for merges.', buttons: ['OK'] });
+        }
+      } else if (answer.response > 1) {
+        const repo = repositories[answer.response - 2];
+        const remove = await dialog.showMessageBox(window, { message: repo.id, detail: `${repo.path}\n\nRemoving registration preserves files. Repositories referenced by tasks or managed worktrees cannot be removed.`, buttons: ['Close', 'Remove registration'], cancelId: 0, defaultId: 0 });
+        if (remove.response === 1) await request('DELETE', '/' + encodeURIComponent(repo.id));
+      }
+    }
     else if (command === 'stop' || command === 'restart' || command === 'remove') {
       const answer = await dialog.showMessageBox(window, { type: 'question',
         message: `${command === 'remove' ? 'Remove' : command === 'restart' ? 'Restart' : 'Stop'} ${manager.projects.get(id)!.name}?`,

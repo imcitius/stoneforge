@@ -16,6 +16,28 @@ export function createWorktreeRoutes(services: Services) {
   const { worktreeManager } = services;
   const app = new Hono();
 
+  app.get('/api/repositories', async c => {
+    try { return c.json({ repositories: await services.repositories?.describe() ?? [] }); }
+    catch (error) { return c.json({ error: String(error) }, 400); }
+  });
+  app.post('/api/repositories', async c => {
+    try {
+      if (!services.repositories) return c.json({ error: 'Repository registry unavailable' }, 503);
+      const body = await c.req.json();
+      if (typeof body.id !== 'string' || typeof body.path !== 'string' ||
+          (body.targetBranch !== undefined && typeof body.targetBranch !== 'string') ||
+          (body.testCommand !== undefined && typeof body.testCommand !== 'string')) return c.json({ error: 'Invalid repository settings' }, 400);
+      return c.json({ repository: await services.repositories.add({ id: body.id, path: body.path, targetBranch: body.targetBranch, testCommand: body.testCommand }) }, 201);
+    } catch (error) { return c.json({ error: String(error) }, 400); }
+  });
+  app.delete('/api/repositories/:id', async c => {
+    try {
+      if (!services.repositories) return c.json({ error: 'Repository registry unavailable' }, 503);
+      await services.repositories.remove(c.req.param('id'));
+      return c.json({ success: true });
+    } catch (error) { return c.json({ error: String(error) }, 400); }
+  });
+
   // GET /api/worktrees
   app.get('/api/worktrees', async (c) => {
     try {

@@ -1,3 +1,6 @@
+import { ProjectRepositories } from '../../git/project-repositories.js';
+import { findStoneforgeDir } from '@stoneforge/quarry';
+import { dirname, resolve } from 'node:path';
 /**
  * Merge Command - CLI command for squash-merging a branch into the default branch
  *
@@ -16,6 +19,7 @@ import { detectTargetBranch } from '../../git/merge.js';
 // ============================================================================
 
 interface MergeOptions {
+  repository?: string;
   branch?: string;
   into?: string;
   message?: string;
@@ -73,18 +77,29 @@ const mergeOptions: CommandOption[] = [
     name: 'cleanup',
     description: 'Delete source branch and worktree after merge',
   },
+  { name: 'repository', description: 'Repository ID when invoked from the project folder', hasValue: true },
 ];
 
 async function mergeHandler(
   _args: string[],
   options: GlobalOptions & MergeOptions
 ): Promise<CommandResult> {
-  const cwd = process.cwd();
+  let cwd = process.cwd();
 
   try {
+    const stoneforgeDir = findStoneforgeDir(process.cwd());
+    let repositoryRoot = cwd;
+    let repositoryTarget: string | undefined;
+    if (stoneforgeDir) {
+      const repositories = new ProjectRepositories(dirname(stoneforgeDir));
+      const repo = await repositories.forDirectory(cwd, options.repository);
+      repositoryRoot = resolve(repositories.root, repo.path);
+      repositoryTarget = repo.targetBranch;
+      if (options.repository || cwd === repositories.root) cwd = repositoryRoot;
+    }
     // Determine source branch
     const sourceBranch = options.branch ?? await detectCurrentBranch(cwd);
-    const targetBranch = options.into ?? await detectDefaultBranch(cwd);
+    const targetBranch = options.into ?? repositoryTarget ?? await detectDefaultBranch(cwd);
     const commitMessage = options.message ?? `Merge ${sourceBranch}`;
 
     if (sourceBranch === targetBranch) {
@@ -101,18 +116,8 @@ async function mergeHandler(
     const path = await import('node:path');
     const mergeDirName = `_merge-${Date.now()}`;
 
-    // Find workspace root by looking for .stoneforge or .git
-    let workspaceRoot = cwd;
-    const fs = await import('node:fs');
-    while (workspaceRoot !== '/') {
-      if (
-        fs.existsSync(path.join(workspaceRoot, '.stoneforge')) ||
-        fs.existsSync(path.join(workspaceRoot, '.git'))
-      ) {
-        break;
-      }
-      workspaceRoot = path.dirname(workspaceRoot);
-    }
+    // Git operations always use the selected checkout, never the project data folder.
+    const workspaceRoot = repositoryRoot;
 
     const mergeDir = path.join(workspaceRoot, '.stoneforge/.worktrees', mergeDirName);
 

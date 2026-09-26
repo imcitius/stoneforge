@@ -1,3 +1,4 @@
+import { TaskRepositoryField } from './RepositorySelect';
 /**
  * TaskDetailPanel - Detail view panel for a selected task
  *
@@ -361,6 +362,8 @@ export function TaskDetailPanel({ taskId, onClose, onNavigateToTask }: TaskDetai
               isUpdating={updateTask.isPending && editingField === 'status'}
             />
           </MetadataField>
+
+          <TaskRepositoryField key={task.id} task={task} />
 
           {/* Priority */}
           <MetadataField label="Priority">
