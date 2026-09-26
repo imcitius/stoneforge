@@ -781,7 +781,7 @@ async function playbookCreateHandler(
       ...(tags && { tags }),
     };
 
-    const playbook = await createPlaybook(input);
+    const playbook = await createPlaybook(input, api.getIdGeneratorConfig());
     const created = await api.create(playbook as unknown as Element & Record<string, unknown>);
 
     const mode = getOutputMode(options);
