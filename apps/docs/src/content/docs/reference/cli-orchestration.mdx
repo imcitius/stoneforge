@@ -149,6 +149,12 @@ sf daemon start [--server <url>]
 sf daemon stop [--server <url>] [--force]
 ```
 
+Checks daemon state before asking for confirmation; `--force` skips the prompt.
+An already stopped daemon exits successfully without sending a stop request.
+HTTP failures, invalid responses, and a stop response reporting that the daemon
+is still running exit with code 1 and an error, without a success message.
+Use `sf daemon status` afterward to read back the current state.
+
 #### `sf daemon status`
 
 ```bash
@@ -156,6 +162,13 @@ sf daemon status [--server <url>]
 ```
 
 Shows daemon status, uptime, tasks dispatched, and rate limit info.
+
+Both commands use the API's boolean `isRunning` first, then legacy boolean
+`running`, then legacy `status` (`running`, `stopped`, or `not_running`). An
+explicit `false` takes precedence over conflicting legacy fields. Invalid or
+missing state is an error, rather than evidence that the daemon has stopped.
+`status --quiet` prints `running` or `stopped`; `--json` preserves the server
+payload inside the CLI success envelope.
 
 #### `sf daemon sleep`
 
