@@ -395,3 +395,21 @@ review before local delivery. Despite the coincidental 173-step count, it is
 on this branch. Final integrated acceptance/activation remains el-1r6. The cause
 of historical create ratio **7.216375** remains unestablished. No installed
 Desktop update, session interruption, target publication or gate activation occurred.
+
+## New recurrence investigation — el-39znb, 2026-09-26
+
+The accepted measurement method later failed list scaling in three gates:
+dMwYdr **3.173623745851669**, g8qBfX **3.559304857848077**, GPBE9u
+**3.170759794884084** against `<3`. The original reports and full failed-gate
+logs are preserved, not superseded by later passes. This is a new recurrence
+investigation; the unknown historical cause recorded above remains unknown.
+
+[The bounded recurrence report](workspace/gate-recurrence-investigation.md)
+records exact reported revisions, evidence provenance, runtime/version gaps,
+approximate concurrent-gate windows, unchanged and instrumented results, and
+independent review requirements. Three isolated processes per affected suite
+passed; no root cause or fix was established. Actual list queries used three SQL
+calls at each size, with growing row materialization and DISTINCT/sort B-trees.
+The separate PluginExecutor failure was a **5000ms Bun test deadline**, while the
+actual command's internal default is **300000ms**. Their common cause is unproven.
+No production, measurement contract, threshold, timeout, skip or gate changes.

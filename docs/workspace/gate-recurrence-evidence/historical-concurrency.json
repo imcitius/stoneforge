@@ -1,0 +1,91 @@
+{
+  "method": "Approximate start = first step log mtime minus reported seconds; end = results.json mtime. Filesystem metadata inference, not scheduler telemetry. No claim processes consumed CPU throughout the interval.",
+  "gates": [
+    {
+      "results": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-0mGim9/results.json",
+      "approxStartUtc": "2026-09-26T19:48:30.905309+00:00",
+      "endMtimeUtc": "2026-09-26T19:53:26.116314+00:00",
+      "steps": 189,
+      "failed": 0,
+      "overlapsTargetWindow": [
+        {
+          "gate": "dMwYdr",
+          "phase": "quarry"
+        }
+      ]
+    },
+    {
+      "results": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-LVCg2k/results.json",
+      "approxStartUtc": "2026-09-26T20:07:25.775634+00:00",
+      "endMtimeUtc": "2026-09-26T20:12:41.551760+00:00",
+      "steps": 189,
+      "failed": 0,
+      "overlapsTargetWindow": [
+        {
+          "gate": "g8qBfX",
+          "phase": "quarry"
+        }
+      ]
+    },
+    {
+      "results": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-SPA3m4/results.json",
+      "approxStartUtc": "2026-09-26T19:53:58.205224+00:00",
+      "endMtimeUtc": "2026-09-26T20:01:09.208626+00:00",
+      "steps": 190,
+      "failed": 0,
+      "overlapsTargetWindow": [
+        {
+          "gate": "dMwYdr",
+          "phase": "plugin"
+        }
+      ]
+    },
+    {
+      "results": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/results.json",
+      "approxStartUtc": "2026-09-26T20:13:28.335527+00:00",
+      "endMtimeUtc": "2026-09-26T20:18:53.292338+00:00",
+      "steps": 189,
+      "failed": 1,
+      "overlapsTargetWindow": [
+        {
+          "gate": "g8qBfX",
+          "phase": "plugin"
+        }
+      ]
+    },
+    {
+      "results": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/results.json",
+      "approxStartUtc": "2026-09-26T20:10:17.644831+00:00",
+      "endMtimeUtc": "2026-09-26T20:17:48.010909+00:00",
+      "steps": 189,
+      "failed": 1,
+      "overlapsTargetWindow": [
+        {
+          "gate": "GPBE9u",
+          "phase": "quarry"
+        }
+      ]
+    },
+    {
+      "results": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-eBPSmr/results.json",
+      "approxStartUtc": "2026-09-26T20:12:56.977694+00:00",
+      "endMtimeUtc": "2026-09-26T20:18:34.963727+00:00",
+      "steps": 190,
+      "failed": 0,
+      "overlapsTargetWindow": [
+        {
+          "gate": "g8qBfX",
+          "phase": "plugin"
+        },
+        {
+          "gate": "GPBE9u",
+          "phase": "quarry"
+        },
+        {
+          "gate": "GPBE9u",
+          "phase": "plugin"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4013 @@
+[
+  {
+    "source": "/tmp/el-2pujj-integrated-gate.log",
+    "file": "el-2pujj-integrated-gate.log.gz",
+    "bytes": 61047,
+    "sha256": "51eceebe090c55fb6334a1813a3947d94377511c5b20790626437e8dd7584406",
+    "mtimeUtc": "2026-09-26T19:55:08.683299+00:00"
+  },
+  {
+    "source": "/tmp/el-1mo5c-gate-integrated.log",
+    "file": "el-1mo5c-gate-integrated.log.gz",
+    "bytes": 56957,
+    "sha256": "d52ab9167120f7308c6ce2d59983ffc0a9368c03df7e41319112ae275b92bdfe",
+    "mtimeUtc": "2026-09-26T20:18:53.303583+00:00"
+  },
+  {
+    "source": "/tmp/el-hkutb-gate.log",
+    "file": "el-hkutb-gate.log.gz",
+    "bytes": 56958,
+    "sha256": "b98d36375ba6e7889e51e6056836200e47ef8d6becaf0336fdfbf5bd2e1b17ab",
+    "mtimeUtc": "2026-09-26T20:17:48.016234+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/157.log",
+    "file": "stoneforge-merge-check-dMwYdr--157.log.gz",
+    "bytes": 2034,
+    "sha256": "34a118f3a5e56a4341d6e01bb12c56c864694e9f79f4293ad52b99f560814007",
+    "mtimeUtc": "2026-09-26T19:53:34.588767+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/143.log",
+    "file": "stoneforge-merge-check-dMwYdr--143.log.gz",
+    "bytes": 5754,
+    "sha256": "40cbfae749ec2a33d5446b9699ef98c4fa7647845a8b9e1d5c355894cd796a0e",
+    "mtimeUtc": "2026-09-26T19:53:34.163112+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/180.log",
+    "file": "stoneforge-merge-check-dMwYdr--180.log.gz",
+    "bytes": 3633,
+    "sha256": "fd1869f72f6fc70b178bcb438c6f7b1d7eb121fd3db66102e18ad07667bbb914",
+    "mtimeUtc": "2026-09-26T19:54:50.376970+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/023.log",
+    "file": "stoneforge-merge-check-dMwYdr--023.log.gz",
+    "bytes": 8601,
+    "sha256": "931f5e0e715a9ae6b23163bd1422f44410db3241498df411aa584e3238e9ce3a",
+    "mtimeUtc": "2026-09-26T19:50:27.818882+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/037.log",
+    "file": "stoneforge-merge-check-dMwYdr--037.log.gz",
+    "bytes": 2120,
+    "sha256": "3088fd5a18d77a61dfdc9a6371de0625b0d08168a7666ad790fc5e0e0ad4cff2",
+    "mtimeUtc": "2026-09-26T19:50:29.612329+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/036.log",
+    "file": "stoneforge-merge-check-dMwYdr--036.log.gz",
+    "bytes": 642,
+    "sha256": "85049066e6adb27228fd193a568f4a9c70c1159c26c2919774520dc4a02432be",
+    "mtimeUtc": "2026-09-26T19:50:29.491359+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/022.log",
+    "file": "stoneforge-merge-check-dMwYdr--022.log.gz",
+    "bytes": 20409,
+    "sha256": "305da87eba16026a1b5d7d8b009c50852657358d2f6522a46453c15aab23035d",
+    "mtimeUtc": "2026-09-26T19:50:27.795807+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/181.log",
+    "file": "stoneforge-merge-check-dMwYdr--181.log.gz",
+    "bytes": 6880,
+    "sha256": "47b7c2e996ada645b2e18701d3d4eeb1ee51c0beac514f8c9ce316a86145d170",
+    "mtimeUtc": "2026-09-26T19:54:59.727857+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/142.log",
+    "file": "stoneforge-merge-check-dMwYdr--142.log.gz",
+    "bytes": 7032,
+    "sha256": "f4c1e7d07f1445355cdb5a62311ee0132d38def34698647990cbb0ddbdc5a3c8",
+    "mtimeUtc": "2026-09-26T19:53:34.136897+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/156.log",
+    "file": "stoneforge-merge-check-dMwYdr--156.log.gz",
+    "bytes": 1535,
+    "sha256": "739c94d0a75f6d751d81fbfc4faa76bfcafa90266ce78f41d38a43d9b80dcb5a",
+    "mtimeUtc": "2026-09-26T19:53:34.540671+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/140.log",
+    "file": "stoneforge-merge-check-dMwYdr--140.log.gz",
+    "bytes": 650,
+    "sha256": "03f589c3d583bbd1096e28bd116fae0d7af44bb7bf037de220cabe309db92d9f",
+    "mtimeUtc": "2026-09-26T19:52:51.598717+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/154.log",
+    "file": "stoneforge-merge-check-dMwYdr--154.log.gz",
+    "bytes": 1056,
+    "sha256": "11bdd3cbe337e743325ba9a89e81e4077318cf34d2d98b9e37c1026d80fa3ef1",
+    "mtimeUtc": "2026-09-26T19:53:34.513061+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/168.log",
+    "file": "stoneforge-merge-check-dMwYdr--168.log.gz",
+    "bytes": 55518,
+    "sha256": "dc0cca21b1858d79b4ced63108a853e5a55c4da618ba5457170ab45400400126",
+    "mtimeUtc": "2026-09-26T19:54:04.616129+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/183.log",
+    "file": "stoneforge-merge-check-dMwYdr--183.log.gz",
+    "bytes": 2235,
+    "sha256": "da71c21c8d931390e59430c033c72ac5aad32388397c3a15c3c4fd713f80e27a",
+    "mtimeUtc": "2026-09-26T19:54:59.894789+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/034.log",
+    "file": "stoneforge-merge-check-dMwYdr--034.log.gz",
+    "bytes": 3034,
+    "sha256": "349538b297686fd61f6465115579878ce680a16fc981d03c581c2a244736c611",
+    "mtimeUtc": "2026-09-26T19:50:28.790745+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/020.log",
+    "file": "stoneforge-merge-check-dMwYdr--020.log.gz",
+    "bytes": 6782,
+    "sha256": "ef7c09ee78bd482a0bebb7155d5b4b450e62a9dfa498359c43b466b9ccb24b48",
+    "mtimeUtc": "2026-09-26T19:50:26.579098+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/008.log",
+    "file": "stoneforge-merge-check-dMwYdr--008.log.gz",
+    "bytes": 3839,
+    "sha256": "0b3203cc24b8c988623a7f634039f77627b9db203b4c541f419bb71773afb310",
+    "mtimeUtc": "2026-09-26T19:50:26.291461+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/009.log",
+    "file": "stoneforge-merge-check-dMwYdr--009.log.gz",
+    "bytes": 7061,
+    "sha256": "168758c929ba55d11c75d58a7b96d74f0184b2019a3d51637cf2ecb981bf7e03",
+    "mtimeUtc": "2026-09-26T19:50:26.316130+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/021.log",
+    "file": "stoneforge-merge-check-dMwYdr--021.log.gz",
+    "bytes": 7762,
+    "sha256": "d2839da3f1b0010b0b401f1bb2bb9a317318d4e4c42c30fa78923af0d8ec04a0",
+    "mtimeUtc": "2026-09-26T19:50:27.762630+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/035.log",
+    "file": "stoneforge-merge-check-dMwYdr--035.log.gz",
+    "bytes": 10563,
+    "sha256": "8050dc9931cbc774751a0a4b51eeaa83eed3e2149bcd9eb4aa9cae50a9146677",
+    "mtimeUtc": "2026-09-26T19:50:29.375068+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/182.log",
+    "file": "stoneforge-merge-check-dMwYdr--182.log.gz",
+    "bytes": 1398,
+    "sha256": "aabe8480b2fa7a192b7324932d93affc810e8cc9b357fa8b12d28eaf40bb2c80",
+    "mtimeUtc": "2026-09-26T19:54:59.876593+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/169.log",
+    "file": "stoneforge-merge-check-dMwYdr--169.log.gz",
+    "bytes": 1175,
+    "sha256": "55d7474200213fc7086829cdc4d1155b7640f40d0a440e864a15b9da8cb223e8",
+    "mtimeUtc": "2026-09-26T19:54:05.416566+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/155.log",
+    "file": "stoneforge-merge-check-dMwYdr--155.log.gz",
+    "bytes": 1212,
+    "sha256": "87c4f55aea7b2e97dd80d2ec2c2c8f8a1949ce5be7a50864b0997aefb40ff060",
+    "mtimeUtc": "2026-09-26T19:53:34.526582+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/141.log",
+    "file": "stoneforge-merge-check-dMwYdr--141.log.gz",
+    "bytes": 2334,
+    "sha256": "84f22d829ceb9df390958625265850ee04733a21c622f5c7c98d0546ed546a46",
+    "mtimeUtc": "2026-09-26T19:53:19.999052+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/179.log",
+    "file": "stoneforge-merge-check-dMwYdr--179.log.gz",
+    "bytes": 5906,
+    "sha256": "c8fea2618273dc97ce870fa67e91d9f330fa691cbbd172668c94e22da07c6cd5",
+    "mtimeUtc": "2026-09-26T19:54:46.796217+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/145.log",
+    "file": "stoneforge-merge-check-dMwYdr--145.log.gz",
+    "bytes": 2352,
+    "sha256": "47db03ffe9e03d2c7d0025a1d0ddac4ee50748d08fb915b93055795f66b07807",
+    "mtimeUtc": "2026-09-26T19:53:34.205447+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/151.log",
+    "file": "stoneforge-merge-check-dMwYdr--151.log.gz",
+    "bytes": 2692,
+    "sha256": "8ff997a1943ce8cbbc493ff439ec705242b5047daea692798b63d6fddd058a5b",
+    "mtimeUtc": "2026-09-26T19:53:34.462581+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/186.log",
+    "file": "stoneforge-merge-check-dMwYdr--186.log.gz",
+    "bytes": 3142,
+    "sha256": "88919beb2f104c2e875ef59ad92c9004aff1c13b5fe9e9c05a881cf1891660db",
+    "mtimeUtc": "2026-09-26T19:54:59.971588+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/019.log",
+    "file": "stoneforge-merge-check-dMwYdr--019.log.gz",
+    "bytes": 6950,
+    "sha256": "441d375640d9a4a119e1fa1be1fdc1563bd67437eb88decd930e521eddf2b030",
+    "mtimeUtc": "2026-09-26T19:50:26.556214+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/031.log",
+    "file": "stoneforge-merge-check-dMwYdr--031.log.gz",
+    "bytes": 3081,
+    "sha256": "9c9e8192bf42489611149e17b2a0149e8b1e16e27404bbfa5457bd61ff7c2a49",
+    "mtimeUtc": "2026-09-26T19:50:28.322190+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/025.log",
+    "file": "stoneforge-merge-check-dMwYdr--025.log.gz",
+    "bytes": 5525,
+    "sha256": "aa750a92aecc7ec3f3eb70a7da2f90fb710a2fcf1af708f6021d9f9675114603",
+    "mtimeUtc": "2026-09-26T19:50:27.872075+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/024.log",
+    "file": "stoneforge-merge-check-dMwYdr--024.log.gz",
+    "bytes": 8561,
+    "sha256": "9de402ed0e011028d9f96d60bc60aa6a21f0e42de5877084acab88a9e8be0c09",
+    "mtimeUtc": "2026-09-26T19:50:27.843233+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/030.log",
+    "file": "stoneforge-merge-check-dMwYdr--030.log.gz",
+    "bytes": 1933,
+    "sha256": "2c6a845a44b8e1b17a34021c1e118236a01e433bc0874d31d7ca503be0bab51d",
+    "mtimeUtc": "2026-09-26T19:50:28.187607+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/018.log",
+    "file": "stoneforge-merge-check-dMwYdr--018.log.gz",
+    "bytes": 7807,
+    "sha256": "f4a32c99c48739b5cf03b578950844ebf1b1df99ac668b50100cb85ad3969ffa",
+    "mtimeUtc": "2026-09-26T19:50:26.532178+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/187.log",
+    "file": "stoneforge-merge-check-dMwYdr--187.log.gz",
+    "bytes": 5790,
+    "sha256": "1f3d8ca9627b54a9de99f4dd31369befac602726a0c4fd55dfff137eb096f747",
+    "mtimeUtc": "2026-09-26T19:55:00.007518+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/150.log",
+    "file": "stoneforge-merge-check-dMwYdr--150.log.gz",
+    "bytes": 1715,
+    "sha256": "d6a5dedbb37b458687a888faa1d710f3e5da369e643085b98d6f118c11500d8f",
+    "mtimeUtc": "2026-09-26T19:53:34.438450+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/144.log",
+    "file": "stoneforge-merge-check-dMwYdr--144.log.gz",
+    "bytes": 715,
+    "sha256": "996eb05567d04fd4992998f3c40b28bfc3dbf37476eebc93c8f5260a53e9a483",
+    "mtimeUtc": "2026-09-26T19:53:34.176464+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/178.log",
+    "file": "stoneforge-merge-check-dMwYdr--178.log.gz",
+    "bytes": 1913,
+    "sha256": "2af597f66645a4c6d934982d6536a7862123ae4015ccf17a8280acca3922a2be",
+    "mtimeUtc": "2026-09-26T19:54:28.835613+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/152.log",
+    "file": "stoneforge-merge-check-dMwYdr--152.log.gz",
+    "bytes": 502,
+    "sha256": "f5311d2c1c023693c08ffac6ee82fda9329a43cfd2f88167332621b3b7956a09",
+    "mtimeUtc": "2026-09-26T19:53:34.482280+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/146.log",
+    "file": "stoneforge-merge-check-dMwYdr--146.log.gz",
+    "bytes": 721,
+    "sha256": "298e41329598b604902a1a3e06c5c6158bf8df0a074e2a594ff66f407595cfc3",
+    "mtimeUtc": "2026-09-26T19:53:34.279438+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/185.log",
+    "file": "stoneforge-merge-check-dMwYdr--185.log.gz",
+    "bytes": 2503,
+    "sha256": "17f4f04ad16de6b73fbc290205ef18e684da180d4b4846761bfd18e4b6039ba1",
+    "mtimeUtc": "2026-09-26T19:54:59.955862+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/026.log",
+    "file": "stoneforge-merge-check-dMwYdr--026.log.gz",
+    "bytes": 8240,
+    "sha256": "b6743203795b7cdd77e723a89e69b1956654ba1cb00858f96a34ce184526a9fe",
+    "mtimeUtc": "2026-09-26T19:50:27.899929+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/032.log",
+    "file": "stoneforge-merge-check-dMwYdr--032.log.gz",
+    "bytes": 4807,
+    "sha256": "1fdd01ac375228dc28a7107976f5276545f586c52c060498d0b2dbee9b63c14c",
+    "mtimeUtc": "2026-09-26T19:50:28.520620+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/033.log",
+    "file": "stoneforge-merge-check-dMwYdr--033.log.gz",
+    "bytes": 1653,
+    "sha256": "e9e76f436f9f078a3d971564836753d3d40152ebc3ac1de50838ae2354963ae5",
+    "mtimeUtc": "2026-09-26T19:50:28.655113+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/027.log",
+    "file": "stoneforge-merge-check-dMwYdr--027.log.gz",
+    "bytes": 5936,
+    "sha256": "869d3d83034a5799d9ecfaca79db3e76eba9c128c31be1cedce4483a3c6e372c",
+    "mtimeUtc": "2026-09-26T19:50:27.919379+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/184.log",
+    "file": "stoneforge-merge-check-dMwYdr--184.log.gz",
+    "bytes": 3134,
+    "sha256": "dd9d3b58771295470a78f336839f286a04df9d11663c9938f9ab386ec10053f7",
+    "mtimeUtc": "2026-09-26T19:54:59.940269+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/147.log",
+    "file": "stoneforge-merge-check-dMwYdr--147.log.gz",
+    "bytes": 1257,
+    "sha256": "ee164bf898bdf040e00d2051bff1b1f7666ecfda34407f66ecb332f4e6c0eaa9",
+    "mtimeUtc": "2026-09-26T19:53:34.304625+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/153.log",
+    "file": "stoneforge-merge-check-dMwYdr--153.log.gz",
+    "bytes": 3891,
+    "sha256": "f1f64aac2ab2ce6dd4d227a7eaabdfa8bdffb068121b14335926017b6b1ccf54",
+    "mtimeUtc": "2026-09-26T19:53:34.496619+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/134.log",
+    "file": "stoneforge-merge-check-dMwYdr--134.log.gz",
+    "bytes": 606,
+    "sha256": "d479d7aee4d95028ef8b57b6128d78adb4e0fd517174f4dfd2908956ef1dc02c",
+    "mtimeUtc": "2026-09-26T19:52:10.155812+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/120.log",
+    "file": "stoneforge-merge-check-dMwYdr--120.log.gz",
+    "bytes": 920,
+    "sha256": "9b14a21fdc0d515003bb237e5a88c1ab46040d3d8a47f28b0f30d4f976d9baf8",
+    "mtimeUtc": "2026-09-26T19:51:37.884892+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/108.log",
+    "file": "stoneforge-merge-check-dMwYdr--108.log.gz",
+    "bytes": 3391,
+    "sha256": "0e883a4f000a1f8d3ad035a6b721245d66e744cda8084bfc16eb6c3e2d358ac6",
+    "mtimeUtc": "2026-09-26T19:51:25.563303+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/040.log",
+    "file": "stoneforge-merge-check-dMwYdr--040.log.gz",
+    "bytes": 3334,
+    "sha256": "946838aff1cc580215d3da196a28261bf8bd8bf889d701faa0641988c140ef98",
+    "mtimeUtc": "2026-09-26T19:50:30.062017+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/054.log",
+    "file": "stoneforge-merge-check-dMwYdr--054.log.gz",
+    "bytes": 360,
+    "sha256": "c64bff9dcb8006896e86ddefdc01fbcd53ae6b8427805b6ad8469be9043a7b80",
+    "mtimeUtc": "2026-09-26T19:50:41.963218+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/068.log",
+    "file": "stoneforge-merge-check-dMwYdr--068.log.gz",
+    "bytes": 1367,
+    "sha256": "9d1f7765318ddcda111bb8c19b84ece84a880ade14af1134fa6c6e582a94d998",
+    "mtimeUtc": "2026-09-26T19:50:48.114815+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/083.log",
+    "file": "stoneforge-merge-check-dMwYdr--083.log.gz",
+    "bytes": 3239,
+    "sha256": "1fbf2a693a8349550015d585fbe9eca656f21abfef22069b64a0387f035ead72",
+    "mtimeUtc": "2026-09-26T19:51:04.920310+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/097.log",
+    "file": "stoneforge-merge-check-dMwYdr--097.log.gz",
+    "bytes": 14498,
+    "sha256": "96d2daaaad84218d5158ff99bba84d0861a0afc5657336e9045850b902c13b47",
+    "mtimeUtc": "2026-09-26T19:51:23.688629+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/096.log",
+    "file": "stoneforge-merge-check-dMwYdr--096.log.gz",
+    "bytes": 639,
+    "sha256": "3f747421eb4e62ba0675b87c190a2766c635df60b43a369d294afa4af5f323d1",
+    "mtimeUtc": "2026-09-26T19:51:23.622605+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/082.log",
+    "file": "stoneforge-merge-check-dMwYdr--082.log.gz",
+    "bytes": 7488,
+    "sha256": "7f5330af0c01d183069d8c3116adde9429637184401aebba095dcdbd24d5cfb2",
+    "mtimeUtc": "2026-09-26T19:51:04.613592+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/069.log",
+    "file": "stoneforge-merge-check-dMwYdr--069.log.gz",
+    "bytes": 8289,
+    "sha256": "902636b1f556a991b291f0c54284e49c55a66b33ae5b8d501c9dd20554ee0e27",
+    "mtimeUtc": "2026-09-26T19:50:48.223130+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/055.log",
+    "file": "stoneforge-merge-check-dMwYdr--055.log.gz",
+    "bytes": 6260,
+    "sha256": "0f8b29cf75602fa93aa12ea2bd6878808fe1d72a24efae8b6a7c479ab555d3e1",
+    "mtimeUtc": "2026-09-26T19:50:42.370042+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/041.log",
+    "file": "stoneforge-merge-check-dMwYdr--041.log.gz",
+    "bytes": 1488,
+    "sha256": "26308c3a40f7381bba7bbc9ce4120a5fcceffc1c90c02a580ddb190f53744cfd",
+    "mtimeUtc": "2026-09-26T19:50:30.217625+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/109.log",
+    "file": "stoneforge-merge-check-dMwYdr--109.log.gz",
+    "bytes": 5211,
+    "sha256": "10c55e46f13c6f018a84b8d2b9e5ed7bf15f38ff8e462be81cb7a5b2f7c41f90",
+    "mtimeUtc": "2026-09-26T19:51:25.581426+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/121.log",
+    "file": "stoneforge-merge-check-dMwYdr--121.log.gz",
+    "bytes": 712,
+    "sha256": "428772ddeeca80d25efe833e8172423d1c5bb84a975fa72358dd1a66330f8b7c",
+    "mtimeUtc": "2026-09-26T19:51:37.920810+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/135.log",
+    "file": "stoneforge-merge-check-dMwYdr--135.log.gz",
+    "bytes": 925,
+    "sha256": "0f742a93b4542f3749913318077270ca2054c74ca0a0dbe9961c69264ce856e6",
+    "mtimeUtc": "2026-09-26T19:52:10.223488+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/123.log",
+    "file": "stoneforge-merge-check-dMwYdr--123.log.gz",
+    "bytes": 1766,
+    "sha256": "7bc944bcf33c2dc19fb155c3b992f2145467ce9b7b2c4a3f239b644f4d488b53",
+    "mtimeUtc": "2026-09-26T19:51:38.570003+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/137.log",
+    "file": "stoneforge-merge-check-dMwYdr--137.log.gz",
+    "bytes": 2020,
+    "sha256": "5ac884aba1bafa314074cdd424511c6c96da2f1ffde543eae3daf0a874d908fe",
+    "mtimeUtc": "2026-09-26T19:52:15.189045+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/057.log",
+    "file": "stoneforge-merge-check-dMwYdr--057.log.gz",
+    "bytes": 834,
+    "sha256": "0f25c4e7bc6a4c96b78f7eaf4e176189ab0f00d855a363ec5bb934d0bd4229e7",
+    "mtimeUtc": "2026-09-26T19:50:42.720884+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/043.log",
+    "file": "stoneforge-merge-check-dMwYdr--043.log.gz",
+    "bytes": 4284,
+    "sha256": "e0933397c873a8ceafe33addfce58eae88b283ede62a25500667f1bd57180afc",
+    "mtimeUtc": "2026-09-26T19:50:30.559959+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/094.log",
+    "file": "stoneforge-merge-check-dMwYdr--094.log.gz",
+    "bytes": 265,
+    "sha256": "9f5048854d236e5aaa4d7a249140f56c2aca2b820a0293ff935ff764cca85c97",
+    "mtimeUtc": "2026-09-26T19:51:23.587541+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/080.log",
+    "file": "stoneforge-merge-check-dMwYdr--080.log.gz",
+    "bytes": 822,
+    "sha256": "f44b5ae11548531e907e9417f95287f590eb6a33390bdb814c4be6d14667c81f",
+    "mtimeUtc": "2026-09-26T19:51:03.478946+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/081.log",
+    "file": "stoneforge-merge-check-dMwYdr--081.log.gz",
+    "bytes": 3699,
+    "sha256": "037244891dd5b218e022ee87af82f11903a3867e1498d011bf544c444bca1245",
+    "mtimeUtc": "2026-09-26T19:51:03.744856+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/095.log",
+    "file": "stoneforge-merge-check-dMwYdr--095.log.gz",
+    "bytes": 1629,
+    "sha256": "e682496f4a470fe2bfb390059f48447af59b111dc78357d1d63d14687e021a1f",
+    "mtimeUtc": "2026-09-26T19:51:23.602834+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/042.log",
+    "file": "stoneforge-merge-check-dMwYdr--042.log.gz",
+    "bytes": 1677,
+    "sha256": "52ec699804b3bea5e4b598184bab8fd2ae384747247c23c238ee796d997e7042",
+    "mtimeUtc": "2026-09-26T19:50:30.337231+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/056.log",
+    "file": "stoneforge-merge-check-dMwYdr--056.log.gz",
+    "bytes": 2884,
+    "sha256": "85c5ded9d4a15ef24b9982fc266b7a7db3d3307b17ee85e4eae681f3b827b719",
+    "mtimeUtc": "2026-09-26T19:50:42.701476+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/136.log",
+    "file": "stoneforge-merge-check-dMwYdr--136.log.gz",
+    "bytes": 1030,
+    "sha256": "70d31099e4403184249faae8df2c50e27e85ba0b656f6e46e520af4d0b2a5941",
+    "mtimeUtc": "2026-09-26T19:52:15.115959+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/122.log",
+    "file": "stoneforge-merge-check-dMwYdr--122.log.gz",
+    "bytes": 700,
+    "sha256": "c7e212a4c6732cb7fe1d1afed297e9b4447425077bc2017124283036663da667",
+    "mtimeUtc": "2026-09-26T19:51:38.018204+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/126.log",
+    "file": "stoneforge-merge-check-dMwYdr--126.log.gz",
+    "bytes": 1676,
+    "sha256": "1b1ce42acba09db2b5fe3fc8e93f7d23f3f9ca42e2de70bd221b75b92967ab64",
+    "mtimeUtc": "2026-09-26T19:51:38.815216+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/132.log",
+    "file": "stoneforge-merge-check-dMwYdr--132.log.gz",
+    "bytes": 3292,
+    "sha256": "d10847af2e5b5bb2f5b7cf2350204fa834fe5873d04a077196d53e366df43df8",
+    "mtimeUtc": "2026-09-26T19:51:40.530616+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/052.log",
+    "file": "stoneforge-merge-check-dMwYdr--052.log.gz",
+    "bytes": 3311,
+    "sha256": "1b685022b752e0c5f1dc04691a241c2d94b128565689b4997978bba2b27f7007",
+    "mtimeUtc": "2026-09-26T19:50:41.770993+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/046.log",
+    "file": "stoneforge-merge-check-dMwYdr--046.log.gz",
+    "bytes": 16911,
+    "sha256": "af01b35909060fcb5797368ba07336baa794c3cb7ec53cff5cbb9baf88e165e6",
+    "mtimeUtc": "2026-09-26T19:50:31.510012+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/091.log",
+    "file": "stoneforge-merge-check-dMwYdr--091.log.gz",
+    "bytes": 1753,
+    "sha256": "5fd0b95c6bf0829c797b4b5bc5056ad78e0ddabb802c78c0aaed29704dd9ddab",
+    "mtimeUtc": "2026-09-26T19:51:23.503672+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/085.log",
+    "file": "stoneforge-merge-check-dMwYdr--085.log.gz",
+    "bytes": 1972,
+    "sha256": "b9bbe07bc54f89e58b9e08c6b43c1a13ad41fa5f5c946f0d7ea7ce7d84731b9c",
+    "mtimeUtc": "2026-09-26T19:51:05.302779+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/084.log",
+    "file": "stoneforge-merge-check-dMwYdr--084.log.gz",
+    "bytes": 3334,
+    "sha256": "806f2f569dfb5d8f919e010ece11ba06be3b0a526f12a9849404d29e3ebd1538",
+    "mtimeUtc": "2026-09-26T19:51:05.277359+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/090.log",
+    "file": "stoneforge-merge-check-dMwYdr--090.log.gz",
+    "bytes": 1233,
+    "sha256": "1067c31d4191c6cc31b39e7c8fe61c8daae765448411fb62c948e77a6fced062",
+    "mtimeUtc": "2026-09-26T19:51:23.485651+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/047.log",
+    "file": "stoneforge-merge-check-dMwYdr--047.log.gz",
+    "bytes": 25437,
+    "sha256": "cecfa822fca712aefe563963965629ae69b72a456c69f9baf9c75289d7e1c2f6",
+    "mtimeUtc": "2026-09-26T19:50:41.000134+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/053.log",
+    "file": "stoneforge-merge-check-dMwYdr--053.log.gz",
+    "bytes": 9760,
+    "sha256": "88be24a852fb30bc8a509c865778480bad7172abb95e1bb30d85d467fb4832d8",
+    "mtimeUtc": "2026-09-26T19:50:41.835555+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/133.log",
+    "file": "stoneforge-merge-check-dMwYdr--133.log.gz",
+    "bytes": 4717,
+    "sha256": "44926a4bf865fba3bf9eac83102a3040006796624a54381932e73bb543beaccd",
+    "mtimeUtc": "2026-09-26T19:52:10.089324+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/127.log",
+    "file": "stoneforge-merge-check-dMwYdr--127.log.gz",
+    "bytes": 1223,
+    "sha256": "dc211ae6c69ff5f0b4a5281eaa3bb3739b143d15a3fcc6aeb0de2fac300776ee",
+    "mtimeUtc": "2026-09-26T19:51:39.568697+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/119.log",
+    "file": "stoneforge-merge-check-dMwYdr--119.log.gz",
+    "bytes": 2536,
+    "sha256": "fa14fb8d566a7f02c5b1c3f159cc2d29bfaf9f90107360063186e1221d3f1cd4",
+    "mtimeUtc": "2026-09-26T19:51:37.856712+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/131.log",
+    "file": "stoneforge-merge-check-dMwYdr--131.log.gz",
+    "bytes": 2945,
+    "sha256": "31cffb5de1f6aeb195ae2ee0579522e8a3998cf1ca11b7aad4bd4cb8aae0e9c4",
+    "mtimeUtc": "2026-09-26T19:51:40.367128+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/125.log",
+    "file": "stoneforge-merge-check-dMwYdr--125.log.gz",
+    "bytes": 2308,
+    "sha256": "1cc7625f868e108c190f8490d3a08ad917d2085e58587d6b808bc99dfa4374cb",
+    "mtimeUtc": "2026-09-26T19:51:38.792782+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/079.log",
+    "file": "stoneforge-merge-check-dMwYdr--079.log.gz",
+    "bytes": 560,
+    "sha256": "fef17abbc0d8172a3f1621b975e5ab677ade1e700ea38d4a9b4be6bee0aa6e82",
+    "mtimeUtc": "2026-09-26T19:51:03.370883+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/045.log",
+    "file": "stoneforge-merge-check-dMwYdr--045.log.gz",
+    "bytes": 4494,
+    "sha256": "5fa62a8c9ca57ad82a16a8937cabc6c2e3ed9aad42de89b707dcadfb446d659e",
+    "mtimeUtc": "2026-09-26T19:50:30.914752+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/051.log",
+    "file": "stoneforge-merge-check-dMwYdr--051.log.gz",
+    "bytes": 1681,
+    "sha256": "cc4657b786f1190b90c64e5d620333a5919a3de1f29d9d384d3142778293b92c",
+    "mtimeUtc": "2026-09-26T19:50:41.626623+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/086.log",
+    "file": "stoneforge-merge-check-dMwYdr--086.log.gz",
+    "bytes": 2472,
+    "sha256": "6a66e0e948a439bd8eea136d8151d8a5c538c8c8984c73624556ad0b34787598",
+    "mtimeUtc": "2026-09-26T19:51:05.364494+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/092.log",
+    "file": "stoneforge-merge-check-dMwYdr--092.log.gz",
+    "bytes": 1918,
+    "sha256": "8d855c8a78d96493626682a57d87730ca4edd285b87502bcab2a72ab931a1557",
+    "mtimeUtc": "2026-09-26T19:51:23.519284+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/093.log",
+    "file": "stoneforge-merge-check-dMwYdr--093.log.gz",
+    "bytes": 2097,
+    "sha256": "35581b00c570feaf0a4374b7f181e09389b4372dc9226cfa39f94284642fa0d3",
+    "mtimeUtc": "2026-09-26T19:51:23.538232+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/087.log",
+    "file": "stoneforge-merge-check-dMwYdr--087.log.gz",
+    "bytes": 4163,
+    "sha256": "db3f471c1a1df1f5d9b7dbd69bf6c6c036eb345c1a198ba8e5ba1c1e6586085e",
+    "mtimeUtc": "2026-09-26T19:51:05.383254+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/050.log",
+    "file": "stoneforge-merge-check-dMwYdr--050.log.gz",
+    "bytes": 689,
+    "sha256": "898a06b9a0ef83ba4a12a5b317cb98f81ae4b406936956009ded2289eef30f26",
+    "mtimeUtc": "2026-09-26T19:50:41.516022+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/044.log",
+    "file": "stoneforge-merge-check-dMwYdr--044.log.gz",
+    "bytes": 1824,
+    "sha256": "a9d5d7548c1ac2a25045289fd17369a0840a08ffcbff0e361885db84e988dc1c",
+    "mtimeUtc": "2026-09-26T19:50:30.666842+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/078.log",
+    "file": "stoneforge-merge-check-dMwYdr--078.log.gz",
+    "bytes": 3431,
+    "sha256": "0c719a578dab6c7a67d01ffc70b708d68e5e32701fdf09763e99962475552028",
+    "mtimeUtc": "2026-09-26T19:51:03.314764+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/124.log",
+    "file": "stoneforge-merge-check-dMwYdr--124.log.gz",
+    "bytes": 4763,
+    "sha256": "8842dbbc550c34ea7d9f520d6bb76133fea1c1b6e9d55c5d2d839e3edcd6a3a5",
+    "mtimeUtc": "2026-09-26T19:51:38.666904+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/130.log",
+    "file": "stoneforge-merge-check-dMwYdr--130.log.gz",
+    "bytes": 10626,
+    "sha256": "31c682ced7c2607f1d51232b5a8ea8f8b1cb90e72f15afa5af33676dc610064c",
+    "mtimeUtc": "2026-09-26T19:51:40.100886+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/118.log",
+    "file": "stoneforge-merge-check-dMwYdr--118.log.gz",
+    "bytes": 9623,
+    "sha256": "3acf89f541df92b3d0de61f1096ef60800b532cc49a1cadd8b12e9aeb052c1b9",
+    "mtimeUtc": "2026-09-26T19:51:37.105531+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/115.log",
+    "file": "stoneforge-merge-check-dMwYdr--115.log.gz",
+    "bytes": 7364,
+    "sha256": "d21494ca6a4cf8c33bb9320198a53b5650f20e632c084c80909a7285f17c4b9c",
+    "mtimeUtc": "2026-09-26T19:51:35.891709+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/101.log",
+    "file": "stoneforge-merge-check-dMwYdr--101.log.gz",
+    "bytes": 1577,
+    "sha256": "aa1031114a65f9dce6a3ca7b00837ba23863aa509e0081bac10d7ff33661a510",
+    "mtimeUtc": "2026-09-26T19:51:23.857389+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/129.log",
+    "file": "stoneforge-merge-check-dMwYdr--129.log.gz",
+    "bytes": 7696,
+    "sha256": "8a9b250fbfa06dd942a3dad9a8ca2134cbdf8e969b1dd7c4ad525e5b78773953",
+    "mtimeUtc": "2026-09-26T19:51:40.005215+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/061.log",
+    "file": "stoneforge-merge-check-dMwYdr--061.log.gz",
+    "bytes": 5389,
+    "sha256": "eaa65ba06983b773bd047c1a38e609ea902ed6aac293897cd6d690241c759f5d",
+    "mtimeUtc": "2026-09-26T19:50:43.949355+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/075.log",
+    "file": "stoneforge-merge-check-dMwYdr--075.log.gz",
+    "bytes": 889,
+    "sha256": "2f50127d802e3643d1da97a63ec90ce6c56f387118a1804932c16acad8475561",
+    "mtimeUtc": "2026-09-26T19:51:02.364234+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/049.log",
+    "file": "stoneforge-merge-check-dMwYdr--049.log.gz",
+    "bytes": 3235,
+    "sha256": "97261b83943a4db967b20d739191efc2d2d252dc0f7f211b240e951d3cd7a12f",
+    "mtimeUtc": "2026-09-26T19:50:41.449235+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/048.log",
+    "file": "stoneforge-merge-check-dMwYdr--048.log.gz",
+    "bytes": 8419,
+    "sha256": "a142bc36b6cee3488ae4da722cefd20d71927d7f7e204acd209d4369e6be7f38",
+    "mtimeUtc": "2026-09-26T19:50:41.308133+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/074.log",
+    "file": "stoneforge-merge-check-dMwYdr--074.log.gz",
+    "bytes": 4767,
+    "sha256": "19b13281aa8a079fb7cad0de310d8a4f6085eeed5baa55d313ea2fc2c23b9d36",
+    "mtimeUtc": "2026-09-26T19:50:50.595438+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/060.log",
+    "file": "stoneforge-merge-check-dMwYdr--060.log.gz",
+    "bytes": 2563,
+    "sha256": "161a52fd1ba4dc58debf8924c02605c7b2c27a61554af38a8e832f0203c18931",
+    "mtimeUtc": "2026-09-26T19:50:43.034580+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/128.log",
+    "file": "stoneforge-merge-check-dMwYdr--128.log.gz",
+    "bytes": 1990,
+    "sha256": "10571875a39d9e9cae9cd5f7d9bf43be304d94ce1be39f2dd642f8b810955841",
+    "mtimeUtc": "2026-09-26T19:51:39.911293+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/100.log",
+    "file": "stoneforge-merge-check-dMwYdr--100.log.gz",
+    "bytes": 7847,
+    "sha256": "89ca0824a921b756ead08d2e18b18eeb7f5d7cb7bf5a045aed867068189fe147",
+    "mtimeUtc": "2026-09-26T19:51:23.839913+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/114.log",
+    "file": "stoneforge-merge-check-dMwYdr--114.log.gz",
+    "bytes": 8199,
+    "sha256": "a4a410603fef7f6ed2631ede2b2a566b360a0bb52a844e310e0bb060ccc31d1a",
+    "mtimeUtc": "2026-09-26T19:51:35.738624+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/102.log",
+    "file": "stoneforge-merge-check-dMwYdr--102.log.gz",
+    "bytes": 2942,
+    "sha256": "d07ae22bd45d15f5bdcae99c8c071234b70599abb2881a2b96ebd5f6bd3326ad",
+    "mtimeUtc": "2026-09-26T19:51:23.905903+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/116.log",
+    "file": "stoneforge-merge-check-dMwYdr--116.log.gz",
+    "bytes": 2103,
+    "sha256": "38e5a5f908194e8a649ee80301d711db7d25ba394f43e7195bb28eecff51f639",
+    "mtimeUtc": "2026-09-26T19:51:36.478481+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/076.log",
+    "file": "stoneforge-merge-check-dMwYdr--076.log.gz",
+    "bytes": 995,
+    "sha256": "dcc095453fc503037cd3bb82dfdac6ba1c8cdec693efbce99966a50e455145e0",
+    "mtimeUtc": "2026-09-26T19:51:02.481671+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/062.log",
+    "file": "stoneforge-merge-check-dMwYdr--062.log.gz",
+    "bytes": 3260,
+    "sha256": "01567befe7ed0186282b0bcc00ce82d1e9207b3480e9bbc02970728127db086f",
+    "mtimeUtc": "2026-09-26T19:50:44.895135+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/089.log",
+    "file": "stoneforge-merge-check-dMwYdr--089.log.gz",
+    "bytes": 2164,
+    "sha256": "50d18170eff60708e622b17115fdd04f816a066d2054fa5001f2791c3588bc43",
+    "mtimeUtc": "2026-09-26T19:51:23.468825+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/088.log",
+    "file": "stoneforge-merge-check-dMwYdr--088.log.gz",
+    "bytes": 7290,
+    "sha256": "c1c47b541de925498d59b90c78ab16054dc30472bc8d1cbc16cd1bce6213d391",
+    "mtimeUtc": "2026-09-26T19:51:05.438298+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/063.log",
+    "file": "stoneforge-merge-check-dMwYdr--063.log.gz",
+    "bytes": 2065,
+    "sha256": "ed168902f331886185fd06331c15fe6bd25d42eaf295f501cba87f4074d2c61f",
+    "mtimeUtc": "2026-09-26T19:50:45.378412+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/077.log",
+    "file": "stoneforge-merge-check-dMwYdr--077.log.gz",
+    "bytes": 5291,
+    "sha256": "f7802b9c494982dfc04168f23d72c91866e530fc0474c32e9fca36030a25359d",
+    "mtimeUtc": "2026-09-26T19:51:02.999600+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/117.log",
+    "file": "stoneforge-merge-check-dMwYdr--117.log.gz",
+    "bytes": 9875,
+    "sha256": "048d5f1fccff03197a5d0925b91037fff77568fa365197db1e8cb57d2995da42",
+    "mtimeUtc": "2026-09-26T19:51:36.897557+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/103.log",
+    "file": "stoneforge-merge-check-dMwYdr--103.log.gz",
+    "bytes": 3397,
+    "sha256": "532f78ad01668045f194bc18a1b464e887bc3fee84191e53a96f26a9c0420fc8",
+    "mtimeUtc": "2026-09-26T19:51:23.981854+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/107.log",
+    "file": "stoneforge-merge-check-dMwYdr--107.log.gz",
+    "bytes": 4700,
+    "sha256": "45202976626546b193404a9860489baf13fe1965ec3592ebe041bbd24be387e6",
+    "mtimeUtc": "2026-09-26T19:51:25.542268+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/113.log",
+    "file": "stoneforge-merge-check-dMwYdr--113.log.gz",
+    "bytes": 17900,
+    "sha256": "90bcc7886744cf561d757d8a154ec3843e35eca2b581e237bfd24f3faff02a06",
+    "mtimeUtc": "2026-09-26T19:51:35.697208+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/073.log",
+    "file": "stoneforge-merge-check-dMwYdr--073.log.gz",
+    "bytes": 1401,
+    "sha256": "b820e6f86b68b70e165502f302181e30779a4963545b46f682bc7d620cbbeb08",
+    "mtimeUtc": "2026-09-26T19:50:49.974265+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/067.log",
+    "file": "stoneforge-merge-check-dMwYdr--067.log.gz",
+    "bytes": 1286,
+    "sha256": "1af73a3615e62b1ea54ccdca5df220c50d81938a8b361f18c02f6df202b54069",
+    "mtimeUtc": "2026-09-26T19:50:47.948416+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/098.log",
+    "file": "stoneforge-merge-check-dMwYdr--098.log.gz",
+    "bytes": 1345,
+    "sha256": "56de46a5a56f99d263266f6d93c54168dd75b87fa36baac3d8f524e2cf7371ca",
+    "mtimeUtc": "2026-09-26T19:51:23.741763+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/099.log",
+    "file": "stoneforge-merge-check-dMwYdr--099.log.gz",
+    "bytes": 5962,
+    "sha256": "9c84b81d1a68bb875c781ea726594bb9396c5738b17f3c22106961c6c9e107f0",
+    "mtimeUtc": "2026-09-26T19:51:23.790513+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/066.log",
+    "file": "stoneforge-merge-check-dMwYdr--066.log.gz",
+    "bytes": 3128,
+    "sha256": "eb6350593cbd098e2ad6c9bb41c1217b43ae70d9ec9eee1fa70371ed21c851e8",
+    "mtimeUtc": "2026-09-26T19:50:47.702891+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/072.log",
+    "file": "stoneforge-merge-check-dMwYdr--072.log.gz",
+    "bytes": 2964,
+    "sha256": "25dc28125c3534a7c890c647dff3d3a87ae26c9ae7f5ab87686135bd9c8751e4",
+    "mtimeUtc": "2026-09-26T19:50:49.766226+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/112.log",
+    "file": "stoneforge-merge-check-dMwYdr--112.log.gz",
+    "bytes": 6468,
+    "sha256": "f5283600755c792f5c4dab5d6228934fcd906ad88dfbda73b7e7fca749cfe481",
+    "mtimeUtc": "2026-09-26T19:51:35.660309+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/106.log",
+    "file": "stoneforge-merge-check-dMwYdr--106.log.gz",
+    "bytes": 3155,
+    "sha256": "1652fcde0d253a78d9b78051b172411f64114dc897abb3eddf9a6bea349d809f",
+    "mtimeUtc": "2026-09-26T19:51:25.523387+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/138.log",
+    "file": "stoneforge-merge-check-dMwYdr--138.log.gz",
+    "bytes": 1398,
+    "sha256": "754bd3e981c6b0e51872e8879cad74c6307ec66b877623a937251554a38b0349",
+    "mtimeUtc": "2026-09-26T19:52:29.786659+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/110.log",
+    "file": "stoneforge-merge-check-dMwYdr--110.log.gz",
+    "bytes": 2240,
+    "sha256": "2da3109bc8326b6465887d2baa00318ccaf9cb97be52a9fa97d107e6e17241e7",
+    "mtimeUtc": "2026-09-26T19:51:25.596934+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/104.log",
+    "file": "stoneforge-merge-check-dMwYdr--104.log.gz",
+    "bytes": 3628,
+    "sha256": "fdd991f6e7a70a77cb7d1aa9ff79445d9aecd192a0cb6a17f8207fcbea20b67b",
+    "mtimeUtc": "2026-09-26T19:51:25.365029+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/058.log",
+    "file": "stoneforge-merge-check-dMwYdr--058.log.gz",
+    "bytes": 1042,
+    "sha256": "da8162c5f599bef935fcc2d6ef425f1bd1b2008dee464a72882c5aa6a9c3ac47",
+    "mtimeUtc": "2026-09-26T19:50:42.866578+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/064.log",
+    "file": "stoneforge-merge-check-dMwYdr--064.log.gz",
+    "bytes": 6121,
+    "sha256": "4bfbedb56603c0d9b3203d89b5b38ee2b63c8d083018542474b0d359fcd0bd11",
+    "mtimeUtc": "2026-09-26T19:50:46.473372+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/070.log",
+    "file": "stoneforge-merge-check-dMwYdr--070.log.gz",
+    "bytes": 4084,
+    "sha256": "0be10d41a8eeab8fdf1583512d9a0f980ccf7c43e3dfcbe189843e07f44e2929",
+    "mtimeUtc": "2026-09-26T19:50:48.827814+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/071.log",
+    "file": "stoneforge-merge-check-dMwYdr--071.log.gz",
+    "bytes": 6458,
+    "sha256": "c07e3c7145982501c54d6e618dae1c1fc8f6c5fd274f1d4417d577f31b1d9747",
+    "mtimeUtc": "2026-09-26T19:50:49.428074+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/065.log",
+    "file": "stoneforge-merge-check-dMwYdr--065.log.gz",
+    "bytes": 6951,
+    "sha256": "3d3f90bace86ac6c7fc23cc9939b06f5ac7092df4a1a224b045da8dbaf5b4ad5",
+    "mtimeUtc": "2026-09-26T19:50:47.371570+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/059.log",
+    "file": "stoneforge-merge-check-dMwYdr--059.log.gz",
+    "bytes": 1208,
+    "sha256": "5b47ed0141d6fd728f585fb48c8ab12137f059584f7003727412cf6a8c0bf8f8",
+    "mtimeUtc": "2026-09-26T19:50:42.895189+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/105.log",
+    "file": "stoneforge-merge-check-dMwYdr--105.log.gz",
+    "bytes": 4727,
+    "sha256": "b1f45d153c0f21d67187c2d2bd875827a0e020efc334be131200e115f798035e",
+    "mtimeUtc": "2026-09-26T19:51:25.450561+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/111.log",
+    "file": "stoneforge-merge-check-dMwYdr--111.log.gz",
+    "bytes": 12489,
+    "sha256": "7398b08ea396c692abd85f7405fd7af7a8125e67676a36fb52b3f74d0b7e1dc4",
+    "mtimeUtc": "2026-09-26T19:51:25.619890+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/139.log",
+    "file": "stoneforge-merge-check-dMwYdr--139.log.gz",
+    "bytes": 3803,
+    "sha256": "442303822aa43e78e35d53961f51d786ccc4007bd0f1e661635f8bd519baff35",
+    "mtimeUtc": "2026-09-26T19:52:47.333632+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/176.log",
+    "file": "stoneforge-merge-check-dMwYdr--176.log.gz",
+    "bytes": 2549,
+    "sha256": "57e34a7af7b93f37872a2b12e227cc50a893a012ad4e5c805ab480dad39db022",
+    "mtimeUtc": "2026-09-26T19:54:15.948482+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/162.log",
+    "file": "stoneforge-merge-check-dMwYdr--162.log.gz",
+    "bytes": 653,
+    "sha256": "6ae4d6a4693ebba5bdc6f80591f8a70b90d6f8d38b2451b1cc82535ddcb68ddc",
+    "mtimeUtc": "2026-09-26T19:53:44.128651+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/189.log",
+    "file": "stoneforge-merge-check-dMwYdr--189.log.gz",
+    "bytes": 1851,
+    "sha256": "42b5da7a2b4e742232ae77b60435685b59503ca8296c9b49d0e8c120fb794bc3",
+    "mtimeUtc": "2026-09-26T19:55:08.662675+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/002.log",
+    "file": "stoneforge-merge-check-dMwYdr--002.log.gz",
+    "bytes": 7167,
+    "sha256": "3bf8e75c336adfad89699027b31cf31a5812ba56737c9a2a56a04efd2bb133d5",
+    "mtimeUtc": "2026-09-26T19:50:24.744630+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/016.log",
+    "file": "stoneforge-merge-check-dMwYdr--016.log.gz",
+    "bytes": 3957,
+    "sha256": "323d1d7d127b336e63cf84f74201aa7433b05beb3e1f44ddcf20a15ea14771be",
+    "mtimeUtc": "2026-09-26T19:50:26.491304+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/017.log",
+    "file": "stoneforge-merge-check-dMwYdr--017.log.gz",
+    "bytes": 3649,
+    "sha256": "cd8fb255ae86a68b815452d09b905bb44886baf5a2d0f1ad36b36859e55fbe02",
+    "mtimeUtc": "2026-09-26T19:50:26.508928+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/003.log",
+    "file": "stoneforge-merge-check-dMwYdr--003.log.gz",
+    "bytes": 284,
+    "sha256": "5ebb5932bd268e6c5cd523f8d4f0ec21b7919bdfbfe2bef86143c35938c66151",
+    "mtimeUtc": "2026-09-26T19:50:25.372107+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/188.log",
+    "file": "stoneforge-merge-check-dMwYdr--188.log.gz",
+    "bytes": 21951,
+    "sha256": "645fbd5e4becba4061d83bf5a1d1e3141ed8e5e7b162384118bd45c7a69f526a",
+    "mtimeUtc": "2026-09-26T19:55:02.689769+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/163.log",
+    "file": "stoneforge-merge-check-dMwYdr--163.log.gz",
+    "bytes": 1558,
+    "sha256": "4536c17809abcc7728151e0cfdf2cb41d81b3a25d3c9c6b2a82f5ed8578fc663",
+    "mtimeUtc": "2026-09-26T19:53:44.196920+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/177.log",
+    "file": "stoneforge-merge-check-dMwYdr--177.log.gz",
+    "bytes": 3782,
+    "sha256": "b52fc45ebde25083a7aa439817de9348c63b111bb27bcff29208629ab34891de",
+    "mtimeUtc": "2026-09-26T19:54:16.934617+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/161.log",
+    "file": "stoneforge-merge-check-dMwYdr--161.log.gz",
+    "bytes": 435,
+    "sha256": "3ff66bae6188263cd9f3560596d95cf299c375cc6f71f22aa06dbbcad3ab2fa9",
+    "mtimeUtc": "2026-09-26T19:53:43.577569+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/175.log",
+    "file": "stoneforge-merge-check-dMwYdr--175.log.gz",
+    "bytes": 1115,
+    "sha256": "42a8bee7bf24e3faac248a090805cfa2cf3787aeceeb83150f9649c86b139a77",
+    "mtimeUtc": "2026-09-26T19:54:15.267494+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/149.log",
+    "file": "stoneforge-merge-check-dMwYdr--149.log.gz",
+    "bytes": 4411,
+    "sha256": "f35b70c7453bfd33ad51e26b6d912680a2c23bf553e8fe0373b7764ad38e8f3a",
+    "mtimeUtc": "2026-09-26T19:53:34.422584+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/015.log",
+    "file": "stoneforge-merge-check-dMwYdr--015.log.gz",
+    "bytes": 10331,
+    "sha256": "afc35bb6ef456f262f013a3964f58edf6799904534b9e2bd77c18d96c29622f6",
+    "mtimeUtc": "2026-09-26T19:50:26.474574+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/001.log",
+    "file": "stoneforge-merge-check-dMwYdr--001.log.gz",
+    "bytes": 1059,
+    "sha256": "f397fc23470e7fc3d0a1233d16360cb73f47e3e5f57136ceba1d19975f272426",
+    "mtimeUtc": "2026-09-26T19:49:49.160614+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/029.log",
+    "file": "stoneforge-merge-check-dMwYdr--029.log.gz",
+    "bytes": 6879,
+    "sha256": "1e7207adb17f9a745ebfcffcc03607c3d051afb4280a02a7631f7135f1b639e3",
+    "mtimeUtc": "2026-09-26T19:50:28.170544+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/028.log",
+    "file": "stoneforge-merge-check-dMwYdr--028.log.gz",
+    "bytes": 2954,
+    "sha256": "45f33bd59745a0189c80be3d18b1aeb52cc01e59622287fc41ba4c48bb6e24f7",
+    "mtimeUtc": "2026-09-26T19:50:27.967918+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/014.log",
+    "file": "stoneforge-merge-check-dMwYdr--014.log.gz",
+    "bytes": 32412,
+    "sha256": "2abc8ecf54eaaf7382e538809d923af220fe6cc73d011256b6f406193ef8bc58",
+    "mtimeUtc": "2026-09-26T19:50:26.451496+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/148.log",
+    "file": "stoneforge-merge-check-dMwYdr--148.log.gz",
+    "bytes": 1597,
+    "sha256": "a06dbb6ee7b77ac98637ac2b549c2483ca545198a31f5f8449a73a3f6e5de4ef",
+    "mtimeUtc": "2026-09-26T19:53:34.406620+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/174.log",
+    "file": "stoneforge-merge-check-dMwYdr--174.log.gz",
+    "bytes": 2768,
+    "sha256": "f7faec21083fe0f5fb1313114ae6604991ab341f042b1562b6b0f09422ff0ffa",
+    "mtimeUtc": "2026-09-26T19:54:14.000198+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/160.log",
+    "file": "stoneforge-merge-check-dMwYdr--160.log.gz",
+    "bytes": 7344,
+    "sha256": "5b40d2c05f1cbaccd355a81e8ada56cb7ec79e2b933836019a73b8b67ac5df3a",
+    "mtimeUtc": "2026-09-26T19:53:43.319624+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/158.log",
+    "file": "stoneforge-merge-check-dMwYdr--158.log.gz",
+    "bytes": 3081,
+    "sha256": "6fac282cefc74371d1afab1c5b70e2d8c509f1d8bab1aa0cf25564668565129c",
+    "mtimeUtc": "2026-09-26T19:53:35.358291+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/164.log",
+    "file": "stoneforge-merge-check-dMwYdr--164.log.gz",
+    "bytes": 471,
+    "sha256": "2671164f3a0f28f1cdf77d121daa6f66fe51670ad9657923a361335f13015bca",
+    "mtimeUtc": "2026-09-26T19:53:44.556104+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/170.log",
+    "file": "stoneforge-merge-check-dMwYdr--170.log.gz",
+    "bytes": 3047,
+    "sha256": "9c22b1bcc86780d778b19cb1dc69c99c52406158e6e1c8e4cd9d606694c62942",
+    "mtimeUtc": "2026-09-26T19:54:05.865562+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/038.log",
+    "file": "stoneforge-merge-check-dMwYdr--038.log.gz",
+    "bytes": 1838,
+    "sha256": "126a8b54a5a457e22159fb2026667ce834b61224905a4be1e6217f37735cfa0b",
+    "mtimeUtc": "2026-09-26T19:50:29.730180+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/010.log",
+    "file": "stoneforge-merge-check-dMwYdr--010.log.gz",
+    "bytes": 9874,
+    "sha256": "a4f09589b38f97cb4fb08d1f7b7ef3b863bcbc3e5738317d6bccbd666e3c6bc5",
+    "mtimeUtc": "2026-09-26T19:50:26.343313+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/004.log",
+    "file": "stoneforge-merge-check-dMwYdr--004.log.gz",
+    "bytes": 1263,
+    "sha256": "024620280d27948524420c3328aa5d1095713b9aeae5f47a537d1e39a65ea265",
+    "mtimeUtc": "2026-09-26T19:50:26.226791+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/005.log",
+    "file": "stoneforge-merge-check-dMwYdr--005.log.gz",
+    "bytes": 1384,
+    "sha256": "e1eb19e2576d972063f2e5ca7435ca6c415d5d98c31680f332826bc233999800",
+    "mtimeUtc": "2026-09-26T19:50:26.241476+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/011.log",
+    "file": "stoneforge-merge-check-dMwYdr--011.log.gz",
+    "bytes": 12007,
+    "sha256": "fee9f37bbb8e22cd2b45359d1dd9122bf1360d35b416f0c9c6765018e01616c3",
+    "mtimeUtc": "2026-09-26T19:50:26.364082+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/039.log",
+    "file": "stoneforge-merge-check-dMwYdr--039.log.gz",
+    "bytes": 2273,
+    "sha256": "276aee09c67cb5fca3c335d2517764266005ec3b7ef9a05a3fb7c6072f42092a",
+    "mtimeUtc": "2026-09-26T19:50:29.894823+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/171.log",
+    "file": "stoneforge-merge-check-dMwYdr--171.log.gz",
+    "bytes": 1518,
+    "sha256": "8a164f975c5369cd22a8267ed289ce35a662b3c4cc3df64c9d3a46b654ef8765",
+    "mtimeUtc": "2026-09-26T19:54:06.303338+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/165.log",
+    "file": "stoneforge-merge-check-dMwYdr--165.log.gz",
+    "bytes": 5383,
+    "sha256": "a69916081d9a14f0c9e39c62e279df569f6122d3cc3a51ebab023b7d15c1297f",
+    "mtimeUtc": "2026-09-26T19:53:45.115982+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/159.log",
+    "file": "stoneforge-merge-check-dMwYdr--159.log.gz",
+    "bytes": 30500,
+    "sha256": "a9514a7f3ece96d7b20abf3b085a26824017fce54b25b454c7780a758e52e49d",
+    "mtimeUtc": "2026-09-26T19:53:41.364751+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/173.log",
+    "file": "stoneforge-merge-check-dMwYdr--173.log.gz",
+    "bytes": 3825,
+    "sha256": "d58ff64a70610020384776639b29847fb8fd6dd8a587f3f413f2d6af99b21db6",
+    "mtimeUtc": "2026-09-26T19:54:12.521540+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/167.log",
+    "file": "stoneforge-merge-check-dMwYdr--167.log.gz",
+    "bytes": 10900,
+    "sha256": "41f665be56877ec152a7080943c486c42a23958ae822d8886f4fcd6608caa44f",
+    "mtimeUtc": "2026-09-26T19:53:56.827509+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/007.log",
+    "file": "stoneforge-merge-check-dMwYdr--007.log.gz",
+    "bytes": 2994,
+    "sha256": "c2cbdb089ec0796cada1dfef7f2a5dceb0a44b49b48a5d583eb0b00554119703",
+    "mtimeUtc": "2026-09-26T19:50:26.276293+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/013.log",
+    "file": "stoneforge-merge-check-dMwYdr--013.log.gz",
+    "bytes": 4113,
+    "sha256": "a33babe3863fe7cf913e6f37bbeeaeea70bf5e9648c292d8ca84fde434418370",
+    "mtimeUtc": "2026-09-26T19:50:26.415728+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/012.log",
+    "file": "stoneforge-merge-check-dMwYdr--012.log.gz",
+    "bytes": 10988,
+    "sha256": "df2c3e729bf1be371328df14ad4556c2532d4bba15508f15778b631363c7e209",
+    "mtimeUtc": "2026-09-26T19:50:26.396897+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/006.log",
+    "file": "stoneforge-merge-check-dMwYdr--006.log.gz",
+    "bytes": 2805,
+    "sha256": "15edf3068741dd34b152378168e189a251e4cf8881c632ff08627c80f8e80d3c",
+    "mtimeUtc": "2026-09-26T19:50:26.260738+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/166.log",
+    "file": "stoneforge-merge-check-dMwYdr--166.log.gz",
+    "bytes": 1305,
+    "sha256": "75fb78d28295f9860337d55b531ab6cfb5f6df76ccbe0f146aa0027809082c9c",
+    "mtimeUtc": "2026-09-26T19:53:45.381706+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/172.log",
+    "file": "stoneforge-merge-check-dMwYdr--172.log.gz",
+    "bytes": 5153,
+    "sha256": "a7af19e1fb7f374656f9fc029f46535b316eb1e003cf7f3cdd03545b167d3006",
+    "mtimeUtc": "2026-09-26T19:54:12.065646+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/results.json",
+    "file": "stoneforge-merge-check-dMwYdr--results.json.gz",
+    "bytes": 64795,
+    "sha256": "3774a30db960c4e2cd226380f28cba680c21f35728679eff4229091ccc400f16",
+    "mtimeUtc": "2026-09-26T19:55:08.676427+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/157.log",
+    "file": "stoneforge-merge-check-g8qBfX--157.log.gz",
+    "bytes": 2034,
+    "sha256": "4a70157be3c9c7ee211f4ddc6133fdaef6f75621830a3294b7d18ed1a2089585",
+    "mtimeUtc": "2026-09-26T20:16:53.493574+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/143.log",
+    "file": "stoneforge-merge-check-g8qBfX--143.log.gz",
+    "bytes": 5826,
+    "sha256": "67b47bc251e5321f092710b749e7f1356bed1d784c930dc78a2a35319d59630f",
+    "mtimeUtc": "2026-09-26T20:16:53.057856+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/180.log",
+    "file": "stoneforge-merge-check-g8qBfX--180.log.gz",
+    "bytes": 2361,
+    "sha256": "5d50fbdab8f97ba7145999b23e21497fe5a314dd91c3bcc47771c3467c2661b6",
+    "mtimeUtc": "2026-09-26T20:17:31.270168+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/023.log",
+    "file": "stoneforge-merge-check-g8qBfX--023.log.gz",
+    "bytes": 8754,
+    "sha256": "f1346168f8acbd537a1c58246d4ee70cffa21e510b0e364a893200c28c16c40d",
+    "mtimeUtc": "2026-09-26T20:11:47.519610+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/037.log",
+    "file": "stoneforge-merge-check-g8qBfX--037.log.gz",
+    "bytes": 2121,
+    "sha256": "a2ee6c40b291cc089a3c1b476b14550629812610b8c49d1c19a6be182653f052",
+    "mtimeUtc": "2026-09-26T20:11:50.459672+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/036.log",
+    "file": "stoneforge-merge-check-g8qBfX--036.log.gz",
+    "bytes": 644,
+    "sha256": "b99994638e23a93b69e6ef2115574e14524b65e398b501a3461962d2cbd3b296",
+    "mtimeUtc": "2026-09-26T20:11:50.302321+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/022.log",
+    "file": "stoneforge-merge-check-g8qBfX--022.log.gz",
+    "bytes": 20544,
+    "sha256": "09bf17059d893f54a03b86cc9862efa9ecbb34380849cdf45e691b072d5ec5c9",
+    "mtimeUtc": "2026-09-26T20:11:47.467326+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/181.log",
+    "file": "stoneforge-merge-check-g8qBfX--181.log.gz",
+    "bytes": 6846,
+    "sha256": "4722ee380ab2b6d11fc57c3b6839d270fdfba89dec4e7f0491ae6104eb0619d2",
+    "mtimeUtc": "2026-09-26T20:17:38.170269+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/142.log",
+    "file": "stoneforge-merge-check-g8qBfX--142.log.gz",
+    "bytes": 7113,
+    "sha256": "5b9dfe4b674620871d047d379015b11dfe479bc169417e1d904e3da2a3a4e34d",
+    "mtimeUtc": "2026-09-26T20:16:53.032218+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/156.log",
+    "file": "stoneforge-merge-check-g8qBfX--156.log.gz",
+    "bytes": 1526,
+    "sha256": "81365f9b65adfae2a90c3094408b89337709b0ab92a4f2417816e1b80c466d47",
+    "mtimeUtc": "2026-09-26T20:16:53.444309+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/140.log",
+    "file": "stoneforge-merge-check-g8qBfX--140.log.gz",
+    "bytes": 650,
+    "sha256": "bc7bff433402cce6350a4e5c1538261d58b0f0c182e04e015df945b0b3a66ab6",
+    "mtimeUtc": "2026-09-26T20:16:09.209853+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/154.log",
+    "file": "stoneforge-merge-check-g8qBfX--154.log.gz",
+    "bytes": 1056,
+    "sha256": "34219069131775073e1ed48c9a6bb42b711a218e5173f187b0477f0911fd4404",
+    "mtimeUtc": "2026-09-26T20:16:53.418501+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/168.log",
+    "file": "stoneforge-merge-check-g8qBfX--168.log.gz",
+    "bytes": 55435,
+    "sha256": "2a25e830bee8ec9f2a3769e306ae971f90371d7bd5c9ea7cf9771651823c66ef",
+    "mtimeUtc": "2026-09-26T20:17:13.953593+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/183.log",
+    "file": "stoneforge-merge-check-g8qBfX--183.log.gz",
+    "bytes": 2055,
+    "sha256": "63e1076bf9d2dbd2e5e9f44b77e7f3102754e708a508947997ea1bbf25b3ad95",
+    "mtimeUtc": "2026-09-26T20:17:38.301710+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/034.log",
+    "file": "stoneforge-merge-check-g8qBfX--034.log.gz",
+    "bytes": 3041,
+    "sha256": "fcaf9955915742ffbf6f207565fad944806de13fbdbc865ae8a8c421d2791ec2",
+    "mtimeUtc": "2026-09-26T20:11:49.376979+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/020.log",
+    "file": "stoneforge-merge-check-g8qBfX--020.log.gz",
+    "bytes": 7134,
+    "sha256": "fc6479651e92f3f977fc32da49d79c350aa20a4cde5e9ea09df73de2f360b715",
+    "mtimeUtc": "2026-09-26T20:11:46.100491+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/008.log",
+    "file": "stoneforge-merge-check-g8qBfX--008.log.gz",
+    "bytes": 3876,
+    "sha256": "3521b2872a638852d1bc05a3f65d264f8a0249bf6508f69812a1cb930abbcdfa",
+    "mtimeUtc": "2026-09-26T20:11:45.523230+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/009.log",
+    "file": "stoneforge-merge-check-g8qBfX--009.log.gz",
+    "bytes": 7250,
+    "sha256": "75aa22c938a8b40fa93cd10c949f5745b99629a396f16bea32e7f6e58120a29f",
+    "mtimeUtc": "2026-09-26T20:11:45.579027+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/021.log",
+    "file": "stoneforge-merge-check-g8qBfX--021.log.gz",
+    "bytes": 7907,
+    "sha256": "b0a949c02a539d3f232abc97a77fd95432948ff209544e86dfa7c1f59804e360",
+    "mtimeUtc": "2026-09-26T20:11:47.410793+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/035.log",
+    "file": "stoneforge-merge-check-g8qBfX--035.log.gz",
+    "bytes": 10565,
+    "sha256": "6dc138576324728220496db2577ee5caf02306aaae3165876066cfed0d5c1e5c",
+    "mtimeUtc": "2026-09-26T20:11:50.152017+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/182.log",
+    "file": "stoneforge-merge-check-g8qBfX--182.log.gz",
+    "bytes": 1066,
+    "sha256": "35ef6b41132496995b58b16643de020f84b7ac4a7c4dddfb6ed8a882708ad364",
+    "mtimeUtc": "2026-09-26T20:17:38.285635+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/169.log",
+    "file": "stoneforge-merge-check-g8qBfX--169.log.gz",
+    "bytes": 1170,
+    "sha256": "449c87d1db531d2c0c6dde47bdb765b78f339792d07874e82dae3301fde0d7ed",
+    "mtimeUtc": "2026-09-26T20:17:14.097198+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/155.log",
+    "file": "stoneforge-merge-check-g8qBfX--155.log.gz",
+    "bytes": 1221,
+    "sha256": "b06daa82b63c4506a7af438049f5ebbb1f70056febb16758bc41ef939e6d2097",
+    "mtimeUtc": "2026-09-26T20:16:53.430944+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/141.log",
+    "file": "stoneforge-merge-check-g8qBfX--141.log.gz",
+    "bytes": 2336,
+    "sha256": "f7728c347125905d749b35e345e89d4f489620636f04daf7490cf3ed54e09e26",
+    "mtimeUtc": "2026-09-26T20:16:39.534133+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/179.log",
+    "file": "stoneforge-merge-check-g8qBfX--179.log.gz",
+    "bytes": 5882,
+    "sha256": "e4327e9fd0b73e51691978dff514a638dd57f18f72532b1cd4e34e9f5cae4e13",
+    "mtimeUtc": "2026-09-26T20:17:30.163531+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/145.log",
+    "file": "stoneforge-merge-check-g8qBfX--145.log.gz",
+    "bytes": 2433,
+    "sha256": "bc2ffabfaec35f28cbfe0c45e5a7efc2d6105fb94fd1f286b89ceaf01eab90cb",
+    "mtimeUtc": "2026-09-26T20:16:53.103131+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/151.log",
+    "file": "stoneforge-merge-check-g8qBfX--151.log.gz",
+    "bytes": 2728,
+    "sha256": "d64e0c275ec9f8d0f42a6588518f1ea7870f1ae3ee8f3f05b19ab54ffcaa9cfb",
+    "mtimeUtc": "2026-09-26T20:16:53.365695+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/186.log",
+    "file": "stoneforge-merge-check-g8qBfX--186.log.gz",
+    "bytes": 3205,
+    "sha256": "a9fe4956613d36e8cf3fdfe1a9121f3df5d46a360cb22b00286d0ff0d2f6a566",
+    "mtimeUtc": "2026-09-26T20:17:38.376368+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/019.log",
+    "file": "stoneforge-merge-check-g8qBfX--019.log.gz",
+    "bytes": 7274,
+    "sha256": "97ce7bce5a6b8fdf473fffc19f6762cfa3d7d2e03c55f6c033b360773ee7fbac",
+    "mtimeUtc": "2026-09-26T20:11:46.035567+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/031.log",
+    "file": "stoneforge-merge-check-g8qBfX--031.log.gz",
+    "bytes": 3084,
+    "sha256": "152d8a49845bf30841a3fc1f4e3f7e6b73c8bec85c63a1756ae5bd4c509badf3",
+    "mtimeUtc": "2026-09-26T20:11:48.428620+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/025.log",
+    "file": "stoneforge-merge-check-g8qBfX--025.log.gz",
+    "bytes": 5615,
+    "sha256": "13ac35909b55a7fa89d80abd3f2ca6f179ec697d48a7585fb1ab35f13ad2b04d",
+    "mtimeUtc": "2026-09-26T20:11:47.626421+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/024.log",
+    "file": "stoneforge-merge-check-g8qBfX--024.log.gz",
+    "bytes": 8535,
+    "sha256": "2528c6e8e1225e620d1ccf077a0f43896a0ff3ca16db6ae767050a927a6b5e1c",
+    "mtimeUtc": "2026-09-26T20:11:47.574383+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/030.log",
+    "file": "stoneforge-merge-check-g8qBfX--030.log.gz",
+    "bytes": 1952,
+    "sha256": "eb758a8053165fd271052935b7be9a3d1aa4423ef2337cc2da80bef963f113ee",
+    "mtimeUtc": "2026-09-26T20:11:48.233980+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/018.log",
+    "file": "stoneforge-merge-check-g8qBfX--018.log.gz",
+    "bytes": 8185,
+    "sha256": "7dbab3f81e6668c47aa73ed108570ea0c14318d21965ec525b0627935ed2ed1f",
+    "mtimeUtc": "2026-09-26T20:11:45.989681+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/187.log",
+    "file": "stoneforge-merge-check-g8qBfX--187.log.gz",
+    "bytes": 5826,
+    "sha256": "1d8759725714fa0cc060f7b2b1d9558cd8e6faff64c83d652f3c03e4ead0e8fb",
+    "mtimeUtc": "2026-09-26T20:17:38.409630+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/150.log",
+    "file": "stoneforge-merge-check-g8qBfX--150.log.gz",
+    "bytes": 1706,
+    "sha256": "1bed5242ffb393c075e31b1e81c5fd9bdd9997fd4052fa02af7ab3f3035ed25a",
+    "mtimeUtc": "2026-09-26T20:16:53.341836+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/144.log",
+    "file": "stoneforge-merge-check-g8qBfX--144.log.gz",
+    "bytes": 742,
+    "sha256": "1f436b9ea00b8ff1d8794084c69c0b2a178048a602b01be784f95cb81a4a300a",
+    "mtimeUtc": "2026-09-26T20:16:53.070879+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/178.log",
+    "file": "stoneforge-merge-check-g8qBfX--178.log.gz",
+    "bytes": 1912,
+    "sha256": "6e97bbbc0b2032e22811b7eb5f342c8c3eba3afb522efe9cedb7d96b01a51583",
+    "mtimeUtc": "2026-09-26T20:17:21.213725+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/152.log",
+    "file": "stoneforge-merge-check-g8qBfX--152.log.gz",
+    "bytes": 502,
+    "sha256": "fe63659b305fcc2d5197db9261f5fc2b6e809483759ced14c14279b5b6a1ac88",
+    "mtimeUtc": "2026-09-26T20:16:53.386578+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/146.log",
+    "file": "stoneforge-merge-check-g8qBfX--146.log.gz",
+    "bytes": 739,
+    "sha256": "6e7904644215109ddade20365d1850522d102cbe9befc302e9ea580f757d71b5",
+    "mtimeUtc": "2026-09-26T20:16:53.178427+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/185.log",
+    "file": "stoneforge-merge-check-g8qBfX--185.log.gz",
+    "bytes": 2476,
+    "sha256": "77fcb8ddd21367a1b6a0e6d3aaa3efc000157b6ed3b852705d7afaeb9afcea27",
+    "mtimeUtc": "2026-09-26T20:17:38.361238+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/026.log",
+    "file": "stoneforge-merge-check-g8qBfX--026.log.gz",
+    "bytes": 8267,
+    "sha256": "6f915b8e07170b99359d9e0475115ee56dba45dbe9214022580d3111a0fc9889",
+    "mtimeUtc": "2026-09-26T20:11:47.674273+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/032.log",
+    "file": "stoneforge-merge-check-g8qBfX--032.log.gz",
+    "bytes": 4821,
+    "sha256": "50e0e91537fef7c4f6d78f2ade166208dffdfba31a6548af0f19a9340ec4ef90",
+    "mtimeUtc": "2026-09-26T20:11:48.832867+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/033.log",
+    "file": "stoneforge-merge-check-g8qBfX--033.log.gz",
+    "bytes": 1657,
+    "sha256": "2636e3a294b2d4e4f7c170258d21495961c2071b940d56c9e872d9e5a06c8711",
+    "mtimeUtc": "2026-09-26T20:11:49.063894+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/027.log",
+    "file": "stoneforge-merge-check-g8qBfX--027.log.gz",
+    "bytes": 5954,
+    "sha256": "a3aed8b8539a02ab43e19ee08bc951c4d382f862eeeb8a2572d04dbfcee412e5",
+    "mtimeUtc": "2026-09-26T20:11:47.708096+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/184.log",
+    "file": "stoneforge-merge-check-g8qBfX--184.log.gz",
+    "bytes": 3242,
+    "sha256": "8153d7dee9181712b606a7e2f585534e42c7f706183b8245f18e64540006e638",
+    "mtimeUtc": "2026-09-26T20:17:38.346679+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/147.log",
+    "file": "stoneforge-merge-check-g8qBfX--147.log.gz",
+    "bytes": 1266,
+    "sha256": "cb40c8a7b98f36f64fe0cd83b7c1da1ca2bf5b086e1ae56d95414d651b9d6086",
+    "mtimeUtc": "2026-09-26T20:16:53.202137+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/153.log",
+    "file": "stoneforge-merge-check-g8qBfX--153.log.gz",
+    "bytes": 3882,
+    "sha256": "54c0b06973be05782039bde95438e2de9d33f310b5f56b9f783e75ead67b6f8f",
+    "mtimeUtc": "2026-09-26T20:16:53.401696+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/134.log",
+    "file": "stoneforge-merge-check-g8qBfX--134.log.gz",
+    "bytes": 606,
+    "sha256": "ccae117cc3e3e312322971b6f42d62518e37a5887ba0fa91358e97fce3a62ddf",
+    "mtimeUtc": "2026-09-26T20:15:18.926213+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/120.log",
+    "file": "stoneforge-merge-check-g8qBfX--120.log.gz",
+    "bytes": 929,
+    "sha256": "8ab423a66f7836203c36c8a25e464dd2d987ae742f93d430f65a6dbfd2d18bde",
+    "mtimeUtc": "2026-09-26T20:14:27.753483+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/108.log",
+    "file": "stoneforge-merge-check-g8qBfX--108.log.gz",
+    "bytes": 3428,
+    "sha256": "793d2408c95610dbd6b83c5215524f5f8c6ca6d25d6a5d793663a0700041a0cf",
+    "mtimeUtc": "2026-09-26T20:14:12.581736+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/040.log",
+    "file": "stoneforge-merge-check-g8qBfX--040.log.gz",
+    "bytes": 3345,
+    "sha256": "f2d089ce5ce54854d2746b856f58d04dba41d15dab064ca25850223e66b29a18",
+    "mtimeUtc": "2026-09-26T20:11:51.269184+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/054.log",
+    "file": "stoneforge-merge-check-g8qBfX--054.log.gz",
+    "bytes": 358,
+    "sha256": "1abc9f084273e2218e4df6d646fbb6d21e59721bbbc7434e07622a0ecd597bae",
+    "mtimeUtc": "2026-09-26T20:12:11.246799+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/068.log",
+    "file": "stoneforge-merge-check-g8qBfX--068.log.gz",
+    "bytes": 1366,
+    "sha256": "43b1263d6d0bef1ca74229a55a11457a044a798efd3b981fadca24edb4dbd38d",
+    "mtimeUtc": "2026-09-26T20:12:15.260274+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/083.log",
+    "file": "stoneforge-merge-check-g8qBfX--083.log.gz",
+    "bytes": 3254,
+    "sha256": "1f8a297c4682476d12a3366ab958e0c9e5a9b571db7657c49e4f0bf5cd2c094a",
+    "mtimeUtc": "2026-09-26T20:13:03.304713+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/097.log",
+    "file": "stoneforge-merge-check-g8qBfX--097.log.gz",
+    "bytes": 14373,
+    "sha256": "efa27d77748f350519d753b6aab0716ccfcb55a9e17e1f371a9a2fb1bdee5089",
+    "mtimeUtc": "2026-09-26T20:14:10.174036+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/096.log",
+    "file": "stoneforge-merge-check-g8qBfX--096.log.gz",
+    "bytes": 648,
+    "sha256": "1c7dcb77799abce9e8a7ce28781cf32733c7229102ee6e290c4d7e00355cb572",
+    "mtimeUtc": "2026-09-26T20:14:10.054017+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/082.log",
+    "file": "stoneforge-merge-check-g8qBfX--082.log.gz",
+    "bytes": 7544,
+    "sha256": "d1f227549e8486e049374eb67f8a9757ec209a9f1f0363a85009b1b617084d50",
+    "mtimeUtc": "2026-09-26T20:13:02.630510+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/069.log",
+    "file": "stoneforge-merge-check-g8qBfX--069.log.gz",
+    "bytes": 8299,
+    "sha256": "7c66030676420033aea7a4a5f6ea65b0afdb9c76699b3ac707d8bb26a89c70ec",
+    "mtimeUtc": "2026-09-26T20:12:15.385977+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/055.log",
+    "file": "stoneforge-merge-check-g8qBfX--055.log.gz",
+    "bytes": 6254,
+    "sha256": "ef68f2b35bdc66d9cec245639b217b9c293cce42ac025dadfdd54be75d41946a",
+    "mtimeUtc": "2026-09-26T20:12:11.486501+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/041.log",
+    "file": "stoneforge-merge-check-g8qBfX--041.log.gz",
+    "bytes": 1496,
+    "sha256": "78830a65d18127ab96aee1f594ec441fc05e9fced0da15cf3854c36ed4fa9e1d",
+    "mtimeUtc": "2026-09-26T20:11:51.511956+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/109.log",
+    "file": "stoneforge-merge-check-g8qBfX--109.log.gz",
+    "bytes": 5247,
+    "sha256": "ef05776ee91b763c8e02748343ebc00099a8454f0c37ac71aecec39950bafc97",
+    "mtimeUtc": "2026-09-26T20:14:12.640019+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/121.log",
+    "file": "stoneforge-merge-check-g8qBfX--121.log.gz",
+    "bytes": 712,
+    "sha256": "814fa4cf8543796655d93088b67dac297dda815495ca7424a1a5cab40b47ca1c",
+    "mtimeUtc": "2026-09-26T20:14:27.794101+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/135.log",
+    "file": "stoneforge-merge-check-g8qBfX--135.log.gz",
+    "bytes": 943,
+    "sha256": "5807bc409e5aa8d27497e51dd7e1e314e67809eb8c1fb67706d92f39439d522c",
+    "mtimeUtc": "2026-09-26T20:15:19.020599+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/123.log",
+    "file": "stoneforge-merge-check-g8qBfX--123.log.gz",
+    "bytes": 1730,
+    "sha256": "7caa7dc6005fc5b7ade3bf4da9260b55179c00d88a3f65057eb584e70adc7d43",
+    "mtimeUtc": "2026-09-26T20:14:28.501749+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/137.log",
+    "file": "stoneforge-merge-check-g8qBfX--137.log.gz",
+    "bytes": 2065,
+    "sha256": "83042c61f4f6439a1c8bf7230ff268d00fdc5ec0e1dab316def19171a72b754d",
+    "mtimeUtc": "2026-09-26T20:15:25.237721+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/057.log",
+    "file": "stoneforge-merge-check-g8qBfX--057.log.gz",
+    "bytes": 825,
+    "sha256": "1e815eed41a59fe1d02b6664e9985198a1c3820d9b2312f2da8faf3bdda8767f",
+    "mtimeUtc": "2026-09-26T20:12:11.793215+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/043.log",
+    "file": "stoneforge-merge-check-g8qBfX--043.log.gz",
+    "bytes": 4286,
+    "sha256": "03521ca00c4a8f9f15fbf7a91e9343561c9009efc52bfc37cbc828a2d0707019",
+    "mtimeUtc": "2026-09-26T20:11:52.000820+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/094.log",
+    "file": "stoneforge-merge-check-g8qBfX--094.log.gz",
+    "bytes": 266,
+    "sha256": "983970563d8b0ecb9e713e11bc0b9d211cc5926355c41bc867dbb1c170e21f74",
+    "mtimeUtc": "2026-09-26T20:14:09.995400+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/080.log",
+    "file": "stoneforge-merge-check-g8qBfX--080.log.gz",
+    "bytes": 824,
+    "sha256": "6469e9cd43986ab9b68337aec31db472ba0ca952b38c8493804244ef15b1c73f",
+    "mtimeUtc": "2026-09-26T20:12:59.371793+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/081.log",
+    "file": "stoneforge-merge-check-g8qBfX--081.log.gz",
+    "bytes": 3713,
+    "sha256": "ad881e82b240f445398e9a4f1a141f3103284fe56ff19ab533e623979e3ff574",
+    "mtimeUtc": "2026-09-26T20:13:00.076759+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/095.log",
+    "file": "stoneforge-merge-check-g8qBfX--095.log.gz",
+    "bytes": 1684,
+    "sha256": "30a25b63f0eb822e822c0411500f139f58b98354569a18ef51f5b0d75ec09181",
+    "mtimeUtc": "2026-09-26T20:14:10.025495+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/042.log",
+    "file": "stoneforge-merge-check-g8qBfX--042.log.gz",
+    "bytes": 1677,
+    "sha256": "1140a6dcbad14879825faeb7cd6051cee6156fe7a833079982673608f71129eb",
+    "mtimeUtc": "2026-09-26T20:11:51.651736+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/056.log",
+    "file": "stoneforge-merge-check-g8qBfX--056.log.gz",
+    "bytes": 2885,
+    "sha256": "5e8f6a9fd70a4f2755cf5b51b259ed747a36a2f5c2e1ca3ff2cf8b24578c11c3",
+    "mtimeUtc": "2026-09-26T20:12:11.770897+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/136.log",
+    "file": "stoneforge-merge-check-g8qBfX--136.log.gz",
+    "bytes": 1030,
+    "sha256": "a2a502d1ce892a1d2d37b105ab829853bb0419c1f1b062554afc0534958c91ee",
+    "mtimeUtc": "2026-09-26T20:15:25.154182+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/122.log",
+    "file": "stoneforge-merge-check-g8qBfX--122.log.gz",
+    "bytes": 702,
+    "sha256": "8beccc63264a5aeb1946eb01d8c4abdef8514a1665697e4045b5519de026d293",
+    "mtimeUtc": "2026-09-26T20:14:27.911195+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/126.log",
+    "file": "stoneforge-merge-check-g8qBfX--126.log.gz",
+    "bytes": 1712,
+    "sha256": "2277ccada10cea235fa66ffaf30a07bfcd9fbeba5badbd2699ea28ca22526395",
+    "mtimeUtc": "2026-09-26T20:14:28.937824+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/132.log",
+    "file": "stoneforge-merge-check-g8qBfX--132.log.gz",
+    "bytes": 3265,
+    "sha256": "68abeedcebfbef7770a3aecdd61ae6254184aee30f00b1f63d8a2738c5a865ba",
+    "mtimeUtc": "2026-09-26T20:14:30.699352+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/052.log",
+    "file": "stoneforge-merge-check-g8qBfX--052.log.gz",
+    "bytes": 3311,
+    "sha256": "c40af4fe77f755fe0c5503fd9e7a52e34389214f047b13c35008f9aa4d4d6979",
+    "mtimeUtc": "2026-09-26T20:12:11.121988+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/046.log",
+    "file": "stoneforge-merge-check-g8qBfX--046.log.gz",
+    "bytes": 16945,
+    "sha256": "fdfc3187d5903a52bfecf36c1fae349e51ea270c131b45bd395e00ea69fa60d7",
+    "mtimeUtc": "2026-09-26T20:11:53.718706+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/091.log",
+    "file": "stoneforge-merge-check-g8qBfX--091.log.gz",
+    "bytes": 1780,
+    "sha256": "28be16ee82f734a2a3f2903cf61eeeb63f123beeeae6a97f0e5a43b0b92751e0",
+    "mtimeUtc": "2026-09-26T20:14:09.830484+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/085.log",
+    "file": "stoneforge-merge-check-g8qBfX--085.log.gz",
+    "bytes": 1973,
+    "sha256": "a8635072d8ca26e573def066be1d0526113c7b2bc7d897565d1978b22285c706",
+    "mtimeUtc": "2026-09-26T20:13:04.062248+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/084.log",
+    "file": "stoneforge-merge-check-g8qBfX--084.log.gz",
+    "bytes": 3342,
+    "sha256": "efad4902e476054231f1f9c26ef2422438539c638d37db3d42d1b8a3fb54a745",
+    "mtimeUtc": "2026-09-26T20:13:04.024936+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/090.log",
+    "file": "stoneforge-merge-check-g8qBfX--090.log.gz",
+    "bytes": 1252,
+    "sha256": "c303a14d584ca8a81c2f6d91a0e843c4b9558d3ee3e24635495ac2ea0ee61300",
+    "mtimeUtc": "2026-09-26T20:14:09.789837+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/047.log",
+    "file": "stoneforge-merge-check-g8qBfX--047.log.gz",
+    "bytes": 25429,
+    "sha256": "33a2933aa9d6231f529b8e2b70340021f5ba9a4262d554972637a78c32ac2077",
+    "mtimeUtc": "2026-09-26T20:12:10.396846+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/053.log",
+    "file": "stoneforge-merge-check-g8qBfX--053.log.gz",
+    "bytes": 9661,
+    "sha256": "4345b99f42f835979d45648c8e30848e0d7bfccd5945d452831adbd8a981f141",
+    "mtimeUtc": "2026-09-26T20:12:11.172503+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/133.log",
+    "file": "stoneforge-merge-check-g8qBfX--133.log.gz",
+    "bytes": 4717,
+    "sha256": "2766e364282c7c14fe50fac1614ac989d07a2705bc0b47ed4d0081fcfed25c7f",
+    "mtimeUtc": "2026-09-26T20:15:18.836144+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/127.log",
+    "file": "stoneforge-merge-check-g8qBfX--127.log.gz",
+    "bytes": 1223,
+    "sha256": "4c0d53f1ef49cc55a2a5366e40813c18d579396d709e1da80f9425911f547d61",
+    "mtimeUtc": "2026-09-26T20:14:29.703690+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/119.log",
+    "file": "stoneforge-merge-check-g8qBfX--119.log.gz",
+    "bytes": 2545,
+    "sha256": "5315791a45c6b41cedeff4716d176dce1df7348d59475080bb7382b3c4bf2599",
+    "mtimeUtc": "2026-09-26T20:14:27.727796+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/131.log",
+    "file": "stoneforge-merge-check-g8qBfX--131.log.gz",
+    "bytes": 2943,
+    "sha256": "108ad2f4d6195de19bff5df39ef535a2b96b2f908884aacd43cf303fb6d55be8",
+    "mtimeUtc": "2026-09-26T20:14:30.538641+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/125.log",
+    "file": "stoneforge-merge-check-g8qBfX--125.log.gz",
+    "bytes": 2308,
+    "sha256": "991bf6fef2fc89f0436598759ebe0a357eb57f476f83af0771e3c7c04a3fd008",
+    "mtimeUtc": "2026-09-26T20:14:28.892031+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/079.log",
+    "file": "stoneforge-merge-check-g8qBfX--079.log.gz",
+    "bytes": 596,
+    "sha256": "89241988673bbf09e4802e6bf590914700beb73bdbf980e7c92b38de7be168fc",
+    "mtimeUtc": "2026-09-26T20:12:59.194898+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/045.log",
+    "file": "stoneforge-merge-check-g8qBfX--045.log.gz",
+    "bytes": 4498,
+    "sha256": "fe0badbec71046744c37942f37efb5ecc1bdc86a068aac71161254dc9f8feeca",
+    "mtimeUtc": "2026-09-26T20:11:52.406162+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/051.log",
+    "file": "stoneforge-merge-check-g8qBfX--051.log.gz",
+    "bytes": 1679,
+    "sha256": "2c08b240e6210454fad7a158ebb59355072ed4275dfa80d86d03866bbad291df",
+    "mtimeUtc": "2026-09-26T20:12:11.002286+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/086.log",
+    "file": "stoneforge-merge-check-g8qBfX--086.log.gz",
+    "bytes": 2508,
+    "sha256": "4a8bca6a2285ac49e32b1443cd7bf6fd2ee3c0b9b6c85778dfb20aad7f2f2021",
+    "mtimeUtc": "2026-09-26T20:13:04.167970+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/092.log",
+    "file": "stoneforge-merge-check-g8qBfX--092.log.gz",
+    "bytes": 1874,
+    "sha256": "fc9bc8fa696c36defced92d81f6556d4804fe0bfe649eae2a4187ea5c0fd8735",
+    "mtimeUtc": "2026-09-26T20:14:09.861496+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/093.log",
+    "file": "stoneforge-merge-check-g8qBfX--093.log.gz",
+    "bytes": 2079,
+    "sha256": "9d1be092aef03959c810fb1b549d39966dad6f42ffe14ae7ce14ab7ec43654fe",
+    "mtimeUtc": "2026-09-26T20:14:09.896904+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/087.log",
+    "file": "stoneforge-merge-check-g8qBfX--087.log.gz",
+    "bytes": 4136,
+    "sha256": "113afb2f76cdfd07a7d8f1f3fe0d60cec7b2a3367b23ef3bda6bb6b2c348b4b6",
+    "mtimeUtc": "2026-09-26T20:13:04.206937+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/050.log",
+    "file": "stoneforge-merge-check-g8qBfX--050.log.gz",
+    "bytes": 689,
+    "sha256": "43c34fc9ab6c63246951e0737e5c58f1f36d0c891acfe91f0292e3d0192c94bd",
+    "mtimeUtc": "2026-09-26T20:12:10.903944+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/044.log",
+    "file": "stoneforge-merge-check-g8qBfX--044.log.gz",
+    "bytes": 1825,
+    "sha256": "50d5623169f75fde05b1b084c71bba91645cdc74deecaf990e7ed9cf32177723",
+    "mtimeUtc": "2026-09-26T20:11:52.118196+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/078.log",
+    "file": "stoneforge-merge-check-g8qBfX--078.log.gz",
+    "bytes": 3448,
+    "sha256": "26e50fa17b0af20239a52db230f9dbf5667811ff8c4c4e4214a0f4ad3f600cc7",
+    "mtimeUtc": "2026-09-26T20:12:59.109085+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/124.log",
+    "file": "stoneforge-merge-check-g8qBfX--124.log.gz",
+    "bytes": 4747,
+    "sha256": "3a2a706f3827a5d26083b7b08a236114cd0e7c5616aa72a0c02d0d208a0b609e",
+    "mtimeUtc": "2026-09-26T20:14:28.695309+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/130.log",
+    "file": "stoneforge-merge-check-g8qBfX--130.log.gz",
+    "bytes": 10671,
+    "sha256": "9f995074f14972102020d1feafb7f8bb92387d77d98407bf6aac8d43eaadc9c1",
+    "mtimeUtc": "2026-09-26T20:14:30.282456+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/118.log",
+    "file": "stoneforge-merge-check-g8qBfX--118.log.gz",
+    "bytes": 9606,
+    "sha256": "a4296ee19f4f14b16383d59fc2632641f1349bc112b22f03c1da7293a824449a",
+    "mtimeUtc": "2026-09-26T20:14:26.246405+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/115.log",
+    "file": "stoneforge-merge-check-g8qBfX--115.log.gz",
+    "bytes": 7373,
+    "sha256": "9a4aa57f24e53ee90c9a85db59a183c98fb4209c446c3c04a29303bea13c13ad",
+    "mtimeUtc": "2026-09-26T20:14:23.236079+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/101.log",
+    "file": "stoneforge-merge-check-g8qBfX--101.log.gz",
+    "bytes": 1586,
+    "sha256": "81a88a6b12a30d00da016b73b7bde0ac626449714073de07f532a91da49b99d7",
+    "mtimeUtc": "2026-09-26T20:14:10.463116+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/129.log",
+    "file": "stoneforge-merge-check-g8qBfX--129.log.gz",
+    "bytes": 7741,
+    "sha256": "37a4370c4cb027cfe20ead80622ad04bbe67fd5998255527ca20b8c50c651411",
+    "mtimeUtc": "2026-09-26T20:14:30.186861+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/061.log",
+    "file": "stoneforge-merge-check-g8qBfX--061.log.gz",
+    "bytes": 5374,
+    "sha256": "e4e385df98b693c8ef17e610f9a530f1ce84eaa6f6c24243e87fa59a492c07ca",
+    "mtimeUtc": "2026-09-26T20:12:12.714503+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/075.log",
+    "file": "stoneforge-merge-check-g8qBfX--075.log.gz",
+    "bytes": 889,
+    "sha256": "16c6d147d6e18da1a1fe95fb837746e886315b0eda5fa96b6f4d6a2d32720890",
+    "mtimeUtc": "2026-09-26T20:12:56.808232+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/049.log",
+    "file": "stoneforge-merge-check-g8qBfX--049.log.gz",
+    "bytes": 3235,
+    "sha256": "26277e28fb652e30e9df0e9625a3a7e733c689805df700bdaea4d67c9e65191c",
+    "mtimeUtc": "2026-09-26T20:12:10.842727+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/048.log",
+    "file": "stoneforge-merge-check-g8qBfX--048.log.gz",
+    "bytes": 8419,
+    "sha256": "39a463305db5f36352a248a7c4ae8a8b89f51729e26895fd5154fea4cb0831b9",
+    "mtimeUtc": "2026-09-26T20:12:10.709733+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/074.log",
+    "file": "stoneforge-merge-check-g8qBfX--074.log.gz",
+    "bytes": 4766,
+    "sha256": "7db4303803558e8c3932e0671c0dce79e10da9ae6adb375a1388d92bbbfd290a",
+    "mtimeUtc": "2026-09-26T20:12:17.676929+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/060.log",
+    "file": "stoneforge-merge-check-g8qBfX--060.log.gz",
+    "bytes": 2561,
+    "sha256": "59abaa5285a2368b9ed9664321651b6765188a481e0674322ce648c2dc689c8c",
+    "mtimeUtc": "2026-09-26T20:12:12.068034+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/128.log",
+    "file": "stoneforge-merge-check-g8qBfX--128.log.gz",
+    "bytes": 1988,
+    "sha256": "7e52e8f1fd5bdf0c8a635e09975b5870bd0632fdc7819dfd0449fa90e8c37b82",
+    "mtimeUtc": "2026-09-26T20:14:30.083331+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/100.log",
+    "file": "stoneforge-merge-check-g8qBfX--100.log.gz",
+    "bytes": 7883,
+    "sha256": "b3cb68254821c9887381c77e2c854d25db9759e3aa807450f740ffab786be888",
+    "mtimeUtc": "2026-09-26T20:14:10.435513+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/114.log",
+    "file": "stoneforge-merge-check-g8qBfX--114.log.gz",
+    "bytes": 8298,
+    "sha256": "7503e627b4ff643580797f06dbea4db96aab02d4fc694470f735df2e187a8ccf",
+    "mtimeUtc": "2026-09-26T20:14:23.018739+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/102.log",
+    "file": "stoneforge-merge-check-g8qBfX--102.log.gz",
+    "bytes": 2879,
+    "sha256": "cc57ab12d2a28b7aa7352c3a66add5746053fae1a878354bd1a232f23c60888b",
+    "mtimeUtc": "2026-09-26T20:14:10.531662+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/116.log",
+    "file": "stoneforge-merge-check-g8qBfX--116.log.gz",
+    "bytes": 2106,
+    "sha256": "e150fa2550ee2e6d11461f0b4efe8a9c83c9022bfbc82a88015d939825d27186",
+    "mtimeUtc": "2026-09-26T20:14:24.691733+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/076.log",
+    "file": "stoneforge-merge-check-g8qBfX--076.log.gz",
+    "bytes": 998,
+    "sha256": "96c7514f6df394bc5164168b168c62158b90ce28413cb3c7fffef2ec5a6d03e8",
+    "mtimeUtc": "2026-09-26T20:12:57.000480+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/062.log",
+    "file": "stoneforge-merge-check-g8qBfX--062.log.gz",
+    "bytes": 3228,
+    "sha256": "7cbcf3b85fe4bccb6d93dfc43b9c8b05f14e3493d51df06453d5ff65d761bd68",
+    "mtimeUtc": "2026-09-26T20:12:13.176903+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/089.log",
+    "file": "stoneforge-merge-check-g8qBfX--089.log.gz",
+    "bytes": 2166,
+    "sha256": "d782c344ba19974858d97089154a15a0cf57cf0381c5804890fb8f370626e40c",
+    "mtimeUtc": "2026-09-26T20:14:09.754394+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/088.log",
+    "file": "stoneforge-merge-check-g8qBfX--088.log.gz",
+    "bytes": 7173,
+    "sha256": "82f35fc93cc2d0c9288875baf2dfa8522833d6f67ad3a5346b741d170210980b",
+    "mtimeUtc": "2026-09-26T20:13:04.291236+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/063.log",
+    "file": "stoneforge-merge-check-g8qBfX--063.log.gz",
+    "bytes": 2048,
+    "sha256": "f87aa55167eb89ea80fac6164ccc78e4594e4556b0ebb663c75a5d33dcac8c74",
+    "mtimeUtc": "2026-09-26T20:12:13.416202+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/077.log",
+    "file": "stoneforge-merge-check-g8qBfX--077.log.gz",
+    "bytes": 5315,
+    "sha256": "ea24c46e8fc4671bb49ba4b09817afcc41d6f473679ea5c5a43479fcbc5aa5cc",
+    "mtimeUtc": "2026-09-26T20:12:58.270911+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/117.log",
+    "file": "stoneforge-merge-check-g8qBfX--117.log.gz",
+    "bytes": 9893,
+    "sha256": "88bea31d9addefc6a5706bce11ed0801191812b14ad81bbb8bc2af55a5e6f68a",
+    "mtimeUtc": "2026-09-26T20:14:25.846235+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/103.log",
+    "file": "stoneforge-merge-check-g8qBfX--103.log.gz",
+    "bytes": 3407,
+    "sha256": "871def5e9de41924c7da4ddf7ad3e1c499bc06f8a6706685816ec1eabf60d8f7",
+    "mtimeUtc": "2026-09-26T20:14:10.676156+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/107.log",
+    "file": "stoneforge-merge-check-g8qBfX--107.log.gz",
+    "bytes": 4610,
+    "sha256": "943407ddd824e9783973730c548d9d9565fc314d5d93e0941f2aedef5fb2e4c2",
+    "mtimeUtc": "2026-09-26T20:14:12.511163+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/113.log",
+    "file": "stoneforge-merge-check-g8qBfX--113.log.gz",
+    "bytes": 18089,
+    "sha256": "4abe0ed3c6a108c8e7b338348045bb63b82145d8bc68fed1d59f45ca195bb50c",
+    "mtimeUtc": "2026-09-26T20:14:22.914601+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/073.log",
+    "file": "stoneforge-merge-check-g8qBfX--073.log.gz",
+    "bytes": 1399,
+    "sha256": "eda31735896bbd21cbf55a32dacc10a7e5c5833c110d33773371bef4c6028955",
+    "mtimeUtc": "2026-09-26T20:12:17.066697+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/067.log",
+    "file": "stoneforge-merge-check-g8qBfX--067.log.gz",
+    "bytes": 1288,
+    "sha256": "fe2497ed1744c218b43c73a7d2671d47383376a20ddfa0944ac7bf0bd318f0ee",
+    "mtimeUtc": "2026-09-26T20:12:15.098021+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/098.log",
+    "file": "stoneforge-merge-check-g8qBfX--098.log.gz",
+    "bytes": 1345,
+    "sha256": "9df1b449871676cae5d5f9c37b344ebbb4a2a23fbaca487b690ec19a24836b59",
+    "mtimeUtc": "2026-09-26T20:14:10.254751+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/099.log",
+    "file": "stoneforge-merge-check-g8qBfX--099.log.gz",
+    "bytes": 6052,
+    "sha256": "ec8f13d49d949ceeec4bf276e1ac52618c85dd15703ea086b7be7a1c98fbc105",
+    "mtimeUtc": "2026-09-26T20:14:10.339980+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/066.log",
+    "file": "stoneforge-merge-check-g8qBfX--066.log.gz",
+    "bytes": 3127,
+    "sha256": "c8d6b73a7f1fe1d55e916ed8f2afb4f5966be1035b38e563f9afc2f80a729cf8",
+    "mtimeUtc": "2026-09-26T20:12:14.895468+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/072.log",
+    "file": "stoneforge-merge-check-g8qBfX--072.log.gz",
+    "bytes": 2971,
+    "sha256": "40a805a692f1a1caf3d822cd6def13046777b3fed6a6ad3fc121a20a64992829",
+    "mtimeUtc": "2026-09-26T20:12:16.865960+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/112.log",
+    "file": "stoneforge-merge-check-g8qBfX--112.log.gz",
+    "bytes": 6603,
+    "sha256": "c49567fa48a6e23da00b4ca232762829b295182f0f0bbfb002eb65f1f348564c",
+    "mtimeUtc": "2026-09-26T20:14:22.828879+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/106.log",
+    "file": "stoneforge-merge-check-g8qBfX--106.log.gz",
+    "bytes": 3176,
+    "sha256": "b99981d70d1df9261adf36373498585d954c8522e874dca9cd00b4bfdcb69a8b",
+    "mtimeUtc": "2026-09-26T20:14:12.470375+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/138.log",
+    "file": "stoneforge-merge-check-g8qBfX--138.log.gz",
+    "bytes": 1395,
+    "sha256": "8eea6560c5ebaef1471ebee595cc7df2332598953ce221c2ec18e67d0aaadfdc",
+    "mtimeUtc": "2026-09-26T20:15:38.375331+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/110.log",
+    "file": "stoneforge-merge-check-g8qBfX--110.log.gz",
+    "bytes": 2277,
+    "sha256": "a70b9f191762adfe8456c18171bf083fd4636689da4f6201b496757db9971f8c",
+    "mtimeUtc": "2026-09-26T20:14:12.676086+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/104.log",
+    "file": "stoneforge-merge-check-g8qBfX--104.log.gz",
+    "bytes": 3619,
+    "sha256": "f83675031f47804481e4c40b60eda257bf3e52f5a0175f38e295b1fe4d0e241f",
+    "mtimeUtc": "2026-09-26T20:14:12.075893+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/058.log",
+    "file": "stoneforge-merge-check-g8qBfX--058.log.gz",
+    "bytes": 1041,
+    "sha256": "f6f90bf207f61d34c22434d050100680829869ad78d1ed9262d2590cbd13bd3e",
+    "mtimeUtc": "2026-09-26T20:12:11.914560+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/064.log",
+    "file": "stoneforge-merge-check-g8qBfX--064.log.gz",
+    "bytes": 6071,
+    "sha256": "6386c5738ea62f7ea269af201e9e311272e86dc19e8ff76dad7168eb824b85f7",
+    "mtimeUtc": "2026-09-26T20:12:14.020575+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/070.log",
+    "file": "stoneforge-merge-check-g8qBfX--070.log.gz",
+    "bytes": 4071,
+    "sha256": "99b78f76cf944b36c7c66bc7f109cfed8cd1ed894a904638f8857eab4d525058",
+    "mtimeUtc": "2026-09-26T20:12:15.941602+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/071.log",
+    "file": "stoneforge-merge-check-g8qBfX--071.log.gz",
+    "bytes": 6467,
+    "sha256": "96978da63e531bda011af5b1d1bbbd59308b1d910ab80300a7cc3dfe9e7617dc",
+    "mtimeUtc": "2026-09-26T20:12:16.551132+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/065.log",
+    "file": "stoneforge-merge-check-g8qBfX--065.log.gz",
+    "bytes": 6927,
+    "sha256": "e4e966b990849ce2a0f9af2f7d9b4d4584450649f1a20db35f911fb3f9f075e8",
+    "mtimeUtc": "2026-09-26T20:12:14.600539+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/059.log",
+    "file": "stoneforge-merge-check-g8qBfX--059.log.gz",
+    "bytes": 1190,
+    "sha256": "ca30a2312d212750d9f362c139ca097d92da4383343fac92fb85930ab5168394",
+    "mtimeUtc": "2026-09-26T20:12:11.938424+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/105.log",
+    "file": "stoneforge-merge-check-g8qBfX--105.log.gz",
+    "bytes": 4747,
+    "sha256": "145d7c38db5e852180340b0a09d66e453f3e4efa8e9c30d260f7a43ac9c4573a",
+    "mtimeUtc": "2026-09-26T20:14:12.281413+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/111.log",
+    "file": "stoneforge-merge-check-g8qBfX--111.log.gz",
+    "bytes": 12561,
+    "sha256": "cfc4580958fc21bf458a03e7a1923179ee7ba2cfec5d876f4374f52eb511a98a",
+    "mtimeUtc": "2026-09-26T20:14:12.716421+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/139.log",
+    "file": "stoneforge-merge-check-g8qBfX--139.log.gz",
+    "bytes": 3809,
+    "sha256": "6f05eb65ca41fcee09b039c3402b71f547dccb1c0a17dfe0700db2b8022e2350",
+    "mtimeUtc": "2026-09-26T20:16:05.169213+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/176.log",
+    "file": "stoneforge-merge-check-g8qBfX--176.log.gz",
+    "bytes": 2535,
+    "sha256": "d1b4e6491d376e9d62d7fab388f8ae07042d8fc845a40cbd1ac3cf93a79ed68c",
+    "mtimeUtc": "2026-09-26T20:17:16.010242+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/162.log",
+    "file": "stoneforge-merge-check-g8qBfX--162.log.gz",
+    "bytes": 652,
+    "sha256": "86de1edf2a890c8f001b9d95fb36bb8638d3bea5efc33e0ddfe507ff6934b8e6",
+    "mtimeUtc": "2026-09-26T20:17:02.130392+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/189.log",
+    "file": "stoneforge-merge-check-g8qBfX--189.log.gz",
+    "bytes": 1851,
+    "sha256": "36484ad74c27a3705ac585fb0bcca936ff50fba23b5ad7075d3febed0001962f",
+    "mtimeUtc": "2026-09-26T20:17:47.999923+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/002.log",
+    "file": "stoneforge-merge-check-g8qBfX--002.log.gz",
+    "bytes": 7169,
+    "sha256": "decab4bf79bf51840111b7f591c3e57e8cd79950bc804e5d3b45d19f8c30f725",
+    "mtimeUtc": "2026-09-26T20:11:42.247492+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/016.log",
+    "file": "stoneforge-merge-check-g8qBfX--016.log.gz",
+    "bytes": 4155,
+    "sha256": "ecdc1193f8567f5348de79ca0932041ba268d9f807f255c46a129d87c0a2ac49",
+    "mtimeUtc": "2026-09-26T20:11:45.910634+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/017.log",
+    "file": "stoneforge-merge-check-g8qBfX--017.log.gz",
+    "bytes": 3883,
+    "sha256": "f5df5ab1a13b291a720328e03fab339797c9d90c60e105577309cc8037f04124",
+    "mtimeUtc": "2026-09-26T20:11:45.947425+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/003.log",
+    "file": "stoneforge-merge-check-g8qBfX--003.log.gz",
+    "bytes": 284,
+    "sha256": "e2b541a1722f4633263b7f8767e546320c6495c5204ff53a92be34e2aeaa4b83",
+    "mtimeUtc": "2026-09-26T20:11:43.045043+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/188.log",
+    "file": "stoneforge-merge-check-g8qBfX--188.log.gz",
+    "bytes": 22010,
+    "sha256": "51a8a9ff9a8331c2b5e914f303cbabbd9fb85f89c145665ecc5900f3af9d2e7a",
+    "mtimeUtc": "2026-09-26T20:17:41.702543+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/163.log",
+    "file": "stoneforge-merge-check-g8qBfX--163.log.gz",
+    "bytes": 1567,
+    "sha256": "c59a8eb45594df98207d148ce7534f8fe50fb5770c4ef5df4cd095b35bbc59db",
+    "mtimeUtc": "2026-09-26T20:17:02.160202+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/177.log",
+    "file": "stoneforge-merge-check-g8qBfX--177.log.gz",
+    "bytes": 3760,
+    "sha256": "494aa2ce6d3c3251fa3f4b0685d1a88f277408b32f6cacbeb7de0249f79b0e3f",
+    "mtimeUtc": "2026-09-26T20:17:16.197213+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/161.log",
+    "file": "stoneforge-merge-check-g8qBfX--161.log.gz",
+    "bytes": 434,
+    "sha256": "68806d85737e60a29170eb65ef4d02f3a426966a1e657dd42ae3d0d5d19d1210",
+    "mtimeUtc": "2026-09-26T20:17:01.985190+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/175.log",
+    "file": "stoneforge-merge-check-g8qBfX--175.log.gz",
+    "bytes": 1110,
+    "sha256": "43e931f0c83ef9328b61359cba631fce90694444cc65c9461b96d51e76336d12",
+    "mtimeUtc": "2026-09-26T20:17:15.823556+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/149.log",
+    "file": "stoneforge-merge-check-g8qBfX--149.log.gz",
+    "bytes": 4573,
+    "sha256": "27008c878214cadf761e8434a61222d14d2ee6d7024854bc8b8df0c4e0f4e2c6",
+    "mtimeUtc": "2026-09-26T20:16:53.326234+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/015.log",
+    "file": "stoneforge-merge-check-g8qBfX--015.log.gz",
+    "bytes": 10565,
+    "sha256": "5259f4bd879f763f5335f761b99d79997edf77f353ac613f6dba8abe2f29556b",
+    "mtimeUtc": "2026-09-26T20:11:45.880589+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/001.log",
+    "file": "stoneforge-merge-check-g8qBfX--001.log.gz",
+    "bytes": 1063,
+    "sha256": "ff52eee96b53e7756ab2b535f7dc48f3d0f1c694a09c071acb44b310ae519e27",
+    "mtimeUtc": "2026-09-26T20:10:18.054831+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/029.log",
+    "file": "stoneforge-merge-check-g8qBfX--029.log.gz",
+    "bytes": 6871,
+    "sha256": "6bb6538f9f781189331a06992d7c9f40558cab60ccd3083d5e27818dda962f49",
+    "mtimeUtc": "2026-09-26T20:11:48.207854+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/028.log",
+    "file": "stoneforge-merge-check-g8qBfX--028.log.gz",
+    "bytes": 2981,
+    "sha256": "e1dd65c011c6d5f28754903c756b086005f63b26e79fc0abcb11b27ae2ed046b",
+    "mtimeUtc": "2026-09-26T20:11:47.772909+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/014.log",
+    "file": "stoneforge-merge-check-g8qBfX--014.log.gz",
+    "bytes": 32295,
+    "sha256": "52d9313b24b821f1c6c9436ab4ed953837979d10e1530c741489562fb854febd",
+    "mtimeUtc": "2026-09-26T20:11:45.838115+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/148.log",
+    "file": "stoneforge-merge-check-g8qBfX--148.log.gz",
+    "bytes": 1625,
+    "sha256": "1644a014376872b6f1cc980d9b5f84a383e4306ee9f8c6de7779f7dbf71984ad",
+    "mtimeUtc": "2026-09-26T20:16:53.310696+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/174.log",
+    "file": "stoneforge-merge-check-g8qBfX--174.log.gz",
+    "bytes": 2742,
+    "sha256": "a508ea0ea40e72149aadb2d9308e54b8a0604408e1179ad606e7ba5fbd4d0bc5",
+    "mtimeUtc": "2026-09-26T20:17:15.679456+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/160.log",
+    "file": "stoneforge-merge-check-g8qBfX--160.log.gz",
+    "bytes": 7313,
+    "sha256": "3d66bd6736152f55bc68e2ef5f81434a5e82abc8373db7397cba096467aa5da0",
+    "mtimeUtc": "2026-09-26T20:17:01.879556+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/158.log",
+    "file": "stoneforge-merge-check-g8qBfX--158.log.gz",
+    "bytes": 3090,
+    "sha256": "494df0ecd6874560c8ec1e3e59ff29be5e637158a230299cab05d6d1e30ba41a",
+    "mtimeUtc": "2026-09-26T20:16:54.259615+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/164.log",
+    "file": "stoneforge-merge-check-g8qBfX--164.log.gz",
+    "bytes": 470,
+    "sha256": "a25526f133a3f29641dc5f243b3be27ae422c8a6dc9454d891cdaf26449bcab8",
+    "mtimeUtc": "2026-09-26T20:17:02.303049+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/170.log",
+    "file": "stoneforge-merge-check-g8qBfX--170.log.gz",
+    "bytes": 3036,
+    "sha256": "b07c80f378a4c63856735ac8330eba5271f93d5c32d9f6ad21c48262fc96b0e4",
+    "mtimeUtc": "2026-09-26T20:17:14.327115+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/038.log",
+    "file": "stoneforge-merge-check-g8qBfX--038.log.gz",
+    "bytes": 1838,
+    "sha256": "deced7ac6b3afb9e670e4a415ae758dcd7a355fb56225ca406731a6b2877b9f2",
+    "mtimeUtc": "2026-09-26T20:11:50.596774+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/010.log",
+    "file": "stoneforge-merge-check-g8qBfX--010.log.gz",
+    "bytes": 9901,
+    "sha256": "450208d0767a4c6a82de9171c8ba00ddb1117e9c777f8f6e5462239c16dfab95",
+    "mtimeUtc": "2026-09-26T20:11:45.632084+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/004.log",
+    "file": "stoneforge-merge-check-g8qBfX--004.log.gz",
+    "bytes": 1255,
+    "sha256": "9a08fab286e8bb0b62f6601569bfc0ca9a9f8c00ac22a6cdb7f6343affb1b227",
+    "mtimeUtc": "2026-09-26T20:11:45.382509+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/005.log",
+    "file": "stoneforge-merge-check-g8qBfX--005.log.gz",
+    "bytes": 1430,
+    "sha256": "978f7f61515d9bb216a193fbe42bebaa6f25033e1285f1f967bac097a6cc9afd",
+    "mtimeUtc": "2026-09-26T20:11:45.403743+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/011.log",
+    "file": "stoneforge-merge-check-g8qBfX--011.log.gz",
+    "bytes": 11899,
+    "sha256": "4f1db379910ea0b1e9f0fb3aa64d0836d3aae6f9c86514ad91b7b4bbd3f44b11",
+    "mtimeUtc": "2026-09-26T20:11:45.674779+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/039.log",
+    "file": "stoneforge-merge-check-g8qBfX--039.log.gz",
+    "bytes": 2278,
+    "sha256": "c6b73a06867865c9671b023fd14d83997e92280b7c8226a28168a529c37aa80f",
+    "mtimeUtc": "2026-09-26T20:11:50.890262+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/171.log",
+    "file": "stoneforge-merge-check-g8qBfX--171.log.gz",
+    "bytes": 1504,
+    "sha256": "c8204de995b0857873b6d9ef0be05babe962f5402e36d0e65043ee425761906d",
+    "mtimeUtc": "2026-09-26T20:17:14.480227+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/165.log",
+    "file": "stoneforge-merge-check-g8qBfX--165.log.gz",
+    "bytes": 5373,
+    "sha256": "c4af20cdfa4a5a861cf005adf2d5f96d290d27728113fc867a07bde98e971a49",
+    "mtimeUtc": "2026-09-26T20:17:02.515519+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/159.log",
+    "file": "stoneforge-merge-check-g8qBfX--159.log.gz",
+    "bytes": 30482,
+    "sha256": "bc41926beda3ab07e69cfc8e6e2ad99db170a8bea62b0e67538cdc63b521e823",
+    "mtimeUtc": "2026-09-26T20:17:00.247586+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/173.log",
+    "file": "stoneforge-merge-check-g8qBfX--173.log.gz",
+    "bytes": 3888,
+    "sha256": "1070465bc169c329b388359df197f72b7648b2bd8bfd66b50343e2d642970d70",
+    "mtimeUtc": "2026-09-26T20:17:15.419740+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/167.log",
+    "file": "stoneforge-merge-check-g8qBfX--167.log.gz",
+    "bytes": 16054,
+    "sha256": "79211b31497da1b214f989af659ec7c25e71689219fe4932e8f828f8f9fe745f",
+    "mtimeUtc": "2026-09-26T20:17:10.336138+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/007.log",
+    "file": "stoneforge-merge-check-g8qBfX--007.log.gz",
+    "bytes": 3067,
+    "sha256": "e1c5083c351524cc70d9dfcbe30c1b2eb78230d2123abb0a3982979c7dd26e04",
+    "mtimeUtc": "2026-09-26T20:11:45.489885+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/013.log",
+    "file": "stoneforge-merge-check-g8qBfX--013.log.gz",
+    "bytes": 4230,
+    "sha256": "56e77b639d5bd4cae059c1a0d732467cb7b07b998fda56647f65097f7ed82426",
+    "mtimeUtc": "2026-09-26T20:11:45.782804+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/012.log",
+    "file": "stoneforge-merge-check-g8qBfX--012.log.gz",
+    "bytes": 10997,
+    "sha256": "437069c5d588e2cfe3aa487348c4528c219f1db3e06ccf3442d1fe7d92a2d110",
+    "mtimeUtc": "2026-09-26T20:11:45.745708+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/006.log",
+    "file": "stoneforge-merge-check-g8qBfX--006.log.gz",
+    "bytes": 2805,
+    "sha256": "d5893a2d796c68f68e259ce385f0a3163a0eac7363c4052456c27436bb1c3718",
+    "mtimeUtc": "2026-09-26T20:11:45.445896+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/166.log",
+    "file": "stoneforge-merge-check-g8qBfX--166.log.gz",
+    "bytes": 1301,
+    "sha256": "6d77e9c45a00ea1a7dc9a427babe1070d604965ad4c57e352200e4dbf7a06a5d",
+    "mtimeUtc": "2026-09-26T20:17:02.636254+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/172.log",
+    "file": "stoneforge-merge-check-g8qBfX--172.log.gz",
+    "bytes": 4887,
+    "sha256": "d54b2422d276d9872ad8ad88253a9d51644f9e835c4fc413ed7db99f9344df9b",
+    "mtimeUtc": "2026-09-26T20:17:15.317261+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/results.json",
+    "file": "stoneforge-merge-check-g8qBfX--results.json.gz",
+    "bytes": 64793,
+    "sha256": "746fac8960f1d763f19f02276afee2d35bd9e5d9d60322b98781a1ebce19666e",
+    "mtimeUtc": "2026-09-26T20:17:48.010909+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/157.log",
+    "file": "stoneforge-merge-check-GPBE9u--157.log.gz",
+    "bytes": 2007,
+    "sha256": "16f3ff83efeb08473688100733cef975d5c10616b85065806d9d668c0b8e294e",
+    "mtimeUtc": "2026-09-26T20:17:57.400550+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/143.log",
+    "file": "stoneforge-merge-check-GPBE9u--143.log.gz",
+    "bytes": 5808,
+    "sha256": "c13c8a85b6f792d8678532b686e2c169b56935fbc3293d476240a005ac1d1838",
+    "mtimeUtc": "2026-09-26T20:17:56.990559+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/180.log",
+    "file": "stoneforge-merge-check-GPBE9u--180.log.gz",
+    "bytes": 3620,
+    "sha256": "ef750abdd207146fd9b51bdc2ab77e005c6946e8d758f81448ed133b0a6d5c70",
+    "mtimeUtc": "2026-09-26T20:18:34.630028+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/023.log",
+    "file": "stoneforge-merge-check-GPBE9u--023.log.gz",
+    "bytes": 8853,
+    "sha256": "694123f006283972aa7d512e8e8b13bcc2b8b612168ec517cc4181a2bb2ce1c2",
+    "mtimeUtc": "2026-09-26T20:14:52.281659+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/037.log",
+    "file": "stoneforge-merge-check-GPBE9u--037.log.gz",
+    "bytes": 2122,
+    "sha256": "15d027d23fcc9569abb86ce6882716510b58e82ca05ffa7fbfdb0173abcc97cb",
+    "mtimeUtc": "2026-09-26T20:14:55.074557+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/036.log",
+    "file": "stoneforge-merge-check-GPBE9u--036.log.gz",
+    "bytes": 643,
+    "sha256": "68cafb14a2a73565678e72c644ea4a9a21950df21e954b2e16b37f4bba2d4260",
+    "mtimeUtc": "2026-09-26T20:14:54.891308+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/022.log",
+    "file": "stoneforge-merge-check-GPBE9u--022.log.gz",
+    "bytes": 20706,
+    "sha256": "702a4bad83f589277645f1338044c4c65e70a6bc1c204e7e2532b50a865566bc",
+    "mtimeUtc": "2026-09-26T20:14:52.221964+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/181.log",
+    "file": "stoneforge-merge-check-GPBE9u--181.log.gz",
+    "bytes": 6852,
+    "sha256": "0d0769a3196834700ee953a3963eefa9fa4efb95ffc4a0b7b11b4319bcf84e67",
+    "mtimeUtc": "2026-09-26T20:18:42.294872+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/142.log",
+    "file": "stoneforge-merge-check-GPBE9u--142.log.gz",
+    "bytes": 7086,
+    "sha256": "1869d5cb7a4ec52d65a54624080cc137016aaa739cf449898be5536770ac32eb",
+    "mtimeUtc": "2026-09-26T20:17:56.964654+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/156.log",
+    "file": "stoneforge-merge-check-GPBE9u--156.log.gz",
+    "bytes": 1508,
+    "sha256": "6390c56d584868b3136726e7f9e42a44b036d86a1a1157b455f9de504070d8a8",
+    "mtimeUtc": "2026-09-26T20:17:57.355062+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/140.log",
+    "file": "stoneforge-merge-check-GPBE9u--140.log.gz",
+    "bytes": 650,
+    "sha256": "2ba7858e6a07c3a0e5881b8d0045ba1804b1157344f56684a256ef73fd7260cb",
+    "mtimeUtc": "2026-09-26T20:17:19.321571+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/154.log",
+    "file": "stoneforge-merge-check-GPBE9u--154.log.gz",
+    "bytes": 1011,
+    "sha256": "9f86f2e32e8773b90a5c17c3d06193bbf48df7968d62c54bc5dbf99ab7d726eb",
+    "mtimeUtc": "2026-09-26T20:17:57.331692+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/168.log",
+    "file": "stoneforge-merge-check-GPBE9u--168.log.gz",
+    "bytes": 55435,
+    "sha256": "54743e3751f96f35f6c2cb5121e32bb579c3654293ad719593d8d6af606008d7",
+    "mtimeUtc": "2026-09-26T20:18:15.052002+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/183.log",
+    "file": "stoneforge-merge-check-GPBE9u--183.log.gz",
+    "bytes": 2109,
+    "sha256": "3409a3a5ddddcd30d494a8971aa8c25c1a3cd1373e062d2ef715ec2c28441fd6",
+    "mtimeUtc": "2026-09-26T20:18:42.418556+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/034.log",
+    "file": "stoneforge-merge-check-GPBE9u--034.log.gz",
+    "bytes": 3036,
+    "sha256": "faf6e3440d1820b4d012b4d6e2980862a8150074f4688770490629668a296417",
+    "mtimeUtc": "2026-09-26T20:14:53.994039+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/020.log",
+    "file": "stoneforge-merge-check-GPBE9u--020.log.gz",
+    "bytes": 6837,
+    "sha256": "47a6d8d7796bf9ebdec48f5eeb3926ea786893ef00d185a612dc8db034c99f71",
+    "mtimeUtc": "2026-09-26T20:14:50.716465+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/008.log",
+    "file": "stoneforge-merge-check-GPBE9u--008.log.gz",
+    "bytes": 3876,
+    "sha256": "6829ce708068981022e4eebe14f630243f219a87c1fbb77a5f093a3eb66edacc",
+    "mtimeUtc": "2026-09-26T20:14:49.887421+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/009.log",
+    "file": "stoneforge-merge-check-GPBE9u--009.log.gz",
+    "bytes": 7232,
+    "sha256": "93b0ace3291d7a4cb4591406797078153a315559e8d97330974be2b5600799af",
+    "mtimeUtc": "2026-09-26T20:14:49.953698+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/021.log",
+    "file": "stoneforge-merge-check-GPBE9u--021.log.gz",
+    "bytes": 7961,
+    "sha256": "845f1d726f1fd899ebe4b72706ebc6e91bcf317c9f07985bab7cea7eff3e38a8",
+    "mtimeUtc": "2026-09-26T20:14:52.139662+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/035.log",
+    "file": "stoneforge-merge-check-GPBE9u--035.log.gz",
+    "bytes": 10563,
+    "sha256": "5ba9e3fb6fec0f78e2e01b1e0d2fbb2925904b3de18bafaafc507a886dfc4dbc",
+    "mtimeUtc": "2026-09-26T20:14:54.741427+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/182.log",
+    "file": "stoneforge-merge-check-GPBE9u--182.log.gz",
+    "bytes": 1396,
+    "sha256": "2e38a27da0bb7c9d4e176fa94ed73dc424905de11b35316ca7ef70ef9e6a46ee",
+    "mtimeUtc": "2026-09-26T20:18:42.404277+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/169.log",
+    "file": "stoneforge-merge-check-GPBE9u--169.log.gz",
+    "bytes": 1169,
+    "sha256": "9f33b44cc6d6b1381cb6c8d4ef40fa93e19c618b081c009f7dfd4fd0060ead69",
+    "mtimeUtc": "2026-09-26T20:18:15.178237+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/155.log",
+    "file": "stoneforge-merge-check-GPBE9u--155.log.gz",
+    "bytes": 1212,
+    "sha256": "c2d746fed17abe112b817456e72b92ecaf4307b454c7bd42b7e9258a004a16be",
+    "mtimeUtc": "2026-09-26T20:17:57.343172+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/141.log",
+    "file": "stoneforge-merge-check-GPBE9u--141.log.gz",
+    "bytes": 2328,
+    "sha256": "3a3a892def9303025be4fce9ca4527ccbe1a8e1371528c05cbc2b27bec5988ae",
+    "mtimeUtc": "2026-09-26T20:17:44.251607+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/179.log",
+    "file": "stoneforge-merge-check-GPBE9u--179.log.gz",
+    "bytes": 5883,
+    "sha256": "86cefe6faf1ce7ea911a3b37595790232f8f3fa3dd534692ad2e30206f7ee931",
+    "mtimeUtc": "2026-09-26T20:18:31.936371+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/145.log",
+    "file": "stoneforge-merge-check-GPBE9u--145.log.gz",
+    "bytes": 2424,
+    "sha256": "42fe84c7af68142ade32caffc378e6c2fbcf5981b4162d947a6b3f19a9eac394",
+    "mtimeUtc": "2026-09-26T20:17:57.032898+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/151.log",
+    "file": "stoneforge-merge-check-GPBE9u--151.log.gz",
+    "bytes": 2737,
+    "sha256": "8524d54f0c8ad02c8c19d7790f5f2ba86cdbe5545f688a5083801121185020c5",
+    "mtimeUtc": "2026-09-26T20:17:57.283560+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/186.log",
+    "file": "stoneforge-merge-check-GPBE9u--186.log.gz",
+    "bytes": 3160,
+    "sha256": "e1742b411490f2b64f619271e0f22310c4f0f58efefdc021d7df5a588d22c3b9",
+    "mtimeUtc": "2026-09-26T20:18:42.490322+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/019.log",
+    "file": "stoneforge-merge-check-GPBE9u--019.log.gz",
+    "bytes": 7130,
+    "sha256": "0a1fb32b2f17e5ed57996b84ed66b3f9ba6ebd326c341f820904442e108b838e",
+    "mtimeUtc": "2026-09-26T20:14:50.668488+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/031.log",
+    "file": "stoneforge-merge-check-GPBE9u--031.log.gz",
+    "bytes": 3082,
+    "sha256": "af939227c3d25b118b56a8d93930cdcd378392f7d8810a55f65c6b98f582db67",
+    "mtimeUtc": "2026-09-26T20:14:53.256040+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/025.log",
+    "file": "stoneforge-merge-check-GPBE9u--025.log.gz",
+    "bytes": 5597,
+    "sha256": "b109d7134ac8cf34b71dc53f1f19c9f762f65fe2e2292d1a515fd0e234779159",
+    "mtimeUtc": "2026-09-26T20:14:52.441976+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/024.log",
+    "file": "stoneforge-merge-check-GPBE9u--024.log.gz",
+    "bytes": 8867,
+    "sha256": "6d5033385e6a24cf3d35f6a6c18590329ea6fbaa756a3d29b57974d6087b0019",
+    "mtimeUtc": "2026-09-26T20:14:52.358646+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/030.log",
+    "file": "stoneforge-merge-check-GPBE9u--030.log.gz",
+    "bytes": 2060,
+    "sha256": "6f0f7913d69f7eedcbedaf2f4baf17714915c5078ef151984786081f3822d164",
+    "mtimeUtc": "2026-09-26T20:14:53.023565+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/018.log",
+    "file": "stoneforge-merge-check-GPBE9u--018.log.gz",
+    "bytes": 7934,
+    "sha256": "942d16940461036e4239d46bc7d0815e21783e1c69c8bd0f375b8537eca73257",
+    "mtimeUtc": "2026-09-26T20:14:50.607643+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/187.log",
+    "file": "stoneforge-merge-check-GPBE9u--187.log.gz",
+    "bytes": 5799,
+    "sha256": "6f50d2973894063838b0881d6fe87a22d69e7731e0146c96d769b95c4f0e09a8",
+    "mtimeUtc": "2026-09-26T20:18:42.522078+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/150.log",
+    "file": "stoneforge-merge-check-GPBE9u--150.log.gz",
+    "bytes": 1706,
+    "sha256": "010cb1239b7a6488426f4ccc0286bda1f718549f21364bc3c84ca9b679f09c0a",
+    "mtimeUtc": "2026-09-26T20:17:57.260998+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/144.log",
+    "file": "stoneforge-merge-check-GPBE9u--144.log.gz",
+    "bytes": 706,
+    "sha256": "cd7fd8de86bd8e577a92449c3f27afa4d275cd8f73c11679a70e35e6ac1af693",
+    "mtimeUtc": "2026-09-26T20:17:57.002744+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/178.log",
+    "file": "stoneforge-merge-check-GPBE9u--178.log.gz",
+    "bytes": 1912,
+    "sha256": "10fa99d449b9d3ef24329068e9f5f3016c69c2f79ce366532f6e084f9dddcae0",
+    "mtimeUtc": "2026-09-26T20:18:22.094371+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/152.log",
+    "file": "stoneforge-merge-check-GPBE9u--152.log.gz",
+    "bytes": 502,
+    "sha256": "16f2f63b1b80c8cca510a92d1cec1724e6f1e29704583e8ee791bba6c13c8619",
+    "mtimeUtc": "2026-09-26T20:17:57.302311+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/146.log",
+    "file": "stoneforge-merge-check-GPBE9u--146.log.gz",
+    "bytes": 730,
+    "sha256": "fe322a0de8555e4ffa17d34f269776e32c68e4ecbc4c5d8cf19119758bae6ad6",
+    "mtimeUtc": "2026-09-26T20:17:57.107218+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/185.log",
+    "file": "stoneforge-merge-check-GPBE9u--185.log.gz",
+    "bytes": 2395,
+    "sha256": "2052181a4e5c49b4f94c6bce01f9d02b8fb38252223bcecd383bc1ff37d873d7",
+    "mtimeUtc": "2026-09-26T20:18:42.476533+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/026.log",
+    "file": "stoneforge-merge-check-GPBE9u--026.log.gz",
+    "bytes": 8339,
+    "sha256": "877a74805cef4920788c9d81815145bf3a29bf73378ef20afe502b0a31e1afdb",
+    "mtimeUtc": "2026-09-26T20:14:52.496197+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/032.log",
+    "file": "stoneforge-merge-check-GPBE9u--032.log.gz",
+    "bytes": 4811,
+    "sha256": "c775b17d46c9b9dd2fd0fba069ed4939cedacdcdc43cb3823058b8ed83a43288",
+    "mtimeUtc": "2026-09-26T20:14:53.542974+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/033.log",
+    "file": "stoneforge-merge-check-GPBE9u--033.log.gz",
+    "bytes": 1656,
+    "sha256": "abab8475f61c01f16b19b37dd488b06080c5e85f572757648e9514b55a4ec20c",
+    "mtimeUtc": "2026-09-26T20:14:53.741547+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/027.log",
+    "file": "stoneforge-merge-check-GPBE9u--027.log.gz",
+    "bytes": 5891,
+    "sha256": "6d06eee9bce4b65a40f3f9256c9d67e4e71506ac4a886cf5bd4011ae62efffa2",
+    "mtimeUtc": "2026-09-26T20:14:52.535564+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/184.log",
+    "file": "stoneforge-merge-check-GPBE9u--184.log.gz",
+    "bytes": 3242,
+    "sha256": "e37e1745b7adf4b18b059cd81af8fb7bc547bf589738ae92350e7ab2abc0f8df",
+    "mtimeUtc": "2026-09-26T20:18:42.462252+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/147.log",
+    "file": "stoneforge-merge-check-GPBE9u--147.log.gz",
+    "bytes": 1274,
+    "sha256": "bb8831d231714038995a9e5212c1a4ad1cd9421b370bdbec7eb638e54e5af928",
+    "mtimeUtc": "2026-09-26T20:17:57.129921+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/153.log",
+    "file": "stoneforge-merge-check-GPBE9u--153.log.gz",
+    "bytes": 3774,
+    "sha256": "5778b8ab13e3d83b14772523d5095f6b99d7b2a8d4fdc16ba5bb3735113b01e2",
+    "mtimeUtc": "2026-09-26T20:17:57.316985+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/134.log",
+    "file": "stoneforge-merge-check-GPBE9u--134.log.gz",
+    "bytes": 606,
+    "sha256": "dfea82a9f7a2737a1c69922ae5e2803c27b76334ce9e81804235119e9b58bf45",
+    "mtimeUtc": "2026-09-26T20:16:48.808642+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/120.log",
+    "file": "stoneforge-merge-check-GPBE9u--120.log.gz",
+    "bytes": 928,
+    "sha256": "5a42f71cc5d12274bb86ecebc13b892ccef8fddebda88f8edcc314850420c0de",
+    "mtimeUtc": "2026-09-26T20:16:18.248203+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/108.log",
+    "file": "stoneforge-merge-check-GPBE9u--108.log.gz",
+    "bytes": 3427,
+    "sha256": "e618b289c056fc055977e416e7e39b956b0e67c7147a624118a8ae195cdd8811",
+    "mtimeUtc": "2026-09-26T20:16:06.841194+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/040.log",
+    "file": "stoneforge-merge-check-GPBE9u--040.log.gz",
+    "bytes": 3335,
+    "sha256": "b59be3723facf96248371f145fe3237c94405ce70f801c449d1c3d9e66ef7786",
+    "mtimeUtc": "2026-09-26T20:14:55.651166+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/054.log",
+    "file": "stoneforge-merge-check-GPBE9u--054.log.gz",
+    "bytes": 358,
+    "sha256": "01e5be341562d09d6ea0b85714db36ff7f046966aac9450ead668d67b371fe52",
+    "mtimeUtc": "2026-09-26T20:15:12.455321+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/068.log",
+    "file": "stoneforge-merge-check-GPBE9u--068.log.gz",
+    "bytes": 1367,
+    "sha256": "a333ff477aa9a2b2bcdf1e24e21e462dec9b155071ae5616a9723434738aff57",
+    "mtimeUtc": "2026-09-26T20:15:17.264845+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/083.log",
+    "file": "stoneforge-merge-check-GPBE9u--083.log.gz",
+    "bytes": 3242,
+    "sha256": "2785e78e6f86957899433d3e1fe1815e7f7b563927711b3df4833de9037b167c",
+    "mtimeUtc": "2026-09-26T20:15:35.633152+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/097.log",
+    "file": "stoneforge-merge-check-GPBE9u--097.log.gz",
+    "bytes": 14543,
+    "sha256": "0d2b68077c386175b7729b569fb8d92470139a1c03fdc375fc04fada5b82387c",
+    "mtimeUtc": "2026-09-26T20:16:04.980889+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/096.log",
+    "file": "stoneforge-merge-check-GPBE9u--096.log.gz",
+    "bytes": 648,
+    "sha256": "7afdd09746d5f1b5de07800ec255f18dbdec8b34dffef99dc94941f02fe11ddc",
+    "mtimeUtc": "2026-09-26T20:16:04.911950+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/082.log",
+    "file": "stoneforge-merge-check-GPBE9u--082.log.gz",
+    "bytes": 7495,
+    "sha256": "e04aea620f7769cf8b64fdbf3c17f42c5e82d109c478dbcef3ea1c65f7c523e3",
+    "mtimeUtc": "2026-09-26T20:15:35.292090+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/069.log",
+    "file": "stoneforge-merge-check-GPBE9u--069.log.gz",
+    "bytes": 8290,
+    "sha256": "3537a22f53efc40f9e624b397acadf01727093ff7ccc8c421f724fdf54a87708",
+    "mtimeUtc": "2026-09-26T20:15:17.388553+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/055.log",
+    "file": "stoneforge-merge-check-GPBE9u--055.log.gz",
+    "bytes": 6254,
+    "sha256": "fef3dc2d17efe69a0952072b983df81a055fed811291a6906b41ce02c975cc75",
+    "mtimeUtc": "2026-09-26T20:15:12.715593+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/041.log",
+    "file": "stoneforge-merge-check-GPBE9u--041.log.gz",
+    "bytes": 1489,
+    "sha256": "622260cbd92c47ac3ec6415d2365dc587e556d09d8fcec71558d5b7fddca14b2",
+    "mtimeUtc": "2026-09-26T20:14:55.826564+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/109.log",
+    "file": "stoneforge-merge-check-GPBE9u--109.log.gz",
+    "bytes": 5319,
+    "sha256": "a368862ee6b92a87ddf9c173f84165a5ebac8c0ee5450ce89f203e7b5c1d3456",
+    "mtimeUtc": "2026-09-26T20:16:06.865217+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/121.log",
+    "file": "stoneforge-merge-check-GPBE9u--121.log.gz",
+    "bytes": 712,
+    "sha256": "58994bc12691125c8ed9a6241a91a8c3b3fb37a3071140f4b605b2d79c55aaaa",
+    "mtimeUtc": "2026-09-26T20:16:18.273707+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/135.log",
+    "file": "stoneforge-merge-check-GPBE9u--135.log.gz",
+    "bytes": 907,
+    "sha256": "2e2706bddead24a67b5a821ea3514a001b614c7fd088d8da09e2b8b0ad215774",
+    "mtimeUtc": "2026-09-26T20:16:48.874098+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/123.log",
+    "file": "stoneforge-merge-check-GPBE9u--123.log.gz",
+    "bytes": 1766,
+    "sha256": "cfddd43ae7858f9a08919371a565dcf0bd00b5babe6eca3465e920b111ea4814",
+    "mtimeUtc": "2026-09-26T20:16:18.878484+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/137.log",
+    "file": "stoneforge-merge-check-GPBE9u--137.log.gz",
+    "bytes": 1984,
+    "sha256": "ba2cda21670fdbe16cfed004eab7776cb0222bdbd30d056a7b70a6146bd67300",
+    "mtimeUtc": "2026-09-26T20:16:52.962011+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/057.log",
+    "file": "stoneforge-merge-check-GPBE9u--057.log.gz",
+    "bytes": 825,
+    "sha256": "5fe5f15ef5e3c8ec610da06aa5fa83847493f656b1ef27ca1106464f6cd0dfa8",
+    "mtimeUtc": "2026-09-26T20:15:13.008682+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/043.log",
+    "file": "stoneforge-merge-check-GPBE9u--043.log.gz",
+    "bytes": 4290,
+    "sha256": "943caf900b0ed7416c2a02fc2bc33f49dfbefb05933b0d0cc47e36dfb5bbf8ba",
+    "mtimeUtc": "2026-09-26T20:14:56.508531+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/094.log",
+    "file": "stoneforge-merge-check-GPBE9u--094.log.gz",
+    "bytes": 265,
+    "sha256": "7911a5497ea34a3cb8adc3cee82769e103b062e0e19ade1d0a46c566edec2b24",
+    "mtimeUtc": "2026-09-26T20:16:04.877185+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/080.log",
+    "file": "stoneforge-merge-check-GPBE9u--080.log.gz",
+    "bytes": 822,
+    "sha256": "30036c1d17625ace3b99d8cdad8903a0916a055ba6932daae666e4a1807a50ef",
+    "mtimeUtc": "2026-09-26T20:15:34.138999+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/081.log",
+    "file": "stoneforge-merge-check-GPBE9u--081.log.gz",
+    "bytes": 3699,
+    "sha256": "3633538b221d1bd2c515e7343c31bdb39db1ba6bd0531b7ba0d6ea2c2dc10a58",
+    "mtimeUtc": "2026-09-26T20:15:34.413032+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/095.log",
+    "file": "stoneforge-merge-check-GPBE9u--095.log.gz",
+    "bytes": 1647,
+    "sha256": "edb3690a9105e3931461218d55a7f8828d5a72e98065fdf01fbf4e0408019dda",
+    "mtimeUtc": "2026-09-26T20:16:04.892398+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/042.log",
+    "file": "stoneforge-merge-check-GPBE9u--042.log.gz",
+    "bytes": 1681,
+    "sha256": "fde2d76cc4affe32efaabb54dd249a46350a6db59bb7fbaa4c20e0b0c510e69a",
+    "mtimeUtc": "2026-09-26T20:14:56.097793+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/056.log",
+    "file": "stoneforge-merge-check-GPBE9u--056.log.gz",
+    "bytes": 2883,
+    "sha256": "4219773bea2e70a95937ab5449daf0e97ae02808d09e33864c70beddd4cca980",
+    "mtimeUtc": "2026-09-26T20:15:12.987952+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/136.log",
+    "file": "stoneforge-merge-check-GPBE9u--136.log.gz",
+    "bytes": 1030,
+    "sha256": "eeb38a1e392ef026d02932ab0ff331fbee539f20a6610094985d6198a725843c",
+    "mtimeUtc": "2026-09-26T20:16:52.898835+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/122.log",
+    "file": "stoneforge-merge-check-GPBE9u--122.log.gz",
+    "bytes": 700,
+    "sha256": "f8df56dbbc87c784fa2a390cf85f9ac65988f3eb3483df2cf8cf9293d49a7024",
+    "mtimeUtc": "2026-09-26T20:16:18.342084+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/126.log",
+    "file": "stoneforge-merge-check-GPBE9u--126.log.gz",
+    "bytes": 1685,
+    "sha256": "1873dec39dfacdd17d59324ec28378a3421a018c3bb4c000f8fc22903c1b4831",
+    "mtimeUtc": "2026-09-26T20:16:19.133655+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/132.log",
+    "file": "stoneforge-merge-check-GPBE9u--132.log.gz",
+    "bytes": 3273,
+    "sha256": "4c1bedfd9ba8767c782425fc25d91df52fb35a2a6ca18081e885531e51554d02",
+    "mtimeUtc": "2026-09-26T20:16:20.488657+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/052.log",
+    "file": "stoneforge-merge-check-GPBE9u--052.log.gz",
+    "bytes": 3312,
+    "sha256": "d8eded7da439aa53d8a9703070e9025b03fbc5c7d00fefffbdf8be86ed7fa20f",
+    "mtimeUtc": "2026-09-26T20:15:12.322431+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/046.log",
+    "file": "stoneforge-merge-check-GPBE9u--046.log.gz",
+    "bytes": 16946,
+    "sha256": "d86ac93edd916bbea5377151b3a9f0950372456988a64deb8dbffe03196de909",
+    "mtimeUtc": "2026-09-26T20:14:58.350478+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/091.log",
+    "file": "stoneforge-merge-check-GPBE9u--091.log.gz",
+    "bytes": 1780,
+    "sha256": "260eb848fec32fce819ee1bf766a7d3b970cd2fd8cf38f69228df2b4b355d0d8",
+    "mtimeUtc": "2026-09-26T20:16:04.784967+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/085.log",
+    "file": "stoneforge-merge-check-GPBE9u--085.log.gz",
+    "bytes": 1973,
+    "sha256": "e0e7f6162f0ce3fffb270989442d89f06fe297a036d4d935909a5871422a37d1",
+    "mtimeUtc": "2026-09-26T20:15:36.002203+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/084.log",
+    "file": "stoneforge-merge-check-GPBE9u--084.log.gz",
+    "bytes": 3330,
+    "sha256": "9eee14774d34fc7dc2a9144e5da3af4e5475f4d4aefc519616ed60232971121d",
+    "mtimeUtc": "2026-09-26T20:15:35.975211+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/090.log",
+    "file": "stoneforge-merge-check-GPBE9u--090.log.gz",
+    "bytes": 1261,
+    "sha256": "f66e170cf5e4cce3f34c62672e281f5682b232318002072fc07d0565e0c7db8f",
+    "mtimeUtc": "2026-09-26T20:16:04.765592+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/047.log",
+    "file": "stoneforge-merge-check-GPBE9u--047.log.gz",
+    "bytes": 25444,
+    "sha256": "3fbc11f63692405073a5e24c5918243036dcc61cdf363cc92e93589bff47ebd4",
+    "mtimeUtc": "2026-09-26T20:15:11.487074+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/053.log",
+    "file": "stoneforge-merge-check-GPBE9u--053.log.gz",
+    "bytes": 9778,
+    "sha256": "41376f185ed55369b5acaadfcd14d3ef7a0feec014858607a9203300bc3d763a",
+    "mtimeUtc": "2026-09-26T20:15:12.377304+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/133.log",
+    "file": "stoneforge-merge-check-GPBE9u--133.log.gz",
+    "bytes": 4717,
+    "sha256": "e5399d4c57260af8f0a21e299a9a5e7e28ce763f2521ec3288e5cc05327016f1",
+    "mtimeUtc": "2026-09-26T20:16:48.735042+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/127.log",
+    "file": "stoneforge-merge-check-GPBE9u--127.log.gz",
+    "bytes": 1223,
+    "sha256": "95de5a280a24e3f5fdf33a5f8ac8546b0fb2009c6c99e5a340088e872d8847ab",
+    "mtimeUtc": "2026-09-26T20:16:19.863829+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/119.log",
+    "file": "stoneforge-merge-check-GPBE9u--119.log.gz",
+    "bytes": 2534,
+    "sha256": "4068126de433121c61fc9a2cd3943253e83ef9cdfb5beb595dd34ca726fa4921",
+    "mtimeUtc": "2026-09-26T20:16:18.229553+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/131.log",
+    "file": "stoneforge-merge-check-GPBE9u--131.log.gz",
+    "bytes": 2943,
+    "sha256": "1f3f2733ae96616e82a5b7232004c1a070a9b4fd6faab22eee182cd196e68eca",
+    "mtimeUtc": "2026-09-26T20:16:20.375754+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/125.log",
+    "file": "stoneforge-merge-check-GPBE9u--125.log.gz",
+    "bytes": 2308,
+    "sha256": "9df8434c11ad24debbf78c92d8e00c1b482510895faf968995654570c6e2bf36",
+    "mtimeUtc": "2026-09-26T20:16:19.113913+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/079.log",
+    "file": "stoneforge-merge-check-GPBE9u--079.log.gz",
+    "bytes": 569,
+    "sha256": "3072b690bc300f950239cd61cb0d75704ce5db712ba77d1d1e6d36d3a24adeca",
+    "mtimeUtc": "2026-09-26T20:15:34.015588+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/045.log",
+    "file": "stoneforge-merge-check-GPBE9u--045.log.gz",
+    "bytes": 4500,
+    "sha256": "e9ba4a11655df3831f96bbc6472f2e02893cc1fe3048a91193fda34fe944a102",
+    "mtimeUtc": "2026-09-26T20:14:57.008111+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/051.log",
+    "file": "stoneforge-merge-check-GPBE9u--051.log.gz",
+    "bytes": 1679,
+    "sha256": "d7f316f7fa1ac66316bc2a293d1b6a035855af6b0e309ea77cf8b31722d82912",
+    "mtimeUtc": "2026-09-26T20:15:12.158025+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/086.log",
+    "file": "stoneforge-merge-check-GPBE9u--086.log.gz",
+    "bytes": 2544,
+    "sha256": "4ebfc8972e58541d408595f5ea870fa3806dfe1e1ac853b9c647ddc98f5b1579",
+    "mtimeUtc": "2026-09-26T20:15:36.063150+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/092.log",
+    "file": "stoneforge-merge-check-GPBE9u--092.log.gz",
+    "bytes": 1936,
+    "sha256": "90a09a9124926263651fbd51d58474035854fc7f8348a2cf1083a0453b8688f4",
+    "mtimeUtc": "2026-09-26T20:16:04.800097+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/093.log",
+    "file": "stoneforge-merge-check-GPBE9u--093.log.gz",
+    "bytes": 2124,
+    "sha256": "52b53a5562f10a1713e4afcfb0cfc10f5226c992af40aaf9a6cded67fcc3ca5f",
+    "mtimeUtc": "2026-09-26T20:16:04.820213+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/087.log",
+    "file": "stoneforge-merge-check-GPBE9u--087.log.gz",
+    "bytes": 4253,
+    "sha256": "f366ac09d329216958b8b99ce9eaca81a08119ee2da178716e12cd90c5495d3a",
+    "mtimeUtc": "2026-09-26T20:15:36.082379+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/050.log",
+    "file": "stoneforge-merge-check-GPBE9u--050.log.gz",
+    "bytes": 689,
+    "sha256": "25808466518b2ffd892819f917317676e620dc3466f7512d6b504b3996b8d609",
+    "mtimeUtc": "2026-09-26T20:15:12.052352+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/044.log",
+    "file": "stoneforge-merge-check-GPBE9u--044.log.gz",
+    "bytes": 1825,
+    "sha256": "2595df3068f26519a628d1173c9fe7ba2440c5afc79bb7992f5183b81b6edf50",
+    "mtimeUtc": "2026-09-26T20:14:56.642785+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/078.log",
+    "file": "stoneforge-merge-check-GPBE9u--078.log.gz",
+    "bytes": 3431,
+    "sha256": "ec16456f37e397b3f948025061e16b68bfc58d70ec8ea4d7c50cea701338e7e2",
+    "mtimeUtc": "2026-09-26T20:15:33.949598+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/124.log",
+    "file": "stoneforge-merge-check-GPBE9u--124.log.gz",
+    "bytes": 4772,
+    "sha256": "06ae2f8e3af813db826d612939868d2c59c4f86250443d55b38774b3f9d50366",
+    "mtimeUtc": "2026-09-26T20:16:18.975856+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/130.log",
+    "file": "stoneforge-merge-check-GPBE9u--130.log.gz",
+    "bytes": 10770,
+    "sha256": "c42038a26da680837f58c11df6a7e9df1d1b3015c5a2820a631a67261b19efc2",
+    "mtimeUtc": "2026-09-26T20:16:20.206515+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/118.log",
+    "file": "stoneforge-merge-check-GPBE9u--118.log.gz",
+    "bytes": 9614,
+    "sha256": "c4a5a0bcbab7db17dd53e6fc7fbedcd07a89bbaf3711ed0e8db4d5738b07e3c8",
+    "mtimeUtc": "2026-09-26T20:16:17.742986+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/115.log",
+    "file": "stoneforge-merge-check-GPBE9u--115.log.gz",
+    "bytes": 7372,
+    "sha256": "fc969560451c775ef6993925e9e20040d04c68ed09fdef7a8236b526b9ef5a54",
+    "mtimeUtc": "2026-09-26T20:16:17.119030+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/101.log",
+    "file": "stoneforge-merge-check-GPBE9u--101.log.gz",
+    "bytes": 1613,
+    "sha256": "8f4a17e45bae38c5bc8084341c4015994871a15c59e0e6958a3567c64413ad9c",
+    "mtimeUtc": "2026-09-26T20:16:05.152168+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/129.log",
+    "file": "stoneforge-merge-check-GPBE9u--129.log.gz",
+    "bytes": 7705,
+    "sha256": "4c9200f82046b8c6995632b96e08fae3cebaef403973d9c8535a51101312dd4d",
+    "mtimeUtc": "2026-09-26T20:16:20.144184+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/061.log",
+    "file": "stoneforge-merge-check-GPBE9u--061.log.gz",
+    "bytes": 5377,
+    "sha256": "38d2468a48364374a49a23f91c9c706ac4b8b2c507323d58ef0ec59502ff998e",
+    "mtimeUtc": "2026-09-26T20:15:13.998564+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/075.log",
+    "file": "stoneforge-merge-check-GPBE9u--075.log.gz",
+    "bytes": 889,
+    "sha256": "f8030163dc6767d05fa1075f93a94d8465e707f1c13caf98db381b958f44d4f2",
+    "mtimeUtc": "2026-09-26T20:15:32.996058+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/049.log",
+    "file": "stoneforge-merge-check-GPBE9u--049.log.gz",
+    "bytes": 3235,
+    "sha256": "497225f629cfdda79e2b9ec929450487001b5799d6d8c241a1e85c1318163c5e",
+    "mtimeUtc": "2026-09-26T20:15:11.980107+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/048.log",
+    "file": "stoneforge-merge-check-GPBE9u--048.log.gz",
+    "bytes": 8419,
+    "sha256": "e6c56d2ea554cadd87b336fda71105fccb5c4d196b2503033fb303cffa5a9a73",
+    "mtimeUtc": "2026-09-26T20:15:11.833648+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/074.log",
+    "file": "stoneforge-merge-check-GPBE9u--074.log.gz",
+    "bytes": 4788,
+    "sha256": "a211308dad0ef54d26a6bfe4f0087f3190254c4b1969c8ce011384df80bd1448",
+    "mtimeUtc": "2026-09-26T20:15:21.192823+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/060.log",
+    "file": "stoneforge-merge-check-GPBE9u--060.log.gz",
+    "bytes": 2561,
+    "sha256": "5298a45fce8ffa59e08d56640bcabf54e0ca907b9191cbe0dab973f4fc87e028",
+    "mtimeUtc": "2026-09-26T20:15:13.289466+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/128.log",
+    "file": "stoneforge-merge-check-GPBE9u--128.log.gz",
+    "bytes": 1980,
+    "sha256": "fd0dd5c3a8263103bd7b6aae97b7e301bd1124db6197ce15dcb8831e39421a21",
+    "mtimeUtc": "2026-09-26T20:16:20.087559+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/100.log",
+    "file": "stoneforge-merge-check-GPBE9u--100.log.gz",
+    "bytes": 7910,
+    "sha256": "8fe1bbb3422df5fa7e71c84c5dab3f4743487e80eed488a98e66d08c58268ce5",
+    "mtimeUtc": "2026-09-26T20:16:05.132880+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/114.log",
+    "file": "stoneforge-merge-check-GPBE9u--114.log.gz",
+    "bytes": 8289,
+    "sha256": "ef30c45027ea6bd00902210a0a766566614fc8cf4bfa5827dcd89cbc542031e2",
+    "mtimeUtc": "2026-09-26T20:16:17.018451+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/102.log",
+    "file": "stoneforge-merge-check-GPBE9u--102.log.gz",
+    "bytes": 3023,
+    "sha256": "aa3c5e7d756f118d3441c0e6cdfe8968839d3526b1c49d8583e13e52e9689668",
+    "mtimeUtc": "2026-09-26T20:16:05.200237+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/116.log",
+    "file": "stoneforge-merge-check-GPBE9u--116.log.gz",
+    "bytes": 2085,
+    "sha256": "469a2618a6e59692dca96cee84c10d3722200792f0fe60cd39cd16c59d6f1cbc",
+    "mtimeUtc": "2026-09-26T20:16:17.345507+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/076.log",
+    "file": "stoneforge-merge-check-GPBE9u--076.log.gz",
+    "bytes": 995,
+    "sha256": "a77e64786488bed6c3eecba357bea4362e69ffbb444858878c90582232b8b6f6",
+    "mtimeUtc": "2026-09-26T20:15:33.116589+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/062.log",
+    "file": "stoneforge-merge-check-GPBE9u--062.log.gz",
+    "bytes": 3236,
+    "sha256": "a59239e4e1f8a1df942af2eea0e908cbd7c2779c532ffd714ee7526d420ca1f8",
+    "mtimeUtc": "2026-09-26T20:15:14.513037+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/089.log",
+    "file": "stoneforge-merge-check-GPBE9u--089.log.gz",
+    "bytes": 2164,
+    "sha256": "66a3a49f75dabe809e4de97fa0e359a97c5b059b7cedf7bb6ee404f4f8f5e62f",
+    "mtimeUtc": "2026-09-26T20:16:04.740191+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/088.log",
+    "file": "stoneforge-merge-check-GPBE9u--088.log.gz",
+    "bytes": 7335,
+    "sha256": "ff046bf73dd7b579a23a5ed8eb34ce90f4eee7be85140bd6c6c7ade0718495c8",
+    "mtimeUtc": "2026-09-26T20:15:36.139246+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/063.log",
+    "file": "stoneforge-merge-check-GPBE9u--063.log.gz",
+    "bytes": 2060,
+    "sha256": "5cf693773a8dd91e92a9c200287b98851e2600312ca02a31c5526c059e668257",
+    "mtimeUtc": "2026-09-26T20:15:14.869066+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/077.log",
+    "file": "stoneforge-merge-check-GPBE9u--077.log.gz",
+    "bytes": 5293,
+    "sha256": "a69133749f01514de9de52369b67d9e6e62cb89f53860ed7057b04b3237139b9",
+    "mtimeUtc": "2026-09-26T20:15:33.646700+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/117.log",
+    "file": "stoneforge-merge-check-GPBE9u--117.log.gz",
+    "bytes": 9874,
+    "sha256": "0dae91fe6074bffd8895808616c23b8b2820b8ef8f345ac20a6bc3d5e1175510",
+    "mtimeUtc": "2026-09-26T20:16:17.630978+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/103.log",
+    "file": "stoneforge-merge-check-GPBE9u--103.log.gz",
+    "bytes": 3397,
+    "sha256": "d1e6f7eb1ef5ef653dce8bfab5fb5081918b4806cf42d42229138212c8c9a3bd",
+    "mtimeUtc": "2026-09-26T20:16:05.283083+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/107.log",
+    "file": "stoneforge-merge-check-GPBE9u--107.log.gz",
+    "bytes": 4772,
+    "sha256": "d0f168b017278df9c9681f445d2961d7d32ff4e028388763f8b8c4e4b27d9b53",
+    "mtimeUtc": "2026-09-26T20:16:06.815620+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/113.log",
+    "file": "stoneforge-merge-check-GPBE9u--113.log.gz",
+    "bytes": 17909,
+    "sha256": "11f450fb6029e31f0627e5b11f86cc94206f7d7c4432b5667020120b10412b8c",
+    "mtimeUtc": "2026-09-26T20:16:16.987586+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/073.log",
+    "file": "stoneforge-merge-check-GPBE9u--073.log.gz",
+    "bytes": 1400,
+    "sha256": "4ab5b511b8c1c27909bc2d84abfd0ff9a26a3690da6b727a0bf7b03a51072644",
+    "mtimeUtc": "2026-09-26T20:15:19.557429+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/067.log",
+    "file": "stoneforge-merge-check-GPBE9u--067.log.gz",
+    "bytes": 1286,
+    "sha256": "530768fbc1ae0cb514c44571f89994a75e56f31ab79cb25cf8d95579a6efa3b0",
+    "mtimeUtc": "2026-09-26T20:15:17.084144+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/098.log",
+    "file": "stoneforge-merge-check-GPBE9u--098.log.gz",
+    "bytes": 1345,
+    "sha256": "45e84b28e80681f5fe3d05c2aec841155b1f1a185512b8ea51dce4a04fcebb00",
+    "mtimeUtc": "2026-09-26T20:16:05.034833+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/099.log",
+    "file": "stoneforge-merge-check-GPBE9u--099.log.gz",
+    "bytes": 6052,
+    "sha256": "2f41b8d7dd956d83b9450e6a5bfc23e167f83ab35061dd6591bc811c7bf399ac",
+    "mtimeUtc": "2026-09-26T20:16:05.083177+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/066.log",
+    "file": "stoneforge-merge-check-GPBE9u--066.log.gz",
+    "bytes": 3141,
+    "sha256": "e0547f720539210dd3cf939e80aab2e9402d3a55c1e9a24e9e62460d3e662cbf",
+    "mtimeUtc": "2026-09-26T20:15:16.882167+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/072.log",
+    "file": "stoneforge-merge-check-GPBE9u--072.log.gz",
+    "bytes": 2985,
+    "sha256": "5716b53acb2105a2df6eaabeacf07e9195984d3fcb5e0655eec8654e16fef41c",
+    "mtimeUtc": "2026-09-26T20:15:19.345037+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/112.log",
+    "file": "stoneforge-merge-check-GPBE9u--112.log.gz",
+    "bytes": 6549,
+    "sha256": "956480f1603af823b3c4d3fe380bf4071ed27d0e00b27961a33b194ed454639c",
+    "mtimeUtc": "2026-09-26T20:16:16.958191+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/106.log",
+    "file": "stoneforge-merge-check-GPBE9u--106.log.gz",
+    "bytes": 3173,
+    "sha256": "e0eba3477f9b3a17ec7f8da874d9fd7a2e26b43eff52af4603238e119a6d9dc1",
+    "mtimeUtc": "2026-09-26T20:16:06.790066+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/138.log",
+    "file": "stoneforge-merge-check-GPBE9u--138.log.gz",
+    "bytes": 1390,
+    "sha256": "13314549e7788cba05b512a834392e575a77233d98ed811c1a35b45a8a9e5f9c",
+    "mtimeUtc": "2026-09-26T20:17:02.854818+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/110.log",
+    "file": "stoneforge-merge-check-GPBE9u--110.log.gz",
+    "bytes": 2241,
+    "sha256": "a2cd8d9654044e88bb1a2e2fb3a84bbacf904fe07fd5df2525c1e9211154f61a",
+    "mtimeUtc": "2026-09-26T20:16:06.887020+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/104.log",
+    "file": "stoneforge-merge-check-GPBE9u--104.log.gz",
+    "bytes": 3628,
+    "sha256": "bb1423531b9f69ca8afe815c98186fe1994937299124ca5974e6a035eb854bc4",
+    "mtimeUtc": "2026-09-26T20:16:06.589854+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/058.log",
+    "file": "stoneforge-merge-check-GPBE9u--058.log.gz",
+    "bytes": 1041,
+    "sha256": "d54b962dc8db0f4a6a5f937e4a513ea00fd62403146a803ecdc16d129a7af594",
+    "mtimeUtc": "2026-09-26T20:15:13.135201+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/064.log",
+    "file": "stoneforge-merge-check-GPBE9u--064.log.gz",
+    "bytes": 6079,
+    "sha256": "41a6c45f185ce3cbbf7702b64269e4bdc0bf6a85d742a6878f741eb42d9b1de1",
+    "mtimeUtc": "2026-09-26T20:15:15.628243+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/070.log",
+    "file": "stoneforge-merge-check-GPBE9u--070.log.gz",
+    "bytes": 4089,
+    "sha256": "931c832247fb55b243aecf0ba43cef4b34db358cfecdbb1469419ba044da010b",
+    "mtimeUtc": "2026-09-26T20:15:18.039488+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/071.log",
+    "file": "stoneforge-merge-check-GPBE9u--071.log.gz",
+    "bytes": 6487,
+    "sha256": "58edd4504e4c79a64706c61e810aff12fa760f80a078b3c7072c43d65616083d",
+    "mtimeUtc": "2026-09-26T20:15:18.829348+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/065.log",
+    "file": "stoneforge-merge-check-GPBE9u--065.log.gz",
+    "bytes": 6944,
+    "sha256": "48e79b077f9898bbb37d64d95377403db415540880ee247009b1ebcc59808b0f",
+    "mtimeUtc": "2026-09-26T20:15:16.456781+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/059.log",
+    "file": "stoneforge-merge-check-GPBE9u--059.log.gz",
+    "bytes": 1190,
+    "sha256": "2b3ae9bb8ac3023da392187ef5bdabe0eccab88d2c998eb603acf9d884e22237",
+    "mtimeUtc": "2026-09-26T20:15:13.158525+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/105.log",
+    "file": "stoneforge-merge-check-GPBE9u--105.log.gz",
+    "bytes": 4746,
+    "sha256": "5ac12faf35af75f090f6c26d1f0625f2d99f1e184cba5e915b1346fa9248d54b",
+    "mtimeUtc": "2026-09-26T20:16:06.704800+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/111.log",
+    "file": "stoneforge-merge-check-GPBE9u--111.log.gz",
+    "bytes": 12750,
+    "sha256": "1718daa7e76adf8b16190e04c1170d03dd709e02b7e4c2a6605036d8a9a8f889",
+    "mtimeUtc": "2026-09-26T20:16:06.909935+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/139.log",
+    "file": "stoneforge-merge-check-GPBE9u--139.log.gz",
+    "bytes": 3798,
+    "sha256": "93f806983bdd0c6b3656f33ae2427740057d02d6f3bf8f561693869626c323f0",
+    "mtimeUtc": "2026-09-26T20:17:15.926349+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/176.log",
+    "file": "stoneforge-merge-check-GPBE9u--176.log.gz",
+    "bytes": 2535,
+    "sha256": "fc1350a74fcd6a6df44d66b2e09f72fd4f03d57aebf20f6433a81728b4b08454",
+    "mtimeUtc": "2026-09-26T20:18:16.713785+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/162.log",
+    "file": "stoneforge-merge-check-GPBE9u--162.log.gz",
+    "bytes": 652,
+    "sha256": "812776db31ee5054d1fa317d0a8d3dfc8a30e0dd805f5ffdb5c9bd9fe2517442",
+    "mtimeUtc": "2026-09-26T20:18:06.009793+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/189.log",
+    "file": "stoneforge-merge-check-GPBE9u--189.log.gz",
+    "bytes": 1855,
+    "sha256": "da170eac22c5702b7ecec86c889c6420f2117ea0d56e0583b31eb85c71075b74",
+    "mtimeUtc": "2026-09-26T20:18:53.260249+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/002.log",
+    "file": "stoneforge-merge-check-GPBE9u--002.log.gz",
+    "bytes": 7169,
+    "sha256": "d5e6fb538cb6a0738d3f8dbd8eb6d3e5909a0234449e7abc1b37d4cef9f8dfb5",
+    "mtimeUtc": "2026-09-26T20:14:47.426781+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/016.log",
+    "file": "stoneforge-merge-check-GPBE9u--016.log.gz",
+    "bytes": 4164,
+    "sha256": "07bf04cc3c8463741235705aabf091f9b41ec050b9f63d2ce8ec99c77e06b5e0",
+    "mtimeUtc": "2026-09-26T20:14:50.467049+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/017.log",
+    "file": "stoneforge-merge-check-GPBE9u--017.log.gz",
+    "bytes": 3766,
+    "sha256": "3576eff4b42064c32e3674fd4e4437787429ff084540054e32f9544cd7d068d8",
+    "mtimeUtc": "2026-09-26T20:14:50.526767+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/003.log",
+    "file": "stoneforge-merge-check-GPBE9u--003.log.gz",
+    "bytes": 284,
+    "sha256": "a0a192ef569231bf1e788cb93151d8989c0cb3f6e1e177dc9f25ca5a2f318add",
+    "mtimeUtc": "2026-09-26T20:14:48.265777+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/188.log",
+    "file": "stoneforge-merge-check-GPBE9u--188.log.gz",
+    "bytes": 22074,
+    "sha256": "ea855a9d6871a9752cf142debcda0a7ff5449bccd177217f17024b955b5871fa",
+    "mtimeUtc": "2026-09-26T20:18:44.958265+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/163.log",
+    "file": "stoneforge-merge-check-GPBE9u--163.log.gz",
+    "bytes": 1531,
+    "sha256": "c93e8a924b91f6fd15c68c2a7f4586188778e84a4ac75172436f2073fad68954",
+    "mtimeUtc": "2026-09-26T20:18:06.038684+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/177.log",
+    "file": "stoneforge-merge-check-GPBE9u--177.log.gz",
+    "bytes": 3778,
+    "sha256": "7063b5fcffe14eb016af603f40c1c4655da7e8ca224d29d9e75eb5f4e18d44c9",
+    "mtimeUtc": "2026-09-26T20:18:16.873798+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/161.log",
+    "file": "stoneforge-merge-check-GPBE9u--161.log.gz",
+    "bytes": 434,
+    "sha256": "8c4cd5757aa9079884e492997c30cad2e43cd54e02c5dec7b307afd3f64a5826",
+    "mtimeUtc": "2026-09-26T20:18:05.873690+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/175.log",
+    "file": "stoneforge-merge-check-GPBE9u--175.log.gz",
+    "bytes": 1110,
+    "sha256": "7f33a3fa27ab680574392d6cf69d0b541eb967cd2196bbeb09a9161597085ed3",
+    "mtimeUtc": "2026-09-26T20:18:16.543673+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/149.log",
+    "file": "stoneforge-merge-check-GPBE9u--149.log.gz",
+    "bytes": 4492,
+    "sha256": "1d21a3ed91dba3d01d93a5360260f56c8746dddac9ec3b72ffcb522ae5724515",
+    "mtimeUtc": "2026-09-26T20:17:57.246384+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/015.log",
+    "file": "stoneforge-merge-check-GPBE9u--015.log.gz",
+    "bytes": 10565,
+    "sha256": "c524e0dd9668604e0a7f21d02b0f83241a1bfce2b005735451118c9e5a87b628",
+    "mtimeUtc": "2026-09-26T20:14:50.432874+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/001.log",
+    "file": "stoneforge-merge-check-GPBE9u--001.log.gz",
+    "bytes": 1061,
+    "sha256": "65b40e9831ba2f6a17b46a3f0d50436073bfc3d2e84ea8c8437fd27f3999d444",
+    "mtimeUtc": "2026-09-26T20:13:28.905527+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/029.log",
+    "file": "stoneforge-merge-check-GPBE9u--029.log.gz",
+    "bytes": 6882,
+    "sha256": "f37bceb2c515f9e074b53f82fd89378fe284b7ebe2a2b8ca78de1c61ccf2e6c5",
+    "mtimeUtc": "2026-09-26T20:14:52.984134+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/028.log",
+    "file": "stoneforge-merge-check-GPBE9u--028.log.gz",
+    "bytes": 3116,
+    "sha256": "9c3b26af816897bfeee149b7b0f4b44d3d9260b1f75385a6457c9d00616a44f1",
+    "mtimeUtc": "2026-09-26T20:14:52.612066+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/014.log",
+    "file": "stoneforge-merge-check-GPBE9u--014.log.gz",
+    "bytes": 32880,
+    "sha256": "5a407f7b808bd15c53334afa70130bc92b862b3a9d5db52199d0957034e6ef6f",
+    "mtimeUtc": "2026-09-26T20:14:50.380156+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/148.log",
+    "file": "stoneforge-merge-check-GPBE9u--148.log.gz",
+    "bytes": 1606,
+    "sha256": "caff7a7dcd0105e489fbe71875851caf0168d175fddd1e7bf483b8a3dd3dca44",
+    "mtimeUtc": "2026-09-26T20:17:57.230872+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/174.log",
+    "file": "stoneforge-merge-check-GPBE9u--174.log.gz",
+    "bytes": 2741,
+    "sha256": "ef6692326622279474f838f51a20801d3a14c81b87377cc4bd6bde3c9d96d569",
+    "mtimeUtc": "2026-09-26T20:18:16.414626+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/160.log",
+    "file": "stoneforge-merge-check-GPBE9u--160.log.gz",
+    "bytes": 7322,
+    "sha256": "1ba2da5a75d9e00495f8665577ef6b3a5ac279c17b0fe09e86cd8e7b304a2103",
+    "mtimeUtc": "2026-09-26T20:18:05.779295+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/158.log",
+    "file": "stoneforge-merge-check-GPBE9u--158.log.gz",
+    "bytes": 3108,
+    "sha256": "fe949a34cd0d42c6e310e151ca103c60da9cd3ad5fda25440723a83994eb2035",
+    "mtimeUtc": "2026-09-26T20:17:58.165936+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/164.log",
+    "file": "stoneforge-merge-check-GPBE9u--164.log.gz",
+    "bytes": 470,
+    "sha256": "74f8ff518936414441c76cee7089fa6b121e4c8f6512071c9ba6df0b393027cd",
+    "mtimeUtc": "2026-09-26T20:18:06.165318+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/170.log",
+    "file": "stoneforge-merge-check-GPBE9u--170.log.gz",
+    "bytes": 3035,
+    "sha256": "200a9eb2c2c9d79f2a5e2d50bd387eb6e9f61480852c1e517df79f3c1548c62e",
+    "mtimeUtc": "2026-09-26T20:18:15.403271+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/038.log",
+    "file": "stoneforge-merge-check-GPBE9u--038.log.gz",
+    "bytes": 1838,
+    "sha256": "9abe9be12c81c3572ab19f2a84463f96f36e3d3b912aa6465983004a13cf9546",
+    "mtimeUtc": "2026-09-26T20:14:55.229509+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/010.log",
+    "file": "stoneforge-merge-check-GPBE9u--010.log.gz",
+    "bytes": 9893,
+    "sha256": "20e0d862160f5b67ff953b30c376314f12e1c00deccaacb08c5fda91ed4f65ed",
+    "mtimeUtc": "2026-09-26T20:14:50.059278+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/004.log",
+    "file": "stoneforge-merge-check-GPBE9u--004.log.gz",
+    "bytes": 1264,
+    "sha256": "b83d28b4f32c77e593670d29777e3b6ffc80774ca8c0a210ea619d1c77ef4877",
+    "mtimeUtc": "2026-09-26T20:14:49.749654+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/005.log",
+    "file": "stoneforge-merge-check-GPBE9u--005.log.gz",
+    "bytes": 1484,
+    "sha256": "a43f0f529f83b49d0884fe64a78a0b311e58119fe9b5977c94e5d31492e55b1b",
+    "mtimeUtc": "2026-09-26T20:14:49.783336+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/011.log",
+    "file": "stoneforge-merge-check-GPBE9u--011.log.gz",
+    "bytes": 11944,
+    "sha256": "19e71c34a4a1d6b8e5dc61411590675e608f8508242cf3f7f768ec0a498b817a",
+    "mtimeUtc": "2026-09-26T20:14:50.109497+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/039.log",
+    "file": "stoneforge-merge-check-GPBE9u--039.log.gz",
+    "bytes": 2274,
+    "sha256": "89b55480f103fe8b88fbe4dc4d5a419ccf042cef6c3ea07ee4462572c92219fe",
+    "mtimeUtc": "2026-09-26T20:14:55.432991+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/171.log",
+    "file": "stoneforge-merge-check-GPBE9u--171.log.gz",
+    "bytes": 1505,
+    "sha256": "9a0370cf06b4e8d12d59eca8bb36ba9cf15e8ee9e16fdf2917d184ece4fe125a",
+    "mtimeUtc": "2026-09-26T20:18:15.561438+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/165.log",
+    "file": "stoneforge-merge-check-GPBE9u--165.log.gz",
+    "bytes": 5354,
+    "sha256": "a9c2bf8b2fdbb4b31d12207f52bf427fa6bfc8e776d4aa0aa4a9ddcc791ac019",
+    "mtimeUtc": "2026-09-26T20:18:06.349355+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/159.log",
+    "file": "stoneforge-merge-check-GPBE9u--159.log.gz",
+    "bytes": 30518,
+    "sha256": "c72e33313efcaa000aa0101e147e03b1091c80992a54fab252adc9fb494ce1d1",
+    "mtimeUtc": "2026-09-26T20:18:04.154098+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/173.log",
+    "file": "stoneforge-merge-check-GPBE9u--173.log.gz",
+    "bytes": 3842,
+    "sha256": "23c881f0cea71d723f3ccdd3add9bc1b9b4691109651298eb3f498d9c52df865",
+    "mtimeUtc": "2026-09-26T20:18:16.160422+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/167.log",
+    "file": "stoneforge-merge-check-GPBE9u--167.log.gz",
+    "bytes": 10899,
+    "sha256": "f5e76bafe5e47c24e9e7aff68c80b51bdb7db0404df7b3860a8c1116d82ba52f",
+    "mtimeUtc": "2026-09-26T20:18:11.463982+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/007.log",
+    "file": "stoneforge-merge-check-GPBE9u--007.log.gz",
+    "bytes": 3112,
+    "sha256": "4b88c72dcc2a50fdb1fcb76c8ce1e2444e44d39c687bda617ccb871035d331f1",
+    "mtimeUtc": "2026-09-26T20:14:49.854118+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/013.log",
+    "file": "stoneforge-merge-check-GPBE9u--013.log.gz",
+    "bytes": 4158,
+    "sha256": "b2b02050fa70744f2c397a4fa0a9b7aa8274e7870b254ca687e35202eef6b555",
+    "mtimeUtc": "2026-09-26T20:14:50.269773+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/012.log",
+    "file": "stoneforge-merge-check-GPBE9u--012.log.gz",
+    "bytes": 11132,
+    "sha256": "17cc793d54970dbc52a321c11fcdb65939a596d5dfd47f88612113552dc3da6d",
+    "mtimeUtc": "2026-09-26T20:14:50.210202+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/006.log",
+    "file": "stoneforge-merge-check-GPBE9u--006.log.gz",
+    "bytes": 2805,
+    "sha256": "fdb66123e80b72a92c7b3a4917b3febb1b12b41fe79ae6b3985d0f4965c5dc98",
+    "mtimeUtc": "2026-09-26T20:14:49.829976+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/166.log",
+    "file": "stoneforge-merge-check-GPBE9u--166.log.gz",
+    "bytes": 1300,
+    "sha256": "442f244b86b8bc40923f3ce93fa7628b806a197c6cdc11b3b05a1295f8003f75",
+    "mtimeUtc": "2026-09-26T20:18:06.459133+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/172.log",
+    "file": "stoneforge-merge-check-GPBE9u--172.log.gz",
+    "bytes": 4857,
+    "sha256": "f21fefba6b9f15d6c972818bfce5197201ac8ca02d7248cfd0ca20179661e256",
+    "mtimeUtc": "2026-09-26T20:18:16.061392+00:00"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/results.json",
+    "file": "stoneforge-merge-check-GPBE9u--results.json.gz",
+    "bytes": 64792,
+    "sha256": "fca981bcf2cfa9aa07b9a79d479586bdb6026b1a2823bb5f330288877c167936",
+    "mtimeUtc": "2026-09-26T20:18:53.292338+00:00"
+  }
+]
