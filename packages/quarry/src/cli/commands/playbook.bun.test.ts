@@ -8,7 +8,7 @@
  * - playbook create: Create a new playbook
  */
 
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import { mkdirSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { playbookCommand } from './playbook.js';
@@ -595,7 +595,7 @@ describe('playbook create command', () => {
 
   test('allows valid inheritance chain during creation', async () => {
     // Create base playbook
-    await playbookCommand.subcommands!.create.handler(
+    const base = await playbookCommand.subcommands!.create.handler(
       [],
       createTestOptions({
         name: 'base',
@@ -603,6 +603,8 @@ describe('playbook create command', () => {
         step: 'init:Initialize',
       })
     );
+    expect(base.error).toBeUndefined();
+    expect(base.exitCode).toBe(ExitCode.SUCCESS);
 
     // Create playbook that extends base - should succeed
     const result = await playbookCommand.subcommands!.create.handler(
@@ -615,8 +617,57 @@ describe('playbook create command', () => {
       })
     );
 
+    expect(result.error).toBeUndefined();
     expect(result.exitCode).toBe(ExitCode.SUCCESS);
     expect((result.data as { extends: string[] }).extends).toEqual(['base']);
+  });
+
+  test('preserves the parent when an inheriting playbook ID collides', async () => {
+    // Force the first ID candidate for both names to collide. Keep the real
+    // generator, database collision check, and SQLite uniqueness constraint.
+    const digest = crypto.subtle.digest.bind(crypto.subtle);
+    const digestSpy = spyOn(crypto.subtle, 'digest').mockImplementation(async (algorithm, data) => {
+      const input = new TextDecoder().decode(data);
+      if (/^(base|child)\|test-user\|\d+\|0$/.test(input)) {
+        return new Uint8Array(32).fill(0x42).buffer;
+      }
+      return digest(algorithm, data);
+    });
+
+    try {
+      const base = await playbookCommand.subcommands!.create.handler(
+        [],
+        createTestOptions({ name: 'base', title: 'Base Playbook', step: 'init:Initialize' })
+      );
+      expect(base.error).toBeUndefined();
+      expect(base.exitCode).toBe(ExitCode.SUCCESS);
+
+      const child = await playbookCommand.subcommands!.create.handler(
+        [],
+        createTestOptions({
+          name: 'child', title: 'Child Playbook', extends: 'base', step: 'deploy:Deploy',
+        })
+      );
+      expect(child.error).toBeUndefined();
+      expect(child.exitCode).toBe(ExitCode.SUCCESS);
+      expect((child.data as Element).id).not.toBe((base.data as Element).id);
+
+      const { api, backend } = createTestAPI();
+      try {
+        expect(await api.get((base.data as Element).id)).toEqual(base.data as Element);
+        expect(await api.get((child.data as Element).id)).toEqual(child.data as Element);
+        expect(await api.list({ type: 'playbook' })).toHaveLength(2);
+      } finally {
+        backend.close();
+      }
+
+      const validation = await playbookCommand.subcommands!.validate.handler(['child'], createTestOptions());
+      expect(validation.error).toBeUndefined();
+      expect(validation.exitCode).toBe(ExitCode.SUCCESS);
+      expect((validation.data as { valid: boolean }).valid).toBe(true);
+    } finally {
+      digestSpy.mockRestore();
+    }
   });
 
   test('rejects invalid boolean variable default values', async () => {
