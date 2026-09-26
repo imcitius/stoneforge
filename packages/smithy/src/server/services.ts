@@ -1,3 +1,4 @@
+import { SessionMetricsTracker } from '../services/session-metrics.js';
 import { ProjectRepositories } from '../git/project-repositories.js';
 /**
  * Service Initialization
@@ -330,11 +331,7 @@ export async function initializeServices(options: ServicesOptions = {}): Promise
       const sessionStartTime = Date.now();
       let metricsRecorded = false;
       let sessionOutcome: MetricOutcome = 'completed';
-      let sessionInputTokens = 0;
-      let sessionOutputTokens = 0;
-      let sessionCacheReadTokens = 0;
-      let sessionCacheCreationTokens = 0;
-      let sessionModel: string | undefined;
+      const usage = new SessionMetricsTracker(session.provider ?? 'unknown', session.model);
 
       // Resolved task ID cache (looked up once, reused for all upserts)
       let resolvedTaskId: string | undefined;
@@ -356,31 +353,20 @@ export async function initializeServices(options: ServicesOptions = {}): Promise
       // Helper to upsert metrics incrementally (called on each assistant event)
       const upsertSessionMetrics = () => {
         const durationMs = Date.now() - sessionStartTime;
-        const provider = 'claude-code';
 
         resolveTaskId().then(taskId => {
           metricsService.upsert({
-            provider,
-            model: sessionModel,
+            ...usage.snapshot(),
             sessionId: session.id,
             taskId,
-            inputTokens: sessionInputTokens,
-            outputTokens: sessionOutputTokens,
-            cacheReadTokens: sessionCacheReadTokens,
-            cacheCreationTokens: sessionCacheCreationTokens,
             durationMs,
             outcome: sessionOutcome,
           });
         }).catch(() => {
           // Best-effort: upsert without task ID
           metricsService.upsert({
-            provider,
-            model: sessionModel,
+            ...usage.snapshot(),
             sessionId: session.id,
-            inputTokens: sessionInputTokens,
-            outputTokens: sessionOutputTokens,
-            cacheReadTokens: sessionCacheReadTokens,
-            cacheCreationTokens: sessionCacheCreationTokens,
             durationMs,
             outcome: sessionOutcome,
           });
@@ -397,56 +383,15 @@ export async function initializeServices(options: ServicesOptions = {}): Promise
       // Auto-terminate sessions when they emit a 'result' event
       // This handles ephemeral worker sessions completing their tasks
       const onResultEvent = (event: { type: string; subtype?: string; raw?: Record<string, unknown> }) => {
-        // Accumulate tokens from assistant events (each BetaMessage has usage)
-        // This provides a running total in case the session exits without a result event
-        if (event.type === 'assistant') {
-          const rawMsg = event.raw?.message as { usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number }; model?: string } | undefined;
-          if (rawMsg?.usage) {
-            sessionInputTokens += rawMsg.usage.input_tokens ?? 0;
-            sessionOutputTokens += rawMsg.usage.output_tokens ?? 0;
-            sessionCacheReadTokens += rawMsg.usage.cache_read_input_tokens ?? 0;
-            sessionCacheCreationTokens += rawMsg.usage.cache_creation_input_tokens ?? 0;
-          }
-          // Capture model from the first assistant message that has it
-          if (rawMsg?.model && !sessionModel) {
-            sessionModel = rawMsg.model;
-          }
-          // Record metrics incrementally so in-progress sessions show accumulating token counts
+        usage.observe(event);
+        if (event.type !== 'result') {
+          // Persist usage notifications, tool-only Claude messages, and missing
+          // telemetry alike, preserving an explicit availability flag.
           upsertSessionMetrics();
           return;
         }
 
         if (event.type === 'result') {
-          // The SDK result event may contain cumulative totals for the entire session.
-          // Take the MAX of accumulated vs result values to avoid undercounting.
-          const usage = event.raw?.usage as { input_tokens?: number; output_tokens?: number } | undefined;
-          if (usage && (usage.input_tokens !== undefined || usage.output_tokens !== undefined)) {
-            sessionInputTokens = Math.max(sessionInputTokens, usage.input_tokens ?? 0);
-            sessionOutputTokens = Math.max(sessionOutputTokens, usage.output_tokens ?? 0);
-          }
-
-          // Extract model from modelUsage keys (Record<string, ModelUsage>)
-          // Also reconcile cache tokens from modelUsage (SDK camelCase format)
-          const modelUsage = event.raw?.modelUsage as Record<string, { cacheReadInputTokens?: number; cacheCreationInputTokens?: number } | unknown> | undefined;
-          if (modelUsage) {
-            const models = Object.keys(modelUsage);
-            if (models.length > 0 && !sessionModel) {
-              sessionModel = models[0];
-            }
-            // Sum cache tokens across all models in the result
-            let resultCacheReadTokens = 0;
-            let resultCacheCreationTokens = 0;
-            for (const model of models) {
-              const mu = modelUsage[model] as { cacheReadInputTokens?: number; cacheCreationInputTokens?: number } | undefined;
-              if (mu) {
-                resultCacheReadTokens += mu.cacheReadInputTokens ?? 0;
-                resultCacheCreationTokens += mu.cacheCreationInputTokens ?? 0;
-              }
-            }
-            sessionCacheReadTokens = Math.max(sessionCacheReadTokens, resultCacheReadTokens);
-            sessionCacheCreationTokens = Math.max(sessionCacheCreationTokens, resultCacheCreationTokens);
-          }
-
           sessionOutcome = 'completed';
           recordSessionMetrics();
 

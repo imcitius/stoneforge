@@ -34,10 +34,10 @@ class CodexHeadlessSession implements HeadlessSession {
   private completedTurnId: string | undefined;
   private pendingTurnStart: Promise<void> | undefined;
 
-  constructor(client: CodexClient, threadId: string) {
+  constructor(client: CodexClient, threadId: string, collectUsage = true) {
     this.client = client;
     this.threadId = threadId;
-    this.eventMapper = new CodexEventMapper();
+    this.eventMapper = new CodexEventMapper(collectUsage);
     this.messageQueue = new AsyncQueue<AgentMessage>();
 
     // Subscribe to notifications and filter/map by thread ID
@@ -124,12 +124,12 @@ class CodexHeadlessSession implements HeadlessSession {
   }
 
   /** Injects a synthetic system init message */
-  injectInitMessage(): void {
+  injectInitMessage(model?: string): void {
     this.messageQueue.push({
       type: 'system',
       subtype: 'init',
       sessionId: this.threadId,
-      raw: { synthetic: true, provider: 'codex' },
+      raw: { synthetic: true, provider: 'codex', model },
     });
   }
 
@@ -195,8 +195,8 @@ export class CodexHeadlessProvider implements HeadlessProvider {
         threadId = result.thread.id;
 
         // Create session
-        const session = new CodexHeadlessSession(client, threadId);
-        session.injectInitMessage();
+        const session = new CodexHeadlessSession(client, threadId, false);
+        session.injectInitMessage(result.model);
 
         // Send initial prompt as a new turn if provided
         if (options.initialPrompt) {
@@ -222,7 +222,7 @@ export class CodexHeadlessProvider implements HeadlessProvider {
         threadId = result.thread.id;
 
         const session = new CodexHeadlessSession(client, threadId);
-        session.injectInitMessage();
+        session.injectInitMessage(result.model);
 
         // Explicitly start the first turn — thread/start does not do this
         session.sendMessage(options.initialPrompt ?? 'Hello');

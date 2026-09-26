@@ -46,6 +46,9 @@ import { trackListeners } from './event-utils.js';
  * Session record with persistence metadata
  */
 export interface SessionRecord {
+  /** Captured from this spawn; absent on legacy history. */
+  readonly provider?: string;
+  readonly model?: string;
   /** Internal session ID (unique per spawn) */
   readonly id: string;
   /** Provider session ID (for resume) */
@@ -185,6 +188,9 @@ export interface SessionFilter {
  * Session history entry stored in database
  */
 export interface SessionHistoryEntry {
+  /** Captured from this spawn; absent on legacy history. */
+  readonly provider?: string;
+  readonly model?: string;
   /** Internal session ID */
   readonly id: string;
   /** Provider session ID */
@@ -1223,6 +1229,8 @@ export class SessionManagerImpl implements SessionManager {
         const sessionState: InternalSessionState = {
           id: suspendedSession.id,
           providerSessionId: suspendedSession.providerSessionId,
+          provider: suspendedSession.provider,
+          model: suspendedSession.model,
           agentId,
           agentRole: meta.agentRole,
           workerMode: meta.agentRole === 'worker' ? (meta as { workerMode?: WorkerMode }).workerMode : undefined,
@@ -1591,6 +1599,8 @@ export class SessionManagerImpl implements SessionManager {
     return {
       id: result.session.id,
       providerSessionId: result.session.providerSessionId,
+      provider: result.session.provider,
+      model: result.session.model,
       agentId,
       agentRole: meta.agentRole,
       workerMode: meta.agentRole === 'worker' ? (meta as { workerMode?: WorkerMode }).workerMode : undefined,
@@ -1611,6 +1621,8 @@ export class SessionManagerImpl implements SessionManager {
     return {
       id: session.id,
       providerSessionId: session.providerSessionId,
+      provider: session.provider,
+      model: session.model,
       agentId: session.agentId,
       agentRole: session.agentRole,
       workerMode: session.workerMode,
@@ -1631,6 +1643,8 @@ export class SessionManagerImpl implements SessionManager {
     const historyEntry: SessionHistoryEntry = {
       id: session.id,
       providerSessionId: session.providerSessionId,
+      provider: session.provider,
+      model: session.model,
       status: session.status,
       workingDirectory: session.workingDirectory,
       worktree: session.worktree,

@@ -102,6 +102,8 @@ function createMockSpawnerService(): SpawnerService & { _mockEmitters: Map<strin
       const mode = options?.mode ?? 'headless';
       const session: SpawnedSession = {
         id: sessionId,
+        provider: options?.provider?.name ?? 'claude-code',
+        model: options?.model,
         providerSessionId: `claude-session-${sessionIdCounter}`,
         agentId,
         agentRole,
@@ -368,6 +370,17 @@ describe('SessionManager', () => {
       expect(result.session.agentRole).toBe('worker');
       expect(result.session.providerSessionId).toBeDefined();
       expect(result.events).toBeInstanceOf(EventEmitter);
+    });
+
+    test('keeps spawn-specific provider/model in history after agent settings change', async () => {
+      const { session } = await sessionManager.startSession(testAgentId, { model: 'claude-sonnet-4' });
+      expect(session).toMatchObject({ provider: 'claude-code', model: 'claude-sonnet-4' });
+      await registry.updateAgentMetadata(testAgentId, { provider: 'codex', model: 'gpt-6-astra' });
+      await sessionManager.stopSession(session.id);
+      const history = await sessionManager.getSessionHistory(testAgentId);
+      expect(history[0]).toMatchObject({ provider: 'claude-code', model: 'claude-sonnet-4' });
+      const fresh = createSessionManager(spawner, api, registry);
+      expect((await fresh.getSessionHistory(testAgentId))[0]).toMatchObject({ provider: 'claude-code', model: 'claude-sonnet-4' });
     });
 
     test('throws error for non-existent agent', async () => {

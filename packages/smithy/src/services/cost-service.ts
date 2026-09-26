@@ -10,11 +10,9 @@
 import type { StorageBackend } from '@stoneforge/storage';
 import {
   type CostBreakdown,
-  type ModelPricing,
   calculateCost,
   calculateCostFromPricing,
   lookupModelPricing,
-  DEFAULT_PRICING,
 } from '@stoneforge/core';
 import type { AggregatedMetrics } from './metrics-service.js';
 import { createLogger } from '../utils/logger.js';
@@ -29,7 +27,10 @@ const logger = createLogger('cost-service');
  * AggregatedMetrics enriched with cost breakdown
  */
 export interface AggregatedMetricsWithCost extends AggregatedMetrics {
+  /** Subtotal for sessions with observed usage and known pricing. */
   estimatedCost: CostBreakdown;
+  estimatedCostStatus: 'available' | 'partial' | 'unavailable';
+  pricedSessionCount: number;
 }
 
 /**
@@ -37,7 +38,7 @@ export interface AggregatedMetricsWithCost extends AggregatedMetrics {
  */
 interface DbModelCostRow {
   [key: string]: unknown;
-  group_key: string;
+  session_count: number;
   model: string | null;
   input_tokens: number;
   output_tokens: number;
@@ -73,9 +74,8 @@ export interface CostService {
   /**
    * Enrich aggregated metrics with cost breakdowns.
    *
-   * For model-grouped metrics, uses the model name directly for lookup.
-   * For provider/agent-grouped metrics, queries per-model token breakdowns
-   * from the database to compute accurate costs.
+   * Queries observed per-model usage for every grouping; unmatched pricing
+   * and unavailable usage are excluded and reported through coverage fields.
    *
    * @param metrics - Array of aggregated metrics entries
    * @param groupBy - How the metrics are grouped ('provider' | 'model' | 'agent' | 'session')
@@ -94,235 +94,58 @@ export interface CostService {
 // ============================================================================
 
 export function createCostService(storage: StorageBackend): CostService {
-  /**
-   * Compute costs for a model-grouped metric entry.
-   * The group key is the model name, so we can look up pricing directly.
-   */
-  function costForModelGroup(metric: AggregatedMetrics): CostBreakdown {
-    const model = metric.group;
-    const result = calculateCost(
-      model,
-      '', // provider unknown when grouped by model
-      metric.totalInputTokens,
-      metric.totalOutputTokens,
-      metric.totalCacheReadTokens,
-      metric.totalCacheCreationTokens
-    );
-
-    if (!result.modelMatched && model !== 'unknown') {
-      logger.warn(`No pricing found for model "${model}", using default (Sonnet) pricing`);
-    }
-
-    return {
-      inputCost: result.inputCost,
-      outputCost: result.outputCost,
-      cacheReadCost: result.cacheReadCost,
-      cacheCreationCost: result.cacheCreationCost,
-      totalCost: result.totalCost,
-    };
-  }
-
-  /**
-   * Compute costs for provider or agent-grouped metrics by querying
-   * per-model token breakdowns from the database.
-   */
-  function costForProviderOrAgentGroup(
-    metric: AggregatedMetrics,
-    groupBy: 'provider' | 'agent',
-    timeRange?: { days: number }
-  ): CostBreakdown {
-    try {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - (timeRange?.days ?? 7));
-      const cutoffStr = cutoff.toISOString();
-
-      let query: string;
-      let params: unknown[];
-
-      if (groupBy === 'provider') {
-        query = `SELECT
-            provider AS group_key,
-            COALESCE(model, 'unknown') AS model,
-            COALESCE(SUM(input_tokens), 0) AS input_tokens,
-            COALESCE(SUM(output_tokens), 0) AS output_tokens,
-            COALESCE(SUM(cache_read_tokens), 0) AS cache_read_tokens,
-            COALESCE(SUM(cache_creation_tokens), 0) AS cache_creation_tokens
-          FROM provider_metrics
-          WHERE timestamp >= ? AND provider = ?
-          GROUP BY provider, model`;
-        params = [cutoffStr, metric.group];
-      } else {
-        // agent grouping — join with session_messages to get agent_id
-        query = `SELECT
-            sm.agent_id AS group_key,
-            COALESCE(pm.model, 'unknown') AS model,
-            COALESCE(SUM(pm.input_tokens), 0) AS input_tokens,
-            COALESCE(SUM(pm.output_tokens), 0) AS output_tokens,
-            COALESCE(SUM(pm.cache_read_tokens), 0) AS cache_read_tokens,
-            COALESCE(SUM(pm.cache_creation_tokens), 0) AS cache_creation_tokens
-          FROM provider_metrics pm
-          JOIN (
-            SELECT DISTINCT session_id, agent_id
-            FROM session_messages
-          ) sm ON pm.session_id = sm.session_id
-          WHERE pm.timestamp >= ? AND sm.agent_id = ?
-          GROUP BY sm.agent_id, pm.model`;
-        params = [cutoffStr, metric.group];
-      }
-
-      const rows = storage.query<DbModelCostRow>(query, params);
-
-      // Sum costs across per-model breakdowns
-      let totalInputCost = 0;
-      let totalOutputCost = 0;
-      let totalCacheReadCost = 0;
-      let totalCacheCreationCost = 0;
-
-      for (const row of rows) {
-        const model = String(row.model ?? 'unknown');
-        const { pricing, matched } = lookupModelPricing(model);
-
-        if (!matched && model !== 'unknown') {
-          logger.warn(`No pricing found for model "${model}", using default (Sonnet) pricing`);
-        }
-
-        const cost = calculateCostFromPricing(
-          pricing,
-          Number(row.input_tokens),
-          Number(row.output_tokens),
-          Number(row.cache_read_tokens),
-          Number(row.cache_creation_tokens)
-        );
-
-        totalInputCost += cost.inputCost;
-        totalOutputCost += cost.outputCost;
-        totalCacheReadCost += cost.cacheReadCost;
-        totalCacheCreationCost += cost.cacheCreationCost;
-      }
-
-      return {
-        inputCost: totalInputCost,
-        outputCost: totalOutputCost,
-        cacheReadCost: totalCacheReadCost,
-        cacheCreationCost: totalCacheCreationCost,
-        totalCost: totalInputCost + totalOutputCost + totalCacheReadCost + totalCacheCreationCost,
-      };
-    } catch (err) {
-      logger.error(`Failed to compute costs for ${groupBy} group "${metric.group}":`, err);
-      // Fall back to default pricing on error
-      return calculateCostFromPricing(
-        DEFAULT_PRICING,
-        metric.totalInputTokens,
-        metric.totalOutputTokens,
-        metric.totalCacheReadTokens,
-        metric.totalCacheCreationTokens
-      );
-    }
-  }
-
-  /**
-   * Compute costs for a session-grouped metric entry.
-   * Query the session's model from the database for accurate pricing.
-   */
-  function costForSessionGroup(metric: AggregatedMetrics): CostBreakdown {
-    try {
-      const rows = storage.query<{ model: string | null; provider: string }>(
-        `SELECT model, provider FROM provider_metrics WHERE session_id = ? LIMIT 1`,
-        [metric.group]
-      );
-
-      if (rows.length > 0) {
-        const model = rows[0].model ?? 'unknown';
-        const provider = rows[0].provider;
-        const result = calculateCost(
-          model,
-          provider,
-          metric.totalInputTokens,
-          metric.totalOutputTokens,
-          metric.totalCacheReadTokens,
-          metric.totalCacheCreationTokens
-        );
-
-        if (!result.modelMatched && model !== 'unknown') {
-          logger.warn(`No pricing found for model "${model}", using default (Sonnet) pricing`);
-        }
-
-        return {
-          inputCost: result.inputCost,
-          outputCost: result.outputCost,
-          cacheReadCost: result.cacheReadCost,
-          cacheCreationCost: result.cacheCreationCost,
-          totalCost: result.totalCost,
-        };
-      }
-    } catch (err) {
-      logger.error(`Failed to look up model for session "${metric.group}":`, err);
-    }
-
-    // Fallback to default pricing
-    return calculateCostFromPricing(
-      DEFAULT_PRICING,
-      metric.totalInputTokens,
-      metric.totalOutputTokens,
-      metric.totalCacheReadTokens,
-      metric.totalCacheCreationTokens
-    );
-  }
-
   return {
-    calculateCost(
-      model: string,
-      provider: string,
-      inputTokens: number,
-      outputTokens: number,
-      cacheReadTokens: number,
-      cacheCreationTokens: number
-    ): CostBreakdown {
-      const result = calculateCost(model, provider, inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens);
-
-      if (!result.modelMatched) {
-        logger.warn(`No pricing found for model "${model}" (provider: "${provider}"), using default (Sonnet) pricing`);
-      }
-
-      return {
-        inputCost: result.inputCost,
-        outputCost: result.outputCost,
-        cacheReadCost: result.cacheReadCost,
-        cacheCreationCost: result.cacheCreationCost,
-        totalCost: result.totalCost,
-      };
+    // Preserve the standalone pricing helper's API. Metrics enrichment below
+    // only estimates observed usage for models with an existing price entry.
+    calculateCost(model, provider, input, output, read, creation) {
+      const result = calculateCost(model, provider, input, output, read, creation);
+      return { inputCost: result.inputCost, outputCost: result.outputCost,
+        cacheReadCost: result.cacheReadCost, cacheCreationCost: result.cacheCreationCost,
+        totalCost: result.totalCost };
     },
 
-    enrichWithCosts(
-      metrics: AggregatedMetrics[],
-      groupBy: 'provider' | 'model' | 'agent' | 'session',
-      timeRange?: { days: number }
-    ): AggregatedMetricsWithCost[] {
+    enrichWithCosts(metrics, groupBy, timeRange) {
       return metrics.map(metric => {
-        let estimatedCost: CostBreakdown;
-
-        switch (groupBy) {
-          case 'model':
-            estimatedCost = costForModelGroup(metric);
-            break;
-          case 'provider':
-          case 'agent':
-            estimatedCost = costForProviderOrAgentGroup(metric, groupBy, timeRange);
-            break;
-          case 'session':
-            estimatedCost = costForSessionGroup(metric);
-            break;
-          default:
-            estimatedCost = calculateCostFromPricing(
-              DEFAULT_PRICING,
-              metric.totalInputTokens,
-              metric.totalOutputTokens,
-              metric.totalCacheReadTokens,
-              metric.totalCacheCreationTokens
-            );
+        const estimatedCost: CostBreakdown = {
+          inputCost: 0, outputCost: 0, cacheReadCost: 0, cacheCreationCost: 0, totalCost: 0,
+        };
+        let pricedSessionCount = 0;
+        try {
+          const cutoff = new Date();
+          cutoff.setDate(cutoff.getDate() - (timeRange?.days ?? 7));
+          const groupColumn = groupBy === 'provider' ? 'pm.provider'
+            : groupBy === 'model' ? "COALESCE(pm.model, 'unknown')" : 'pm.session_id';
+          const groupFilter = groupBy === 'agent'
+            ? 'EXISTS (SELECT 1 FROM session_messages sm WHERE sm.session_id = pm.session_id AND sm.agent_id = ?)'
+            : `${groupColumn} = ?`;
+          const rows = storage.query<DbModelCostRow>(
+            `SELECT pm.model, COUNT(*) AS session_count,
+              SUM(pm.input_tokens) AS input_tokens, SUM(pm.output_tokens) AS output_tokens,
+              SUM(pm.cache_read_tokens) AS cache_read_tokens,
+              SUM(pm.cache_creation_tokens) AS cache_creation_tokens
+             FROM provider_metrics pm WHERE ${groupFilter}
+               AND pm.usage_available = 1 ${groupBy === 'session' ? '' : 'AND pm.timestamp >= ?'}
+             GROUP BY pm.model`,
+            groupBy === 'session' ? [metric.group] : [metric.group, cutoff.toISOString()]
+          );
+          for (const row of rows) {
+            const { pricing, matched } = lookupModelPricing(row.model ?? 'unknown');
+            if (!matched) continue;
+            const cost = calculateCostFromPricing(pricing, Number(row.input_tokens),
+              Number(row.output_tokens), Number(row.cache_read_tokens), Number(row.cache_creation_tokens));
+            estimatedCost.inputCost += cost.inputCost;
+            estimatedCost.outputCost += cost.outputCost;
+            estimatedCost.cacheReadCost += cost.cacheReadCost;
+            estimatedCost.cacheCreationCost += cost.cacheCreationCost;
+            estimatedCost.totalCost += cost.totalCost;
+            pricedSessionCount += Number(row.session_count);
+          }
+        } catch (error) {
+          logger.error(`Failed to compute costs for ${groupBy} group "${metric.group}":`, error);
         }
-
-        return { ...metric, estimatedCost };
+        return { ...metric, estimatedCost, pricedSessionCount,
+          estimatedCostStatus: pricedSessionCount === metric.sessionCount ? 'available' as const
+            : pricedSessionCount > 0 ? 'partial' as const : 'unavailable' as const };
       });
     },
   };
