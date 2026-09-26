@@ -23,6 +23,32 @@ const DEFAULT_SERVER_URL = 'http://localhost:3457';
 // Shared Helpers
 // ============================================================================
 
+function isResponseObject(data: unknown): data is Record<string, unknown> {
+  return typeof data === 'object' && data !== null && !Array.isArray(data);
+}
+
+function responseError(data: unknown): string | undefined {
+  if (!isResponseObject(data)) return undefined;
+  if (typeof data.error === 'string') return data.error;
+  if (isResponseObject(data.error) && typeof data.error.message === 'string') {
+    return data.error.message;
+  }
+  if (data.error || data.success === false) {
+    return typeof data.message === 'string' ? data.message : 'Server reported failure';
+  }
+  return undefined;
+}
+
+/** Canonical state is authoritative; only absent fields allow legacy fallback. */
+function daemonRunning(data: unknown): boolean | undefined {
+  if (!isResponseObject(data) || responseError(data) !== undefined) return undefined;
+  if ('isRunning' in data) return typeof data.isRunning === 'boolean' ? data.isRunning : undefined;
+  if ('running' in data) return typeof data.running === 'boolean' ? data.running : undefined;
+  if (data.status === 'running') return true;
+  if (data.status === 'stopped' || data.status === 'not_running') return false;
+  return undefined;
+}
+
 /**
  * Gets the server URL from options or default
  */
@@ -52,7 +78,7 @@ async function serverRequest(
     if (!response.ok) {
       return {
         ok: false,
-        error: data.error ?? `Server returned ${response.status}`,
+        error: responseError(data) ?? `Server returned ${response.status}`,
       };
     }
 
@@ -184,10 +210,16 @@ async function daemonStopHandler(
     return failure(`Failed to check daemon status: ${statusResult.error}`, ExitCode.GENERAL_ERROR);
   }
 
-  const statusData = statusResult.data as { running?: boolean; status?: string };
+  const isRunning = daemonRunning(statusResult.data);
+  if (isRunning === undefined) {
+    return failure(
+      `Failed to check daemon status: ${responseError(statusResult.data) ?? 'Invalid daemon status response'}`,
+      ExitCode.GENERAL_ERROR
+    );
+  }
 
   // If daemon is not running, nothing to stop
-  if (!statusData.running && statusData.status !== 'running') {
+  if (!isRunning) {
     const mode = getOutputMode(options);
     if (mode === 'json') {
       return success({ status: 'not_running', message: 'Daemon is not running' });
@@ -213,6 +245,24 @@ async function daemonStopHandler(
     return failure(`Failed to stop daemon: ${result.error}`, ExitCode.GENERAL_ERROR);
   }
 
+  const stopData = result.data;
+  const stopError = responseError(stopData);
+  if (stopError !== undefined) {
+    return failure(`Failed to stop daemon: ${stopError}`, ExitCode.GENERAL_ERROR);
+  }
+  const stillRunning = daemonRunning(stopData);
+  if (stillRunning === true) {
+    return failure('Failed to stop daemon: Server reports daemon is still running', ExitCode.GENERAL_ERROR);
+  }
+  // Older servers acknowledge stop with just status/message, without isRunning.
+  // If a state field is present it must be valid, even alongside a success message.
+  if (!isResponseObject(stopData) || (stillRunning === undefined && (
+    'isRunning' in stopData || 'running' in stopData || 'status' in stopData ||
+    (stopData.success !== true && !(typeof stopData.message === 'string' && stopData.message.length > 0))
+  ))) {
+    return failure('Failed to stop daemon: Invalid daemon stop response', ExitCode.GENERAL_ERROR);
+  }
+
   const mode = getOutputMode(options);
   const data = result.data as { status?: string; message?: string };
 
@@ -221,7 +271,7 @@ async function daemonStopHandler(
   }
 
   if (mode === 'quiet') {
-    return success(data.status ?? 'stopped');
+    return success('stopped');
   }
 
   return success(data, data.message ?? 'Daemon stopped');
@@ -265,6 +315,14 @@ async function daemonStatusHandler(
     return failure(`Failed to get daemon status: ${result.error}`, ExitCode.GENERAL_ERROR);
   }
 
+  const isRunning = daemonRunning(result.data);
+  if (isRunning === undefined) {
+    return failure(
+      `Failed to get daemon status: ${responseError(result.data) ?? 'Invalid daemon status response'}`,
+      ExitCode.GENERAL_ERROR
+    );
+  }
+
   const mode = getOutputMode(options);
   const data = result.data as {
     status?: string;
@@ -285,12 +343,11 @@ async function daemonStatusHandler(
   }
 
   if (mode === 'quiet') {
-    return success(data.status ?? ((data.isRunning ?? data.running) ? 'running' : 'stopped'));
+    return success(isRunning ? 'running' : 'stopped');
   }
 
   // Human-readable output
   const lines: string[] = [];
-  const isRunning = data.isRunning ?? data.running ?? data.status === 'running';
 
   lines.push(`Status:    ${isRunning ? 'running' : 'stopped'}`);
 
