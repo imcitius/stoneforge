@@ -1,5 +1,6 @@
+export type { ReconcileCompletionOptions } from './task-completion.js';
+import { TaskCompletionProtocol, type ReconcileCompletionOptions } from './task-completion.js';
 import { existsSync as repositoryConfigExists } from 'node:fs';
-import { createGitHubMergeProvider } from './merge-request-provider.js';
 import { ProjectRepositories } from '../git/project-repositories.js';
 import { resolve as resolveRepoPath } from 'node:path';
 /**
@@ -41,11 +42,7 @@ import {
   getAgentMetadata,
 } from '../api/orchestrator-api.js';
 import type { MergeRequestProvider } from './merge-request-provider.js';
-import { hasRemote } from '../git/merge.js';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 
-const execFileAsync = promisify(execFile);
 
 // ============================================================================
 // Types
@@ -69,6 +66,13 @@ export interface AssignTaskOptions {
  * Options for completing a task
  */
 export interface CompleteTaskOptions {
+  /** Worker is the default. Admin must be selected explicitly and still uses CAS. */
+  mode?: 'worker' | 'admin';
+  agentId?: EntityId;
+  /** Internal history entry ID; provider IDs are not caller identity. */
+  sessionId?: string;
+  /** Explicit replay of a successfully finalized operation only. */
+  operationId?: string;
   /** Summary of what was accomplished */
   summary?: string;
   /** Commit hash for the final commit */
@@ -245,6 +249,7 @@ export interface TaskAssignmentService {
    * @returns The updated task and optional merge request info
    */
   completeTask(taskId: ElementId, options?: CompleteTaskOptions): Promise<TaskCompletionResult>;
+  reconcileCompletion(taskId: ElementId, options: ReconcileCompletionOptions): Promise<TaskCompletionResult>;
 
   /**
    * Hands off a task to be picked up by another agent.
@@ -417,6 +422,10 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
       mergeStatus: 'pending' as MergeStatus,
       // Preserve handoff history from previous assignments
       handoffHistory: existingMeta?.handoffHistory,
+      // Reassignment/reopen cannot erase an unresolved completion or its audit.
+      completionOperation: existingMeta?.completionOperation,
+      completionHistory: existingMeta?.completionHistory,
+      sessionHistory: existingMeta?.sessionHistory,
       // Preserve targetBranch across re-assignment/handoff
       targetBranch: existingMeta?.targetBranch,
     };
@@ -492,160 +501,11 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
   }
 
   async completeTask(taskId: ElementId, options?: CompleteTaskOptions): Promise<TaskCompletionResult> {
-    const task = await this.api.get<Task>(taskId);
-    if (!task || task.type !== ElementType.TASK) {
-      throw new Error(`Task not found: ${taskId}`);
-    }
+    return new TaskCompletionProtocol(this.api, this.workspaceRoot, this.mergeRequestProvider).complete(taskId, options);
+  }
 
-    if (task.status === TaskStatus.CLOSED || task.status === TaskStatus.REVIEW) {
-      throw new Error(
-        `Cannot complete task ${taskId}: task is already in '${task.status}' status`
-      );
-    }
-
-    const currentMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
-    const branch = currentMeta?.branch;
-    const currentSessionId = currentMeta?.sessionId;
-
-    // Enforce push to remote before completing
-    if (branch) {
-      let pushCwd = currentMeta?.worktree || this.workspaceRoot;
-      if (this.workspaceRoot && currentMeta?.repositoryId) {
-        const repos = new ProjectRepositories(this.workspaceRoot);
-        const repo = await repos.repositoryForTask(task);
-        pushCwd = currentMeta.worktree ? resolveRepoPath(this.workspaceRoot, currentMeta.worktree) : resolveRepoPath(this.workspaceRoot, repo.path);
-      }
-      if (pushCwd) {
-        const remoteExists = await hasRemote(pushCwd);
-        if (remoteExists) {
-          // Validate literal branch names before any remote side effects. The full-ref
-          // check also rejects revision shorthand that --branch can expand.
-          const localRef = `refs/heads/${branch}`;
-          const remoteRef = `refs/remotes/origin/${branch}`;
-          const git = (args: string[]) => execFileAsync('git', args, { cwd: pushCwd, encoding: 'utf8' });
-          await git(['check-ref-format', localRef]);
-          await git(['check-ref-format', '--branch', branch]);
-          const { stdout: localCommit } = await git([
-            'rev-parse', '--verify', '--end-of-options', `${localRef}^{commit}`,
-          ]);
-
-          // Fetch latest remote state
-          try {
-            await git(['fetch', '--', 'origin']);
-          } catch {
-            // fetch failure is non-fatal — continue to check unpushed commits
-          }
-
-          // Check if the remote branch exists and if there are unpushed commits
-          let needsPush = false;
-          try {
-            const { stdout: remoteCommit } = await git([
-              'rev-parse', '--verify', '--end-of-options', `${remoteRef}^{commit}`,
-            ]);
-            const { stdout } = await git([
-              'rev-list', '--count', `${remoteCommit.trim()}..${localCommit.trim()}`, '--',
-            ]);
-            const unpushedCount = parseInt(stdout.trim(), 10);
-            needsPush = unpushedCount > 0;
-          } catch {
-            // Remote branch doesn't exist yet — needs push
-            needsPush = true;
-          }
-
-          if (needsPush) {
-            try {
-              await git(['push', '--', 'origin', `${localRef}:${localRef}`]);
-            } catch (pushErr) {
-              const pushMessage = pushErr instanceof Error ? pushErr.message : String(pushErr);
-              throw new Error(
-                `Cannot complete task: branch ${branch} has unpushed commits and push to origin failed: ${pushMessage}. Please push manually and retry.`
-              );
-            }
-          }
-        }
-      }
-    }
-
-    // Close the current session's history entry
-    let metadataWithClosedSession = task.metadata as Record<string, unknown> | undefined;
-    if (currentSessionId) {
-      metadataWithClosedSession = closeTaskSessionHistory(
-        metadataWithClosedSession,
-        currentSessionId,
-        createTimestamp()
-      );
-    }
-
-    // Build the base metadata updates
-    const metaUpdates: Record<string, unknown> = {
-      completedAt: createTimestamp(),
-      mergeStatus: 'pending' as MergeStatus,
-      resumeCount: 0, // Reset resume count on status change
-    };
-
-    // Add optional completion info
-    if (options?.summary) {
-      metaUpdates.completionSummary = options.summary;
-    }
-    if (options?.commitHash) {
-      metaUpdates.lastCommitHash = options.commitHash;
-    }
-
-    // PR creation is attempted when a provider is configured and not explicitly disabled
-    let mergeRequestUrl: string | undefined;
-    let mergeRequestId: number | undefined;
-
-    if (branch && this.mergeRequestProvider && options?.createMergeRequest !== false) {
-      let baseBranch = options?.baseBranch || currentMeta?.targetBranch || 'main';
-      if (this.workspaceRoot && currentMeta?.repositoryId && !options?.baseBranch && !currentMeta.targetBranch) {
-        baseBranch = await (await new ProjectRepositories(this.workspaceRoot).forTask(task)).getDefaultBranch();
-      }
-      let body = `## Task\n\n**ID:** ${task.id}\n**Title:** ${task.title}\n\n`;
-      if (options?.summary) {
-        body += `## Summary\n\n${options.summary}\n\n`;
-      }
-      body += `---\n_Created by Stoneforge Smithy_`;
-
-      let mergeRequestProvider = this.mergeRequestProvider;
-      if (this.workspaceRoot && currentMeta?.repositoryId && mergeRequestProvider.name === 'github') {
-        const repos = new ProjectRepositories(this.workspaceRoot);
-        const repo = await repos.repositoryForTask(task);
-        mergeRequestProvider = createGitHubMergeProvider(resolveRepoPath(this.workspaceRoot, repo.path));
-      }
-      const mrResult = await mergeRequestProvider.createMergeRequest(task, {
-        title: options?.mergeRequestTitle || task.title,
-        body: options?.mergeRequestBody || body,
-        sourceBranch: branch,
-        targetBranch: baseBranch,
-      });
-      mergeRequestUrl = mrResult.url;
-      mergeRequestId = mrResult.id;
-      metaUpdates.mergeRequestUrl = mergeRequestUrl;
-      metaUpdates.mergeRequestId = mergeRequestId;
-      metaUpdates.mergeRequestProvider = this.mergeRequestProvider.name;
-    }
-    // When no provider is configured, skip PR creation but still complete the task.
-    // The merge steward can create PRs later if needed.
-
-    // Apply metadata updates on top of the closed session history
-    const newMeta = updateOrchestratorTaskMeta(
-      metadataWithClosedSession,
-      metaUpdates as Partial<OrchestratorTaskMeta>
-    );
-
-    // Set status to REVIEW (not CLOSED) - merge steward will set CLOSED after merge
-    // Clear assignee - task is now awaiting merge review, not actively being worked on
-    const updatedTask = await this.api.update<Task>(taskId, {
-      status: TaskStatus.REVIEW,
-      assignee: undefined,
-      metadata: newMeta,
-    });
-
-    return {
-      task: updatedTask,
-      mergeRequestUrl,
-      mergeRequestId,
-    };
+  async reconcileCompletion(taskId: ElementId, options: ReconcileCompletionOptions): Promise<TaskCompletionResult> {
+    return new TaskCompletionProtocol(this.api, this.workspaceRoot, this.mergeRequestProvider).reconcile(taskId, options);
   }
 
   async handoffTask(taskId: ElementId, options: HandoffTaskOptions): Promise<Task> {

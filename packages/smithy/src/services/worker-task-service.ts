@@ -89,6 +89,9 @@ export interface StartWorkerOnTaskResult {
  * Options for completing a task
  */
 export interface CompleteTaskOptions {
+  sessionId?: string;
+  mode?: 'worker' | 'admin';
+  operationId?: string;
   /** Summary of what was accomplished */
   summary?: string;
   /** Commit hash for the final commit */
@@ -390,6 +393,10 @@ export class WorkerTaskServiceImpl implements WorkerTaskService {
 
     // 2. Mark the task as completed using TaskAssignmentService
     const completeResult = await this.taskAssignment.completeTask(taskId, {
+      agentId: options.performedBy,
+      sessionId: options.sessionId,
+      mode: options.mode,
+      operationId: options.operationId,
       summary: options.summary,
       commitHash: options.commitHash,
     });

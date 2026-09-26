@@ -320,3 +320,148 @@ source build, Smithy Node/Vitest, Desktop Node integration and the new Git suite
 `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-VRcL9Z/results.json`.
 `git diff --check` passed. Only this evidence note changes after the gate; production
 and tests remain the tested versions. Independent steward acceptance is pending.
+
+## Worker completion and history follow-up — el-20qt0, 2026-09-26
+
+This section supersedes **only completion/history** observations above. Historical
+measurements remain evidence of the original defect, not desired behavior. The
+start/unassign/automatic-dispatch DEFECT groups remain explicitly unfixed here.
+The separate literal-argv correction is retained.
+
+Director's accepted contract permits durable operation audit **after** acquisition
+of a narrow metadata CAS claim. Preflight rejection and losing claim CAS leave the
+entire task, description, history and events unchanged. A post-claim failure may
+retain only that operation's claim/phase/error/receipt/reconciliation records. It
+must not close history or move the task to REVIEW. This supersedes the older Git
+error controls' blanket unchanged-task assertion; they now verify the phase and
+preserved lifecycle/history. No separate journal/schema or general lifecycle-writer
+refactor was introduced.
+
+### Caller and history contract
+
+`TaskAssignmentService.completeTask(id, options)` defaults to worker mode. It
+requires `agentId` and the **internal** `sessionId`, an OPEN/IN_PROGRESS task,
+matching assignee/assignedAgent/current history owner, and the latest unfinished
+history entry with a unique internal ID. Metadata may identify that entry by its
+internal or provider ID. Caller provider IDs, duplicate internal IDs, missing or
+ended history, and stale resumed callers reject. A current internal caller works
+when a provider ID was reused on resume: only that internal entry is closed;
+earlier entries are retained exactly, including earlier unfinished entries.
+
+CLI carries `--agentId` / `--sessionId`, defaulting in worker mode to SF_ENTITY_ID /
+STONEFORGE_SESSION_ID. These environment values are **untrusted assertions checked
+against current task state**, never inferred from the last owner. Admin is a
+separate explicit `--admin --agentId <operator>` mode with no environment fallback.
+SDK/HTTP use `mode: 'admin'`; HTTP actor is `performedBy`, worker session is
+`sessionId`. Both routes return 409 for guard/CAS conflict. Admin may complete an
+active task without a worker history; if history exists it must still identify a
+unique current unfinished entry with coherent ownership. Admin does not bypass
+claims, version checks or unknown outcomes. Dashboard's operator Complete action
+sends this explicit mode and the selected human's ID; missing selection fails.
+These identity fields are **not an authentication/authorization boundary**.
+
+### Claim, effects and limits
+
+`completionOperation` stores a random operationId, initial taskVersion, actor,
+mode/internal entry, original owner, repository/branch/worktree, resolved commitOid,
+request contents and phase. After a finalized operation is explicitly reopened
+and assigned a fresh internal session, the next claim archives the old operation
+in `completionHistory`. Both operation records and full session history survive
+assignment/reassignment, reopen and reset; pending claims cannot be erased by
+these normal paths. Direct arbitrary metadata replacement is outside this narrow
+contract, as are unresolved stale start/unassign/dispatch writers listed above.
+
+Each phase/final write has SQL CAS on the exact preceding task version. Each
+continuation checks current version, ownership, claim and session before an effect.
+No winner is overwritten from the old task metadata snapshot. Phases are:
+
+- `claimed` → `push_started` → `pushed` (or `push_failed`).
+- With configured MR creation: `mr_started` → `receipt` (or `unknown`).
+- Final CAS atomically records `finalized`, REVIEW, clears assignee and ends only
+  the selected internal history entry.
+
+Git source is the preflight-resolved OID and destination is a validated literal
+`refs/heads/<branch>`; push uses execFile argv and never force. Local branch movement
+cannot change that source. With an origin, push is attempted even if a cached
+tracking ref matches; a stale cache/failing fetch is not proof of remote delivery.
+No-origin completion remains supported. A branchless offline operation
+has no Git effect/OID; a recorded branch requires an existing Git worktree even with --no-mr; remote MR creation requires a resolved local commit.
+
+A losing claim cannot push/create an MR. Concurrent completions have one claim
+winner. Later calls reject pending operations rather than automatically retrying.
+A finalized operation can be replayed explicitly with `operationId` and its caller
+without effects or new events. Reopen is not a retry of an unresolved operation.
+
+**No network atomicity is promised.** There is an unavoidable interval between the
+last state check and sending an effect, and a sent Git/provider request may finish
+after a concurrent close/reassignment. Its external result cannot be rolled back
+by SQLite CAS. Subsequent effects and finalization are fenced; durable mr_started
+means the outcome is unknown even if its response/receipt was lost. Remote branch
+movement by another actor can also change an MR after push; provider creation is
+branch-based, not an atomic compare-and-create against head OID. Claims do not add
+provider-level idempotency or serialize other actors' Git operations.
+
+### Explicit recovery (SDK operator API)
+
+Use `TaskAssignmentService.reconcileCompletion(taskId, { operationId, operatorId,
+reason, mergeRequestId? })` against the same registered project/repository, after
+an operator investigates the operation. This is deliberately a narrow SDK method,
+not an automatic daemon action or a new global recovery subsystem. Its inputs
+must be explicit; the recorded reason/actor/time/previous phase are committed by
+CAS before continuation. Concurrent normal/recovery continuations are fenced by
+that CAS. No TTL takeover or reopen reset exists.
+
+- Before MR started, an operator can resume the **same** claim and pinned push.
+  Retrying a previously started push uses the same OID and never force. It may
+  fail if the remote moved; this does not authorize replacing its target.
+- A durable receipt is reused for the same operation and finalization only; no
+  second create is issued. A successful finalized recovery is a read-only replay.
+- `mr_started`/`unknown` require a concrete MR number and provider evidence. The
+  GitHub provider uses literal `gh pr view <number> --json ...` to verify open state,
+  source/base branch, head OID, provider/number/URL and the operation-specific body
+  marker. Unsupported lookup, missing/mismatched evidence, unavailable provider,
+  or an absent operator rationale leave the state unchanged and unknown. Failure
+  to find an MR is **not** evidence that create never happened.
+- Unknown with no matching existing MR cannot be resumed by this API. There is no
+  “assume absent”, abandon, clear-claim or retry-create escape hatch. A transferred
+  owner/session cannot adopt a previous operation either. These remain deliberate
+  fail-closed cases requiring separate operator investigation/design; do not edit
+  metadata to bypass them. Closed work must be explicitly reopened, but reopening
+  does not restore the original owner/history or authorize recovery automatically.
+
+Recovery code example (illustrative; never execute against live fixtures):
+
+```ts
+await assignment.reconcileCompletion(taskId, {
+  operationId: reviewedClaim.operationId,
+  operatorId,
+  reason: 'Verified the existing open MR belongs to this operation',
+  mergeRequestId: reviewedMrNumber,
+});
+```
+
+### Isolated validation
+
+`task-completion-protocol.bun.test.ts` uses two real temporary SQLite connections,
+real CLI subprocesses, both production HTTP route factories through ephemeral
+localhost servers, real worker/assignment services and deterministic provider
+mocks. `task-completion-git.bun.test.ts` uses new temporary local/bare Git repos.
+No live tasks/sessions/daemon/provider calls, external remotes, installed Desktop,
+or maintenance el-1clm are used as fixtures.
+
+Coverage includes preflight stale close/defer/Human/B; R1/R2 task/description/event
+preservation; current and resumed internal identity; ambiguous history; real CLI
+reopen; both HTTP routes/current/admin; double claim; boundaries before effects
+and after MR; response/process loss and restart; insufficient evidence; receipt
+reuse after final-write failure; pinned OID despite local movement; failed push
+and explicit recovery; owner change after successful push; and unknown surviving
+real reopen + assignment. Only matching completion/history DEFECT assertions were
+converted to reject/preserve regressions. Historical controls remain in the file.
+
+Worker results and exact final independent steward verdict follow below. Early
+focused runs: 106/106 across lifecycle/assignment/Git; protocol 65/65; expanded
+protocol+Git 89/89; assignment/history-preservation set 154/154. Smithy Node command
+`pnpm --filter @stoneforge/smithy test:node -- src/services/worker-task-service.test.ts`
+actually ran all 13 Vitest files: 325/325 (the wrapper did not filter). Frozen install
+and Smithy typecheck passed. The first typecheck found only narrowing errors in
+the new helper and was corrected; that failed attempt is retained in task logs.

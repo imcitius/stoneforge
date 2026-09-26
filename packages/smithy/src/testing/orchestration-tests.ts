@@ -13,6 +13,7 @@
 
 import type { EntityId, Task } from '@stoneforge/core';
 import { TaskStatus } from '@stoneforge/core';
+import { updateOrchestratorTaskMeta } from '../types/task-meta.js';
 
 import type { TestContext } from './test-context.js';
 import type { TestResult } from './test-utils.js';
@@ -834,16 +835,26 @@ async function runWorkerMarksTaskCompleteMock(ctx: TestContext): Promise<TestRes
     return fail(`Expected task in_progress, got: ${taskInProgress?.status}`);
   }
 
+  // The simulated worker has a real internal history identity, without Git effects.
+  const sessionId = `fixture-${uniqueId()}`;
+  await ctx.api.update<Task>(task.id, {
+    metadata: updateOrchestratorTaskMeta(taskInProgress.metadata, {
+      branch: undefined, worktree: undefined, sessionId,
+      sessionHistory: [{ sessionId, agentId: worker.id as unknown as EntityId,
+        agentName: worker.name, agentRole: 'worker', startedAt: taskInProgress.updatedAt }],
+    }),
+  });
   // 4. Complete the task (simulating worker completion)
   await ctx.taskAssignment.completeTask(task.id, {
+    agentId: worker.id as unknown as EntityId, sessionId, createMergeRequest: false,
     summary: 'Task completed successfully',
   });
   ctx.log('Completed task');
 
-  // 5. Verify task is closed
+  // 5. Verify worker completion awaits merge review
   const taskClosed = await ctx.api.get<Task>(task.id);
-  if (taskClosed?.status !== TaskStatus.CLOSED) {
-    return fail(`Expected task closed, got: ${taskClosed?.status}`);
+  if (taskClosed?.status !== TaskStatus.REVIEW) {
+    return fail(`Expected task review, got: ${taskClosed?.status}`);
   }
 
   return pass(`Task status is '${taskClosed.status}'`, {

@@ -41,7 +41,7 @@ beforeEach(async () => {
   task = await api.create<Task>(raw as unknown as Parameters<QuarryAPI['create']>[0]);
   task = await createTaskAssignmentService(api).assignToAgent(task.id, owner, { markAsStarted: true, sessionId: 'provider-old' });
   task = await api.update<Task>(task.id, { metadata: { ...task.metadata, orchestrator: {
-    ...getOrchestratorTaskMeta(task.metadata),
+    ...getOrchestratorTaskMeta(task.metadata), branch: undefined, worktree: undefined,
     handoffHistory: [{ sessionId: 'older-session', message: 'Retained evidence', handoffAt: task.createdAt }],
     sessionHistory: [{ sessionId: 'internal-old', providerSessionId: 'provider-old', agentId: owner, agentName: 'owner', agentRole: 'worker', startedAt: task.createdAt }],
   } } });
@@ -71,7 +71,7 @@ async function run(operation: Operation) {
   switch (operation) {
     case 'assign': return service.assignToAgent(task.id, owner, { markAsStarted: true, sessionId: 'stale-session' });
     case 'start': return service.startTask(task.id, 'stale-session');
-    case 'complete': return (await service.completeTask(task.id, { createMergeRequest: false })).task;
+    case 'complete': return (await service.completeTask(task.id, { agentId: owner, sessionId: 'internal-old', createMergeRequest: false })).task;
     case 'unassign': return service.unassignTask(task.id);
   }
 }
@@ -79,8 +79,8 @@ async function run(operation: Operation) {
 for (const operation of ['assign', 'start', 'complete', 'unassign'] as const) {
   for (const kind of ['closed', 'deferred', 'reassign', 'human']) {
     for (const readNumber of [1, 2]) {
-      test(operation === 'assign'
-        ? `REGRESSION: assign rejects and preserves ${kind} at read ${readNumber}`
+      test(operation === 'assign' || operation === 'complete'
+        ? `REGRESSION: ${operation} rejects and preserves ${kind} at read ${readNumber}`
         : `DEFECT evidence: ${operation} overwrites ${kind} at read ${readNumber}`, async () => {
         const get = api.get.bind(api);
         let reads = 0;
@@ -94,7 +94,7 @@ for (const operation of ['assign', 'start', 'complete', 'unassign'] as const) {
           }
           return result;
         };
-        if (operation === 'assign') {
+        if (operation === 'assign' || operation === 'complete') {
           const update = api.update.bind(api);
           let attempts = 0;
           api.update = async (...args) => {
@@ -284,28 +284,25 @@ for (const kind of ['closed', 'deferred', 'human', 'reassign']) {
 }
 
 for (const kind of ['deferred', 'human', 'reassign']) {
-  test(`DEFECT evidence: actual stale-session CLI complete accepts ${kind}`, async () => {
-    await change(kind);
+  test(`REGRESSION: actual stale-session CLI complete rejects ${kind}`, async () => {
+    const winner = await change(kind);
+    const events = storage.query('SELECT * FROM events ORDER BY id');
     const env = { ...process.env };
     for (const key of Object.keys(env)) if (/^(STONEFORGE_|SF_|ORCHESTRATOR_URL$|ELECTRON_RUN_AS_NODE$)/.test(key)) delete env[key];
     env.STONEFORGE_ROOT = root;
     env.SF_ENTITY_ID = owner;
     env.STONEFORGE_SESSION_ID = 'internal-old';
     const result = spawnSync(process.execPath, [cliSource, 'task', 'complete', task.id, '--no-mr'], { cwd: root, env, encoding: 'utf8' });
-    expect(result.status).toBe(0);
-    const saved = (await other.get<Task>(task.id))!;
-    expect(saved.status).toBe(TaskStatus.REVIEW);
-    expect(saved.assignee).toBeUndefined();
-    if (kind === 'reassign') {
-      expect(getOrchestratorTaskMeta(saved.metadata)!.sessionHistory![1].endedAt).toBeUndefined();
-    }
+    expect(result.status).not.toBe(0);
+    expect(await other.get(task.id)).toEqual(winner);
+    expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
   });
 }
 
-test('DEFECT evidence: provider session ID completion leaves the current internal history entry open', async () => {
+test('REGRESSION: provider-shaped metadata completion closes the selected internal entry', async () => {
   const result = await run('complete');
   expect(result.status).toBe(TaskStatus.REVIEW);
-  expect(getOrchestratorTaskMeta(result.metadata)!.sessionHistory![0].endedAt).toBeUndefined();
+  expect(getOrchestratorTaskMeta(result.metadata)!.sessionHistory![0].endedAt).toBeDefined();
 });
 
 for (const readNumber of [1, 2]) {
