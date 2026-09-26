@@ -4,6 +4,7 @@
  * Provides hooks for fetching and mutating agent data from the orchestrator API.
  */
 
+import { toast } from 'sonner';
 import { useMemo } from 'react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
@@ -327,6 +328,7 @@ export function useStartAgentSession() {
         body: JSON.stringify({ taskId, initialPrompt, initialMessage, interactive, cols, rows }),
       });
     },
+    onError: error => { toast.error('Could not start agent session', { description: error.message, duration: 12000 }); },
     onSuccess: (_, { agentId }) => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });
       queryClient.invalidateQueries({ queryKey: ['agent-status', agentId] });
@@ -389,6 +391,7 @@ export function useResumeAgentSession() {
         body: JSON.stringify({ providerSessionId, resumePrompt }),
       });
     },
+    onError: error => { toast.error('Could not resume agent session', { description: error.message, duration: 12000 }); },
     onSuccess: (_, { agentId }) => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });
       queryClient.invalidateQueries({ queryKey: ['agent-status', agentId] });

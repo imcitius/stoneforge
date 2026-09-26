@@ -23,6 +23,7 @@ let electron;
 let externalFixture;
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
+  execFileSync(node, [join(root, 'apps/desktop/scripts/check-pty.mjs'), resources], { stdio: 'inherit' });
   const a = join(temp, 'Atlas'); await mkdir(a);
   const env = { ...process.env }; delete env.STONEFORGE_ROOT; delete env.ELECTRON_RUN_AS_NODE;
   const sf = (...args) => execFileSync(node, [cli, ...args], { cwd: a, env, stdio: 'pipe' });
@@ -153,6 +154,15 @@ try {
   await taskPage.waitForFunction(() => { const select = document.querySelector('select'); return select?.value === 'repo-b' && !select.disabled; });
   await taskPage.screenshot({ path: join(temp, 'repositories.png') });
   console.log('Packaged repository registration and task selection: passed');
+  // A rejected director start must be visible, without launching a real provider.
+  await taskPage.goto(new URL('/activity', freshView.url).href);
+  await taskPage.route('**/api/agents/*/start', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'PTY launch failure fixture' } }) }));
+  await taskPage.getByRole('button', { name: 'Start Session', exact: true }).first().click();
+  await taskPage.getByText('Could not start agent session', { exact: true }).waitFor();
+  await taskPage.getByText('PTY launch failure fixture', { exact: true }).waitFor();
+  await taskPage.unroute('**/api/agents/*/start');
+  console.log('Packaged director start failure is visible: passed');
+
 
   const outside = join(temp, 'External'); await mkdir(outside);
   execFileSync(node, [cli, 'init', '--preset', 'approve'], { cwd: outside, env, stdio: 'pipe' });

@@ -26,6 +26,9 @@ await writeFile(join(bundle, 'build-info.json'), JSON.stringify(build, null, 2) 
 // Build the UI immediately before deployment so a cached SDK build cannot ship stale assets.
 execFileSync('pnpm', ['--filter', '@stoneforge/smithy-web', 'build:web'], { cwd: root, stdio: 'inherit' });
 execFileSync('pnpm', ['--filter', '@stoneforge/smithy', 'deploy', '--prod', join(resources, 'backend')], { cwd: root, stdio: 'inherit' });
+// pnpm deploy can copy spawn-helper from its store without executable permissions.
+// Workspace postinstall hooks do not repair the deployed copy.
+execFileSync(require.resolve('node/bin/node'), [join(resources, 'backend/scripts/fix-node-pty-permissions.cjs')], { cwd: join(resources, 'backend'), stdio: 'inherit' });
 // Build native SQLite for the shipped Node ABI, regardless of the developer's system Node.
 const bundledNode = require.resolve('node/bin/node');
 const nativeEnv = { ...process.env, PATH: dirname(bundledNode) + ':' + (process.env.PATH ?? '') };
@@ -58,5 +61,6 @@ for (const output of paths) {
     }
   }
   await verifyLinks(appPath);
+  execFileSync(join(destination, 'runtime/node'), [join(desktop, 'scripts/check-pty.mjs'), destination], { stdio: 'inherit' });
 }
 console.log('Packaged:', paths.join('\n'));

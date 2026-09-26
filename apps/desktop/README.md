@@ -21,7 +21,8 @@ pnpm --filter @stoneforge/desktop package:mac
 open 'apps/desktop/dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.app'
 ```
 
-Packaging rebuilds the web UI and builds/checks native SQLite against the bundled Node ABI. Native files
+Packaging rebuilds the web UI and builds/checks native SQLite against the bundled Node ABI. Packaging also repairs the deployed PTY helper permissions and verifies a real
+PTY spawn/output/exit inside the final app, without calling an agent provider. Native files
 and the Node executable live outside ASAR. The bundle can be moved independently
 of the checkout. Packaging currently produces an unsigned local `.app`; external
 distribution and notarization are a later step. Intel builds are not verified.
