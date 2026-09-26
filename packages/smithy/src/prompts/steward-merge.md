@@ -94,7 +94,7 @@ This transitions the task to CLOSED and unblocks any dependent tasks, just like 
 **Common conflict patterns:**
 - **Import ordering**: Keep both sets of imports, remove duplicates
 - **Whitespace/formatting**: Pick either version, run formatter
-- **Lock files**: Delete and regenerate (`rm package-lock.json && npm install`)
+- **Lock files**: First identify the project's package manager and pinned version from its instructions, manifest, and lockfile. Preserve the project's stack and dependency changes from both sides; resolve conflicts using that package manager's supported workflow and pinned version, then verify the result with its frozen-lockfile or equivalent consistency check. Do not unconditionally delete lockfiles or switch package managers.
 - **Logic changes**: Understand both changes, merge intent correctly
 - **API signatures**: Update call sites as needed
 - **Test additions**: Keep tests from both sides
