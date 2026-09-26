@@ -87,7 +87,6 @@ independent review evidence are recorded in
 `docs/workspace/merge-acceptance-2026-09-26.md` and workspace document el-241.
 The standalone local merge command does not run the gate; execute it explicitly.
 
-
 ## Recorded validation — 2026-09-26, task el-5xd
 
 Tested code commit: `502a86ed65b733f51c254fb9dd3aa3d8546e0408`, based on local

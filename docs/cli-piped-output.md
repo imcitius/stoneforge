@@ -68,3 +68,52 @@ included by `check:merge`'s isolated Bun-file discovery. To additionally verify 
 separate CLI artifact against the same temporary fixture, set `SF_TEST_CLI` to
 its launcher when running this test directly. Artifact checks never replace or
 restart the installed application.
+
+## Worker acceptance and separate artifact
+
+Runtime source tested at `139b95a671b47f6554659ce4b20192351856ced2`, including
+local target `37a4969d19e9bd8239c5739e9c911b14557073b0`. pnpm 8.15.5,
+Bun 1.3.11, Node 22.23.3, macOS arm64:
+
+- `pnpm install --frozen-lockfile`: exit 0; unchanged manifests/lockfile.
+- Targeted regression: exit 0, 18/18 tests, 166 assertions, 19.72 s.
+- `pnpm check:merge`: exit 0, **178/178 steps**, 162.47 s runner time;
+  uncached typecheck 17/17, 8,516 Bun pass / 29 existing skips, 325 Vitest,
+  6 Desktop Node and 5 gate regression tests. Desktop build passed.
+- An earlier gate invocation was explicitly interrupted during a documentation
+  merge conflict. It is not acceptance evidence; its log is retained as
+  `/tmp/el-3num-evidence/check-merge-interrupted.log`. The conflict was resolved
+  preserving current activation/review details; the successful full run followed
+  the completed sync and ran from a clean worktree.
+
+Gate logs: `/tmp/el-3num-evidence/check-merge.log`, `gate-summary.json`; exact
+commands, per-step exits/times and full logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-xBKQ7N/results.json`.
+
+Separate macOS arm64 artifact: `/tmp/stoneforge-el-3num-139b95a/sf`, created with
+`pnpm --filter @stoneforge/smithy deploy --prod /tmp/stoneforge-el-3num-139b95a`
+(exit 0). Its launcher uses its own Node 22.23.3 copied from the previously verified
+el-ptim artifact. All **295 workspace JavaScript files** match the build byte for
+byte (Smithy 124, Quarry 117, core 30, storage 9, shared-routes 15).
+`BUILD_INFO.json` records source commit, lockfile hash and SHA-256 of those files,
+Node, launcher and package manifest. BUILD_INFO SHA-256:
+`0b1968ac81b9d221c45da018c5cee509244c3d3c7f752cfe09e2816b08b2c13b`.
+
+Artifact regression command:
+
+```sh
+SF_TEST_CLI=/tmp/stoneforge-el-3num-139b95a/sf bun test packages/quarry/src/cli/piped-output.bun.test.ts
+```
+
+Exit 0: **26/26 tests**, 244 assertions, 16.78 s. This includes all 18 built-source
+entrypoint cases plus eight artifact cases using the same isolated fixture;
+`/tmp/el-3num-evidence/artifact-regression.log`. The active-timer preload cases
+apply to the two direct Node entrypoints. The later evidence-only commit changes
+no runtime source compared with the tested/artifact commit above.
+
+The installed application/CLI, real libraries and active sessions were not replaced
+or restarted. Source acceptance does not fix the installed CLI. Cross-platform,
+packaged GUI and live-provider checks were not run; see `merge-checks.md` for gate
+exclusions. Independent steward review of the final commit and the artifact is
+required before local delivery or approval of this new artifact for operational
+use. Continue to use approved el-ptim CLI for task sync/merge until that approval.
