@@ -823,3 +823,63 @@ commit plus exact implementation, and approved CLI local delivery after explicit
 checks, remain required. No manual PR/merge, installed app replacement or live
 provider/daemon/session testing was performed. Director's coordination of this
 worker's live task assignment is not a test fixture or application maintenance.
+
+### el-1q2vv steward rejection and cleanup retry correction
+
+Steward rejected `db20c9883cca7016f9764760c522ab21ccc75cb8` after a passing
+188/188 gate: `stopSession` treated in-memory `terminated` as completed cleanup.
+A transient persistence error left the registry running with no ended history;
+a second stop silently returned. The original independent evidence remains in
+shared reference el-4aqnn and `/tmp/el-1q2vv-review/stop-retry-regression.patch`.
+This worker reapplied that desired-safety probe and reproduced **0 pass / 1 fail**
+on db20c98 before the fix. It is now a permanent reject/preserve regression in
+`dispatch-claim.bun.test.ts`, not a characterization of acceptable behavior.
+
+SessionManager now records stop progress per captured internal session ID.
+Concurrent callers await the same operation and receive its failure. A later
+call retries incomplete cleanup; successful process termination is not repeated
+when only persistence failed. Completed stops are idempotent. Failed termination
+remains retryable through the same exact SpawnerService session ID. The original
+end timestamp/reason are retained. Stop progress is removed with the session's
+normal memory cleanup; an incomplete explicit stop cannot be evicted by that timer.
+Current registry fields still require the existing internal identity/entity CAS;
+retry never looks up or adopts a successor's session. History remains deduplicated.
+No API/format/schema, legacy ownership, gate or threshold changes were made.
+
+Four additional real temporary SQLite/Git + actual SessionManager/registry tests
+cover persistence failure/retry, concurrent successful stops, and concurrent
+persistence/termination failures followed by same-provider-ID successor startup.
+They assert both callers fail, own cleanup retries, unique ended history, and
+successor process/current fields/active mapping preservation. Spawner handles are
+inert mocks; there are no live agents, providers or task/daemon fixtures.
+
+Frozen install: exit0. Focused command:
+`bun test packages/smithy/src/services/dispatch-claim.bun.test.ts packages/smithy/src/services/task-lifecycle-race-evidence.bun.test.ts packages/smithy/src/runtime/session-manager.bun.test.ts packages/smithy/src/services/task-session-retention.bun.test.ts`
+passed **198/198, 715 assertions**, exit0, 17.61s; claim suite now28/28.
+Log: `/tmp/el-1q2vv-retry-focused-final.log`.
+An initial implementation incorrectly required persisted=true for all timer
+cleanup, failing an existing non-stop eviction control (197 pass/1 fail).
+The correction restricts the timer guard to explicit stop progress; the existing
+control is unchanged. A prematurely started full gate was interrupted (exit130)
+during typecheck, before this correction; it is not claimed as validation.
+
+Adjacent lower-level limitation: existing SpawnerImpl.terminate returns for
+`terminating` even after a provider close/kill throw. This exists on local master
+and is reported to Director in el-25s0e; it is not fixed or hidden by these
+SpawnerService-boundary tests. This change does not claim universal provider
+termination reliability. Other historical DEFECT groups, controls and completed
+handoff/completion/retention fixes remain intact.
+
+The assigned branch already includes the steward's approved local sync with
+master75b818a; ancestry/diff checks pass. Independent exact-final-commit review
+and explicit approved CLI local merge remain the steward's next steps. No manual
+PR/merge, installed Desktop update or maintenance/live session operation occurred.
+Separate root build/lint/test, browser/packaged GUI, standalone server suite,
+browser sql.js, cross-platform and real-provider tests are omitted.
+
+Final retry-correction gate: **pnpm check:merge188/188, exit0,239.48s**.
+Log `/tmp/el-1q2vv-retry-gate-final.log`; exact commands/exits and per-step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-06UZVT/results.json`.
+All final production/test edits were present; only this result documentation was
+added afterward. This supersedes neither the historical rejection nor omitted
+live-provider coverage. Independent exact-commit review remains required.

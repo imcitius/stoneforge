@@ -293,3 +293,89 @@ test('due and unassigned candidate remains eligible for automatic claim', async 
   expect(await s.claim()).toBe(true);
   expect((await api.get<Task>(task.id))!.assignee).toBe(worker.id as unknown as EntityId);
 });
+
+test('repeated stop retries failed persistence for its own session', async () => {
+  const s = await services(); const agentId = worker.id as unknown as EntityId;
+  const own = await s.sessions.startSession(agentId, { workingDirectory: root });
+  const update = api.update.bind(api); let fail = true;
+  api.update = async (...args) => {
+    if (args[0] === worker.id && fail) { fail = false; throw new Error('fixture transient persistence failure'); }
+    return update(...args);
+  };
+  await expect(s.sessions.stopSession(own.session.id, { graceful: false })).rejects.toThrow('fixture transient persistence failure');
+  await s.sessions.stopSession(own.session.id, { graceful: false });
+  expect((await s.registry.getAgent(agentId))!.metadata.agent).toMatchObject({ currentSessionId: own.session.id, sessionStatus: 'idle' });
+  expect(((await s.registry.getAgent(agentId))!.metadata.agent as { sessionHistory: {id: string}[] }).sessionHistory.some(e => e.id === own.session.id)).toBe(true);
+});
+
+for (const failure of ['persistence', 'termination']) {
+  test(`concurrent stops share ${failure} failure and retry only own cleanup after successor starts`, async () => {
+    const s = await services(); const agentId = worker.id as unknown as EntityId;
+    const own = await s.sessions.startSession(agentId, { workingDirectory: root });
+    let release!: () => void, entered!: () => void;
+    const blocked = new Promise<void>(resolve => { release = resolve; });
+    const reached = new Promise<void>(resolve => { entered = resolve; });
+    const terminate = spawner.terminate.bind(spawner);
+    let terminations = 0, fail = true;
+    spawner.terminate = async (...args) => {
+      expect(args[0]).toBe(own.session.id);
+      terminations++;
+      if (failure === 'termination' && fail) {
+        fail = false; entered(); await blocked;
+        throw new Error('fixture stop failure');
+      }
+      return terminate(...args);
+    };
+    const update = api.update.bind(api);
+    api.update = async (...args) => {
+      if (failure === 'persistence' && args[0] === worker.id && fail) {
+        fail = false; entered(); await blocked;
+        throw new Error('fixture stop failure');
+      }
+      return update(...args);
+    };
+    const first = s.sessions.stopSession(own.session.id, { graceful: false });
+    await reached;
+    let secondSettled = false;
+    const secondStop = s.sessions.stopSession(own.session.id, { graceful: false });
+    void secondStop.then(() => { secondSettled = true; }, () => { secondSettled = true; });
+    await Promise.resolve(); await Promise.resolve();
+    expect(secondSettled).toBe(false);
+    const outcomesPromise = Promise.allSettled([first, secondStop]);
+    release();
+    const outcomes = await outcomesPromise;
+    expect(outcomes.map(o => o.status)).toEqual(['rejected', 'rejected']);
+    expect(terminations).toBe(1);
+    expect(handles.get(own.session.id)!.alive).toBe(failure === 'termination');
+    const successor = await s.sessions.resumeSession(agentId, { providerSessionId: 'reused-provider', workingDirectory: root });
+    const winner = (await s.registry.getAgent(agentId))!;
+    await s.sessions.stopSession(own.session.id, { graceful: false });
+    await s.sessions.stopSession(own.session.id, { graceful: false });
+    expect(terminations).toBe(failure === 'termination' ? 2 : 1);
+    const result = (await s.registry.getAgent(agentId))!;
+    expect(currentFields(result)).toEqual(currentFields(winner));
+    expect(handles.get(own.session.id)!.alive).toBe(false);
+    expect(handles.get(successor.session.id)!.alive).toBe(true);
+    expect(s.sessions.getActiveSession(agentId)!.id).toBe(successor.session.id);
+    const history = (result.metadata.agent as { sessionHistory: { id: string }[] }).sessionHistory;
+    expect(history.filter(entry => entry.id === own.session.id)).toHaveLength(1);
+  });
+}
+
+test('concurrent successful stops await one termination and one persisted history entry', async () => {
+  const s = await services(); const agentId = worker.id as unknown as EntityId;
+  const own = await s.sessions.startSession(agentId, { workingDirectory: root });
+  let release!: () => void, entered!: () => void, calls = 0;
+  const blocked = new Promise<void>(resolve => { release = resolve; });
+  const reached = new Promise<void>(resolve => { entered = resolve; });
+  beforeTerminate = async () => { calls++; entered(); await blocked; };
+  const first = s.sessions.stopSession(own.session.id, { graceful: false });
+  await reached;
+  const secondStop = s.sessions.stopSession(own.session.id, { graceful: false });
+  release(); await Promise.all([first, secondStop]);
+  await s.sessions.stopSession(own.session.id, { graceful: false });
+  expect(calls).toBe(1);
+  const meta = (await s.registry.getAgent(agentId))!.metadata.agent as { sessionStatus: string; sessionHistory: { id: string }[] };
+  expect(meta.sessionStatus).toBe('idle');
+  expect(meta.sessionHistory.filter(entry => entry.id === own.session.id)).toHaveLength(1);
+});

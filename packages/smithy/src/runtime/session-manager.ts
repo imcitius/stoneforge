@@ -501,6 +501,12 @@ export class SessionManagerImpl implements SessionManager {
   private readonly sessionHistory: Map<EntityId, SessionHistoryEntry[]> = new Map();
   private readonly sessionCleanupFns: Map<string, () => void> = new Map(); // sessionId -> cleanup function
 
+  // A terminated status fences exit callbacks; it does not mean cleanup succeeded.
+  private readonly sessionStops = new Map<string, {
+    terminationComplete: boolean;
+    complete: boolean;
+    pending?: Promise<void>;
+  }>();
   private readonly startingAgents = new Set<EntityId>();
   private operationLog: OperationLogService | undefined;
 
@@ -785,14 +791,42 @@ export class SessionManagerImpl implements SessionManager {
       throw new Error(`Session not found: ${sessionId}`);
     }
 
-    if (session.status === 'terminated') return;
+    let stop = this.sessionStops.get(sessionId);
+    if (stop?.pending) return stop.pending;
+    if (stop?.complete) return;
+    if (!stop) {
+      // Natural exits can already have completed their persistence.
+      if (session.status === 'terminated' && session.persisted) return;
+      stop = { terminationComplete: false, complete: false };
+      this.sessionStops.set(sessionId, stop);
+    }
+    const progress = stop;
+    // Publish the shared promise before invoking the spawner (which may reenter).
+    const pending = Promise.resolve().then(async () => {
+      await this.finishSessionStop(sessionId, progress, options);
+      progress.complete = true;
+    });
+    progress.pending = pending;
+    try {
+      await pending;
+    } finally {
+      progress.pending = undefined;
+    }
+  }
+
+  private async finishSessionStop(
+    sessionId: string,
+    progress: { terminationComplete: boolean },
+    options?: StopSessionOptions
+  ): Promise<void> {
+    const session = this.sessions.get(sessionId)!;
 
     // Update session state BEFORE terminating to prevent race with exit event handler
     const updatedSession: InternalSessionState = {
       ...session,
       status: 'terminated',
-      endedAt: createTimestamp(),
-      terminationReason: options?.reason,
+      endedAt: session.endedAt ?? createTimestamp(),
+      terminationReason: session.terminationReason ?? options?.reason,
       persisted: false,
     };
     this.sessions.set(sessionId, updatedSession);
@@ -805,7 +839,10 @@ export class SessionManagerImpl implements SessionManager {
     // Now terminate via spawner (may trigger exit/provider-session-id events, but status already terminated).
     // Keep listeners attached until this completes so provider-specific graceful shutdown output
     // can still update providerSessionId before the session is added to history.
-    await this.spawner.terminate(sessionId, options?.graceful ?? true);
+    if (!progress.terminationComplete) {
+      await this.spawner.terminate(sessionId, options?.graceful ?? true);
+      progress.terminationComplete = true;
+    }
 
     const finalSession = this.sessions.get(sessionId) ?? updatedSession;
 
@@ -1435,8 +1472,10 @@ export class SessionManagerImpl implements SessionManager {
   private scheduleTerminatedSessionCleanup(sessionId: string): void {
     setTimeout(() => {
       const session = this.sessions.get(sessionId);
-      if (session && session.status === 'terminated') {
+      const stop = this.sessionStops.get(sessionId);
+      if (session && session.status === 'terminated' && (!stop || stop.complete)) {
         this.sessions.delete(sessionId);
+        this.sessionStops.delete(sessionId);
       }
     }, 5000);
   }
