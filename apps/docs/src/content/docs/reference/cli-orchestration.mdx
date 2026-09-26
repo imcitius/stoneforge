@@ -358,7 +358,8 @@ sf task handoff <task-id> [options]
 
 #### `sf task complete`
 
-Complete a task and optionally create a merge request.
+Complete an active task as its current worker, move it to review, and optionally
+create a merge request.
 
 ```bash
 sf task complete <task-id> [options]
@@ -366,12 +367,31 @@ sf task complete <task-id> [options]
 
 | Option | Description |
 | --- | --- |
+| `--agentId <id>` | Caller agent (worker default: `SF_ENTITY_ID`) |
+| `--sessionId <id>` | Current internal history ID (worker default: `STONEFORGE_SESSION_ID`) |
+| `--admin` | Explicit operator mode; requires explicit `--agentId`, without environment fallback |
+| `--operationId <id>` | Read-only replay of a finalized operation with its caller identity |
 | `-s, --summary <text>` | Summary of accomplishments |
 | `-c, --commitHash <hash>` | Commit hash for final commit |
 | `--no-mr` | Skip merge request creation |
 | `--mr-title <title>` | Custom merge request title |
 | `--mr-body <body>` | Custom merge request body |
 | `-b, --baseBranch <name>` | Base branch for merge request (default: main) |
+
+Worker identity from flags or environment is checked against current ownership
+and the latest unfinished internal history entry. Missing, stale, provider-shaped
+caller IDs, closed/deferred tasks and ambiguous history reject. Admin is an
+explicit operator action, not an implicit fallback when worker identity is absent.
+These identity assertions are not an authentication boundary.
+
+Completion claims the task with CAS before push/MR effects. Failures after the
+claim retain durable operation audit; they do not complete history or move the
+task to review. An in-flight network request may finish after an ownership change,
+but later effects/finalization are fenced. Pending or unknown MR operations require
+explicit SDK `reconcileCompletion` investigation; there is no automatic retry,
+TTL takeover or reopen bypass. Unknown outcomes require matching existing-provider
+evidence, and a failed lookup never proves absence. See
+[completion identity and recovery](/reference/orchestrator-services/#completion-identity-and-recovery).
 
 #### `sf task merge`
 

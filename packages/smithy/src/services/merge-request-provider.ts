@@ -51,11 +51,21 @@ export interface MergeRequestStatusResult {
   readonly url?: string;
 }
 
+/** Evidence for explicit reconciliation of an unknown create outcome. */
+export interface MergeRequestEvidence extends MergeRequestResult {
+  sourceBranch: string;
+  targetBranch: string;
+  commitOid: string;
+  body: string;
+  state: MergeRequestState;
+}
+
 /**
  * Interface that all merge-request backends must implement
  */
 export interface MergeRequestProvider {
   readonly name: string;
+  getMergeRequestEvidence?(id: number): Promise<MergeRequestEvidence | undefined>;
   createMergeRequest(task: Task, options: CreateMergeRequestOptions): Promise<MergeRequestResult>;
 
   /**
@@ -139,6 +149,19 @@ export class GitHubMergeProvider implements MergeRequestProvider {
         reject(new Error(`Failed to spawn gh: ${err.message}`));
       });
     });
+  }
+
+  async getMergeRequestEvidence(id: number): Promise<MergeRequestEvidence | undefined> {
+    if (!Number.isSafeInteger(id) || id <= 0) throw new Error('Invalid merge request ID');
+    const { promisify } = await import('node:util');
+    const { execFile } = await import('node:child_process');
+    const { stdout } = await promisify(execFile)('gh', [
+      'pr', 'view', String(id), '--json', 'number,url,headRefName,baseRefName,headRefOid,body,state',
+    ], { encoding: 'utf8', timeout: 30_000, cwd: this.cwd });
+    const data = JSON.parse(stdout);
+    return { id: data.number, url: data.url, provider: this.name, sourceBranch: data.headRefName,
+      targetBranch: data.baseRefName, commitOid: data.headRefOid, body: data.body,
+      state: data.state?.toLowerCase() };
   }
 
   async getMergeRequestStatus(prNumber: number): Promise<MergeRequestStatusResult> {

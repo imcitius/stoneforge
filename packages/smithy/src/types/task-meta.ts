@@ -28,7 +28,36 @@ import type { EntityId, ElementId, Timestamp } from '@stoneforge/core';
  * }
  * ```
  */
+export interface CompletionOperation {
+  operationId: string;
+  taskVersion: Timestamp;
+  phase: 'claimed' | 'push_started' | 'push_failed' | 'pushed' | 'mr_started' | 'unknown' | 'receipt' | 'finalized';
+  mode: 'worker' | 'admin';
+  agentId: EntityId;
+  sessionId?: string;
+  owner?: EntityId;
+  assignedAgent?: EntityId;
+  branch?: string;
+  worktree?: string;
+  repositoryId?: string;
+  commitOid?: string;
+  cwd?: string;
+  push: boolean;
+  createMR: boolean;
+  provider?: string;
+  baseBranch: string;
+  summary?: string;
+  commitHash?: string;
+  title: string;
+  body: string;
+  receipt?: { id?: number; url?: string; provider: string };
+  error?: string;
+  reconciliations?: { operatorId: EntityId; reason: string; at: Timestamp; previousPhase: CompletionOperation['phase']; mergeRequestId?: number }[];
+}
+
 export interface OrchestratorTaskMeta {
+  readonly completionOperation?: CompletionOperation;
+  readonly completionHistory?: readonly CompletionOperation[];
   /** Stable repository ID within the project. Frozen once dispatched. */
   readonly repositoryId?: string;
   readonly repositoryLocked?: boolean;

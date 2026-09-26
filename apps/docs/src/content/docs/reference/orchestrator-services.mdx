@@ -36,9 +36,38 @@ await assignmentService.unassignTask(taskId, { mode: 'admin' }); // deliberate c
 // Start
 await assignmentService.startTask(taskId, 'session-456');
 
-// Complete
-await assignmentService.completeTask(taskId);
+// Complete as the current worker (use the internal session-history ID)
+await assignmentService.completeTask(taskId, { agentId, sessionId: internalSessionId });
 ```
+
+#### Completion identity and recovery
+
+Worker completion requires an `open` or `in_progress` task, the current
+`agentId`, and the latest unfinished internal `sessionId` in task history.
+The assignee, assigned agent and history owner must agree. Provider session IDs
+are not caller identity, including when a provider ID is reused after resume.
+Only the selected internal entry is closed, and completion moves the task to
+`review`. These checks prevent stale operations; they are not authentication.
+
+For a deliberate operator action, use `{ mode: 'admin', agentId: operatorId }`.
+Admin completion still checks active status, coherent history when present, and
+any existing completion operation; it cannot bypass an unresolved operation.
+
+A durable CAS claim precedes push/MR creation. Push uses the claimed commit OID
+without force. Preflight rejection or a lost claim leaves task/history/events
+unchanged; failures after claiming retain operation audit records. A request
+already sent can finish after ownership changes, but subsequent effects and
+finalization are fenced. This is not an atomic network transaction.
+
+Pending operations are never automatically retried. For explicit recovery, call
+`assignmentService.reconcileCompletion(taskId, { operationId, operatorId, reason,
+mergeRequestId })` after investigation. An unknown MR outcome requires matching
+provider evidence for an existing open MR, including the operation marker,
+branches and commit OID. Missing lookup/evidence is not proof that no MR exists;
+reopen and elapsed time do not permit a second create. A known receipt is reused
+only for its operation, and transferred owners cannot adopt an old claim.
+A finalized completion can be replayed read-only with its `operationId` and caller
+identity while the task remains in `review`.
 
 #### Handoff
 
@@ -287,6 +316,8 @@ const result = await workerTaskService.startWorkerOnTask(taskId, agentId, {
 
 // Complete a task
 const result = await workerTaskService.completeTask(taskId, {
+  performedBy: agentId,
+  sessionId: internalSessionId,
   summary: 'Implemented login feature',
   commitHash: 'abc123',
   runTests: false,
