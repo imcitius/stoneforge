@@ -277,7 +277,7 @@ export class OrchestratorAPIImpl extends QuarryAPIImpl implements OrchestratorAP
       createdBy: input.createdBy,
       tags: input.tags,
       metadata: { [AGENT_META_KEY]: agentMetadata },
-    });
+    }, this.getIdGeneratorConfig());
 
     // Save the entity using the generic create method
     // Cast the entity to satisfy the create method's signature
@@ -316,7 +316,7 @@ export class OrchestratorAPIImpl extends QuarryAPIImpl implements OrchestratorAP
       tags: input.tags,
       metadata: { [AGENT_META_KEY]: agentMetadata },
       reportsTo: input.reportsTo,
-    });
+    }, this.getIdGeneratorConfig());
 
     // Save the entity using the generic create method
     const saved = await this.create<Entity>(entity as unknown as Record<string, unknown> & { type: typeof ElementType.ENTITY; createdBy: EntityId });
@@ -357,7 +357,7 @@ export class OrchestratorAPIImpl extends QuarryAPIImpl implements OrchestratorAP
       tags: input.tags,
       metadata: { [AGENT_META_KEY]: agentMetadata },
       reportsTo: input.reportsTo,
-    });
+    }, this.getIdGeneratorConfig());
 
     // Save the entity using the generic create method
     const saved = await this.create<Entity>(entity as unknown as Record<string, unknown> & { type: typeof ElementType.ENTITY; createdBy: EntityId });
@@ -628,7 +628,7 @@ export class OrchestratorAPIImpl extends QuarryAPIImpl implements OrchestratorAP
         agentName,
         purpose: 'Agent direct messaging channel',
       },
-    });
+    }, this.getIdGeneratorConfig());
 
     // Save the channel
     const savedChannel = await this.create<Channel>(
