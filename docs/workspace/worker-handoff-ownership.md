@@ -124,3 +124,11 @@ Exact commands, exits, durations and all step logs:
 reference/evidence documentation changed after this gate; production/test files
 remain the tested versions. Independent steward approval and local merge have
 not been performed by the implementation worker.
+
+## Bounded identity evidence — el-2y8n3
+
+The ambiguity count above is over retained metadata, not lifetime provider usage.
+[Retention investigation](task-session-retention.md) reproduces rejection at 50
+and acceptance after old duplicate eviction at 51. Unique internal callers remain
+correctly guarded. Director received the narrow proposal to require internal IDs
+when history exists; this report does not implement it or change legacy policy.
