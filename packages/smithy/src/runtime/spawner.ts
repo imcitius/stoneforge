@@ -30,6 +30,11 @@ import type {
 } from '../providers/types.js';
 import { ClaudeAgentProvider } from '../providers/claude/index.js';
 import { isRateLimitMessage, parseRateLimitResetTime } from '../utils/rate-limit-parser.js';
+import { createLogger } from '../utils/logger.js';
+import { repositoryForDirectory } from '../git/project-repositories.js';
+import { ProjectNodeError, projectNodeEnvironment, resolveProjectNode } from './project-node.js';
+
+const spawnerLogger = createLogger('spawner');
 
 // Re-export the platform-aware shell quoter. Kept as a named re-export from
 // this module so existing `import { shellQuote } from '.../runtime/spawner.js'`
@@ -564,10 +569,11 @@ export class SpawnerServiceImpl implements SpawnerService {
     this.sessions.set(sessionId, session);
 
     try {
+      const projectNodeEnv = await this.projectNodeEnvironment(session, options);
       if (mode === 'headless') {
-        await this.spawnHeadless(session, options);
+        await this.spawnHeadless(session, options, projectNodeEnv);
       } else {
-        await this.spawnInteractive(session, options);
+        await this.spawnInteractive(session, options, projectNodeEnv);
       }
 
       return {
@@ -932,7 +938,30 @@ export class SpawnerServiceImpl implements SpawnerService {
   // Private Helpers - Spawning
   // ----------------------------------------
 
-  private async spawnHeadless(session: InternalSession, options?: SpawnOptions): Promise<void> {
+  /**
+   * Selects the project's Node for the session's working directory. Workers
+   * must not start without a compatible Node (they would hit EBADENGINE or
+   * run tests on the wrong runtime); other roles keep their environment and
+   * only log the problem. Stoneforge's own `sf` stays on its runtime.
+   */
+  private async projectNodeEnvironment(session: InternalSession, options?: SpawnOptions): Promise<Record<string, string>> {
+    const root = options?.stoneforgeRoot ?? this.defaultConfig.stoneforgeRoot;
+    const directory = session.workingDirectory;
+    try {
+      const repo = root ? await repositoryForDirectory(root, directory) : undefined;
+      const resolution = await resolveProjectNode(directory, { explicitNode: repo?.nodePath, repositoryId: repo?.id });
+      const basePath = options?.environmentVariables?.PATH ?? this.defaultConfig.environmentVariables?.PATH ?? process.env.PATH;
+      return projectNodeEnvironment(resolution, basePath, root);
+    } catch (error) {
+      if (error instanceof ProjectNodeError && session.agentRole !== 'worker') {
+        spawnerLogger.warn(`Project Node unavailable for ${session.agentRole} session in ${directory}; keeping inherited PATH.\n${error.message}`);
+        return {};
+      }
+      throw error;
+    }
+  }
+
+  private async spawnHeadless(session: InternalSession, options?: SpawnOptions, projectNodeEnv: Record<string, string> = {}): Promise<void> {
     const headlessProvider = options?.provider?.headless ?? this.provider.headless;
 
     // Track the executable path used for this session so rate limit events
@@ -950,6 +979,7 @@ export class SpawnerServiceImpl implements SpawnerService {
         environmentVariables: {
           ...this.defaultConfig.environmentVariables,
           ...options?.environmentVariables,
+          ...projectNodeEnv,
           STONEFORGE_SESSION_ID: session.id,
           SF_ENTITY_ID: session.agentId,
         },
@@ -1108,7 +1138,8 @@ export class SpawnerServiceImpl implements SpawnerService {
 
   private async spawnInteractive(
     session: InternalSession,
-    options?: SpawnOptions
+    options?: SpawnOptions,
+    projectNodeEnv: Record<string, string> = {}
   ): Promise<void> {
     const interactiveProvider = options?.provider?.interactive ?? this.provider.interactive;
 
@@ -1120,6 +1151,7 @@ export class SpawnerServiceImpl implements SpawnerService {
         environmentVariables: {
           ...this.defaultConfig.environmentVariables,
           ...options?.environmentVariables,
+          ...projectNodeEnv,
           STONEFORGE_SESSION_ID: session.id,
           SF_ENTITY_ID: session.agentId,
         },

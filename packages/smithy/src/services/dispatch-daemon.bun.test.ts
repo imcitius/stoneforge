@@ -608,6 +608,27 @@ describe('recoverOrphanedAssignments', () => {
     expect(updatedMeta?.sessionId).not.toBe('stale-session-789');
   });
 
+  test('keeps the resumable session when the project Node is unavailable', async () => {
+    const worker = await createTestWorker('node-missing-fay');
+    const workerId = worker.id as unknown as EntityId;
+    const task = await createAssignedTask('Task needing Node 24', workerId, {
+      sessionId: 'resumable-session-24',
+      worktree: '/worktrees/node-missing-fay/task',
+      branch: 'agent/node-missing-fay/task-branch',
+    });
+    const { ProjectNodeError } = await import('../runtime/project-node.js');
+    (sessionManager.resumeSession as ReturnType<typeof mock>).mockImplementation(async () => {
+      throw new ProjectNodeError('Project requires Node >=24.22.0 <25', '/worktrees/node-missing-fay/task', { engines: '>=24.22.0 <25' }, []);
+    });
+
+    const result = await daemon.recoverOrphanedAssignments();
+
+    expect(result.errors).toBe(1);
+    expect(sessionManager.startSession).not.toHaveBeenCalled();
+    const updatedMeta = getOrchestratorTaskMeta((await api.get<Task>(task.id))!.metadata as Record<string, unknown>);
+    expect(updatedMeta?.sessionId).toBe('resumable-session-24');
+  });
+
   test('does not increment resumeCount when recoverOrphanedTask throws', async () => {
     const worker = await createTestWorker('fail-recovery-worker');
     const workerId = worker.id as unknown as EntityId;

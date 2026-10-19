@@ -27,6 +27,7 @@ import {
 } from '../types/task-meta.js';
 import { detectTargetBranch } from './merge.js';
 import { resolveTarget } from './target.js';
+import { ProjectNodeError, projectNodeEnvironment, resolveProjectNode } from '../runtime/project-node.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -158,7 +159,18 @@ export interface WorktreeManagerConfig {
   readonly worktreeDir?: string;
   /** Default base branch (default: auto-detect from git) */
   readonly defaultBaseBranch?: string;
+  /** Repository ID, used in remediation messages. */
+  readonly repositoryId?: string;
+  /**
+   * Explicit Node executable for project commands (dependency installation).
+   * When unset, a compatible installed Node is selected from the checkout's
+   * engines.node / .nvmrc requirement. Stoneforge's own runtime is unaffected.
+   */
+  readonly projectNodePath?: string;
 }
+
+/** Package manager output that reports an engines mismatch. */
+const ENGINE_MISMATCH = /EBADENGINE|ERR_PNPM_UNSUPPORTED_ENGINE|Unsupported engine|The engine "node" is incompatible/i;
 
 /**
  * Error thrown when git repository is not found
@@ -360,7 +372,8 @@ export interface WorktreeManager {
  * Implementation of the WorktreeManager.
  */
 export class WorktreeManagerImpl implements WorktreeManager {
-  private readonly config: Required<WorktreeManagerConfig>;
+  private readonly config: Required<Omit<WorktreeManagerConfig, 'repositoryId' | 'projectNodePath'>> &
+    Pick<WorktreeManagerConfig, 'repositoryId' | 'projectNodePath'>;
   private initialized = false;
   private defaultBranch: string | undefined;
   private worktreeStates: Map<string, WorktreeState> = new Map();
@@ -372,6 +385,8 @@ export class WorktreeManagerImpl implements WorktreeManager {
       repositoryRoot: path.resolve(config.repositoryRoot ?? config.workspaceRoot),
       worktreeDir: config.worktreeDir ?? '.stoneforge/.worktrees',
       defaultBaseBranch: config.defaultBaseBranch ?? '',
+      repositoryId: config.repositoryId,
+      projectNodePath: config.projectNodePath,
     };
   }
 
@@ -1021,9 +1036,14 @@ export class WorktreeManagerImpl implements WorktreeManager {
    * Detects the package manager (pnpm, npm, yarn, bun) and runs install.
    * Uses a longer timeout since dependency installation can take a while.
    *
+   * Before running anything, selects the project's Node (explicit
+   * `projectNodePath` or an installed Node satisfying engines.node / .nvmrc)
+   * and fails with actionable guidance when none is compatible.
+   *
    * Tries a strict install first (--frozen-lockfile / ci) and falls back to
    * a plain install when the lockfile is out of sync with package.json
-   * (common when the base branch has uncommitted lockfile changes).
+   * (common when the base branch has uncommitted lockfile changes). An engines
+   * mismatch is never retried with a plain install.
    */
   private async installDependencies(worktreePath: string): Promise<void> {
     // Check if package.json exists
@@ -1031,6 +1051,20 @@ export class WorktreeManagerImpl implements WorktreeManager {
     if (!fs.existsSync(packageJsonPath)) {
       // No package.json, nothing to install
       return;
+    }
+
+    let nodeEnv: Record<string, string>;
+    try {
+      const resolution = await resolveProjectNode(worktreePath, {
+        explicitNode: this.config.projectNodePath,
+        repositoryId: this.config.repositoryId,
+      });
+      nodeEnv = projectNodeEnvironment(resolution, process.env.PATH, this.config.workspaceRoot);
+    } catch (error) {
+      if (error instanceof ProjectNodeError) {
+        throw new WorktreeError(error.message, error.code, error.message);
+      }
+      throw error;
     }
 
     // Detect package manager by lockfile presence
@@ -1057,9 +1091,11 @@ export class WorktreeManagerImpl implements WorktreeManager {
       strictArgs = ['install'];
     }
 
+    const env = { ...process.env, ...nodeEnv };
+
     // Check if packageManager field is present in package.json.
     // If so, use corepack to ensure the correct version is used.
-    const useCorepack = await this.shouldUseCorepack(packageJsonPath, command);
+    const useCorepack = await this.shouldUseCorepack(packageJsonPath, command, env);
 
     // Use a longer timeout for dependency installation (5 minutes)
     const INSTALL_TIMEOUT_MS = 5 * 60 * 1000;
@@ -1068,6 +1104,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
       encoding: 'utf8' as const,
       timeout: INSTALL_TIMEOUT_MS,
       shell: true,
+      env,
     };
 
     // When using corepack, the command becomes 'corepack' and the manager
@@ -1076,9 +1113,32 @@ export class WorktreeManagerImpl implements WorktreeManager {
     const wrapArgs = (args: string[]) =>
       useCorepack ? [command, ...args] : args;
 
+    const failure = (error: unknown, code: string, message: string) => {
+      const execError = error as Error & { stdout?: string; stderr?: string };
+      const details = [
+        execError.message,
+        execError.stderr ? `stderr: ${execError.stderr}` : '',
+        execError.stdout ? `stdout: ${execError.stdout}` : '',
+      ].filter(Boolean).join('\n');
+      return new WorktreeError(message, code, details);
+    };
+    const isEngineMismatch = (error: unknown) => {
+      const execError = error as Error & { stdout?: string; stderr?: string };
+      return ENGINE_MISMATCH.test(`${execError.stderr ?? ''}\n${execError.stdout ?? ''}\n${execError.message ?? ''}`);
+    };
+    const engineFailure = (error: unknown) => failure(
+      error,
+      'PROJECT_NODE_INCOMPATIBLE',
+      `Dependency installation in ${worktreePath} was rejected because of a Node engines mismatch` +
+        (nodeEnv.STONEFORGE_PROJECT_NODE ? ` (using ${nodeEnv.STONEFORGE_PROJECT_NODE})` : '') +
+        '. The lockfile and engine settings were left unchanged; configure a compatible Node with ' +
+        `\`sf repo update ${this.config.repositoryId ?? '<repository-id>'} --node-path /absolute/path/to/bin/node\`.`,
+    );
+
     try {
       await execFileAsync(execCommand, wrapArgs(strictArgs), execOptions);
     } catch (firstError) {
+      if (isEngineMismatch(firstError)) throw engineFailure(firstError);
       // If corepack itself wasn't found, fall back to direct package manager invocation
       const isCorepackNotFound =
         useCorepack &&
@@ -1091,24 +1151,16 @@ export class WorktreeManagerImpl implements WorktreeManager {
       try {
         // Retry strict install (with direct command if corepack was missing)
         await execFileAsync(fallbackCommand, fallbackWrap(strictArgs), execOptions);
-      } catch {
+      } catch (strictError) {
+        if (isEngineMismatch(strictError)) throw engineFailure(strictError);
         // Strict install failed — the lockfile may be out of sync with
         // package.json (e.g. uncommitted lockfile changes on the base branch).
         // Fall back to a plain install so the worktree is still usable.
         try {
           await execFileAsync(fallbackCommand, fallbackWrap(['install']), execOptions);
         } catch (error) {
-          const execError = error as Error & { stdout?: string; stderr?: string };
-          const details = [
-            execError.message,
-            execError.stderr ? `stderr: ${execError.stderr}` : '',
-            execError.stdout ? `stdout: ${execError.stdout}` : '',
-          ].filter(Boolean).join('\n');
-          throw new WorktreeError(
-            `Failed to install dependencies in worktree: ${worktreePath}`,
-            'DEPENDENCY_INSTALL_FAILED',
-            details
-          );
+          if (isEngineMismatch(error)) throw engineFailure(error);
+          throw failure(error, 'DEPENDENCY_INSTALL_FAILED', `Failed to install dependencies in worktree: ${worktreePath}`);
         }
       }
     }
@@ -1126,6 +1178,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
   private async shouldUseCorepack(
     packageJsonPath: string,
     detectedManager: string,
+    env: NodeJS.ProcessEnv = process.env,
   ): Promise<boolean> {
     try {
       const raw = fs.readFileSync(packageJsonPath, 'utf8');
@@ -1150,6 +1203,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
         encoding: 'utf8',
         timeout: 10_000,
         shell: true,
+        env,
       });
       return true;
     } catch {

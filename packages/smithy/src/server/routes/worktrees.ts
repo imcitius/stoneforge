@@ -26,8 +26,17 @@ export function createWorktreeRoutes(services: Services) {
       const body = await c.req.json();
       if (typeof body.id !== 'string' || typeof body.path !== 'string' ||
           (body.targetBranch !== undefined && typeof body.targetBranch !== 'string') ||
-          (body.testCommand !== undefined && typeof body.testCommand !== 'string')) return c.json({ error: 'Invalid repository settings' }, 400);
-      return c.json({ repository: await services.repositories.add({ id: body.id, path: body.path, targetBranch: body.targetBranch, testCommand: body.testCommand }) }, 201);
+          (body.testCommand !== undefined && typeof body.testCommand !== 'string') ||
+          (body.nodePath !== undefined && typeof body.nodePath !== 'string')) return c.json({ error: 'Invalid repository settings' }, 400);
+      return c.json({ repository: await services.repositories.add({ id: body.id, path: body.path, targetBranch: body.targetBranch, testCommand: body.testCommand, nodePath: body.nodePath }) }, 201);
+    } catch (error) { return c.json({ error: String(error) }, 400); }
+  });
+  app.patch('/api/repositories/:id', async c => {
+    try {
+      if (!services.repositories) return c.json({ error: 'Repository registry unavailable' }, 503);
+      const body = await c.req.json();
+      if (!body || !('nodePath' in body) || (body.nodePath !== null && typeof body.nodePath !== 'string')) return c.json({ error: 'Invalid repository settings' }, 400);
+      return c.json({ repository: await services.repositories.setNodePath(c.req.param('id'), body.nodePath) });
     } catch (error) { return c.json({ error: String(error) }, 400); }
   });
   app.delete('/api/repositories/:id', async c => {

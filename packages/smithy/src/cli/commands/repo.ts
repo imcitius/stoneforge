@@ -1,7 +1,7 @@
 import type { Command, GlobalOptions, CommandResult } from '@stoneforge/quarry/cli';
 import { success, failure, ExitCode, getOrchestratorUrl, orchestratorFetch } from '@stoneforge/quarry/cli';
 
-type Options = GlobalOptions & { 'target-branch'?: string; 'test-command'?: string };
+type Options = GlobalOptions & { 'target-branch'?: string; 'test-command'?: string; 'node-path'?: string; 'clear-node-path'?: boolean };
 async function request(method: string, suffix = '', body?: unknown): Promise<CommandResult> {
   try {
     const url = await getOrchestratorUrl();
@@ -12,14 +12,23 @@ async function request(method: string, suffix = '', body?: unknown): Promise<Com
 }
 export const repoCommand: Command = {
   name: 'repo', description: 'Manage code repositories in this Stoneforge project',
-  usage: 'sf repo <list|add|remove>',
+  usage: 'sf repo <list|add|update|remove>',
   handler: () => request('GET'),
   subcommands: {
     list: { name: 'list', description: 'List project repositories', usage: 'sf repo list', handler: () => request('GET') },
     add: {
-      name: 'add', description: 'Register an existing Git checkout (one entry per repository)', usage: 'sf repo add <id> <path> [--target-branch main] [--test-command "pnpm test"]',
-      options: [{ name: 'target-branch', description: 'Default merge target', hasValue: true }, { name: 'test-command', description: 'Verification command', hasValue: true }],
-      handler: async (args, options: Options) => args.length !== 2 ? failure('Expected repository ID and path', ExitCode.INVALID_ARGUMENTS) : request('POST', '', { id: args[0], path: args[1], targetBranch: options['target-branch'], testCommand: options['test-command'] }),
+      name: 'add', description: 'Register an existing Git checkout (one entry per repository)', usage: 'sf repo add <id> <path> [--target-branch main] [--test-command "pnpm test"] [--node-path /abs/bin/node]',
+      options: [{ name: 'target-branch', description: 'Default merge target', hasValue: true }, { name: 'test-command', description: 'Verification command', hasValue: true }, { name: 'node-path', description: 'Node executable for project install, workers and checks (not used by Stoneforge itself)', hasValue: true }],
+      handler: async (args, options: Options) => args.length !== 2 ? failure('Expected repository ID and path', ExitCode.INVALID_ARGUMENTS) : request('POST', '', { id: args[0], path: args[1], targetBranch: options['target-branch'], testCommand: options['test-command'], nodePath: options['node-path'] }),
+    },
+    update: {
+      name: 'update', description: "Set or clear a repository's project Node executable", usage: 'sf repo update <id> (--node-path /abs/bin/node | --clear-node-path)',
+      options: [{ name: 'node-path', description: 'Absolute Node executable for project install, workers and checks', hasValue: true }, { name: 'clear-node-path', description: 'Return to automatic selection from engines.node/.nvmrc' }],
+      handler: async (args, options: Options) => {
+        if (args.length !== 1) return failure('Expected repository ID', ExitCode.INVALID_ARGUMENTS);
+        if (!options['node-path'] === !options['clear-node-path']) return failure('Specify exactly one of --node-path or --clear-node-path', ExitCode.INVALID_ARGUMENTS);
+        return request('PATCH', '/' + encodeURIComponent(args[0]), { nodePath: options['clear-node-path'] ? null : options['node-path'] });
+      },
     },
     remove: { name: 'remove', description: 'Unregister an unused repository; never deletes files', usage: 'sf repo remove <id>', handler: async args => !args[0] ? failure('Repository ID required', ExitCode.INVALID_ARGUMENTS) : request('DELETE', '/' + encodeURIComponent(args[0])) },
   },

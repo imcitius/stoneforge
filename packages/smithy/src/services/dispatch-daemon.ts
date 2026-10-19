@@ -19,6 +19,7 @@ import { taskWorktreeManager, ProjectRepositories } from '../git/project-reposit
  * @module
  */
 
+import { ProjectNodeError } from '../runtime/project-node.js';
 import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -2381,6 +2382,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
         logger.info(`Resumed session for orphaned task ${task.id} on worker ${worker.name}`);
         return true;
       } catch (error) {
+        // A missing project Node is an environment problem, not a broken
+        // session: keep the resumable session ID and let a fresh spawn fail
+        // with the same actionable error.
+        if (error instanceof ProjectNodeError) throw error;
         logger.warn(
           `Failed to resume session ${previousSessionId} for worker ${worker.name}, falling back to fresh spawn:`,
           error

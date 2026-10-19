@@ -7,6 +7,7 @@ import type { Task } from '@stoneforge/core';
 import type { QuarryAPI } from '@stoneforge/quarry';
 import { getOrchestratorTaskMeta, updateOrchestratorTaskMeta } from '../types/task-meta.js';
 import { createWorktreeManager, type WorktreeManager, type CreateWorktreeOptions, type RemoveWorktreeOptions } from './worktree-manager.js';
+import { validateNodeExecutable } from '../runtime/project-node.js';
 const exec = promisify(execFile);
 
 export interface ProjectRepository {
@@ -14,6 +15,13 @@ export interface ProjectRepository {
   path: string;
   targetBranch?: string;
   testCommand?: string;
+  /**
+   * Absolute path of the Node executable for this repository's project work
+   * (dependency installation, worker sessions, checks). Independent of the
+   * runtime Stoneforge itself uses. When unset, an installed Node satisfying
+   * the checkout's engines.node / .nvmrc is selected automatically.
+   */
+  nodePath?: string;
   /** Local Git identity, shared by all linked worktrees of this repository. */
   gitCommonDir: string;
 }
@@ -43,7 +51,8 @@ export class ProjectRepositories implements WorktreeManager {
       const ids = new Set<string>();
       const identities = new Set<string>();
       for (const repo of data.repositories) {
-        if (!repo || typeof repo.id !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(repo.id) || typeof repo.path !== 'string' || typeof repo.gitCommonDir !== 'string') throw new Error('Invalid repository entry');
+        if (!repo || typeof repo.id !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(repo.id) || typeof repo.path !== 'string' || typeof repo.gitCommonDir !== 'string' ||
+            (repo.nodePath !== undefined && (typeof repo.nodePath !== 'string' || !path.isAbsolute(repo.nodePath)))) throw new Error('Invalid repository entry');
         const identity = repo.gitCommonDir;
         if (ids.has(repo.id) || identities.has(identity)) throw new Error('Duplicate repository or linked worktree registration');
         ids.add(repo.id); identities.add(identity);
@@ -54,16 +63,29 @@ export class ProjectRepositories implements WorktreeManager {
     try { return [{ id: 'default', path: '.', gitCommonDir: await this.inspect(this.root) }]; }
     catch { return []; }
   }
-  async add(input: { id: string; path: string; targetBranch?: string; testCommand?: string }): Promise<ProjectRepository> {
+  async add(input: { id: string; path: string; targetBranch?: string; testCommand?: string; nodePath?: string }): Promise<ProjectRepository> {
     if (!/^[a-z0-9][a-z0-9_-]*$/.test(input.id)) throw new Error('Repository ID must contain lowercase letters, digits, - or _');
+    if (input.nodePath !== undefined) await validateNodeExecutable(input.nodePath);
     const directory = realpathSync(path.resolve(this.root, input.path));
     const gitCommonDir = await this.inspect(directory);
     if (input.targetBranch) await this.git(directory, ['rev-parse', '--verify', `${input.targetBranch}^{commit}`]);
     return this.mutate(async repos => {
       if (repos.some(r => r.id === input.id)) throw new Error(`Repository ID ${input.id} already exists`);
       if (repos.some(r => r.gitCommonDir === gitCommonDir)) throw new Error('This repository is already registered (possibly through another worktree)');
-      const repo = { ...input, path: path.relative(this.root, directory) || '.', gitCommonDir };
+      const repo: ProjectRepository = { ...input, path: path.relative(this.root, directory) || '.', gitCommonDir };
+      if (repo.nodePath === undefined) delete repo.nodePath;
       repos.push(repo);
+      return repo;
+    });
+  }
+  /** Sets (validated absolute executable) or clears (null) a repository's project Node. */
+  async setNodePath(id: string, nodePath: string | null): Promise<ProjectRepository> {
+    if (nodePath !== null) await validateNodeExecutable(nodePath);
+    return this.mutate(async repos => {
+      const repo = repos.find(r => r.id === id);
+      if (!repo) throw new Error(`Unknown repository: ${id}`);
+      if (nodePath === null) delete repo.nodePath;
+      else repo.nodePath = nodePath;
       return repo;
     });
   }
@@ -154,7 +176,7 @@ export class ProjectRepositories implements WorktreeManager {
     let pending = this.managers.get(key);
     if (!pending) {
       pending = (async () => {
-        const manager = createWorktreeManager({ workspaceRoot: this.root, repositoryRoot: path.resolve(this.root, repo.path), worktreeDir: repo.id === 'default' && repo.path === '.' ? '.stoneforge/.worktrees' : `.stoneforge/.worktrees/${repo.id}`, defaultBaseBranch: repo.targetBranch });
+        const manager = createWorktreeManager({ workspaceRoot: this.root, repositoryRoot: path.resolve(this.root, repo.path), worktreeDir: repo.id === 'default' && repo.path === '.' ? '.stoneforge/.worktrees' : `.stoneforge/.worktrees/${repo.id}`, defaultBaseBranch: repo.targetBranch, repositoryId: repo.id, projectNodePath: repo.nodePath });
         await manager.initWorkspace();
         return manager;
       })();
@@ -200,6 +222,21 @@ export class ProjectRepositories implements WorktreeManager {
   async getCurrentBranch() { return (await this.manager(await this.resolve())).getCurrentBranch(); }
   async getDefaultBranch() { return (await this.manager(await this.resolve())).getDefaultBranch(); }
   async branchExists(branch: string) { return (await this.manager(await this.resolve())).branchExists(branch); }
+}
+
+/**
+ * Finds the registered repository owning `directory` (a checkout or one of its
+ * linked worktrees). Returns undefined for unregistered directories or when
+ * the registry cannot be read; callers then fall back to automatic selection.
+ */
+export async function repositoryForDirectory(root: string, directory: string): Promise<ProjectRepository | undefined> {
+  try {
+    const registry = new ProjectRepositories(root);
+    const identity = realpathSync((await exec('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], { cwd: directory, timeout: 10000 })).stdout.trim());
+    return (await registry.list()).find(r => r.gitCommonDir === identity);
+  } catch {
+    return undefined;
+  }
 }
 
 export async function taskWorktreeManager(manager: WorktreeManager, task: Task): Promise<WorktreeManager> {

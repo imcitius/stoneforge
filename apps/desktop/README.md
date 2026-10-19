@@ -87,6 +87,24 @@ and checks. Relative paths are resolved against the project folder. `sf task cre
 --repository <id>` selects code while retaining the shared project's database.
 See [design and verification](../../docs/plans/project-repositories.md).
 
+### Project Node versus the bundled runtime
+
+The bundled Node runs only Stoneforge itself (backend, `sf`, native SQLite). Work
+inside a repository — dependency installation, worker sessions and merge checks —
+uses the Node the repository declares through `package.json` `engines.node`,
+`.nvmrc` or `.node-version`. Stoneforge selects an already installed compatible
+executable (PATH, nvm, fnm, Volta, asdf, mise, Homebrew `node@N`, n); it never
+downloads Node, edits engine ranges, disables `engine-strict` or retries an engines
+mismatch with a loose install. Set an explicit executable per repository with
+`sf repo update <id> --node-path /absolute/path/to/bin/node` (or `sf repo add …
+--node-path`), and return to automatic selection with `--clear-node-path`. The
+selected Node is exposed through `.stoneforge/.runtime/node-shims/` at the front of
+PATH; `sf` is never linked there, so it keeps resolving to the bundled CLI. When no
+compatible Node exists, worktree preparation and worker start stop before running
+any install command with a message listing the executables checked. Directors and
+other non-worker sessions log the problem and keep their inherited PATH.
+Repositories without a Node requirement are unchanged.
+
 ## Ownership and recovery
 
 New Desktop and `sf serve` share `.stoneforge/server.lock`. On macOS, startup also

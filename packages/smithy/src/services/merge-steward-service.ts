@@ -46,6 +46,7 @@ import type { WorktreeManager } from '../git/worktree-manager.js';
 import { mergeBranch, syncLocalBranch, hasRemote, detectTargetBranch } from '../git/merge.js';
 import type { AgentRegistry } from './agent-registry.js';
 import { createLogger } from '../utils/logger.js';
+import { ProjectNodeError, projectNodeEnvironment, resolveProjectNode } from '../runtime/project-node.js';
 import type { OperationLogService } from './operation-log-service.js';
 import type { MergeRequestProvider } from './merge-request-provider.js';
 
@@ -92,6 +93,10 @@ export interface MergeStewardConfig {
   readonly workspaceRoot: string;
   /** Test command to run (defaults to 'npm test') */
   readonly testCommand?: string;
+  /** Explicit Node executable for the repository's checks (see ProjectRepository.nodePath). */
+  readonly projectNodePath?: string;
+  /** Repository ID, used in remediation messages. */
+  readonly repositoryId?: string;
   /** Timeout for test execution in ms (defaults to 5 minutes) */
   readonly testTimeoutMs?: number;
   /** Whether to auto-merge when tests pass (defaults to true) */
@@ -396,8 +401,8 @@ const DEFAULT_CONFIG = {
  */
 export class MergeStewardServiceImpl implements MergeStewardService {
   private readonly api: QuarryAPI;
-  private readonly config: Required<Omit<MergeStewardConfig, 'targetBranch' | 'stewardEntityId' | 'mergeRequestProvider'>> &
-    Pick<MergeStewardConfig, 'targetBranch' | 'stewardEntityId' | 'mergeRequestProvider'>;
+  private readonly config: Required<Omit<MergeStewardConfig, 'targetBranch' | 'stewardEntityId' | 'mergeRequestProvider' | 'projectNodePath' | 'repositoryId'>> &
+    Pick<MergeStewardConfig, 'targetBranch' | 'stewardEntityId' | 'mergeRequestProvider' | 'projectNodePath' | 'repositoryId'>;
   private readonly taskAssignment: TaskAssignmentService;
   private readonly dispatchService: DispatchService;
   private readonly worktreeManager: WorktreeManager | undefined;
@@ -438,6 +443,8 @@ export class MergeStewardServiceImpl implements MergeStewardService {
       mergeRequestProvider: this.config.mergeRequestProvider?.name === 'github' ? createGitHubMergeProvider(manager.getRepositoryRoot!()) : this.config.mergeRequestProvider,
       targetBranch: repo.targetBranch ?? await manager.getDefaultBranch(),
       testCommand: repo.testCommand ?? this.config.testCommand,
+      projectNodePath: repo.nodePath,
+      repositoryId: repo.id,
     }, manager, this.operationLog);
   }
 
@@ -794,10 +801,16 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     }
 
     try {
+      // Checks run on the repository's Node, not on Stoneforge's own runtime.
+      const nodeEnv = projectNodeEnvironment(
+        await resolveProjectNode(cwd, { explicitNode: this.config.projectNodePath, repositoryId: this.config.repositoryId }),
+        process.env.PATH,
+      );
       const { stdout, stderr } = await execAsync(this.config.testCommand, {
         cwd,
         timeout: this.config.testTimeoutMs,
         encoding: 'utf8',
+        env: { ...process.env, ...nodeEnv },
       });
 
       const durationMs = Date.now() - startTime;
@@ -818,7 +831,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
       const durationMs = Date.now() - startTime;
       const execError = error as { stdout?: string; stderr?: string; code?: number; message?: string };
       const output = (execError.stdout ?? '') + (execError.stderr ?? '') + (execError.message ?? '');
-      const exitCode = execError.code ?? 1;
+      const exitCode = error instanceof ProjectNodeError ? 1 : execError.code ?? 1;
 
       return {
         passed: false,
