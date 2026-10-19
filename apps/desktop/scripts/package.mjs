@@ -16,7 +16,7 @@ const build = collectBuildInfo(root, version);
 await rm(stage, { recursive: true, force: true });
 await mkdir(bundle, { recursive: true });
 await mkdir(resources, { recursive: true });
-for (const name of ['main.js', 'manager.js', 'preload.cjs', 'shell.html', 'shell.css', 'shell.js', 'logs.js', 'logs-window.js', 'logs-preload.cjs', 'preferences.js']) {
+for (const name of ['main.js', 'socket-workaround.js', 'manager.js', 'attention.js', 'preload.cjs', 'shell.html', 'shell.css', 'shell.js', 'logs.js', 'logs-window.js', 'logs-preload.cjs', 'preferences.js']) {
   await cp(join(desktop, 'dist', name), join(bundle, name));
 }
 // The discovery module has only Node built-ins; copy it without pulling SDK/native code into Electron.
@@ -62,5 +62,9 @@ for (const output of paths) {
   }
   await verifyLinks(appPath);
   execFileSync(join(destination, 'runtime/node'), [join(desktop, 'scripts/check-pty.mjs'), destination], { stdio: 'inherit' });
+  // UNUserNotificationCenter requires a signed final app identity, including
+  // its Info.plist. Local ad-hoc signing needs no Developer ID or account changes.
+  execFileSync('/usr/bin/codesign', ['--force', '--deep', '--sign', '-', '--identifier', 'ai.stoneforge.desktop', appPath], { stdio: 'inherit' });
+  execFileSync('/usr/bin/codesign', ['--verify', '--deep', '--strict', appPath], { stdio: 'inherit' });
 }
 console.log('Packaged:', paths.join('\n'));

@@ -5,7 +5,7 @@
  * covering both message formats, apostrophe variants, and edge cases.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, setSystemTime } from 'bun:test';
 import {
   RATE_LIMIT_PATTERNS,
   isRateLimitMessage,
@@ -26,11 +26,35 @@ describe('RATE_LIMIT_PATTERNS', () => {
   });
 });
 
+describe('structured provider rejection reset', () => {
+  const text = "You've hit your session limit · resets 3:30am (Asia/Jerusalem)";
+  it('keeps the exact observed reset, including its date, instead of rolling old clock text forward', () => {
+    const reset = parseRateLimitResetTime(text, {
+      error: 'rate_limit', quotaLimits: { status: 'rejected', resetsAt: 1791073800 },
+    });
+    expect(reset?.toISOString()).toBe('2026-10-04T00:30:00.000Z');
+  });
+
+  it('does not trust arbitrary payloads, warnings or invalid epochs', () => {
+    for (const raw of [
+      { quotaLimits: { status: 'rejected', resetsAt: 1791073800 } },
+      { error: 'rate_limit', quotaLimits: { status: 'allowed_warning', resetsAt: 1791073800 } },
+      ...[NaN, Infinity, -1, '1791073800', 1e100].map(resetsAt => ({ error: 'rate_limit', quotaLimits: { status: 'rejected', resetsAt } })),
+    ]) {
+      expect(parseRateLimitResetTime('No clock here', raw)).toBeUndefined();
+    }
+  });
+});
+
 // ============================================================================
 // isRateLimitMessage
 // ============================================================================
 
 describe('isRateLimitMessage', () => {
+  it('detects the session limit banner observed in photo-cleanup and Codex usage wording', () => {
+    expect(isRateLimitMessage("You've hit your session limit · resets 3:30am (Asia/Jerusalem)")).toBe(true);
+    expect(isRateLimitMessage("You've hit your usage limit. Try again later.")).toBe(true);
+  });
   it('detects "You\'ve hit your limit" with straight apostrophe', () => {
     expect(isRateLimitMessage("You've hit your limit · resets 12am")).toBe(true);
   });
@@ -614,5 +638,19 @@ describe('parseRateLimitResetTime — Timezone fallback and edge cases', () => {
     expect(
       isRateLimitMessage('Weekly limit reached · resets Feb 22 at 9:30am (US/Eastern)'),
     ).toBe(true);
+  });
+});
+
+
+describe('reported weekly quota banner', () => {
+  afterEach(() => setSystemTime());
+
+  it('recognizes both apostrophes and preserves the dated Jerusalem reset', () => {
+    setSystemTime(new Date('2026-10-07T14:00:00Z'));
+    for (const apostrophe of ["'", '’']) {
+      const banner = `You${apostrophe}ve hit your weekly limit · resets Oct 9 at 2am (Asia/Jerusalem)`;
+      expect(isRateLimitMessage(banner)).toBe(true);
+      expect(parseRateLimitResetTime(banner)?.toISOString()).toBe('2026-10-08T23:00:00.000Z');
+    }
   });
 });

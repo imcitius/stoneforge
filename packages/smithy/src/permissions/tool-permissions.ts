@@ -98,6 +98,7 @@ function extractBashCommand(toolArgs: unknown): string | undefined {
  * Checks if a command is an allowed sf (Stoneforge) CLI command.
  */
 function isSfCommandAllowed(command: string): boolean {
+  if (command.trim() === 'sf agent await-input') return true;
   // Match "sf <subcommand>" at the start of the command
   // Also handle chained commands with && or ;
   const firstCommand = command.split(/\s*(?:&&|;|\|)\s*/)[0].trim();

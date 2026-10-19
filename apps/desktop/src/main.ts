@@ -1,4 +1,5 @@
-import { app, BrowserWindow, WebContentsView, session, ipcMain, dialog, Menu } from 'electron';
+import './socket-workaround.js';
+import { app, BrowserWindow, WebContentsView, session, ipcMain, dialog, Menu, Notification } from 'electron';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -6,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ProjectManager, type Instance, type WorkflowPreset } from './manager.js';
 import { showLogs } from './logs-window.js';
 import { loadPreferences, savePreferences, projectBounds, type Preferences } from './preferences.js';
+import { AttentionMonitor } from './attention.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -18,6 +20,8 @@ const backend = app.isPackaged ? join(root, 'backend') : join(root, 'packages/sm
 const nodePath = app.isPackaged ? join(root, 'runtime/node') : require.resolve('node/bin/node');
 if (process.env.STONEFORGE_DESKTOP_TEST_DATA) app.setPath('userData', process.env.STONEFORGE_DESKTOP_TEST_DATA);
 let manager: ProjectManager;
+let attentionMonitor: AttentionMonitor;
+const attentionNotifications = new Set<Notification>();
 let window: BrowserWindow;
 let active: string | undefined;
 let quitting = false;
@@ -144,13 +148,34 @@ async function boot(): Promise<void> {
         if (answer.response !== 1) return;
       }
       quitting = true;
+      attentionMonitor.stop();
       await manager.close();
       for (const id of views.keys()) dispose(id);
       app.quit();
-    })().catch((error) => { quitting = false; dialog.showErrorBox('Could not quit', String(error)); });
+    })().catch((error) => { quitting = false; attentionMonitor.start(); dialog.showErrorBox('Could not quit', String(error)); });
   });
   manager.on('changed', () => { update(); layout(); });
   manager.on('stopped', dispose);
+  attentionMonitor = new AttentionMonitor(manager, notice => {
+    const project = manager.projects.get(notice.projectId);
+    if (!project || !Notification.isSupported()) return;
+    const notification = new Notification({
+      title: `Нужен ваш ответ — ${project.name}`,
+      body: notice.kind === 'permission' ? 'Директор ожидает вашего подтверждения.' : 'Директор остановился и ждёт вашего ответа.',
+      silent: false,
+    });
+    attentionNotifications.add(notification);
+    notification.on('close', () => attentionNotifications.delete(notification));
+    notification.on('failed', (_event, error) => { attentionNotifications.delete(notification); console.warn('[desktop] Notification failed:', error); });
+    notification.on('click', () => {
+      attentionNotifications.delete(notification);
+      if (!manager.projects.has(notice.projectId)) return;
+      window.show(); if (window.isMinimized()) window.restore(); window.focus();
+      void openProject(notice.projectId).catch(error => console.warn('[desktop] Could not open notification project:', error));
+    });
+    notification.show();
+  });
+  attentionMonitor.start();
   ipcMain.handle('desktop:command', async (event, command: unknown, id?: unknown) => {
     if (event.sender !== window.webContents || event.senderFrame?.url !== shellURL) throw new Error('Untrusted sender');
     if (typeof command !== 'string') throw new Error('Invalid command');

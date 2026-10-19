@@ -154,15 +154,17 @@ export function handleWSMessage(
       }
 
       case 'input': {
-        if (ws.data.sessionId && data.input && !ws.data.isInteractive) {
-          spawnerService.sendInput(ws.data.sessionId, data.input).catch((err) => {
+        const sessionId = ws.data.sessionId;
+        if (sessionId && data.input) {
+          if (data.input === '\x1b' || data.input === '\x03') {
+            logger.info('Terminal interrupt key', { sessionId, key: data.input === '\x1b' ? 'Escape' : 'Ctrl+C', at: new Date().toISOString() });
+          }
+          const sent = ws.data.isInteractive
+            ? spawnerService.writeToPty(sessionId, data.input)
+            : spawnerService.sendInput(sessionId, data.input);
+          sent.then(() => sessionManager.recordUserInput(sessionId)).catch((err) => {
             ws.send(JSON.stringify({ type: 'error', error: err.message }));
           });
-        } else if (ws.data.sessionId && data.input && ws.data.isInteractive) {
-          spawnerService.writeToPty(ws.data.sessionId, data.input).catch((err) => {
-            ws.send(JSON.stringify({ type: 'error', error: err.message }));
-          });
-          sessionManager.recordUserInput(ws.data.sessionId);
         }
         break;
       }

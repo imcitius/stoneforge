@@ -22,8 +22,10 @@ import { taskWorktreeManager, ProjectRepositories } from '../git/project-reposit
 import { ProjectNodeError } from '../runtime/project-node.js';
 import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
+import { basename } from 'node:path';
 import type {
   EntityId,
+  Entity,
   ElementId,
   Task,
   Message,
@@ -44,7 +46,7 @@ import { createLogger } from '../utils/logger.js';
 import { isRateLimitMessage, parseRateLimitResetTime, getFallbackResetTime } from '../utils/rate-limit-parser.js';
 
 import type { AgentRegistry, AgentEntity } from './agent-registry.js';
-import { getAgentMetadata, isAgentDisabled } from './agent-registry.js';
+import { getAgentMetadata, isAgentDisabled, isAgentEntity } from './agent-registry.js';
 import type { SessionManager, SessionRecord } from '../runtime/session-manager.js';
 import { DispatchAssignmentError, type DispatchService, type DispatchOptions } from './dispatch-service.js';
 import type { WorktreeManager, CreateWorktreeResult } from '../git/worktree-manager.js';
@@ -96,12 +98,13 @@ export const DISPATCH_DAEMON_MAX_POLL_INTERVAL_MS = 60000;
 export const RATE_LIMIT_MINIMUM_FLOOR_MS = 15 * 60 * 1000;
 
 /**
- * Maximum cap for rate limit reset times (24 hours).
+ * Maximum cap for rate limit reset times (7 days).
  * The rate limit parser can produce reset times far in the future (e.g., rolling
- * a past date to the next year). Capping to 24 hours prevents absurdly long
- * pauses and avoids setTimeout overflow (32-bit signed int max ≈ 24.8 days).
+ * a past date to the next year). A full weekly quota window prevents early
+ * retries while still bounding malformed dates and avoiding setTimeout overflow
+ * (32-bit signed int max ≈ 24.8 days).
  */
-export const RATE_LIMIT_MAXIMUM_CAP_MS = 24 * 60 * 60 * 1000;
+export const RATE_LIMIT_MAXIMUM_CAP_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Maximum safe value for setTimeout delay (32-bit signed integer max).
@@ -111,31 +114,23 @@ export const RATE_LIMIT_MAXIMUM_CAP_MS = 24 * 60 * 60 * 1000;
 export const MAX_TIMEOUT_MS = 2_147_483_647;
 
 /**
- * Conservative fallback reset time for suspected silent rate limits (1 hour).
- * Applied when a recovered worker session exits rapidly (~10 seconds) without
- * producing any assistant events, which strongly suggests a rate limit (e.g.,
- * HTTP 429 before any stream output).
+ * @deprecated Retained for SDK compatibility; silent exits no longer infer limits.
  */
 export const RAPID_EXIT_FALLBACK_RESET_MS = 60 * 60 * 1000;
 
 /**
  * Maximum session duration (in milliseconds) to be considered a "rapid exit".
- * Sessions that terminate within this window without emitting assistant events
- * are treated as suspected silent rate limits.
+ * A matching provider limit message within this window preserves the retry budget.
  */
 export const RAPID_EXIT_THRESHOLD_MS = 10_000;
 
 /**
- * Number of recent session history entries to examine when detecting
- * a rate limit pattern. If the last N sessions were all very short-lived,
- * the task is likely stuck due to rate limiting rather than a genuine bug.
+ * @deprecated Retained for SDK compatibility; history no longer infers limits.
  */
 export const RATE_LIMIT_SESSION_PATTERN_COUNT = 3;
 
 /**
- * Maximum gap (in milliseconds) between consecutive session starts to
- * consider them part of a rapid-retry pattern. Sessions started within
- * this window of each other suggest automatic retries hitting rate limits.
+ * @deprecated Retained for SDK compatibility; history no longer infers limits.
  */
 export const RATE_LIMIT_SESSION_GAP_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -291,6 +286,11 @@ export interface DispatchDaemonConfig {
    */
   readonly directorInboxIdleThresholdMs?: number;
 
+  /** Wake an idle, running director when actionable work remains. Default: true. */
+  readonly directorWatchdogEnabled?: boolean;
+  /** Minimum inactivity and retry interval for watchdog input. Default: 120 seconds. */
+  readonly directorWatchdogIdleMs?: number;
+
   /**
    * Optional override for ensureTargetBranchExists.
    * Defaults to the real implementation from ../git/merge.js.
@@ -340,6 +340,8 @@ interface NormalizedConfig {
   projectRoot: string;
   directorInboxForwardingEnabled: boolean;
   directorInboxIdleThresholdMs: number;
+  directorWatchdogEnabled: boolean;
+  directorWatchdogIdleMs: number;
   ensureTargetBranchExists: (projectRoot: string, branchName: string) => Promise<void>;
 }
 
@@ -449,12 +451,12 @@ export interface DispatchDaemon {
    * Notify the daemon that a rate limit was detected for an executable.
    * Called externally (e.g., from event listeners on session events).
    */
-  handleRateLimitDetected(executable: string, resetsAt: Date): void;
+  handleRateLimitDetected(executable: string, resetsAt: Date, provider?: string): void;
 
   /**
    * Returns the current rate limit status for the daemon.
    */
-  getRateLimitStatus(): {
+  getRateLimitStatus(agent?: AgentEntity): {
     isPaused: boolean;
     limits: Array<{ executable: string; resetsAt: string }>;
     soonestReset?: string;
@@ -462,8 +464,7 @@ export interface DispatchDaemon {
 
   /**
    * Manually put the daemon to sleep until the specified time.
-   * Marks all executables in the fallback chain as rate-limited until the given time.
-   * This reuses the existing rate limit tracker and pause logic.
+   * Explicitly pauses every provider, including workspaces without a fallback chain.
    */
   sleepUntil(resetTime: Date): void;
 
@@ -539,6 +540,9 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   private currentPollCycle?: Promise<void>;
   private rateLimitSleepTimer?: NodeJS.Timeout;
   private lastWakeAt?: number;
+  private manualSleepUntil?: number;
+  private dispatchAgents: AgentEntity[] = [];
+  private readonly directorWakeAttempts = new Map<string, number>();
 
   /**
    * Tracks inbox item IDs that are currently being forwarded to persistent agents.
@@ -605,6 +609,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     this.settingsService = settingsService;
     this.operationLog = operationLog;
     this.rateLimitTracker = createRateLimitTracker(settingsService);
+    this.sessionManager.setRateLimitHandler?.((session, data) => {
+      this.handleRateLimitDetected(data.executablePath ?? session.provider ?? 'claude-code',
+        data.resetsAt ?? getFallbackResetTime(data.message ?? ''), session.provider);
+    });
     this.emitter = new EventEmitter();
     this.config = this.normalizeConfig(config);
   }
@@ -722,7 +730,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   // Rate Limiting
   // ----------------------------------------
 
-  handleRateLimitDetected(executable: string, resetsAt: Date): void {
+  handleRateLimitDetected(executable: string, resetsAt: Date, provider?: string): void {
     // Clamp reset time to at least RATE_LIMIT_MINIMUM_FLOOR_MS from now.
     // The rate limit parser can produce reset times that are too short due to
     // timezone issues or rounding. Premature expiry causes orphan recovery to
@@ -746,62 +754,72 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       effectiveResetsAt = resetsAt;
     }
 
-    // When a fallback chain is configured, rate limits are plan-level: hitting
-    // a limit on any executable in the chain means ALL executables share the
-    // same plan and are equally limited. Mark every entry in the chain to
-    // prevent resolveExecutableWithFallback() from thinking other executables
-    // in the chain are still available.
-    const fallbackChain = this.settingsService?.getAgentDefaults().fallbackChain ?? [];
-    if (fallbackChain.length > 0) {
-      // Plan-level rate limits: hitting a limit on any executable means the
-      // entire API plan is limited. Mark every chain entry regardless of whether
-      // the reported executable exactly matches a chain entry name (the session
-      // may report a resolved path like '/usr/local/bin/claude' rather than the
-      // chain entry name 'claude').
-      for (const chainExecutable of fallbackChain) {
-        this.rateLimitTracker.markLimited(chainExecutable, effectiveResetsAt);
-      }
-      // Also mark the raw executable path if it differs from chain entry names,
-      // so that direct isLimited() checks against the raw path also return true.
-      if (!fallbackChain.includes(executable)) {
-        this.rateLimitTracker.markLimited(executable, effectiveResetsAt);
-      }
-      logger.info(
-        `Rate limit detected for executable '${executable}', marked all ${fallbackChain.length} fallback chain entries as limited until ${effectiveResetsAt.toISOString()}`
-      );
-    } else {
+    // Keep limits within the reporting provider. Never apply Claude limits to Codex.
+    const key = provider ?? this.executableProvider(executable);
+    // A non-Claude wrapper identified by a session must not be persisted under
+    // the legacy Claude-wrapper namespace as well as its real provider.
+    if (!provider || this.executableProvider(executable) === provider) {
       this.rateLimitTracker.markLimited(executable, effectiveResetsAt);
-      logger.info(
-        `Rate limit detected for executable '${executable}', resets at ${effectiveResetsAt.toISOString()}`
-      );
     }
-    this.operationLog?.write('warn', 'rate-limit', `Rate limit detected for '${executable}', resets at ${resetsAt.toISOString()}`, { executable, resetsAt: resetsAt.toISOString() });
+    this.rateLimitTracker.markLimited(key, effectiveResetsAt);
+    const chain = this.settingsService?.getAgentDefaults().fallbackChain ?? [];
+    for (const candidate of chain) {
+      if (this.executableProvider(candidate) === key) {
+        this.rateLimitTracker.markLimited(candidate, effectiveResetsAt);
+      }
+    }
+    this.operationLog?.write('warn', 'rate-limit', `Rate limit detected for '${key}', resets at ${effectiveResetsAt.toISOString()}`, { executable, provider: key, resetsAt: effectiveResetsAt.toISOString() });
   }
 
-  /**
-   * Returns whether dispatch is paused due to rate limiting.
-   * When a fallback chain is configured, dispatch is paused only when all
-   * executables in the chain are limited. Otherwise, dispatch is paused when
-   * any tracked executable is limited (i.e. there are active limits).
-   *
-   * This is the single source of truth used by both `getRateLimitStatus()`
-   * and `runPollCycle()`.
-   */
+  private executableProvider(executable: string): string {
+    const defaults = this.settingsService?.getAgentDefaults().defaultExecutablePaths ?? {};
+    for (const [provider, path] of Object.entries(defaults)) {
+      if (path === executable) return provider;
+    }
+    const name = basename(executable);
+    if (/^claude(?:-code|[0-9]+)?$/.test(name)) return 'claude-code';
+    if (name === 'codex' || name === 'opencode') return name;
+    // Legacy fallback chains contain Claude wrappers. Other providers are
+    // identified by their binary name, configured default path or session provider.
+    return 'claude-code';
+  }
+
+  private agentExecutable(agent: AgentEntity): string {
+    const meta = getAgentMetadata(agent);
+    const provider = meta?.provider ?? 'claude-code';
+    return meta?.executablePath ?? this.settingsService?.getAgentDefaults().defaultExecutablePaths[provider] ?? provider;
+  }
+
+  private executableLimited(executable: string, provider = this.executableProvider(executable)): boolean {
+    return this.rateLimitTracker.getAllLimits().some(entry =>
+      entry.executable === executable || this.executableProvider(entry.executable) === provider);
+  }
+
+  /** Global status uses enabled agents refreshed every poll, including directors. */
   private isDispatchPaused(): boolean {
-    const fallbackChain = this.settingsService?.getAgentDefaults().fallbackChain ?? [];
-    return fallbackChain.length > 0
-      ? this.rateLimitTracker.isAllLimited(fallbackChain)
-      : this.rateLimitTracker.getAllLimits().length > 0;
+    if (this.manualSleepUntil && this.manualSleepUntil > Date.now()) return true;
+    if (this.dispatchAgents.length > 0) {
+      return this.dispatchAgents.every(agent => this.resolveExecutableWithFallback(agent) === 'all_limited');
+    }
+    const chain = this.settingsService?.getAgentDefaults().fallbackChain ?? [];
+    return chain.length > 0 ? chain.every(executable => this.executableLimited(executable)) : this.rateLimitTracker.getAllLimits().length > 0;
   }
 
-  getRateLimitStatus(): {
+  getRateLimitStatus(agent?: AgentEntity): {
     isPaused: boolean;
     limits: Array<{ executable: string; resetsAt: string }>;
     soonestReset?: string;
   } {
-    const allLimits = this.rateLimitTracker.getAllLimits();
-    const isPaused = this.isDispatchPaused();
-    const soonestReset = this.rateLimitTracker.getSoonestResetTime();
+    const provider = agent ? getAgentMetadata(agent)?.provider ?? 'claude-code' : undefined;
+    const tracked = this.rateLimitTracker.getAllLimits();
+    const allLimits = tracked.filter(entry => !tracked.some(other =>
+      other.executable !== entry.executable && this.executableProvider(other.executable) === entry.executable))
+      .filter(entry =>
+      !agent || this.executableProvider(entry.executable) === provider || entry.executable === this.agentExecutable(agent));
+    const isPaused = agent ? this.resolveExecutableWithFallback(agent) === 'all_limited' : this.isDispatchPaused();
+    const soonestReset = this.manualSleepUntil && this.manualSleepUntil > Date.now()
+      ? new Date(this.manualSleepUntil)
+      : allLimits.length ? new Date(Math.min(...allLimits.map(entry => entry.resetsAt.getTime()))) : undefined;
 
     return {
       isPaused,
@@ -814,9 +832,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   }
 
   sleepUntil(resetTime: Date): void {
+    this.manualSleepUntil = resetTime.getTime();
     const fallbackChain = this.settingsService?.getAgentDefaults().fallbackChain ?? [];
     if (fallbackChain.length === 0) {
-      logger.warn('sleepUntil: No fallback chain configured — nothing to mark as limited');
+      logger.info(`Manual sleep until ${resetTime.toISOString()}`);
       return;
     }
 
@@ -839,6 +858,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   }
 
   wake(): void {
+    this.manualSleepUntil = undefined;
     // Clear all rate limit entries
     this.rateLimitTracker.clear();
 
@@ -1005,6 +1025,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
           errorMessages.push(`Agent ${agent.name}: ${errorMessage}`);
         }
       }
+
+      // Agent replacement leaves historical direct channels addressed to the tombstone.
+      // Recover those inboxes without reviving the old agent or changing channel membership.
+      processed += await this.forwardRetiredDirectorInboxes(agents);
 
       // Process triage batches for idle agents with deferred messages
       if (deferredItems.size > 0) {
@@ -2050,6 +2074,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       projectRoot: config?.projectRoot ?? process.cwd(),
       directorInboxForwardingEnabled: config?.directorInboxForwardingEnabled ?? true,
       directorInboxIdleThresholdMs: config?.directorInboxIdleThresholdMs ?? 120_000,
+      directorWatchdogEnabled: config?.directorWatchdogEnabled ?? true,
+      directorWatchdogIdleMs: Math.max(1000, config?.directorWatchdogIdleMs ?? 120_000),
       ensureTargetBranchExists: config?.ensureTargetBranchExists ?? ensureTargetBranchExists,
     };
   }
@@ -2063,6 +2089,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     try {
       // Check if dispatch is paused due to rate limiting.
       // When paused, skip dispatch-related polls but still run non-dispatch work.
+      this.dispatchAgents = (await this.agentRegistry.listAgents()).filter(agent => !isAgentDisabled(agent));
       const allLimited = this.isDispatchPaused();
 
       if (allLimited) {
@@ -2153,6 +2180,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
         await this.pollPlanAutoComplete();
       }
 
+      if (this.config.directorWatchdogEnabled) {
+        await this.pollDirectorWatchdog();
+      }
+
       // Auto-transition workflows based on task statuses
       if (this.config.workflowAutoTransitionEnabled) {
         await this.pollWorkflowAutoTransition();
@@ -2174,45 +2205,89 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const meta = getAgentMetadata(agent);
     if (!meta) return undefined;
 
-    // When a fallback chain is configured, it is the authoritative list of
-    // available executables. Check it first before resolving per-agent defaults.
-    const fallbackChain = this.settingsService?.getAgentDefaults().fallbackChain ?? [];
+    if (this.manualSleepUntil && this.manualSleepUntil > Date.now()) return 'all_limited';
+    const provider = meta.provider ?? 'claude-code';
+    if (this.rateLimitTracker.isLimited(provider)) return 'all_limited';
+    const executable = this.agentExecutable(agent);
+    // Executable overrides must speak the agent's provider protocol.
+    const chain = (this.settingsService?.getAgentDefaults().fallbackChain ?? [])
+      .filter(candidate => this.executableProvider(candidate) === provider || candidate === executable);
+    if (chain.length > 0) {
+      return chain.find(candidate => !this.executableLimited(candidate, provider)) ?? 'all_limited';
+    }
+    return this.executableLimited(executable, provider) ? 'all_limited' : undefined;
+  }
 
-    if (fallbackChain.length > 0) {
-      // If all executables in the chain are limited, we can't dispatch
-      if (this.rateLimitTracker.isAllLimited(fallbackChain)) {
-        return 'all_limited';
+  /** Periodic work reconciliation; stopped/suspended directors are never restarted. */
+  private async pollDirectorWatchdog(): Promise<void> {
+    const directors = this.dispatchAgents.filter(agent => getAgentMetadata(agent)?.agentRole === 'director');
+    const sessionIds = new Set(directors.map(agent => this.sessionManager.getActiveSession(asEntityId(agent.id))?.id));
+    for (const id of this.directorWakeAttempts.keys()) {
+      if (!sessionIds.has(id)) this.directorWakeAttempts.delete(id);
+    }
+    if (!directors.length) return;
+    const ready = await this.api.ready({ includeEphemeral: true });
+    const reviews = await this.taskAssignment.listAssignments({
+      taskStatus: [TaskStatus.REVIEW],
+      mergeStatus: ['pending', 'conflict', 'test_failed', 'failed'],
+    });
+    // Explicitly dispatched workers may be parked (disabled) while their session
+    // runs. Orphan recovery must not unpark them, but the director still needs to
+    // notice unfinished work after that session exits, including after a quota
+    // reset. Waiting for a completion message from a dead worker cannot progress.
+    const unfinished = await this.taskAssignment.listAssignments({
+      taskStatus: [TaskStatus.OPEN, TaskStatus.IN_PROGRESS],
+    });
+    const orphaned: Task[] = [];
+    for (const { task } of unfinished) {
+      const assigned = task.assignee ?? getOrchestratorTaskMeta(task.metadata)?.assignedAgent;
+      if (!assigned || this.sessionManager.getActiveSession(asEntityId(assigned))) continue;
+      const executor = await this.agentRegistry.getAgent(asEntityId(assigned));
+      const meta = executor && getAgentMetadata(executor);
+      // Human-owned work and deliberately suspended sessions are not abandoned.
+      if (!meta || !['worker', 'steward'].includes(meta.agentRole) || meta.sessionStatus === 'suspended') continue;
+      orphaned.push(task);
+    }
+    const candidates = [...ready.filter(task => !task.assignee), ...orphaned, ...reviews.map(entry => entry.task).filter(task => {
+      const assigned = task.assignee ?? getOrchestratorTaskMeta(task.metadata)?.assignedAgent;
+      return !assigned || !this.sessionManager.getActiveSession(asEntityId(assigned));
+    })];
+    const owned = new Map<string, Task[]>();
+    for (const task of candidates) {
+      const owner = getOrchestratorTaskMeta(task.metadata)?.owningDirector ?? await this.resolveOwningDirector(task);
+      if (!owner) continue;
+      owned.set(owner, [...(owned.get(owner) ?? []), task]);
+    }
+    for (const director of directors) {
+      const tasks = owned.get(director.id);
+      if (!tasks?.length || this.resolveExecutableWithFallback(director) === 'all_limited') continue;
+      const session = this.sessionManager.getActiveSession(asEntityId(director.id));
+      if (!session || session.status !== 'running') continue;
+      const now = Date.now();
+      if (session.attention) continue; // A human decision cannot be supplied by the watchdog.
+      const activity = new Date(session.lastActivityAt).getTime();
+      const userIdle = this.sessionManager.getSessionUserIdleMs(asEntityId(director.id));
+      if (!Number.isFinite(activity) || now - activity < this.config.directorWatchdogIdleMs ||
+          (userIdle !== undefined && userIdle < this.config.directorInboxIdleThresholdMs) ||
+          now - (this.directorWakeAttempts.get(session.id) ?? 0) < this.config.directorWatchdogIdleMs) continue;
+      // Reserve before awaiting delivery, including failed deliveries, to avoid retry storms.
+      this.directorWakeAttempts.set(session.id, now);
+      const result = await this.sessionManager.messageSession(session.id, {
+        content: `[Orchestration watchdog] Actionable work remains: ${tasks.slice(0, 10).map(task => task.id).join(', ')}. ` +
+          'Check current task, inbox and merge state and continue the next authorized action. ' +
+          `Assigned tasks without a live executor: ${orphaned.filter(task => tasks.some(owned => owned.id === task.id)).map(task => task.id).join(', ') || 'none'}. ` +
+          'Inspect their last session outcome; do not keep waiting for a message from an exited worker. ' +
+          'Respect explicit worker parking and project dispatch rules when deciding how to resume. ' +
+          'Provider limits are independent; do not infer a current limit from old session failures. ' +
+          'Do not sleep or schedule retries yourself. The daemon will retry after confirmed limits expire. ' +
+          'If human input or another concrete blocker prevents progress, record it on the task.',
+      });
+      if (!result.success) logger.warn(`Director watchdog delivery failed for ${director.id}: ${result.error}`);
+      else {
+        logger.info(`Woke idle director ${director.id}; tasks: ${tasks.map(task => task.id).join(', ')}`);
+        this.operationLog?.write('info', 'dispatch', `Woke idle director ${director.name}`, { agentId: director.id, sessionId: session.id, taskIds: tasks.map(task => task.id) });
       }
-
-      // Find the first available executable in the chain
-      const available = this.rateLimitTracker.getAvailableExecutable(fallbackChain);
-      if (!available) {
-        return 'all_limited';
-      }
-
-      // Return the available executable as an override path
-      return available;
     }
-
-    // No fallback chain — check the agent's effective executable directly
-    const agentExecutablePath = (meta as { executablePath?: string }).executablePath;
-    const providerName = (meta as { provider?: string }).provider ?? 'claude-code';
-
-    // Determine the effective executable path that would be used
-    // Priority: agent-specific → workspace-wide default → provider default
-    let effectiveExecutable = agentExecutablePath;
-    if (!effectiveExecutable && this.settingsService) {
-      const defaults = this.settingsService.getAgentDefaults();
-      effectiveExecutable = defaults.defaultExecutablePaths[providerName];
-    }
-    if (!effectiveExecutable) {
-      effectiveExecutable = providerName;
-    }
-
-    if (this.rateLimitTracker.isLimited(effectiveExecutable)) {
-      return 'all_limited';
-    }
-    return undefined;
   }
 
   /**
@@ -2459,27 +2534,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   }
 
   /**
-   * Attaches a rapid-exit detector to a recovered session's event emitter.
-   *
-   * When a recovered worker session exits within RAPID_EXIT_THRESHOLD_MS, two
-   * scenarios are detected as rate limits:
-   *
-   * 1. **Silent rate limit** (no assistant events): The session was rejected
-   *    before any stream output (e.g., HTTP 429). A conservative 1-hour
-   *    fallback is applied.
-   *
-   * 2. **Assistant rate limit message**: The session emitted an assistant event
-   *    whose content matches a known rate limit pattern (e.g., "You've hit your
-   *    limit · resets 11pm"). The reset time is parsed from the message when
-   *    possible, falling back to a conservative default.
-   *
-   * In both cases:
-   * - The resumeCount is rolled back (decremented)
-   * - A warning is logged
-   * - A rate limit reset time is applied to the rate limit tracker
-   *
-   * This prevents the resume budget from being burned by sessions that never
-   * actually ran or that were immediately rate-limited.
+   * Preserve the retry budget only when a rapid exit includes an explicit limit
+   * message. Silence, crashes and old session history are not quota evidence.
    */
   private attachRapidExitDetector(
     events: import('events').EventEmitter,
@@ -2487,14 +2543,14 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     worker: AgentEntity
   ): void {
     const startTime = Date.now();
-    let hasAssistantEvent = false;
     let lastAssistantContent: string | undefined;
+    let lastAssistantRaw: unknown;
 
-    const onEvent = (event: { type: string; message?: string }) => {
+    const onEvent = (event: { type: string; message?: string; raw?: unknown }) => {
       if (event.type === 'assistant') {
-        hasAssistantEvent = true;
         if (event.message) {
           lastAssistantContent = event.message;
+          lastAssistantRaw = event.raw;
         }
       }
     };
@@ -2508,17 +2564,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
         return;
       }
 
-      // Determine if this rapid exit is a rate limit
-      const isSilentRateLimit = !hasAssistantEvent;
-      const isAssistantRateLimit = hasAssistantEvent
-        && lastAssistantContent != null
-        && isRateLimitMessage(lastAssistantContent);
-
-      if (!isSilentRateLimit && !isAssistantRateLimit) return;
-
-      const reason = isSilentRateLimit
-        ? 'silent rate limit (no output)'
-        : 'rate limit assistant message';
+      if (!lastAssistantContent || !isRateLimitMessage(lastAssistantContent)) return;
+      const reason = 'rate limit assistant message';
 
       logger.warn(
         `Session exited rapidly — suspected ${reason} (task=${task.id}, worker=${worker.name}, duration=${sessionDuration}ms)`
@@ -2546,31 +2593,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
         logger.warn(`Failed to roll back resumeCount for task ${task.id}:`, error);
       }
 
-      // Determine the reset time:
-      // - For assistant rate limit messages, try to parse the reset time from the message
-      // - For silent rate limits (or if parsing fails), use the conservative 1-hour fallback
-      let resetTime: Date;
-      if (isAssistantRateLimit && lastAssistantContent) {
-        resetTime = parseRateLimitResetTime(lastAssistantContent)
-          ?? getFallbackResetTime(lastAssistantContent);
-        logger.info(
-          `Parsed rate limit reset time from assistant message for task ${task.id}: ${resetTime.toISOString()}`
-        );
-      } else {
-        resetTime = new Date(Date.now() + RAPID_EXIT_FALLBACK_RESET_MS);
-      }
+      const resetTime = parseRateLimitResetTime(lastAssistantContent, lastAssistantRaw)
+        ?? getFallbackResetTime(lastAssistantContent);
 
-      // Apply the rate limit to all executables in the fallback chain
-      const fallbackChain = this.settingsService?.getAgentDefaults().fallbackChain ?? [];
-
-      if (fallbackChain.length > 0) {
-        for (const executable of fallbackChain) {
-          this.handleRateLimitDetected(executable, resetTime);
-        }
-      } else {
-        // No fallback chain — apply to the default provider
-        this.handleRateLimitDetected('claude', resetTime);
-      }
+      this.handleRateLimitDetected(this.agentExecutable(worker), resetTime, getAgentMetadata(worker)?.provider ?? 'claude-code');
 
       logger.info(
         `Applied rate limit (${reason}) for task ${task.id}, resets at ${resetTime.toISOString()}`
@@ -2579,59 +2605,6 @@ export class DispatchDaemonImpl implements DispatchDaemon {
 
     events.on('event', onEvent);
     events.on('exit', onExit);
-  }
-
-  /**
-   * Checks a task's session history for a rate limit pattern.
-   *
-   * Returns true if the last N sessions (RATE_LIMIT_SESSION_PATTERN_COUNT)
-   * all appear to be rapid exits — sessions that started in quick succession
-   * (within RATE_LIMIT_SESSION_GAP_MS of each other) and none completed
-   * properly (no endedAt set). This pattern indicates the task is stuck due
-   * to rate limiting rather than a genuine bug requiring recovery steward
-   * intervention.
-   *
-   * @param taskMeta - The task's orchestrator metadata
-   * @returns true if the session history shows a rate limit pattern
-   */
-  private hasRecentRateLimitPattern(
-    taskMeta: import('../types/task-meta.js').OrchestratorTaskMeta | undefined
-  ): boolean {
-    const sessionHistory = taskMeta?.sessionHistory;
-    if (!sessionHistory || sessionHistory.length < RATE_LIMIT_SESSION_PATTERN_COUNT) {
-      return false;
-    }
-
-    // Get the last N entries
-    const recentSessions = sessionHistory.slice(-RATE_LIMIT_SESSION_PATTERN_COUNT);
-
-    // All recent sessions must lack a proper endedAt (i.e., the session exited
-    // without the agent calling task complete or handoff)
-    const allLackEndedAt = recentSessions.every(entry => !entry.endedAt);
-    if (!allLackEndedAt) return false;
-
-    // Check that consecutive sessions started close together (rapid retries)
-    for (let i = 1; i < recentSessions.length; i++) {
-      const prevStart = new Date(recentSessions[i - 1].startedAt).getTime();
-      const currStart = new Date(recentSessions[i].startedAt).getTime();
-      const gap = currStart - prevStart;
-      if (gap < 0 || gap > RATE_LIMIT_SESSION_GAP_MS) {
-        return false;
-      }
-    }
-
-    // If wake() was called, ignore patterns that predate the wake.
-    // After wake, the ONLY way a rate limit should be recorded is from
-    // new rate limit events that occur AFTER the wake.
-    if (this.lastWakeAt) {
-      const mostRecentStart = new Date(recentSessions[recentSessions.length - 1].startedAt).getTime();
-      if (mostRecentStart < this.lastWakeAt) {
-        return false; // Pattern predates last wake — ignore
-      }
-    }
-
-    // All recent sessions were rapid retries without proper completion
-    return true;
   }
 
   /**
@@ -3447,32 +3420,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
     const workerId = asEntityId(worker.id);
 
-    // 0. Check session history for rate limit pattern.
-    // If the last N sessions were all very short-lived (started in rapid succession
-    // without proper completion), the task is likely stuck due to rate limiting.
-    // Don't spawn a recovery steward — leave the task for retry when limits expire.
-    if (this.hasRecentRateLimitPattern(taskMeta)) {
-      logger.info(
-        `Task ${task.id} shows rate limit pattern in session history ` +
-        `(last ${RATE_LIMIT_SESSION_PATTERN_COUNT} sessions were rapid exits). ` +
-        `Skipping recovery steward spawn and recording rate limit.`
-      );
-
-      // Record the rate limit so the daemon pauses dispatch and the dashboard banner shows.
-      // Without this, the orphan recovery loop would repeatedly detect the pattern every
-      // poll cycle without ever pausing — causing infinite log spam.
-      const fallbackChain = this.settingsService?.getAgentDefaults().fallbackChain ?? [];
-      const resetTime = new Date(Date.now() + RAPID_EXIT_FALLBACK_RESET_MS);
-      if (fallbackChain.length > 0) {
-        for (const executable of fallbackChain) {
-          this.handleRateLimitDetected(executable, resetTime);
-        }
-      } else {
-        this.handleRateLimitDetected('claude', resetTime);
-      }
-
-      return false;
-    }
+    // Session history alone cannot establish a provider limit. Reusing it here
+    // renewed the same hour-long pause forever without making another attempt.
 
     // 1. Find an available recovery steward
     const stewards = await this.agentRegistry.listAgents({
@@ -3771,6 +3720,41 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     return parts.join('\n');
   }
 
+  private async forwardRetiredDirectorInboxes(agents: AgentEntity[]): Promise<number> {
+    if (!this.config.directorInboxForwardingEnabled) return 0;
+    let processed = 0;
+    let offset = 0;
+    while (true) {
+      const page = await this.api.listPaginated<Entity>({
+        type: 'entity', includeDeleted: true, limit: 100, offset,
+      });
+      for (const retired of page.items) {
+        if (!('deletedAt' in retired) || !retired.deletedAt || !isAgentEntity(retired) ||
+            getAgentMetadata(retired)?.agentRole !== 'director') continue;
+        // Names alone are ambiguous when several live directors coexist. Only a
+        // unique same-name replacement may inherit this director's pending mail.
+        const successors = agents.filter(agent => agent.name === retired.name &&
+          getAgentMetadata(agent)?.agentRole === 'director');
+        if (successors.length !== 1) continue;
+        const successor = successors[0];
+        if (isAgentDisabled(successor) || this.resolveExecutableWithFallback(successor) === 'all_limited') continue;
+        const successorId = asEntityId(successor.id);
+        const session = this.sessionManager.getActiveSession(successorId);
+        if (!session || session.status !== 'running') continue;
+        const idleMs = this.sessionManager.getSessionUserIdleMs(successorId);
+        if (idleMs !== undefined && idleMs < this.config.directorInboxIdleThresholdMs) continue;
+        const items = this.inboxService.getInbox(asEntityId(retired.id), { status: InboxStatus.UNREAD, limit: 50 });
+        for (const item of items) {
+          const message = await this.api.get<Message>(asElementId(item.messageId));
+          if (message && await this.processPersistentAgentMessage(successor, message, item, session)) processed++;
+        }
+      }
+      offset += page.items.length;
+      if (!page.items.length || offset >= page.total) break;
+    }
+    return processed;
+  }
+
   /**
    * Processes an inbox item for an agent.
    * Handles dispatch messages and delegates to role-specific processors.
@@ -3806,6 +3790,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       return this.processPersistentAgentMessage(agent, message, item, activeSession);
     } else if (meta.agentRole === 'director') {
       if (this.config.directorInboxForwardingEnabled) {
+        if (this.resolveExecutableWithFallback(agent) === 'all_limited') return false;
         // Only forward if the user hasn't typed recently (debounce)
         if (activeSession) {
           const idleMs = this.sessionManager.getSessionUserIdleMs(agentId);
@@ -3888,6 +3873,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   ): Promise<boolean> {
     const agentId = asEntityId(agent.id);
 
+    if (activeSession?.attention) return false; // Never paste over a pending human decision.
+
     if (activeSession) {
       // Guard against duplicate forwarding:
       // If another concurrent pollInboxes() call is already processing this item,
@@ -3903,10 +3890,11 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       try {
         // In session -> forward as user input
         const forwardedContent = await this.formatForwardedMessage(message);
-        await this.sessionManager.messageSession(activeSession.id, {
+        const delivery = await this.sessionManager.messageSession(activeSession.id, {
           content: forwardedContent,
           senderId: message.sender,
         });
+        if (!delivery.success) return false;
 
         this.inboxService.markAsRead(item.id);
         this.emitter.emit('message:forwarded', message.id, agentId);

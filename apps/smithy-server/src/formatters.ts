@@ -68,6 +68,7 @@ export function formatSessionRecord(session: SessionRecord) {
     lastActivityAt: session.lastActivityAt,
     endedAt: session.endedAt,
     terminationReason: session.terminationReason,
+    attention: session.attention,
   };
 }
 

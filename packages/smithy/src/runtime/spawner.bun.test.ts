@@ -1416,7 +1416,13 @@ describe('waitForInit still resolves normally on init event', () => {
 // ============================================================================
 
 describe('rate_limited event carries correct executablePath', () => {
-  test('rate_limited event uses claudePath from SpawnOptions when provided', async () => {
+  test.each([
+    { content: "You've hit your weekly limit · resets Oct 9 at 2am (Asia/Jerusalem)", raw: { type: 'assistant' } },
+    { content: "You've hit your limit · resets 12am", raw: { type: 'assistant' } },
+    { content: "You've hit your session limit · resets 3:30am (Asia/Jerusalem)", raw: {
+      type: 'assistant', error: 'rate_limit', quotaLimits: { status: 'rejected', resetsAt: 1791073800 },
+    } },
+  ])('rate_limited uses the session executable and provider reset: $content', async ({ content, raw }) => {
     // Create a mock headless session that emits a rate limit message after init,
     // with a delay so we can attach the listener before the event fires.
     const createRateLimitHeadlessSession = (): HeadlessSession => {
@@ -1448,8 +1454,8 @@ describe('rate_limited event carries correct executablePath', () => {
                   done: false,
                   value: {
                     type: 'assistant',
-                    content: "You've hit your limit · resets 12am",
-                    raw: { type: 'assistant' },
+                    content,
+                    raw,
                   },
                 };
               }
@@ -1486,7 +1492,7 @@ describe('rate_limited event carries correct executablePath', () => {
     });
 
     // Immediately attach listener — the rate limit message has a 100ms delay
-    const rateLimitEvents: Array<{ executablePath?: string; message?: string }> = [];
+    const rateLimitEvents: Array<{ executablePath?: string; message?: string; resetsAt?: Date }> = [];
     result.events.on('rate_limited', (data: { executablePath?: string; message?: string }) => {
       rateLimitEvents.push(data);
     });
@@ -1497,7 +1503,8 @@ describe('rate_limited event carries correct executablePath', () => {
     // The rate_limited event should carry the custom executable path
     expect(rateLimitEvents.length).toBe(1);
     expect(rateLimitEvents[0]!.executablePath).toBe('claude-preview');
-    expect(rateLimitEvents[0]!.message).toContain("You've hit your limit");
+    expect(rateLimitEvents[0]!.message).toBe(content);
+    if ('quotaLimits' in raw) expect(rateLimitEvents[0]!.resetsAt?.toISOString()).toBe('2026-10-04T00:30:00.000Z');
   });
 
   test('rate_limited event uses default claudePath when none provided in SpawnOptions', async () => {
@@ -1599,3 +1606,42 @@ for (const mode of ['headless', 'interactive'] as const) {
     expect(received?.CUSTOM).toBe('preserved');
   });
 }
+
+describe('interactive provider rate limit events', () => {
+  test('reports distinct PTY banners but never renews limits from transcript redraw after Enter', async () => {
+    let output!: (data: string) => void;
+    let exited!: (code: number) => void;
+    const provider = createMockProvider(createImmediateExitHeadlessSession);
+    provider.interactive.spawn = async () => ({
+      pid: process.pid, write: () => {}, resize: () => {}, kill: () => { exited(0); },
+      onData: callback => { output = callback; }, onExit: callback => { exited = callback; }, getSessionId: () => undefined,
+    });
+    const spawner = new SpawnerServiceImpl({ provider, workingDirectory: '/tmp' });
+    const { session, events } = await spawner.spawn(testAgentId, 'director', { mode: 'interactive', claudePath: '/custom/codex' });
+    const limits: Array<{ executablePath: string; resetsAt: Date }> = [];
+    events.on('rate_limited', data => limits.push(data));
+    output('Usage limit ');
+    output('reached\n');
+    output('Usage limit reached\n');
+    expect(limits).toHaveLength(1);
+    expect(limits[0].executablePath).toBe('/custom/codex');
+    await spawner.writeToPty(session.id, 'continue');
+    output('Usage limit reached\n');
+    expect(limits).toHaveLength(1);
+    await spawner.writeToPty(session.id, '\r');
+    output('Usage limit reached\n');
+    expect(limits).toHaveLength(1);
+    output('Weekly limit reached · resets tomorrow at 3pm\n');
+    expect(limits).toHaveLength(2);
+    output("  └ You've hit your session limit · resets\n");
+    expect(limits).toHaveLength(2);
+    output('    4:30pm (Asia/Jerusalem)\n');
+    expect(limits).toHaveLength(3);
+    expect(limits[2].executablePath).toBe('/custom/codex');
+    expect(limits[2].resetsAt).toBeInstanceOf(Date);
+    await spawner.writeToPty(session.id, '\r');
+    output("  └ You've hit your session limit · resets\n    4:30pm (Asia/Jerusalem)\n");
+    expect(limits).toHaveLength(3);
+    await spawner.terminate(session.id, false);
+  });
+});

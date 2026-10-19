@@ -24,7 +24,8 @@ open 'apps/desktop/dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.a
 Packaging rebuilds the web UI and builds/checks native SQLite against the bundled Node ABI. Packaging also repairs the deployed PTY helper permissions and verifies a real
 PTY spawn/output/exit inside the final app, without calling an agent provider. Native files
 and the Node executable live outside ASAR. The bundle can be moved independently
-of the checkout. Packaging currently produces an unsigned local `.app`; external
+of the checkout. Packaging applies and verifies a local ad-hoc code signature after assembling the
+final bundle, including its notification identity; external
 distribution and notarization are a later step. Intel builds are not verified.
 
 For development, rebuild the workspace SQLite addon for the pinned runtime first:
@@ -61,6 +62,19 @@ This metadata is baked into the application, independent of subsequent source ed
    the sidebar is visible by default and when that file is missing or invalid.
 6. Closing the window keeps the application running. Quit asks before stopping
    running project servers and their agents.
+
+When a director needs a human decision, it signals `sf agent await-input` before
+asking its question. New and resumed director sessions receive this instruction
+even with a workspace prompt override. Structured question tools signal the same
+state. Desktop checks every running project, including hidden windows, marks it
+**Needs your input**, and sends a native macOS notification with the project name.
+Clicking opens that project. Human terminal input clears the request; automatic
+inbox delivery and idle wakeups wait until it clears. Requests pending for five
+seconds notify once, with at most one notification per session per minute.
+Text in terminal history is never treated as a fresh request. A director that
+does not signal its question cannot be detected reliably; this does not infer
+arbitrary CLI permission prompts. Native alerts follow macOS notification and
+Focus settings, and require Desktop to remain running (closing its window is OK).
 
 The registry is `projects.json` in Electron's application userData directory.
 Project databases, JSONL exports, prompts and worktrees remain in their workspace.
@@ -136,10 +150,17 @@ login-shell overrides and shell snapshots for these sessions, and can write shar
 workspace data from worktrees. Provider login shells restore the supplied PATH
 after profile loading. `sf serve` inside a managed session reports the already
 running backend instead of launching another.
-Interactive Codex terminals advertise truecolor and clear inherited `NO_COLOR`,
+Interactive Codex and Claude terminals advertise truecolor and clear inherited `NO_COLOR`,
 including after login-shell profiles, so a server started by an automation does
 not turn the director monochrome. This applies to newly started sessions; an
 adopted older server must be restarted to load the updated provider.
+Desktop supplies a UTF-8 character locale when Finder has not provided one or
+has supplied a non-UTF-8 locale. This prevents terminal clipboard helpers such as
+macOS `pbcopy` from interpreting Cyrillic UTF-8 as MacRoman. It affects newly
+started managed backends and their sessions; adopted servers keep their environment.
+The native regression `node apps/desktop/scripts/check-clipboard.mjs` checks mouse
+selection/Cmd+C in xterm and the macOS helper path; it temporarily uses and restores
+the system clipboard, so run it without concurrent clipboard activity.
 Explicitly overriding agent environment or using another CLI version is outside
 this routing guarantee; this is not an OS sandbox.
 HTTP, SSE and all WebSocket upgrades require the project and instance identity.
@@ -165,6 +186,7 @@ bun test packages/smithy/src/server/server.bun.test.ts packages/quarry/src/cli/c
 node apps/desktop/scripts/check-app.mjs
 node apps/desktop/scripts/check-launch-services.mjs
 node apps/desktop/scripts/check-sidebar.mjs
+node apps/desktop/scripts/check-attention.mjs
 ```
 
 `check-app.mjs` uses the workspace's Playwright installation to verify the actual
@@ -234,6 +256,13 @@ delivery, workload and metrics on temporary fixtures without provider sessions.
 These checks supplement the GUI and source gates. See the
 [el-1zar candidate/update runbook](../../docs/workspace/desktop-update-el-1zar.md)
 for its recorded results, limitations and the separate Human approval boundary.
+
+Electron 44.4.5 bundles Undici 7.29.1, which can throw an uncaught
+`setTypeOfService EINVAL` on macOS. The main process installs a narrow socket
+workaround before HTTP requests; other errors still propagate. The Desktop test
+suite injects this failure into the pinned Electron runtime, checks the unpatched
+failure, and verifies successful requests with the workaround. Remove it once the
+bundled Undici includes [the upstream fix](https://github.com/nodejs/undici/pull/5547).
 
 Opt-in provider validation makes real API calls through the packaged terminal:
 

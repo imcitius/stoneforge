@@ -17,6 +17,7 @@
 
 import type { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
+import { TerminalRateLimitDetector } from '../utils/terminal-rate-limit.js';
 import type { EntityId, Timestamp } from '@stoneforge/core';
 import { createTimestamp } from '@stoneforge/core';
 import type { AgentRole, WorkerMode } from '../types/agent.js';
@@ -211,6 +212,7 @@ export interface SpawnedSession {
  * Internal session state tracking
  */
 interface InternalSession extends SpawnedSession {
+  terminalRateLimitDetector?: TerminalRateLimitDetector;
   /** Progress belongs to this internal session and its original handles. */
   termination?: {
     operation?: Promise<void>;
@@ -845,6 +847,7 @@ export class SpawnerServiceImpl implements SpawnerService {
       throw new Error('Session PTY is not available');
     }
 
+    if (/[\r\n]/.test(data)) session.terminalRateLimitDetector?.reset();
     session.interactiveSession.write(data);
     session.lastActivityAt = createTimestamp();
   }
@@ -1037,8 +1040,9 @@ export class SpawnerServiceImpl implements SpawnerService {
         }
 
         // Check for rate limit
-        if (message.content && isRateLimitMessage(message.content)) {
-          const resetsAt = parseRateLimitResetTime(message.content);
+        if ((message.type === 'assistant' || message.type === 'error' || message.type === 'result') &&
+            message.content && isRateLimitMessage(message.content)) {
+          const resetsAt = parseRateLimitResetTime(message.content, message.raw);
           session.events.emit('rate_limited', {
             message: message.content,
             resetsAt,
@@ -1142,6 +1146,7 @@ export class SpawnerServiceImpl implements SpawnerService {
     projectNodeEnv: Record<string, string> = {}
   ): Promise<void> {
     const interactiveProvider = options?.provider?.interactive ?? this.provider.interactive;
+    session.executablePath = options?.claudePath ?? this.defaultConfig.claudePath;
 
     try {
       const interactiveSession = await interactiveProvider.spawn({
@@ -1173,10 +1178,13 @@ export class SpawnerServiceImpl implements SpawnerService {
         (session as { providerSessionId?: string }).providerSessionId = knownSessionId;
       }
 
+      session.terminalRateLimitDetector = new TerminalRateLimitDetector();
       // Handle data output
       interactiveSession.onData((data: string) => {
         session.lastActivityAt = createTimestamp();
         session.events.emit('pty-data', data);
+        const limit = session.terminalRateLimitDetector?.push(data);
+        if (limit) session.events.emit('rate_limited', { ...limit, executablePath: session.executablePath });
 
         // Check for provider session ID in output
         if (!session.providerSessionId) {

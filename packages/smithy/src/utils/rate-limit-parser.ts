@@ -63,7 +63,7 @@ const MONTH_NAMES: Record<string, number> = {
  * - "Usage limit reached" (Codex)
  */
 export const RATE_LIMIT_PATTERNS: ReadonlyArray<RegExp> = [
-  /you[\u2018\u2019''`]ve hit your limit/i,
+  /you[\u2018\u2019''`]ve hit your (?:(?:session|usage|weekly) )?limit/i,
   /weekly limit reached/i,
   /usage limit reached/i,
   /rate limit reached/i,
@@ -154,7 +154,17 @@ const FORMAT_A_REGEX = /resets?\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i;
  * @param content - The raw message text from Claude Code
  * @returns The parsed reset `Date`, or `undefined` if parsing fails
  */
-export function parseRateLimitResetTime(content: string): Date | undefined {
+export function parseRateLimitResetTime(content: string, providerError?: unknown): Date | undefined {
+  // Claude's rejection carries an absolute epoch in seconds. Prefer it to a
+  // clock-only banner, which loses the date and can be interpreted as tomorrow.
+  // Only the provider error envelope qualifies, never arbitrary nested content.
+  const raw = providerError as { error?: unknown; quotaLimits?: { status?: unknown; resetsAt?: unknown } } | undefined;
+  const reset = raw?.quotaLimits?.resetsAt;
+  if (raw?.error === 'rate_limit' && raw.quotaLimits?.status === 'rejected' &&
+      typeof reset === 'number' && Number.isFinite(reset) && reset > 0) {
+    const date = new Date(reset * 1000);
+    if (Number.isFinite(date.getTime())) return date;
+  }
   // Extract timezone if present (e.g. "(Pacific/Honolulu)")
   const timezone = extractTimezone(content);
 

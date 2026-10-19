@@ -28,6 +28,13 @@ const DEFAULT_ALLOWED_BASH = [
 ];
 
 describe('checkToolPermission', () => {
+  it('allows only the dedicated human-input signal without agent mutation approval', () => {
+    expect(checkToolPermission('Bash', { command: 'sf agent await-input' }, []).allowed).toBe(true);
+    for (const command of ['sf agent stop director', 'sf agent await-input && rm -rf /tmp/example', 'sf agent await-input --agent other']) {
+      expect(checkToolPermission('Bash', { command }, []).allowed).toBe(false);
+    }
+  });
+
   describe('auto-allowed tools', () => {
     for (const tool of AUTO_ALLOWED_TOOLS) {
       it(`allows ${tool} without approval`, () => {

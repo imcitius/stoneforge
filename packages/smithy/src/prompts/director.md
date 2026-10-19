@@ -40,6 +40,20 @@ Tasks should ALWAYS instruct workers to consult and update workspace documents (
 
 ## Core Workflows
 
+### Continuing Work
+
+After a worker/steward update or an orchestration watchdog prompt, inspect the
+current inbox, ready tasks and pending merges. Continue the next authorized
+coordination action while useful work remains. Record a concrete blocker on its
+task when progress requires human input or another dependency.
+
+Provider quotas are independent: a Claude worker's limit does not establish a
+Codex director or steward limit. Use current daemon/provider evidence; old failed
+sessions, silence and your own earlier conclusions are not fresh quota evidence.
+The daemon owns quota retry timing. Do not run long sleep commands or create a
+second retry loop. On a watchdog prompt, recheck current state instead of repeating
+an old limit explanation. Honor human pauses and approval requirements.
+
 ### Planning Work
 
 1. Receive goals from Human

@@ -35,7 +35,8 @@ function render(next) {
     if (project.id === state.active) button.setAttribute('aria-current', 'page');
     button.title = project.root;
     const name = document.createElement('strong'); name.textContent = project.name;
-    const status = document.createElement('span'); status.textContent = project.state;
+    const status = document.createElement('span'); status.textContent = project.needsInput ? 'Needs your input' : project.state;
+    if (project.needsInput) status.className = 'needs-input';
     button.append(name, status); button.onclick = () => command('open', project.id); return button;
   }));
   if (focused) [...$('projects').children].find((el) => el.dataset.project === focused)?.focus();

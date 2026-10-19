@@ -370,6 +370,67 @@ describe('SessionManager', () => {
     sessionManager = createSessionManager(spawner, api, registry);
   });
 
+  test('forwards interactive UI session limits to the workspace handler and session observers', async () => {
+    const observed: string[] = [];
+    sessionManager.setRateLimitHandler!((session, data) => {
+      observed.push(`${session.agentId}:${data.executablePath}`);
+    });
+    const { session, events } = await sessionManager.startSession(testAgentId2);
+    events.on('rate_limited', () => observed.push('session-observer'));
+    spawner._mockEmitters.get(session.id)!.emit('rate_limited', {
+      executablePath: '/bin/codex', message: 'Usage limit reached', resetsAt: new Date(Date.now() + 60_000),
+    });
+    expect(observed).toEqual([`${testAgentId2}:/bin/codex`, 'session-observer']);
+  });
+
+  test('director attention reaches the API record, deduplicates redraws and clears on human input', async () => {
+    const { session } = await sessionManager.startSession(testAgentId2);
+    const events = spawner._mockEmitters.get(session.id)!;
+    expect(sessionManager.requestAttention(session.id)).toBe(true);
+    const attention = sessionManager.getSession(session.id)?.attention;
+    expect(attention?.kind).toBe('input');
+    events.emit('pty-data', '● Ожидаю вашего ответа: какой вариант выбрать?\n');
+    expect(sessionManager.getSession(session.id)?.attention?.id).toBe(attention?.id);
+    const { formatSessionRecord } = await import('../server/formatters.js');
+    expect(formatSessionRecord(sessionManager.getSession(session.id)!).attention).toEqual(attention);
+    sessionManager.recordUserInput(session.id);
+    expect(sessionManager.getSession(session.id)?.attention).toBeUndefined();
+    events.emit('pty-data', '● Ожидаю вашего ответа: какой вариант выбрать?\n');
+    expect(sessionManager.getSession(session.id)?.attention).toBeUndefined();
+    events.emit('event', { type: 'tool_use', tool: { name: 'AskUserQuestion' } });
+    expect(sessionManager.getSession(session.id)?.attention?.id).not.toBe(attention?.id);
+    events.emit('event', { type: 'tool_use', tool: { name: 'Bash' } });
+    expect(sessionManager.getSession(session.id)?.attention).toBeUndefined();
+    sessionManager.requestAttention(session.id);
+    await sessionManager.stopSession(session.id);
+    expect(sessionManager.getSession(session.id)?.attention).toBeUndefined();
+  });
+
+  test('HTTP attention rejects mismatched/stale sessions and successful human HTTP input clears it', async () => {
+    const { createSessionRoutes } = await import('../server/routes/sessions.js');
+    const { session } = await sessionManager.startSession(testAgentId2, { interactive: false });
+    const app = createSessionRoutes({ sessionManager, spawnerService: spawner,
+      sessionMessageService: { saveMessage: () => {} } } as any, () => {});
+    const request = (path: string, body: unknown) => app.request(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    expect((await request(`/api/sessions/${session.id}/attention`, { agentId: testAgentId })).status).toBe(409);
+    expect((await request(`/api/sessions/${session.id}/attention`, { agentId: testAgentId2 })).status).toBe(200);
+    const attention = sessionManager.getSession(session.id)?.attention;
+    expect(attention).toBeDefined();
+    expect((await request(`/api/sessions/${session.id}/attention`, { agentId: testAgentId2 })).status).toBe(200);
+    expect(sessionManager.getSession(session.id)?.attention?.id).toBe(attention?.id);
+    expect((await request(`/api/agents/${testAgentId2}/input`, { input: 'Proceed', isUserMessage: true })).status).toBe(202);
+    expect(sessionManager.getSession(session.id)?.attention).toBeUndefined();
+    await sessionManager.stopSession(session.id);
+    expect((await request(`/api/sessions/${session.id}/attention`, { agentId: testAgentId2 })).status).toBe(409);
+  });
+
+  test('worker prompts never create director attention', async () => {
+    const { session } = await sessionManager.startSession(testAgentId);
+    expect(sessionManager.requestAttention(session.id)).toBe(false);
+    spawner._mockEmitters.get(session.id)!.emit('pty-data', 'Waiting for your input: confirm?\n');
+    expect(sessionManager.getSession(session.id)?.attention).toBeUndefined();
+  });
+
   describe('startSession', () => {
     test('starts a new session for an agent', async () => {
       const result = await sessionManager.startSession(testAgentId);
@@ -851,6 +912,31 @@ describe('SessionManager', () => {
   });
 
   describe('messageSession', () => {
+    for (const action of ['request', 'clear', 'stop'] as const) {
+      test(`delayed delivery preserves newer session state: ${action}`, async () => {
+        agents.set(testAgentId2, createMockAgent(testAgentId2, 'director', { channelId: 'channel-test' }));
+        const { session } = await sessionManager.startSession(testAgentId2, { interactive: false });
+        const events = spawner._mockEmitters.get(session.id)!;
+        if (action === 'clear') sessionManager.requestAttention(session.id);
+        let entered!: () => void, release!: () => void;
+        const started = new Promise<void>(resolve => { entered = resolve; });
+        const gate = new Promise<void>(resolve => { release = resolve; });
+        spawner.sendInput = async () => { entered(); await gate; };
+        const delivery = sessionManager.messageSession(session.id, { content: 'Worker report' });
+        await started;
+        events.emit('pty-data', 'Terminal update');
+        if (action === 'request') sessionManager.requestAttention(session.id);
+        if (action === 'clear') sessionManager.recordUserInput(session.id);
+        if (action === 'stop') await sessionManager.stopSession(session.id);
+        release();
+        expect((await delivery).success).toBe(true);
+        const current = sessionManager.getSession(session.id)!;
+        if (action === 'request') expect(current.attention).toBeDefined();
+        if (action === 'clear') expect(current.attention).toBeUndefined();
+        if (action === 'stop') expect(current.status).toBe('terminated');
+      });
+    }
+
     test('returns error for non-existent session', async () => {
       const result = await sessionManager.messageSession('nonexistent', {
         content: 'Hello',

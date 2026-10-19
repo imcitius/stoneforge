@@ -125,11 +125,16 @@ export class ClaudeInteractiveProvider implements InteractiveProvider {
       stoneforgeRoot: options.stoneforgeRoot,
     });
 
+    // The child renders in xterm.js, regardless of a monochrome parent log pipe.
+    env.TERM = 'xterm-256color';
+    env.COLORTERM = 'truecolor';
+    delete env.NO_COLOR;
+
     const cols = options.cols ?? 120;
     const rows = options.rows ?? 30;
 
     // Build the CLI command string (simple args only — not the prompt)
-    const claudeCommand = (process.platform === 'win32' ? '' : `export PATH=${shellQuote(env.PATH ?? '')}; exec `) + [shellQuote(this.executablePath), ...args].join(' ');
+    const claudeCommand = (process.platform === 'win32' ? '' : `unset NO_COLOR; export TERM=xterm-256color COLORTERM=truecolor PATH=${shellQuote(env.PATH ?? '')}; exec `) + [shellQuote(this.executablePath), ...args].join(' ');
 
     // Spawn PTY using bash -l -c to run the command in a login shell.
     // When an initial prompt is provided, it's passed as a bash positional

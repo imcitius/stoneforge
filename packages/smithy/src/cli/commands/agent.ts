@@ -1192,6 +1192,26 @@ Arguments:
   handler: agentEnableHandler as Command['handler'],
 };
 
+export const agentAwaitInputCommand: Command = {
+  name: 'await-input',
+  description: 'Signal that this director session needs a human answer',
+  usage: 'sf agent await-input',
+  options: [],
+  handler: async () => {
+    const sessionId = process.env.STONEFORGE_SESSION_ID;
+    const agentId = process.env.SF_ENTITY_ID;
+    if (!sessionId || !agentId) return failure('Run this command inside a director session.', ExitCode.INVALID_ARGUMENTS);
+    try {
+      const response = await orchestratorFetch(`${await getOrchestratorUrl()}/api/sessions/${encodeURIComponent(sessionId)}/attention`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentId }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) return failure(`Could not signal human input (${response.status})`, ExitCode.GENERAL_ERROR);
+      return success({ sessionId }, 'Waiting for human input.');
+    } catch (error) { return failure(String(error), ExitCode.GENERAL_ERROR); }
+  },
+};
+
 // ============================================================================
 // Main Agent Command
 // ============================================================================
@@ -1211,6 +1231,7 @@ Subcommands:
   stream    Get agent channel for streaming
   disable   Disable an agent (skipped by dispatch and scheduler)
   enable    Re-enable a previously disabled agent
+  await-input Signal a required human answer from the current director session
 
 Examples:
   sf agent list
@@ -1226,6 +1247,7 @@ Examples:
     stream: agentStreamCommand,
     disable: agentDisableCommand,
     enable: agentEnableCommand,
+    'await-input': agentAwaitInputCommand,
     // Aliases (hidden from --help via dedup in getCommandHelp)
     create: agentRegisterCommand,
     ls: agentListCommand,

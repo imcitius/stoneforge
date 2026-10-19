@@ -10,6 +10,7 @@
  * @module
  */
 
+import { TerminalRateLimitDetector } from '../utils/terminal-rate-limit.js';
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
 import * as fs from 'fs';
 import { EventEmitter } from 'node:events';
@@ -87,6 +88,7 @@ function createMockSessionManager(): SessionManager {
     getSession: mock(() => undefined),
     listSessions: mock(() => []),
     messageSession: mock(async () => ({ success: true })),
+    getSessionUserIdleMs: mock(() => undefined),
     getSessionHistory: mock(() => []),
     pruneInactiveSessions: mock(() => 0),
     reconcileOnStartup: mock(async () => ({ reconciled: 0, errors: [] })),
@@ -241,6 +243,320 @@ describe('DispatchDaemon Integration', () => {
       maxConcurrentTasks: 1,
     });
   }
+
+  describe('replaced director inbox recovery', () => {
+    let retired: AgentEntity;
+    let successor: AgentEntity;
+    let itemId: string;
+
+    beforeEach(async () => {
+      const { createDocument, createMessage, ContentType } = await import('@stoneforge/core');
+      retired = await agentRegistry.registerDirector({ name: 'replaced-director', createdBy: systemEntity });
+      const worker = await agentRegistry.registerWorker({ name: 'reporter', workerMode: 'ephemeral', createdBy: retired.id as unknown as EntityId });
+      const channelId = (worker.metadata.agent as { channelId: import('@stoneforge/core').ChannelId }).channelId;
+      await api.delete(retired.id);
+      successor = await agentRegistry.registerDirector({ name: 'replaced-director', provider: 'codex', createdBy: systemEntity });
+      await sessionManager.startSession(successor.id as unknown as EntityId);
+      const doc = await createDocument({ content: 'Все шесть блокеров исправлены. Отчёт готов.', contentType: ContentType.TEXT, createdBy: worker.id as unknown as EntityId });
+      const saved = await api.create(doc as unknown as Record<string, unknown> & { createdBy: EntityId });
+      const message = await createMessage({ channelId, sender: worker.id as unknown as EntityId, contentRef: saved.id as unknown as import('@stoneforge/core').DocumentId });
+      await api.create(message as unknown as Record<string, unknown> & { createdBy: EntityId });
+      itemId = inboxService.getInbox(retired.id as unknown as EntityId)[0].id;
+    });
+
+    test('delivers a report in the old direct channel to its replacement exactly once', async () => {
+      expect((await agentRegistry.listAgents()).some(a => a.id === retired.id)).toBe(false);
+      expect((await daemon.pollInboxes()).processed).toBe(1);
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      const args = (sessionManager.messageSession as ReturnType<typeof mock>).mock.calls[0];
+      expect(args[1].content).toContain('Все шесть блокеров исправлены');
+      expect(inboxService.getInboxItem(itemId)?.status).toBe('read');
+      await daemon.pollInboxes();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      expect(await api.get(retired.id)).toMatchObject({ status: 'tombstone' });
+    });
+
+    test('concurrent polls do not forward the same retired inbox item twice', async () => {
+      let release!: () => void;
+      let entered!: () => void;
+      const started = new Promise<void>(resolve => { entered = resolve; });
+      const blocked = new Promise<void>(resolve => { release = resolve; });
+      sessionManager.messageSession = mock(async () => { entered(); await blocked; return { success: true }; });
+      const first = daemon.pollInboxes();
+      await started;
+      await daemon.pollInboxes();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      release();
+      await first;
+      expect(inboxService.getInboxItem(itemId)?.status).toBe('read');
+    });
+
+    test('does not paste worker mail into a director waiting for a human answer', async () => {
+      const session = sessionManager.getActiveSession(successor.id as unknown as EntityId)!;
+      sessionManager.getActiveSession = mock(() => ({ ...session, attention: { id: 'waiting', kind: 'input' as const, since: createTimestamp() } }));
+      await daemon.pollInboxes();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+      expect(inboxService.getInboxItem(itemId)?.status).toBe('unread');
+    });
+
+    test('retains unread mail after a rejected delivery and retries successfully', async () => {
+      sessionManager.messageSession = mock(async () => ({ success: false, error: 'offline' }));
+      expect((await daemon.pollInboxes()).processed).toBe(0);
+      expect(inboxService.getInboxItem(itemId)?.status).toBe('unread');
+      sessionManager.messageSession = mock(async () => ({ success: true }));
+      expect((await daemon.pollInboxes()).processed).toBe(1);
+    });
+
+    test('does not send orphaned mail to an unrelated director', async () => {
+      await api.update(successor.id, { name: 'another-director' });
+      await daemon.pollInboxes();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+      expect(inboxService.getInboxItem(itemId)?.status).toBe('unread');
+    });
+
+    test('honors forwarding opt-out, user typing, recipient limits and disabled state', async () => {
+      daemon.updateConfig({ directorInboxForwardingEnabled: false });
+      await daemon.pollInboxes();
+      daemon.updateConfig({ directorInboxForwardingEnabled: true });
+      sessionManager.getSessionUserIdleMs = mock(() => 0);
+      await daemon.pollInboxes();
+      sessionManager.getSessionUserIdleMs = mock(() => undefined);
+      daemon.handleRateLimitDetected('codex', new Date(Date.now() + 60000), 'codex');
+      await daemon.pollInboxes();
+      daemon.wake();
+      await api.update(successor.id, { metadata: { ...successor.metadata, agent: { ...successor.metadata.agent, disabled: true } } });
+      await daemon.pollInboxes();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+      expect(inboxService.getInboxItem(itemId)?.status).toBe('unread');
+    });
+
+    test('leaves mail unread when there is no running replacement session', async () => {
+      sessionManager.getActiveSession = mock(() => undefined);
+      await daemon.pollInboxes();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+      expect(inboxService.getInboxItem(itemId)?.status).toBe('unread');
+    });
+  });
+
+  describe('director watchdog and mixed providers', () => {
+    const originalNow = Date.now;
+    let now: number;
+    let director: AgentEntity;
+    let active: SessionRecord | undefined;
+    const poll = () => (daemon as unknown as { runPollCycle(): Promise<void> }).runPollCycle();
+
+    beforeEach(async () => {
+      now = originalNow();
+      Date.now = () => now;
+      daemon.updateConfig({ workerAvailabilityPollEnabled: false, orphanRecoveryEnabled: false });
+      director = await agentRegistry.registerDirector({ name: 'watchdog-director', provider: 'codex', createdBy: systemEntity });
+      active = {
+        id: 'director-session', agentId: asDirectorId(), agentRole: 'director',
+        provider: 'codex', status: 'running', mode: 'interactive',
+        createdAt: createTimestamp(), lastActivityAt: new Date(now - 180_000).toISOString() as SessionRecord['lastActivityAt'],
+      };
+      sessionManager.getActiveSession = mock(id => id === director.id ? active : undefined);
+    });
+    function asDirectorId() { return director.id as unknown as EntityId; }
+    afterEach(() => { Date.now = originalNow; });
+
+    test('watchdog does not substitute for a required human answer', async () => {
+      await createTestTask('Ready work');
+      active = { ...active!, attention: { id: 'waiting', kind: 'input', since: createTimestamp() } };
+      now += 180_000;
+      await poll();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+    });
+
+    test('wakes an idle director with ready work and throttles repeat deliveries', async () => {
+      const task = await createTestTask('Needs planning');
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      expect((sessionManager.messageSession as ReturnType<typeof mock>).mock.calls[0][1].content).toContain(task.id);
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      now += 120_001;
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(2);
+    });
+
+    test('wakes for pending merges without open tasks', async () => {
+      const task = await createTestTask('Awaiting merge');
+      await api.update(task.id, { status: TaskStatus.REVIEW, metadata: updateOrchestratorTaskMeta(undefined, { mergeStatus: 'pending', owningDirector: asDirectorId() }) });
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+    });
+
+    test('notices an unfinished task after a parked worker exits and the provider limit expires', async () => {
+      const worker = await createTestWorker('manually-dispatched-worker');
+      await api.update(worker.id, { metadata: { ...worker.metadata, agent: { ...worker.metadata.agent, disabled: true } } });
+      const task = await createTestTask('Interrupted implementation');
+      await api.update(task.id, {
+        status: TaskStatus.IN_PROGRESS, assignee: worker.id,
+        metadata: updateOrchestratorTaskMeta(undefined, { assignedAgent: worker.id as unknown as EntityId, owningDirector: asDirectorId() }),
+      });
+      // Both director and worker use Claude in the reported incident.
+      await api.update(director.id, { metadata: { ...director.metadata, agent: { ...director.metadata.agent, provider: 'claude-code' } } });
+      daemon.handleRateLimitDetected('claude', new Date(now + 1_200_000));
+      await poll();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+      now += 1_200_001;
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      expect((sessionManager.messageSession as ReturnType<typeof mock>).mock.calls[0][1].content).toContain(task.id);
+      expect(sessionManager.startSession).not.toHaveBeenCalled();
+      expect(sessionManager.resumeSession).not.toHaveBeenCalled();
+      expect(getAgentMetadata((await agentRegistry.getAgent(worker.id as unknown as EntityId))!)?.disabled).toBe(true);
+      expect((await api.get<Task>(task.id))?.assignee).toBe(worker.id);
+    });
+
+    test.each([
+      { name: 'weekly quota', banner: "You've hit your weekly limit · resets Oct 9 at 2am (Asia/Jerusalem)\n" },
+      { name: 'wrapped session quota', banner: "  └ You've hit your session limit · resets\n    4:30pm (Asia/Jerusalem)\n" },
+      { name: 'waiting footer', banner: "⚠ Usage limit reached · limit resets 4:30pm (Asia/Jerusalem)\n" },
+    ])('$name suppresses watchdog polls until the actual reset', async ({ banner }) => {
+      const worker = await createTestWorker('weekly-limited-worker');
+      const task = await createTestTask('Weekly interrupted work');
+      await api.update(task.id, { status: TaskStatus.IN_PROGRESS, assignee: worker.id,
+        metadata: updateOrchestratorTaskMeta(undefined, { owningDirector: asDirectorId() }) });
+      await api.update(director.id, { metadata: { ...director.metadata, agent: { ...director.metadata.agent, provider: 'claude-code' } } });
+      const limit = new TerminalRateLimitDetector().push(banner);
+      expect(limit).toBeDefined();
+      // Fix daemon time relative to the parsed reset, independent of the test date.
+      const reset = limit!.resetsAt.getTime();
+      now = reset - 36 * 60 * 60 * 1000;
+      active = { ...active!, lastActivityAt: new Date(now - 180_000).toISOString() as SessionRecord['lastActivityAt'] };
+      daemon.handleRateLimitDetected('claude', limit!.resetsAt, 'claude-code');
+      expect(daemon.getRateLimitStatus().limits.every(entry => entry.resetsAt === limit!.resetsAt.toISOString())).toBe(true);
+      for (const offset of [36 * 60 * 60 * 1000, 35 * 60 * 60 * 1000, 11 * 60 * 60 * 1000, 1]) {
+        now = reset - offset;
+        await poll();
+        expect(sessionManager.messageSession).not.toHaveBeenCalled();
+      }
+      now = reset + 1;
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      expect(sessionManager.startSession).not.toHaveBeenCalled();
+      expect(sessionManager.resumeSession).not.toHaveBeenCalled();
+    });
+
+    test('assigned open work needs director attention only after its worker session disappears', async () => {
+      const worker = await createTestWorker('assigned-worker');
+      const task = await createTestTask('Assigned work');
+      await api.update(task.id, { assignee: worker.id });
+      const directorSession = active;
+      for (const status of ['starting', 'running'] as const) {
+        sessionManager.getActiveSession = mock(id => id === director.id ? directorSession : {
+          ...directorSession!, id: 'worker-session', agentId: worker.id, agentRole: 'worker', status,
+        } as unknown as SessionRecord);
+        await poll();
+        expect(sessionManager.messageSession).not.toHaveBeenCalled();
+      }
+      sessionManager.getActiveSession = mock(id => id === director.id ? directorSession : undefined);
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not treat human assignments or explicitly suspended workers as abandoned', async () => {
+      const humanTask = await createTestTask('Human work');
+      await api.update(humanTask.id, { assignee: systemEntity, status: TaskStatus.IN_PROGRESS });
+      const worker = await createTestWorker('suspended-worker');
+      await api.update(worker.id, { metadata: { ...worker.metadata, agent: { ...worker.metadata.agent, sessionStatus: 'suspended' } } });
+      const task = await createTestTask('Suspended work');
+      await api.update(task.id, { assignee: worker.id, status: TaskStatus.IN_PROGRESS });
+      await poll();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+    });
+
+    test('does not wake an empty board, a busy director, or recent human input', async () => {
+      await poll();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+      await createTestTask('Ready');
+      active = { ...active!, lastActivityAt: new Date(now).toISOString() as SessionRecord['lastActivityAt'] };
+      await poll();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+      now += 180_000;
+      sessionManager.getSessionUserIdleMs = mock(() => 1000);
+      await poll();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+    });
+
+    test('does not restart a stopped or suspended director', async () => {
+      await createTestTask('Ready');
+      active = { ...active!, status: 'suspended' };
+      await poll();
+      active = undefined;
+      await poll();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+      expect(sessionManager.startSession).not.toHaveBeenCalled();
+      expect(sessionManager.resumeSession).not.toHaveBeenCalled();
+    });
+
+    test('honors watchdog opt-out and manual sleep without a fallback chain', async () => {
+      await createTestTask('Ready');
+      daemon.updateConfig({ directorWatchdogEnabled: false });
+      await poll();
+      daemon.updateConfig({ directorWatchdogEnabled: true });
+      daemon.sleepUntil(new Date(now + 60_000));
+      await poll();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+      now += 60_001;
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+    });
+
+    test('Claude limits do not block Codex director; expired Codex limits resume automatically', async () => {
+      await createTestTask('Ready');
+      daemon.handleRateLimitDetected('/usr/local/bin/claude', new Date(now + 1_200_000));
+      expect(daemon.getRateLimitStatus(director).isPaused).toBe(false);
+      await poll();
+      expect(daemon.getRateLimitStatus().isPaused).toBe(false);
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      daemon.handleRateLimitDetected('/usr/local/bin/codex', new Date(now + 1_200_000));
+      now += 180_000;
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      now += 1_200_000;
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(2);
+      expect(daemon.getRateLimitStatus().limits).toHaveLength(0);
+    });
+
+    test('Codex limits do not stop Claude worker dispatch in a full poll cycle', async () => {
+      const worker = await createTestWorker('claude-worker');
+      await createTestTask('Ready');
+      daemon.updateConfig({ workerAvailabilityPollEnabled: true });
+      daemon.handleRateLimitDetected('codex', new Date(now + 1_200_000));
+      await poll();
+      expect(sessionManager.startSession).toHaveBeenCalledWith(worker.id, expect.anything());
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+    });
+
+    test('trusted provider wins over a custom Codex wrapper name', async () => {
+      const custom = await agentRegistry.registerDirector({
+        name: 'wrapper-director', provider: 'codex', executablePath: '/custom/openai-wrapper', createdBy: systemEntity,
+      });
+      daemon.handleRateLimitDetected('claude', new Date(now + 1_200_000));
+      expect(daemon.getRateLimitStatus(custom).isPaused).toBe(false);
+      daemon.handleRateLimitDetected('/custom/openai-wrapper', new Date(now + 1_200_000), 'codex');
+      expect(daemon.getRateLimitStatus(custom).isPaused).toBe(true);
+    });
+
+    test('failed delivery is throttled and another director is not nudged for owned work', async () => {
+      const other = await agentRegistry.registerDirector({ name: 'other-director', provider: 'codex', createdBy: systemEntity });
+      const task = await createTestTask('Other director work');
+      await api.update(task.id, { metadata: updateOrchestratorTaskMeta(undefined, { owningDirector: other.id as unknown as EntityId }) });
+      await poll();
+      expect(sessionManager.messageSession).not.toHaveBeenCalled();
+      await api.update(task.id, { metadata: updateOrchestratorTaskMeta(undefined, { owningDirector: asDirectorId() }) });
+      sessionManager.messageSession = mock(async () => ({ success: false, error: 'PTY unavailable' }));
+      await poll();
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+    });
+  });
 
   describe('pollWorkerAvailability', () => {
     test('dispatches task to available ephemeral worker', async () => {
@@ -2160,7 +2476,7 @@ describe('DispatchDaemon Rate Limit Integration', () => {
     expect(status.isPaused).toBe(true);
   });
 
-  test('handleRateLimitDetected marks ALL chain entries even for executable not in chain', () => {
+  test('handleRateLimitDetected preserves legacy Claude wrappers in the fallback chain', () => {
     // When a fallback chain is configured, any rate limit event should mark all
     // chain entries (plan-level rate limits share the same API plan). The reported
     // executable may be a resolved path that doesn't match chain entry names.
@@ -4432,7 +4748,7 @@ describe('handleRateLimitDetected - maximum cap', () => {
 
   test('clamps reset time to maximum cap when too far in the future (1 year out)', () => {
     const now = Date.now();
-    // Reset time ~1 year from now — far beyond the 24-hour cap
+    // Reset time ~1 year from now — far beyond the 7-day cap
     const oneYearOut = new Date(now + 365 * 24 * 60 * 60 * 1000);
     daemon.handleRateLimitDetected('claude', oneYearOut);
 
@@ -4452,7 +4768,7 @@ describe('handleRateLimitDetected - maximum cap', () => {
 
   test('preserves reset time when below the maximum cap', () => {
     const now = Date.now();
-    // Reset time 1 hour from now — well below the 24-hour cap
+    // Reset time 1 hour from now — well below the 7-day cap
     const oneHour = new Date(now + 60 * 60 * 1000);
     daemon.handleRateLimitDetected('claude', oneHour);
 
@@ -4461,6 +4777,12 @@ describe('handleRateLimitDetected - maximum cap', () => {
     for (const limit of status.limits) {
       expect(limit.resetsAt).toBe(oneHour.toISOString());
     }
+  });
+
+  test('preserves a weekly reset six days away', () => {
+    const reset = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
+    daemon.handleRateLimitDetected('claude', reset);
+    for (const limit of daemon.getRateLimitStatus().limits) expect(limit.resetsAt).toBe(reset.toISOString());
   });
 
   test('clamps reset time exactly at the cap boundary', () => {
@@ -4481,8 +4803,8 @@ describe('handleRateLimitDetected - maximum cap', () => {
 
   test('clamps reset time just above the cap', () => {
     const now = Date.now();
-    // 25 hours from now — just above the 24-hour cap
-    const justAboveCap = new Date(now + 25 * 60 * 60 * 1000);
+    // Eight days from now — just above the 7-day cap
+    const justAboveCap = new Date(now + 8 * 24 * 60 * 60 * 1000);
     daemon.handleRateLimitDetected('claude', justAboveCap);
 
     const status = daemon.getRateLimitStatus();
@@ -4490,7 +4812,7 @@ describe('handleRateLimitDetected - maximum cap', () => {
 
     for (const limit of status.limits) {
       const recordedResetTime = new Date(limit.resetsAt).getTime();
-      // Should be clamped to approximately 24 hours from now
+      // Should be clamped to approximately seven days from now
       expect(recordedResetTime).toBeLessThanOrEqual(now + RATE_LIMIT_MAXIMUM_CAP_MS + 2000);
     }
   });
@@ -4569,7 +4891,8 @@ describe('recoverOrphanedTask - rapid-exit detection', () => {
       getSession: mock(() => undefined),
       listSessions: mock(() => []),
       messageSession: mock(async () => ({ success: true })),
-      getSessionHistory: mock(() => []),
+      getSessionUserIdleMs: mock(() => undefined),
+    getSessionHistory: mock(() => []),
       pruneInactiveSessions: mock(() => 0),
       reconcileOnStartup: mock(async () => ({ reconciled: 0, errors: [] })),
       on: mock(() => {}),
@@ -4667,7 +4990,7 @@ describe('recoverOrphanedTask - rapid-exit detection', () => {
     return (await api.get<Task>(saved.id))!;
   }
 
-  test('rolls back resumeCount when session exits rapidly without output', async () => {
+  test('preserves bounded resumeCount when session exits rapidly without output', async () => {
     const worker = await createTestWorker('rapid-exit-worker');
     const workerId = worker.id as unknown as EntityId;
     const task = await createAssignedTask('Task with rapid exit', workerId, {
@@ -4691,13 +5014,13 @@ describe('recoverOrphanedTask - rapid-exit detection', () => {
     // Wait for async handler to complete
     await new Promise(resolve => setTimeout(resolve, 50));
 
-    // resumeCount should be rolled back to 1
+    // A silent crash consumes the normal bounded retry budget.
     updatedTask = await api.get<Task>(task.id);
     meta = getOrchestratorTaskMeta(updatedTask!.metadata as Record<string, unknown>);
-    expect(meta?.resumeCount).toBe(1);
+    expect(meta?.resumeCount).toBe(2);
   });
 
-  test('applies fallback rate limit when session exits rapidly without output', async () => {
+  test('does not invent a rate limit when session exits rapidly without output', async () => {
     const worker = await createTestWorker('rapid-exit-rl-worker');
     const workerId = worker.id as unknown as EntityId;
     await createAssignedTask('Task with rapid exit rate limit', workerId, {
@@ -4721,8 +5044,8 @@ describe('recoverOrphanedTask - rapid-exit detection', () => {
 
     // Rate limits should be applied to all executables in the fallback chain
     status = daemon.getRateLimitStatus();
-    expect(status.limits.length).toBeGreaterThanOrEqual(1);
-    expect(status.isPaused).toBe(true);
+    expect(status.limits).toHaveLength(0);
+    expect(status.isPaused).toBe(false);
   });
 
   test('does NOT roll back resumeCount when session produces assistant events before exiting', async () => {
@@ -4779,7 +5102,7 @@ describe('recoverOrphanedTask - rapid-exit detection', () => {
     // For now, we verify that assistant events prevent rollback (covered above).
   });
 
-  test('rapid-exit detection works with resume path (previous sessionId)', async () => {
+  test('silent resume failure remains subject to the retry budget', async () => {
     const worker = await createTestWorker('rapid-exit-resume-worker');
     const workerId = worker.id as unknown as EntityId;
     const task = await createAssignedTask('Task with rapid exit on resume', workerId, {
@@ -4807,7 +5130,7 @@ describe('recoverOrphanedTask - rapid-exit detection', () => {
     // resumeCount should be rolled back to 2
     updatedTask = await api.get<Task>(task.id);
     meta = getOrchestratorTaskMeta(updatedTask!.metadata as Record<string, unknown>);
-    expect(meta?.resumeCount).toBe(2);
+    expect(meta?.resumeCount).toBe(3);
   });
 
   test('detects rate limit when assistant message matches rate limit pattern', async () => {
@@ -4839,6 +5162,35 @@ describe('recoverOrphanedTask - rapid-exit detection', () => {
     updatedTask = await api.get<Task>(task.id);
     meta = getOrchestratorTaskMeta(updatedTask!.metadata as Record<string, unknown>);
     expect(meta?.resumeCount).toBe(1);
+  });
+
+  test('rapid-exit recovery preserves the absolute provider reset rather than rolling clock text to tomorrow', async () => {
+    const worker = await createTestWorker('structured-limit-worker');
+    const workerId = worker.id as unknown as EntityId;
+    const task = await createAssignedTask('Structured session rejection', workerId, {
+      worktree: '/worktrees/structured-limit-worker/task', resumeCount: 1,
+    });
+    const originalNow = Date.now;
+    const now = Date.parse('2026-10-04T01:00:00Z'); // After the recorded 03:30 Jerusalem reset.
+    Date.now = () => now;
+    try {
+      await daemon.recoverOrphanedAssignments();
+      const events = (sessionManager as ReturnType<typeof createMockSessionManagerWithEvents>)._lastEvents!;
+      events.emit('event', {
+        type: 'assistant', message: "You've hit your session limit · resets 3:30am (Asia/Jerusalem)",
+        raw: { error: 'rate_limit', quotaLimits: { status: 'rejected', resetsAt: 1791073800 } },
+      });
+      events.emit('exit', 0, null);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const limits = daemon.getRateLimitStatus().limits;
+      expect(limits.length).toBeGreaterThan(0);
+      // Existing minimum safety floor may apply, but never a new day-long pause.
+      for (const limit of limits) expect(new Date(limit.resetsAt).getTime()).toBe(now + RATE_LIMIT_MINIMUM_FLOOR_MS);
+      const updated = await api.get<Task>(task.id);
+      expect(getOrchestratorTaskMeta(updated!.metadata)?.resumeCount).toBe(1);
+    } finally {
+      Date.now = originalNow;
+    }
   });
 
   test('applies rate limit to fallback chain when assistant message is a rate limit', async () => {
@@ -5247,7 +5599,7 @@ describe('spawnRecoveryStewardForTask - rate limit session history guard', () =>
     return (await api.get<Task>(saved.id))!;
   }
 
-  test('does not spawn recovery steward when session history shows rate limit pattern', async () => {
+  test('recovers rapid historical failures instead of inferring a limit', async () => {
     const worker = await createTestWorker('rl-pattern-worker');
     const workerId = worker.id as unknown as EntityId;
     await createTestRecoverySteward('recovery-steward-rl');
@@ -5258,9 +5610,9 @@ describe('spawnRecoveryStewardForTask - rate limit session history guard', () =>
     const result = await daemon.recoverOrphanedAssignments();
 
     // Recovery steward should NOT have been spawned
-    expect(result.processed).toBe(0);
+    expect(result.processed).toBe(1);
     expect(result.errors).toBe(0);
-    expect(sessionManager.startSession).not.toHaveBeenCalled();
+    expect(sessionManager.startSession).toHaveBeenCalled();
   });
 
   test('spawns recovery steward when session history has proper completions (not rate-limited)', async () => {
@@ -5375,7 +5727,7 @@ describe('spawnRecoveryStewardForTask - rate limit session history guard', () =>
     expect(sessionManager.resumeSession).toHaveBeenCalled();
   });
 
-  test('hasRecentRateLimitPattern returns true for post-wake rapid exits', async () => {
+  test('post-wake historical rapid exits cannot create a quota pause', async () => {
     const worker = await createTestWorker('post-wake-worker');
     const workerId = worker.id as unknown as EntityId;
     await createTestRecoverySteward('recovery-steward-post-wake');
@@ -5428,65 +5780,28 @@ describe('spawnRecoveryStewardForTask - rate limit session history guard', () =>
     Date.now = originalNow;
 
     // Recovery steward should NOT be spawned — post-wake rapid exits detected
-    expect(result.processed).toBe(0);
+    expect(result.processed).toBe(1);
     expect(result.errors).toBe(0);
-    expect(sessionManager.startSession).not.toHaveBeenCalled();
+    expect(sessionManager.startSession).toHaveBeenCalled();
   });
 
-  test('records rate limit in tracker when session history shows rate limit pattern', async () => {
-    const worker = await createTestWorker('rl-record-worker');
-    const workerId = worker.id as unknown as EntityId;
-    await createTestRecoverySteward('recovery-steward-rl-record');
-
-    // Task has N rapid sessions without proper completion (rate limit pattern)
-    await createTaskWithRateLimitPattern('Rate limited task - tracker test', workerId);
-
-    // Verify no rate limits are recorded before recovery runs
-    const beforeStatus = daemon.getRateLimitStatus();
-    expect(beforeStatus.isPaused).toBe(false);
-    expect(beforeStatus.limits).toHaveLength(0);
-
-    // Run orphan recovery — should detect rate limit pattern and record it
-    const result = await daemon.recoverOrphanedAssignments();
-
-    // Recovery steward should NOT have been spawned
-    expect(result.processed).toBe(0);
-    expect(sessionManager.startSession).not.toHaveBeenCalled();
-
-    // Rate limit SHOULD be recorded in the tracker
-    const afterStatus = daemon.getRateLimitStatus();
-    expect(afterStatus.isPaused).toBe(true);
-    expect(afterStatus.limits.length).toBeGreaterThanOrEqual(1);
-    expect(afterStatus.limits[0].executable).toBe('claude');
-
-    // The reset time should be approximately RAPID_EXIT_FALLBACK_RESET_MS from now
-    const resetTime = new Date(afterStatus.limits[0].resetsAt);
-    const expectedResetTime = Date.now() + RAPID_EXIT_FALLBACK_RESET_MS;
-    // Allow 10 seconds of tolerance
-    expect(Math.abs(resetTime.getTime() - expectedResetTime)).toBeLessThan(10_000);
-  });
-
-  test('rate limit pattern detection prevents repeated log spam on subsequent cycles', async () => {
-    const worker = await createTestWorker('rl-spam-worker');
-    const workerId = worker.id as unknown as EntityId;
-    await createTestRecoverySteward('recovery-steward-rl-spam');
-
-    // Task has N rapid sessions without proper completion
-    await createTaskWithRateLimitPattern('Rate limited task - spam test', workerId);
-
-    // First cycle: detects pattern, records rate limit
-    const result1 = await daemon.recoverOrphanedAssignments();
-    expect(result1.processed).toBe(0);
-
-    // After recording rate limit, daemon should be paused
-    const status = daemon.getRateLimitStatus();
-    expect(status.isPaused).toBe(true);
-
-    // Second cycle: since daemon is paused, the task should be skipped
-    // entirely (at the resolveExecutableWithFallback level), not re-triggering
-    // the pattern detection log
-    const result2 = await daemon.recoverOrphanedAssignments();
-    expect(result2.processed).toBe(0);
+  test('old failure history never renews an expired provider pause', async () => {
+    const worker = await createTestWorker('expired-history-worker');
+    await createTestRecoverySteward('expired-history-steward');
+    await createTaskWithRateLimitPattern('Old failures', worker.id as unknown as EntityId);
+    const originalNow = Date.now;
+    const now = Date.now();
+    try {
+      daemon.handleRateLimitDetected('claude', new Date(now + 1_200_000));
+      expect((await daemon.recoverOrphanedAssignments()).processed).toBe(0);
+      Date.now = () => now + 1_200_001;
+      expect((await daemon.recoverOrphanedAssignments()).processed).toBe(1);
+      expect(daemon.getRateLimitStatus().limits).toHaveLength(0);
+      await daemon.recoverOrphanedAssignments();
+      expect(daemon.getRateLimitStatus().limits).toHaveLength(0);
+    } finally {
+      Date.now = originalNow;
+    }
   });
 
   test('does not detect rate limit pattern when sessions are far apart', async () => {

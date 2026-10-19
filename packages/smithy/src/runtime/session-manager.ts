@@ -37,6 +37,7 @@ import { CodexAgentProvider } from '../providers/codex/index.js';
 import type { SettingsService } from '../services/settings-service.js';
 import type { OperationLogService } from '../services/operation-log-service.js';
 import { trackListeners } from './event-utils.js';
+import { DIRECTOR_INPUT_GUIDANCE, type DirectorAttention } from '../utils/director-attention.js';
 
 // ============================================================================
 // Types
@@ -65,6 +66,8 @@ export interface SessionRecord {
   readonly pid?: number;
   /** Current status */
   readonly status: SessionStatus;
+  /** Explicit human input request; not inferred from inactivity. */
+  readonly attention?: DirectorAttention;
   /** Working directory */
   readonly workingDirectory: string;
   /** Git worktree path (for workers) */
@@ -255,6 +258,9 @@ export interface ResumeUWPCheckResult {
  * - Querying session history
  */
 export interface SessionManager {
+  /** Observe provider limits for all sessions, including interactive UI launches. */
+  setRateLimitHandler?(handler: (session: SessionRecord, data: { executablePath?: string; resetsAt?: Date; message?: string }) => void): void;
+
   // ----------------------------------------
   // Session Lifecycle
   // ----------------------------------------
@@ -426,6 +432,7 @@ export interface SessionManager {
    * @param sessionId - The internal session ID
    */
   recordUserInput(sessionId: string): void;
+  requestAttention(sessionId: string): boolean;
 
   /**
    * Gets how long (ms) the user has been idle in the agent's active session.
@@ -486,6 +493,8 @@ interface InternalSessionState extends SessionRecord {
   persisted: boolean;
   /** Timestamp of last user input (Date.now()) for idle detection */
   lastUserInputAt?: number;
+  attention?: DirectorAttention;
+  attentionSequence?: number;
 }
 
 // ============================================================================
@@ -496,6 +505,12 @@ interface InternalSessionState extends SessionRecord {
  * Implementation of the Session Manager.
  */
 export class SessionManagerImpl implements SessionManager {
+  private rateLimitHandler?: (session: SessionRecord, data: { executablePath?: string; resetsAt?: Date; message?: string }) => void;
+
+  setRateLimitHandler(handler: NonNullable<SessionManagerImpl['rateLimitHandler']>): void {
+    this.rateLimitHandler = handler;
+  }
+
   private readonly sessions: Map<string, InternalSessionState> = new Map();
   private readonly agentSessions: Map<EntityId, string> = new Map(); // agentId -> active sessionId
   private readonly sessionHistory: Map<EntityId, SessionHistoryEntry[]> = new Map();
@@ -595,7 +610,7 @@ export class SessionManagerImpl implements SessionManager {
     const resolvedExecutablePath = this.resolveExecutablePath(providerName ?? 'claude-code', agentExecutablePath);
     const spawnOptions: SpawnOptions = {
       workingDirectory: options?.workingDirectory,
-      initialPrompt: options?.initialPrompt,
+      initialPrompt: meta.agentRole === 'director' ? [options?.initialPrompt, DIRECTOR_INPUT_GUIDANCE].filter(Boolean).join('\n\n') : options?.initialPrompt,
       environmentVariables: {
         ...options?.environmentVariables,
         SF_ENTITY_ID: agentId,
@@ -713,6 +728,8 @@ export class SessionManagerImpl implements SessionManager {
         ? `${taskInstructions}\n\n${effectivePrompt}`
         : taskInstructions;
     }
+
+    if (meta.agentRole === 'director') effectivePrompt = [effectivePrompt, DIRECTOR_INPUT_GUIDANCE].filter(Boolean).join('\n\n');
 
     // Look up the original session's working directory from history if not provided
     let workingDirectory = options.workingDirectory;
@@ -1187,13 +1204,16 @@ export class SessionManagerImpl implements SessionManager {
         await this.spawner.sendInput(sessionId, formattedMessage);
       }
 
-      // Update session activity
-      const updatedSession: InternalSessionState = {
-        ...session,
-        lastActivityAt: createTimestamp(),
-        persisted: false,
-      };
-      this.sessions.set(sessionId, updatedSession);
+      // Delivery can overlap PTY events, human input, or termination. Never
+      // replace their newer state with the snapshot from before the await.
+      const current = this.sessions.get(sessionId);
+      if (current) {
+        this.sessions.set(sessionId, {
+          ...current,
+          lastActivityAt: createTimestamp(),
+          persisted: false,
+        });
+      }
 
       return { success: true };
     } catch (error) {
@@ -1211,10 +1231,22 @@ export class SessionManagerImpl implements SessionManager {
   // User Idle Tracking
   // ----------------------------------------
 
+  requestAttention(sessionId: string): boolean {
+    const session = this.sessions.get(sessionId);
+    if (!session || session.agentRole !== 'director' || session.status !== 'running' ||
+        this.agentSessions.get(session.agentId) !== sessionId) return false;
+    if (!session.attention) {
+      session.attentionSequence = (session.attentionSequence ?? 0) + 1;
+      session.attention = { id: `${session.id}:${session.attentionSequence}`, since: createTimestamp(), kind: 'input' };
+    }
+    return true;
+  }
+
   recordUserInput(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     if (session) {
       session.lastUserInputAt = Date.now();
+      session.attention = undefined;
     }
   }
 
@@ -1528,6 +1560,12 @@ export class SessionManagerImpl implements SessionManager {
     const onEvent = (event: unknown) => {
       const current = this.sessions.get(session.id);
       if (!current) return;
+      const message = event as { type?: string; tool?: { name?: string } };
+      if (message.type === 'tool_use' && /^(?:AskUserQuestion|request_user_input)$/.test(message.tool?.name ?? '')) {
+        this.requestAttention(current.id);
+      } else if (message.type === 'tool_use') {
+        current.attention = undefined;
+      }
       current.events.emit('event', event);
       // Update last activity
       this.sessions.set(session.id, {
@@ -1570,6 +1608,8 @@ export class SessionManagerImpl implements SessionManager {
     const onRateLimited = (data: unknown) => {
       const current = this.sessions.get(session.id);
       if (!current) return;
+      this.rateLimitHandler?.(this.toPublicSession(current), data as { executablePath?: string; resetsAt?: Date; message?: string });
+      current.attention = undefined;
       current.events.emit('rate_limited', data);
     };
 
@@ -1719,6 +1759,7 @@ export class SessionManagerImpl implements SessionManager {
       lastActivityAt: session.lastActivityAt,
       endedAt: session.endedAt,
       terminationReason: session.terminationReason,
+      attention: session.status === 'running' ? session.attention : undefined,
     };
   }
 

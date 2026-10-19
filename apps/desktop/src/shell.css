@@ -3,3 +3,5 @@
 
 #add{width:100%}#add-progress{font-size:12px;line-height:1.5;margin:12px 0 0;overflow-wrap:anywhere}
 #sidebar[hidden]{display:none}#sidebar-toggle{flex:none;display:flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;color:var(--muted)}#sidebar-toggle:hover,#sidebar-toggle[aria-expanded="false"]{color:var(--text)}
+
+nav .needs-input{color:#fbbf24;font-weight:600}

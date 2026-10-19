@@ -225,15 +225,40 @@ If the pool is at capacity, the daemon skips that task and logs the reason. The 
 
 <LinkCard title="Agent Pools" description="Full guide to pool configuration and concurrency control" href="/guides/agent-pools/" />
 
+## Director watchdog
+
+The daemon checks running directors for outstanding ready tasks, pending/failed
+merges, and assigned open/in-progress tasks whose executor session has ended.
+After two minutes without session output or forwarded
+input, it sends a short prompt to recheck current state and continue authorized
+work. Tasks already being handled by a worker or merge steward do not need a nudge.
+An unfinished task assigned to a parked worker still needs the director's attention:
+the watchdog asks the director to inspect the session outcome and follow project
+dispatch rules; it never enables or resumes the worker itself.
+Recent human input delays forwarding. Attempts are spaced at least two minutes
+apart, including delivery failures.
+
+The watchdog respects disabled agents, stopped/suspended sessions, manual daemon
+sleep and the director's own provider limit. It does not start a stopped director,
+complete approvals, or remove genuine task dependencies. A running daemon and
+running director session are required. Terminal activity is the available idle
+signal; continuously redrawing or hung processes are not guaranteed to be detected.
+
 ## Rate limit handling
 
 The daemon automatically detects and handles provider rate limits:
 
-1. **Detection** — when a provider session reports a rate limit, the daemon parses the reset time
-2. **Tracking** — rate limit state is tracked in memory per provider executable
-3. **Fallback** — if a fallback chain is configured, the daemon tries the next provider
-4. **Auto-pause** — if all providers are limited, the daemon pauses dispatch
-5. **Auto-resume** — dispatch resumes automatically at the soonest reset time
+1. **Detection** — provider limit messages establish a pause, including Claude's “session limit” banner. Headless Claude rejections use the structured absolute reset time when available, preserving its date and timezone. For interactive sessions, complete standalone quota-banner lines are recognized after removing terminal formatting. Split lines are buffered; the same banner is not counted again when the terminal redraws it, even after Enter. Unrecognized terminal layouts remain subject to the watchdog's normal retry interval.
+2. **Tracking** — limits are scoped to the reporting provider and persisted through workspace settings. A Claude limit does not pause a Codex director or steward. Agent-specific executable paths retain their configured provider identity.
+3. **Fallback** — only executables compatible with the agent's provider can be selected. Legacy unnamed wrappers in a fallback chain are treated as Claude wrappers; other providers can use their named binary, workspace default path or explicit per-agent path.
+4. **Auto-pause** — the daemon skips limited agents and continues available providers. Explicit manual sleep pauses all providers.
+5. **Auto-resume** — expired entries allow the next poll to try again. Historical failed sessions and silent exits never renew a quota pause; ordinary failures use the bounded orphan-recovery path.
+
+Known reset times use the existing 15-minute minimum and 24-hour maximum. Messages
+without a parseable reset use the existing fallback (one hour, or six hours for a
+weekly limit). A repeated identical terminal banner alone does not prove a new
+limit, so after expiry the watchdog may retry at its normal interval until a new
+banner or structured provider event establishes a pause.
 
 Manual control is also available:
 
@@ -287,6 +312,8 @@ The daemon's behavior can be tuned through configuration:
 | `maxStewardSessionDurationMs` | `1800000` | Max steward session duration (30 min) |
 | `directorInboxForwardingEnabled` | `true` | Auto-forward inbox messages to director's session |
 | `directorInboxIdleThresholdMs` | `120000` | Idle time before forwarding to director (2 min) |
+| `directorWatchdogEnabled` | `true` | Nudge idle running directors with outstanding work |
+| `directorWatchdogIdleMs` | `120000` | Minimum session inactivity and spacing between watchdog attempts |
 
 ## Monitoring dispatch
 

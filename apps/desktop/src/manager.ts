@@ -15,6 +15,7 @@ export interface Project {
   root: string;
   state: 'stopped' | 'starting' | 'ready' | 'stopping' | 'error';
   error?: string;
+  needsInput?: boolean;
 }
 export interface Instance {
   projectId: string;
@@ -60,6 +61,11 @@ export class ProjectManager extends EventEmitter {
     }
   }
   list(): Project[] { return [...this.projects.values()].map((p) => ({ ...p })); }
+  setNeedsInput(id: string, needsInput: boolean): void {
+    const project = this.projects.get(id);
+    if (!project || !!project.needsInput === needsInput) return;
+    project.needsInput = needsInput; this.changed();
+  }
   private changed(): void { this.emit('changed'); }
   private save(): Promise<void> {
     const data = JSON.stringify(this.list().map(({ id, name, root }) => ({ id, name, root })), null, 2);
@@ -135,6 +141,13 @@ export class ProjectManager extends EventEmitter {
     }
     // Finder's PATH omits common CLI installations. Bundled sf and Node take precedence.
     env.PATH = [this.options.binDir, dirname(this.options.node), join(process.env.HOME ?? '', '.local/bin'), '/opt/homebrew/bin', '/usr/local/bin', env.PATH ?? '/usr/bin:/bin'].join(':');
+    // Finder launches without a locale. macOS pbcopy then interprets UTF-8
+    // from terminal agents as MacRoman, corrupting Cyrillic and other Unicode.
+    const characterLocale = env.LC_ALL || env.LC_CTYPE || env.LANG;
+    if (!characterLocale || !/utf-?8/i.test(characterLocale)) {
+      if (env.LC_ALL) env.LC_ALL = 'en_US.UTF-8';
+      env.LC_CTYPE = 'en_US.UTF-8';
+    }
     env.STONEFORGE_ROOT = root;
     return env;
   }
@@ -178,7 +191,7 @@ export class ProjectManager extends EventEmitter {
     const project = this.projects.get(id)!;
     project.state = instance.stopping ? 'stopped' : 'error';
     if (!instance.stopping) project.error = 'The external server stopped. Select the project to start it again.';
-    this.emit('stopped', id); this.changed(); return false;
+    project.needsInput = false; this.emit('stopped', id); this.changed(); return false;
   }
   private spawn(id: string): Promise<Instance> {
     const project = this.projects.get(id);
@@ -205,7 +218,7 @@ export class ProjectManager extends EventEmitter {
       clearTimeout(timer); rejectReady(error);
       if (!child.pid && this.instances.get(id) === instance) {
         this.instances.delete(id); project.state = 'error'; project.error = error.message;
-        this.emit('stopped', id); this.changed();
+        project.needsInput = false; this.emit('stopped', id); this.changed();
       }
     });
     child.on('exit', (code, signal) => {
@@ -215,7 +228,7 @@ export class ProjectManager extends EventEmitter {
       project.state = instance.stopping ? 'stopped' : 'error';
       if (!instance.stopping) project.error ??= `Backend exited (${signal ?? code}); open Logs for details`;
       rejectReady(new Error(project.error ?? 'Backend stopped'));
-      this.emit('stopped', id); this.changed();
+      project.needsInput = false; this.emit('stopped', id); this.changed();
     });
     child.on('message', (message: unknown) => {
       if (!message || typeof message !== 'object') return;
@@ -253,7 +266,7 @@ export class ProjectManager extends EventEmitter {
     if (!instance) return;
     if (instance.stopping) return instance.stopping;
     const project = this.projects.get(id)!;
-    project.state = 'stopping'; this.changed();
+    project.state = 'stopping'; project.needsInput = false; this.changed();
     instance.stopping = (async () => {
       if (instance.external) {
         const external = instance.external;

@@ -560,6 +560,7 @@ Please begin working on this task. Use \`sf task get ${taskResult.id}\` to see f
         return c.json({ error: { code: 'NO_SESSION', message: 'No active session to interrupt' } }, 404);
       }
 
+      logger.info('Session interrupt requested through API', { sessionId: activeSession.id, at: new Date().toISOString() });
       await sessionManager.interruptSession(activeSession.id);
       return c.json({ success: true, sessionId: activeSession.id });
     } catch (error) {
@@ -808,6 +809,7 @@ Please begin working on this task. Use \`sf task get ${taskResult.id}\` to see f
 
       // Save user input to database if it's a user message
       if (body.isUserMessage) {
+        sessionManager.recordUserInput(activeSession.id);
         const inputMsgId = `user-${activeSession.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         sessionMessageService.saveMessage({
           id: inputMsgId,
@@ -824,6 +826,18 @@ Please begin working on this task. Use \`sf task get ${taskResult.id}\` to see f
       logger.error('Failed to send input:', error);
       return c.json({ error: { code: 'INTERNAL_ERROR', message: String(error) } }, 500);
     }
+  });
+
+  // Explicit request from the owning director process; never infer it from screen redraws.
+  app.post('/api/sessions/:id/attention', async (c) => {
+    const sessionId = c.req.param('id');
+    const body = await c.req.json() as { agentId?: string };
+    const session = sessionManager.getSession(sessionId);
+    if (!session || session.agentId !== body.agentId ||
+        !sessionManager.requestAttention(sessionId)) {
+      return c.json({ error: { code: 'INVALID_SESSION', message: 'No matching active director session' } }, 409);
+    }
+    return c.json({ success: true });
   });
 
   // GET /api/sessions

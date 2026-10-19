@@ -150,7 +150,7 @@ describe('Session Routes - Rate Limit Guard', () => {
 
       const body = await response.json() as { error: { code: string; message: string; retryAfter: number; soonestReset: string } };
       expect(body.error.code).toBe('RATE_LIMITED');
-      expect(body.error.message).toContain('rate-limited');
+      expect(body.error.message).toContain('provider limit');
       expect(body.error.retryAfter).toBeGreaterThan(0);
       expect(body.error.soonestReset).toBe(soonestReset);
     });
@@ -222,7 +222,7 @@ describe('Session Routes - Rate Limit Guard', () => {
 
       const body = await response.json() as { error: { code: string; message: string; retryAfter: number; soonestReset: string } };
       expect(body.error.code).toBe('RATE_LIMITED');
-      expect(body.error.message).toContain('rate-limited');
+      expect(body.error.message).toContain('provider limit');
     });
 
     test('allows session resume when executables are not rate-limited', async () => {
@@ -266,3 +266,20 @@ describe('Session Routes - Rate Limit Guard', () => {
     });
   });
 });
+
+for (const action of ['start', 'resume']) {
+  test(`${action} checks the requested agent rather than another provider's global pause`, async () => {
+    const services = createMockServices({ rateLimitPaused: true });
+    const status = vi.fn((agent?: unknown) => ({
+      isPaused: !agent, limits: [], soonestReset: undefined,
+    }));
+    services.dispatchDaemon!.getRateLimitStatus = status;
+    const app = new Hono();
+    app.route('/', createSessionRoutes(services, vi.fn(() => {})));
+    const response = await app.request(`/api/agents/agent-test-123/${action}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+    });
+    expect(response.status).toBe(201);
+    expect(status).toHaveBeenCalledWith(expect.objectContaining({ id: 'agent-test-123' }));
+  });
+}

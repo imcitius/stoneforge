@@ -793,6 +793,8 @@ export function createMockSessionManager(
       return mockSessions.get(sessionId)?.events;
     },
 
+    requestAttention(_sessionId: string): boolean { return false; },
+
     recordUserInput(_sessionId: string): void {
       // No-op for mock
     },

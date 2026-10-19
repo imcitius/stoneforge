@@ -97,7 +97,7 @@ export function buildCodexInteractiveArgs(
       args.push('-c', quote('sandbox_workspace_write.network_access=true'));
     }
     for (const [key, value] of Object.entries(environment)) {
-      if (['PATH', 'SF_ENTITY_ID', 'STONEFORGE_ROOT', 'STONEFORGE_DESKTOP_INSTANCE_ID'].includes(key)) {
+      if (['PATH', 'SF_ENTITY_ID', 'STONEFORGE_ROOT', 'STONEFORGE_SESSION_ID', 'STONEFORGE_DESKTOP_INSTANCE_ID'].includes(key)) {
         args.push('-c', quote(`shell_environment_policy.set.${key}=${JSON.stringify(value)}`));
       }
     }

@@ -318,10 +318,7 @@ export async function initializeServices(options: ServicesOptions = {}): Promise
       const onRateLimited = (data: { executablePath?: string; resetsAt?: Date; message?: string }) => {
         if (data.executablePath) {
           const resetTime = data.resetsAt ?? getFallbackResetTime(data.message ?? '');
-          // Forward to dispatch daemon's internal tracker
-          if (dispatchDaemon) {
-            dispatchDaemon.handleRateLimitDetected(data.executablePath, resetTime);
-          }
+          // The SessionManager forwards all sessions to the daemon's tracker.
           // Forward to steward executor's tracker
           rateLimitTracker.markLimited(data.executablePath, resetTime);
         }
