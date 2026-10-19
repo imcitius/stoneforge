@@ -35,7 +35,7 @@ An interrupted run is incomplete and must never count as acceptance.
 | `pnpm --filter @stoneforge/desktop build` | Fresh Desktop JavaScript and shell resources; backend SDK builds were prerequisites of Desktop typecheck. |
 | `bun test ./<file>` for every `*.bun.test.ts` under `packages/{core,storage,quarry,smithy}/src` | Core types/config/errors, real Bun SQLite/schema, Quarry API/CLI/dependencies/sync and Smithy orchestration/runtime/providers/Git/repository routing. Each file runs in its own process so Bun module mocks cannot leak into other files. |
 | `pnpm --filter @stoneforge/smithy test:node` | Existing Vitest config: Node routes, permissions, stewardship/merge/worker lifecycle and a real PTY fixture using a fake provider executable. |
-| `pnpm --filter @stoneforge/desktop test` | All Desktop Node tests: four backend tests covering workspace initialization, external-server adoption, multi-project HTTP/WS identity/isolation/restart and real CLI multi-repository registration/binding/merge after restart, plus two Logs bounds/escaping tests. Uses real temporary Git repositories and Node SQLite. |
+| `pnpm --filter @stoneforge/desktop test` | All Desktop Node tests: four backend tests covering workspace initialization, external-server adoption, multi-project HTTP/WS identity/isolation/restart and real CLI multi-repository registration/binding/merge after restart, plus two Logs bounds/escaping tests and two sidebar preference/view-bounds tests. Uses real temporary Git repositories and Node SQLite. |
 
 The pricing test uses `bun:test`, so it is named `model-pricing.bun.test.ts`.
 The Quarry `piped-output.bun.test.ts` regression also rebuilds Quarry and Smithy

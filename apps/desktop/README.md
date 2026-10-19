@@ -53,7 +53,13 @@ This metadata is baked into the application, independent of subsequent source ed
    Opening a project does not resume directors or start its dispatch daemon.
 4. **Stop**, **Restart**, **Logs**, and **Remove** apply to the selected project.
    Remove only removes registration; project files remain.
-5. Closing the window keeps the application running. Quit asks before stopping
+5. The sidebar toggle at the left of the top bar (or **View → Project Sidebar**,
+   ⌃⌘S, also while a project dashboard has focus) hides the project list and gives
+   its width to the project. It only moves the dashboard: projects, agents and
+   terminal sessions keep running and nothing is reloaded. The choice is stored in
+   `preferences.json` in the application userData directory, never in a project;
+   the sidebar is visible by default and when that file is missing or invalid.
+6. Closing the window keeps the application running. Quit asks before stopping
    running project servers and their agents.
 
 The registry is `projects.json` in Electron's application userData directory.
@@ -140,6 +146,7 @@ pnpm --filter @stoneforge/desktop test
 bun test packages/smithy/src/server/server.bun.test.ts packages/quarry/src/cli/commands/serve.bun.test.ts
 node apps/desktop/scripts/check-app.mjs
 node apps/desktop/scripts/check-launch-services.mjs
+node apps/desktop/scripts/check-sidebar.mjs
 ```
 
 `check-app.mjs` uses the workspace's Playwright installation to verify the actual
@@ -150,7 +157,13 @@ scrolling, long lines, empty logs, Close/Esc/native close, focus, reopening, and
 the child window above an open project. It retains viewer PNGs and
 `logs-observations.json`; `logs-native-desktop.png` captures native z-order when
 macOS screen capture permission is available. The work-area override is test-side;
-it does not change the host display configuration. `check-launch-services.mjs` launches through macOS LaunchServices with
+it does not change the host display configuration. `check-sidebar.mjs` launches the packaged app with fresh userData in a 1024 × 700
+window and three temporary projects. It toggles the sidebar by mouse, Enter/Space and
+the View menu item (also with a project view focused), across resizes, project switches,
+loading and stopped states, and requires the shell layout and every native project view
+bound to agree. It checks accessible name/`aria-expanded`, Tab order, unchanged project
+views and backend identities, and persistence over two relaunches. Screenshots and
+`sidebar-observations.json` stay in its printed fixture directory. `check-launch-services.mjs` launches through macOS LaunchServices with
 a minimal PATH and a Unicode workspace path, and checks parent-loss cleanup.
 Both use temporary fixtures and a separate app-data directory. When running backend
 tests or LaunchServices from a managed agent session, clear inherited routing

@@ -5,6 +5,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ProjectManager, type Instance, type WorkflowPreset } from './manager.js';
 import { showLogs } from './logs-window.js';
+import { loadPreferences, savePreferences, projectBounds, type Preferences } from './preferences.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -22,6 +23,7 @@ let active: string | undefined;
 let quitting = false;
 let adding = false;
 let progress: string | undefined;
+let preferences: Preferences = { sidebarCollapsed: false };
 const views = new Map<string, { view: WebContentsView; instance: Instance }>();
 const shellURL = pathToFileURL(join(here, 'shell.html')).href;
 
@@ -33,7 +35,7 @@ else {
   });
 }
 
-function snapshot() { return { projects: manager.list(), active, progress, build }; }
+function snapshot() { return { projects: manager.list(), active, progress, build, sidebarCollapsed: preferences.sidebarCollapsed }; }
 function update(): void {
   if (window && !window.isDestroyed()) window.webContents.send('desktop:state', snapshot());
 }
@@ -41,8 +43,17 @@ function layout(): void {
   const [width, height] = window.getContentSize();
   for (const [id, { view }] of views) {
     view.setVisible(id === active && manager.projects.get(id)?.state === 'ready');
-    view.setBounds({ x: 240, y: 64, width: Math.max(0, width - 240), height: Math.max(0, height - 64) });
+    view.setBounds(projectBounds(width, height, preferences.sidebarCollapsed));
   }
+}
+/** Shell-only layout change: project views are moved, never reloaded, started or stopped. */
+function setSidebar(collapsed: boolean): void {
+  const menuItem = Menu.getApplicationMenu()?.getMenuItemById('toggle-sidebar');
+  if (menuItem) menuItem.checked = !collapsed;
+  if (preferences.sidebarCollapsed === collapsed) return;
+  preferences = { ...preferences, sidebarCollapsed: collapsed };
+  layout(); update();
+  savePreferences(app.getPath('userData'), preferences).catch((error) => console.error('Could not save preferences:', error));
 }
 function dispose(id: string): void {
   const entry = views.get(id);
@@ -105,6 +116,7 @@ async function boot(): Promise<void> {
     binDir: app.isPackaged ? join(root, 'runtime') : join(here, '../scripts/bin'),
   });
   await manager.load();
+  preferences = await loadPreferences(app.getPath('userData'));
   window = new BrowserWindow({
     width: 1440, height: 940, minWidth: 960, minHeight: 640,
     title: 'Stoneforge Desktop', backgroundColor: '#0f172a',
@@ -144,6 +156,10 @@ async function boot(): Promise<void> {
     if (typeof command !== 'string') throw new Error('Invalid command');
     try {
     if (command === 'list') return snapshot();
+    if (command === 'sidebar') {
+      if (id !== 'collapsed' && id !== 'expanded') throw new Error('Invalid sidebar state');
+      setSidebar(id === 'collapsed'); return snapshot();
+    }
     if (command === 'add') {
       if (adding) return snapshot();
       adding = true;
@@ -230,7 +246,16 @@ async function boot(): Promise<void> {
     credits: `Branch: ${build.branch}\nBuilt: ${build.builtAt ?? 'unknown'}` });
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     { label: 'Stoneforge', submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'hide' }, { role: 'quit' }] },
-    { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
+    { role: 'editMenu' },
+    { label: 'View', submenu: [
+      // ⌃⌘S is the macOS sidebar convention; the menu accelerator also works while a project view has focus.
+      { id: 'toggle-sidebar', label: 'Project Sidebar', type: 'checkbox', checked: !preferences.sidebarCollapsed,
+        accelerator: 'Control+Command+S', click: () => setSidebar(!preferences.sidebarCollapsed) },
+      { type: 'separator' }, { role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' },
+      { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' },
+      { type: 'separator' }, { role: 'togglefullscreen' },
+    ] },
+    { role: 'windowMenu' },
   ]));
   await window.loadURL(shellURL);
   // Explicit paths are useful for local launches and the packaged integration fixture.
