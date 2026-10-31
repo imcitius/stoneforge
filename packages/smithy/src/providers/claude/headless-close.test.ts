@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
-import type { EntityId } from '@stoneforge/core';
+import { createEntity, EntityTypeValue, type EntityId } from '@stoneforge/core';
+import { createStorageAsync, initializeSchema } from '@stoneforge/storage';
+import { createQuarryAPI } from '@stoneforge/quarry';
+import { createAgentRegistry } from '../../services/agent-registry.js';
+import { createSessionManager } from '../../runtime/session-manager.js';
 import type { AgentProvider } from '../types.js';
 import { AsyncQueue } from '../opencode/async-queue.js';
 
@@ -162,5 +166,79 @@ describe('Claude adapter cleanup retry with isolated SDK queries', () => {
     expect(successor.close).not.toHaveBeenCalled();
     expect(successor.interrupt).not.toHaveBeenCalled();
     await service.terminate(next.session.id, false);
+  });
+});
+
+
+const isolatedProvider = (): AgentProvider => ({
+  name: 'isolated-claude', headless: new ClaudeHeadlessProvider(),
+  isAvailable: async () => true, getInstallInstructions: () => '', listModels: async () => [],
+});
+
+describe('retained Spawner cleanup after Claude output completion', () => {
+  it.each(['before-close', 'during-throw'] as const)('retries the captured SDK query when output ends %s', async timing => {
+    vi.useFakeTimers();
+    const old = sdkFixture();
+    old.output.push(message);
+    const service = new SpawnerServiceImpl({ provider: isolatedProvider(), workingDirectory: '/unused' });
+    const own = await service.spawn('el-test' as EntityId, 'worker', { mode: 'headless' });
+    const exit = new Promise<void>(resolve => own.events.once('exit', resolve));
+    if (timing === 'before-close') { old.output.close(); await exit; }
+    const error = new Error('SDK cleanup after end');
+    old.close.mockImplementationOnce(() => { old.output.close(); throw error; });
+    expect(await Promise.allSettled([service.terminate(own.session.id, false), service.terminate(own.session.id)]))
+      .toEqual([{ status: 'rejected', reason: error }, { status: 'rejected', reason: error }]);
+    await exit;
+    const successor = sdkFixture(); successor.output.push(message);
+    const next = await service.spawn('el-test' as EntityId, 'worker', { mode: 'headless' });
+    await service.terminate(own.session.id);
+    await service.terminate(own.session.id);
+    expect(old.close).toHaveBeenCalledTimes(2);
+    expect(old.interrupt).not.toHaveBeenCalled();
+    expect(service.getSession(own.session.id)?.status).toBe('terminated');
+    expect(service.getSession(next.session.id)?.status).toBe('running');
+    expect(successor.close).not.toHaveBeenCalled();
+    expect(successor.interrupt).not.toHaveBeenCalled();
+    await service.terminate(next.session.id, false);
+  });
+
+  it('composes SessionManager stop retry and successor CAS with real Spawner/Claude and isolated SQLite', async () => {
+    vi.useFakeTimers();
+    const db = await createStorageAsync({ path: ':memory:' });
+    initializeSchema(db);
+    try {
+      const api = createQuarryAPI(db);
+      const creator = (await api.create(await createEntity({ name: 'test-system', entityType: EntityTypeValue.SYSTEM,
+        createdBy: 'system:test' as EntityId }) as never)).id as unknown as EntityId;
+      const registry = createAgentRegistry(api);
+      const worker = await registry.registerWorker({ name: 'test-worker', workerMode: 'ephemeral', createdBy: creator });
+      const service = new SpawnerServiceImpl({ provider: isolatedProvider(), workingDirectory: '/unused' });
+      const manager = createSessionManager(service, api, registry);
+      const old = sdkFixture(); old.output.push(message);
+      const own = await manager.startSession(worker.id as unknown as EntityId);
+      const exit = new Promise<void>(resolve => own.events.once('exit', resolve));
+      const error = new Error('SDK close ends output then throws');
+      old.close.mockImplementationOnce(() => { old.output.close(); throw error; });
+      expect(await Promise.allSettled([manager.stopSession(own.session.id), manager.stopSession(own.session.id)]))
+        .toEqual([{ status: 'rejected', reason: error }, { status: 'rejected', reason: error }]);
+      await exit;
+      expect(service.getSession(own.session.id)?.status).toBe('terminated');
+      expect((await manager.getSessionHistory(worker.id as unknown as EntityId))).toHaveLength(0);
+      const successor = sdkFixture(); successor.output.push(message);
+      const next = await manager.startSession(worker.id as unknown as EntityId);
+      await Promise.all([manager.stopSession(own.session.id), manager.stopSession(own.session.id)]);
+      await manager.stopSession(own.session.id);
+      expect(old.close).toHaveBeenCalledTimes(2);
+      expect(old.interrupt).toHaveBeenCalledTimes(1);
+      expect(manager.getActiveSession(worker.id as unknown as EntityId)?.id).toBe(next.session.id);
+      expect(await registry.getAgent(worker.id as unknown as EntityId)).toMatchObject({ metadata: { agent: {
+        currentSessionId: next.session.id, sessionId: 'reused-id', sessionStatus: 'running',
+      } } });
+      const history = await manager.getSessionHistory(worker.id as unknown as EntityId);
+      expect(history.filter(entry => entry.id === own.session.id)).toHaveLength(1);
+      expect(successor.close).not.toHaveBeenCalled();
+      expect(successor.interrupt).not.toHaveBeenCalled();
+      await manager.stopSession(next.session.id, { graceful: false });
+    } finally { db.close(); }
   });
 });
