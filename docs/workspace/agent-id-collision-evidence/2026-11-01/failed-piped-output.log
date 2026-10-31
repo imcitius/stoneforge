@@ -1,0 +1,208 @@
+bun test v1.3.11 (af24e281)
+
+packages/quarry/src/cli/piped-output.bun.test.ts:
+81 |       return result;
+82 |     }
+83 | 
+84 |     test('delivers every field of a >1 MiB Unicode JSON library response', () => {
+85 |       const result = run(['library', 'docs', libraryId, '--json']);
+86 |       expect(result.status).toBe(0);
+                                 ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:86:29)
+(fail) quarry built CLI with subprocess pipes > delivers every field of a >1 MiB Unicode JSON library response [111.28ms]
+ 95 |       expect(result.stdout.at(-1)).toBe(10);
+ 96 |     });
+ 97 | 
+ 98 |     test('preserves the plain library list', () => {
+ 99 |       const result = run(['library', 'docs', libraryId]);
+100 |       expect(result.status).toBe(0);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:100:29)
+(fail) quarry built CLI with subprocess pipes > preserves the plain library list [111.65ms]
+108 |     });
+109 | 
+110 |     test('delivers large plain document content including its Unicode tail', () => {
+111 |       const document = documents[0];
+112 |       const result = run(['document', 'show', document.id]);
+113 |       expect(result.status).toBe(0);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:113:29)
+(fail) quarry built CLI with subprocess pipes > delivers large plain document content including its Unicode tail [106.09ms]
+117 |     });
+118 | 
+119 |     test('preserves exact large content bytes in quiet mode', () => {
+120 |       const document = documents[0];
+121 |       const result = run(['document', 'show', document.id, '--quiet']);
+122 |       expect(result.status).toBe(0);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:122:29)
+(fail) quarry built CLI with subprocess pipes > preserves exact large content bytes in quiet mode [96.99ms]
+(pass) quarry built CLI with subprocess pipes > delivers large Unicode stderr and exit 2 (plain) [321.62ms]
+146 |           { args: ['library', 'docs', 'el-missing'], code: 3, message: 'Library not found: el-missing' },
+147 |           { args: ['document', 'list', '--limit', '0'], code: 4, message: 'Limit must be a positive number' },
+148 |         ];
+149 |         for (const { args, code, message } of cases) {
+150 |           const result = run([...args, ...(json ? ['--json'] : [])]);
+151 |           expect(result.status).toBe(code);
+                                      ^
+error: expect(received).toBe(expected)
+
+Expected: 3
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:151:33)
+(fail) quarry built CLI with subprocess pipes > preserves command failure codes and streams (plain) [235.06ms]
+(pass) quarry built CLI with subprocess pipes > delivers large Unicode stderr and exit 2 (JSON) [333.40ms]
+146 |           { args: ['library', 'docs', 'el-missing'], code: 3, message: 'Library not found: el-missing' },
+147 |           { args: ['document', 'list', '--limit', '0'], code: 4, message: 'Limit must be a positive number' },
+148 |         ];
+149 |         for (const { args, code, message } of cases) {
+150 |           const result = run([...args, ...(json ? ['--json'] : [])]);
+151 |           expect(result.status).toBe(code);
+                                      ^
+error: expect(received).toBe(expected)
+
+Expected: 3
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:151:33)
+(fail) quarry built CLI with subprocess pipes > preserves command failure codes and streams (JSON) [225.57ms]
+162 |     if (entrypoint.executable === 'node') {
+163 |       test('still exits after output when a plugin leaves an active handle', () => {
+164 |         const result = run(['library', 'docs', libraryId, '--json'], [
+165 |           '--import', 'data:text/javascript,setInterval(() => {}, 60000)',
+166 |         ]);
+167 |         expect(result.status).toBe(0);
+                                    ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:167:31)
+(fail) quarry built CLI with subprocess pipes > still exits after output when a plugin leaves an active handle [128.69ms]
+81 |       return result;
+82 |     }
+83 | 
+84 |     test('delivers every field of a >1 MiB Unicode JSON library response', () => {
+85 |       const result = run(['library', 'docs', libraryId, '--json']);
+86 |       expect(result.status).toBe(0);
+                                 ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:86:29)
+(fail) smithy built CLI with subprocess pipes > delivers every field of a >1 MiB Unicode JSON library response [137.35ms]
+ 95 |       expect(result.stdout.at(-1)).toBe(10);
+ 96 |     });
+ 97 | 
+ 98 |     test('preserves the plain library list', () => {
+ 99 |       const result = run(['library', 'docs', libraryId]);
+100 |       expect(result.status).toBe(0);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:100:29)
+(fail) smithy built CLI with subprocess pipes > preserves the plain library list [122.18ms]
+108 |     });
+109 | 
+110 |     test('delivers large plain document content including its Unicode tail', () => {
+111 |       const document = documents[0];
+112 |       const result = run(['document', 'show', document.id]);
+113 |       expect(result.status).toBe(0);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:113:29)
+(fail) smithy built CLI with subprocess pipes > delivers large plain document content including its Unicode tail [144.21ms]
+117 |     });
+118 | 
+119 |     test('preserves exact large content bytes in quiet mode', () => {
+120 |       const document = documents[0];
+121 |       const result = run(['document', 'show', document.id, '--quiet']);
+122 |       expect(result.status).toBe(0);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:122:29)
+(fail) smithy built CLI with subprocess pipes > preserves exact large content bytes in quiet mode [150.58ms]
+(pass) smithy built CLI with subprocess pipes > delivers large Unicode stderr and exit 2 (plain) [359.78ms]
+146 |           { args: ['library', 'docs', 'el-missing'], code: 3, message: 'Library not found: el-missing' },
+147 |           { args: ['document', 'list', '--limit', '0'], code: 4, message: 'Limit must be a positive number' },
+148 |         ];
+149 |         for (const { args, code, message } of cases) {
+150 |           const result = run([...args, ...(json ? ['--json'] : [])]);
+151 |           expect(result.status).toBe(code);
+                                      ^
+error: expect(received).toBe(expected)
+
+Expected: 3
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:151:33)
+(fail) smithy built CLI with subprocess pipes > preserves command failure codes and streams (plain) [325.13ms]
+(pass) smithy built CLI with subprocess pipes > delivers large Unicode stderr and exit 2 (JSON) [386.47ms]
+146 |           { args: ['library', 'docs', 'el-missing'], code: 3, message: 'Library not found: el-missing' },
+147 |           { args: ['document', 'list', '--limit', '0'], code: 4, message: 'Limit must be a positive number' },
+148 |         ];
+149 |         for (const { args, code, message } of cases) {
+150 |           const result = run([...args, ...(json ? ['--json'] : [])]);
+151 |           expect(result.status).toBe(code);
+                                      ^
+error: expect(received).toBe(expected)
+
+Expected: 3
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:151:33)
+(fail) smithy built CLI with subprocess pipes > preserves command failure codes and streams (JSON) [274.67ms]
+162 |     if (entrypoint.executable === 'node') {
+163 |       test('still exits after output when a plugin leaves an active handle', () => {
+164 |         const result = run(['library', 'docs', libraryId, '--json'], [
+165 |           '--import', 'data:text/javascript,setInterval(() => {}, 60000)',
+166 |         ]);
+167 |         expect(result.status).toBe(0);
+                                    ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/cli/piped-output.bun.test.ts:167:31)
+(fail) smithy built CLI with subprocess pipes > still exits after output when a plugin leaves an active handle [143.79ms]
+
+ 4 pass
+ 14 fail
+ 86 expect() calls
+Ran 18 tests across 1 file. [15.02s]

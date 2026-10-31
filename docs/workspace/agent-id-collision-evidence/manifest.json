@@ -1,0 +1,82 @@
+[
+  {
+    "source": "/tmp/el-4bwuz-gate-integrated.log",
+    "file": "el-4bwuz-gate-integrated.log",
+    "sha256": "285bfb5ba7babe30a1110e3b1d4d7607501563c2cbd0454d98f33ffad26f4228"
+  },
+  {
+    "source": "/tmp/el-4bwuz-api-diagnostic.log",
+    "file": "el-4bwuz-api-diagnostic.log",
+    "sha256": "a072cd7ee7fb76651203764d6df65ac3978ef17acb7adf8e0aa7c83ad720fd1e"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-uVtHnx/131.log",
+    "file": "131.log",
+    "sha256": "a751b21eaf3d390fd22067a26f8ff50012ab1d4addb2d8773ec22aaca7519955"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-uVtHnx/results.json",
+    "file": "results.json",
+    "sha256": "f15c41c152e479e0854d526d4d2b5b0dc45858ad4447c60e84ba0351307a22ea"
+  },
+  {
+    "source": "/tmp/el-2zj6n-install.log",
+    "file": "el-2zj6n-install.log",
+    "sha256": "f0936469c321e6cd59160788a43b71552b16dd4c38a2f1dfecd6220e20da01ad"
+  },
+  {
+    "source": "/tmp/el-2zj6n-typecheck.log",
+    "file": "el-2zj6n-typecheck.log",
+    "sha256": "da98bceb1553f3980af4b39a779bf4ba314a1337e1f59273d8d8f2731f9c1b83"
+  },
+  {
+    "source": "/tmp/el-2zj6n-fixture-invalid.log",
+    "file": "el-2zj6n-fixture-invalid.log",
+    "sha256": "8f623e055183c6f2dfb25c0bdb0a4d797f60a5ffb3966fb7dc53394fab4430ed"
+  },
+  {
+    "source": "/tmp/el-2zj6n-baseline.log",
+    "file": "el-2zj6n-baseline.log",
+    "sha256": "9df29e51ce23eba019f50a03a5e0e7d453228a8fc553cceab696b1eccd12a84e"
+  },
+  {
+    "source": "/tmp/el-2zj6n-fixed.log",
+    "file": "el-2zj6n-fixed.log",
+    "sha256": "3770c54ed5e2d661f3d78ac67783bd692ec7f8857238e517867fe6f8a87eb4a7"
+  },
+  {
+    "source": "/tmp/el-2zj6n-focused.log",
+    "file": "el-2zj6n-focused.log",
+    "sha256": "485d7c911e6fb15abf72f5f00181e5d33b3d1fbc92777fd7498779b2d7ecaadf"
+  },
+  {
+    "source": "/tmp/el-2zj6n-focused-final.log",
+    "file": "el-2zj6n-focused-final.log",
+    "sha256": "aaced580522c7951b76b09c70ea012e4ccbbb5a92078c694dbd58254f7ed8280"
+  },
+  {
+    "source": "/tmp/el-2zj6n-baseline-final.log",
+    "file": "el-2zj6n-baseline-final.log",
+    "sha256": "74b928ac13a6b72f28254319414392513be4174647e397b42d4cb6193a4b8588"
+  },
+  {
+    "source": "/tmp/el-2zj6n-gate.log",
+    "file": "el-2zj6n-gate.log",
+    "sha256": "d4bb7119c17f5426651a1c4d83bbfa2dedca3d21f95926fa14be4f6b49456f24"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/results.json",
+    "file": "fixed-gate-results.json",
+    "sha256": "a1bf5a3dbe87afcbafc490ac8d7fe49785f0fedda773126e54ecab4850998c9d"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/131.log",
+    "file": "fixed-gate-collision.log",
+    "sha256": "8870a2c40532195811ea8d1bf3a240f03d2514d572930300513ae5fe2e976332"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/132.log",
+    "file": "fixed-gate-api.log",
+    "sha256": "a9e3bd9010f8bf9c5cdf2e69a72d60910a1fe63b62647eed148f4c10da08a4cd"
+  }
+]

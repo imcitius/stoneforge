@@ -1,0 +1,267 @@
+bun test v1.3.11 (af24e281)
+
+packages/smithy/src/api/agent-id-collision.baseline.test.ts:
+(pass) Agent registration ID collisions > Quarry still rejects an explicitly supplied duplicate ID without altering the original [10.98ms]
+122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element already exists (duplicate id)
+    details: {
+  elementId: undefined,
+  table: "elements",
+  column: "id",
+  operation: "transaction",
+},
+ httpStatus: 409,
+       code: "ALREADY_EXISTS"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/core/src/errors/error.ts:127:5)
+      at mapStorageError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/errors.ts:222:12)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:293:13)
+      at create (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1059:18)
+
+86 |     return (params ? stmt.get(...(params as SqlParams)) : stmt.get()) as T | undefined;
+87 |   }
+88 | 
+89 |   run(sql: string, params?: unknown[]): MutationResult {
+90 |     const stmt = this.db.prepare(sql);
+91 |     const result = params ? stmt.run(...(params as SqlParams)) : stmt.run();
+                                      ^
+SQLiteError: UNIQUE constraint failed: elements.id
+      errno: 1555,
+ byteOffset: -1,
+       code: "SQLITE_CONSTRAINT_PRIMARYKEY"
+
+      at #run (bun:sqlite:185:20)
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:91:34)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1061:10)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:284:22)
+      at create (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1059:18)
+      at async registerDirector (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/orchestrator-api.baseline.ts:284:30)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/agent-id-collision.baseline.test.ts:64:57)
+(fail) Agent registration ID collisions > director preserves an existing element when its entity ID collides [4.38ms]
+122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element already exists (duplicate id)
+    details: {
+  elementId: undefined,
+  table: "elements",
+  column: "id",
+  operation: "transaction",
+},
+ httpStatus: 409,
+       code: "ALREADY_EXISTS"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/core/src/errors/error.ts:127:5)
+      at mapStorageError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/errors.ts:222:12)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:293:13)
+      at create (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1059:18)
+      at createAgentChannel (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/orchestrator-api.baseline.ts:634:37)
+
+86 |     return (params ? stmt.get(...(params as SqlParams)) : stmt.get()) as T | undefined;
+87 |   }
+88 | 
+89 |   run(sql: string, params?: unknown[]): MutationResult {
+90 |     const stmt = this.db.prepare(sql);
+91 |     const result = params ? stmt.run(...(params as SqlParams)) : stmt.run();
+                                      ^
+SQLiteError: UNIQUE constraint failed: elements.id
+      errno: 1555,
+ byteOffset: -1,
+       code: "SQLITE_CONSTRAINT_PRIMARYKEY"
+
+      at #run (bun:sqlite:185:20)
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:91:34)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1061:10)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:284:22)
+      at create (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1059:18)
+      at createAgentChannel (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/orchestrator-api.baseline.ts:634:37)
+      at async registerDirector (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/orchestrator-api.baseline.ts:289:32)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/agent-id-collision.baseline.test.ts:64:57)
+(fail) Agent registration ID collisions > director preserves an existing element when its channel ID collides [4.85ms]
+122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element already exists (duplicate id)
+    details: {
+  elementId: undefined,
+  table: "elements",
+  column: "id",
+  operation: "transaction",
+},
+ httpStatus: 409,
+       code: "ALREADY_EXISTS"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/core/src/errors/error.ts:127:5)
+      at mapStorageError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/errors.ts:222:12)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:293:13)
+      at create (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1059:18)
+
+86 |     return (params ? stmt.get(...(params as SqlParams)) : stmt.get()) as T | undefined;
+87 |   }
+88 | 
+89 |   run(sql: string, params?: unknown[]): MutationResult {
+90 |     const stmt = this.db.prepare(sql);
+91 |     const result = params ? stmt.run(...(params as SqlParams)) : stmt.run();
+                                      ^
+SQLiteError: UNIQUE constraint failed: elements.id
+      errno: 1555,
+ byteOffset: -1,
+       code: "SQLITE_CONSTRAINT_PRIMARYKEY"
+
+      at #run (bun:sqlite:185:20)
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:91:34)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1061:10)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:284:22)
+      at create (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1059:18)
+      at async registerWorker (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/orchestrator-api.baseline.ts:322:30)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/agent-id-collision.baseline.test.ts:65:45)
+(fail) Agent registration ID collisions > worker preserves an existing element when its entity ID collides [3.21ms]
+122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element already exists (duplicate id)
+    details: {
+  elementId: undefined,
+  table: "elements",
+  column: "id",
+  operation: "transaction",
+},
+ httpStatus: 409,
+       code: "ALREADY_EXISTS"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/core/src/errors/error.ts:127:5)
+      at mapStorageError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/errors.ts:222:12)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:293:13)
+      at create (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1059:18)
+      at createAgentChannel (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/orchestrator-api.baseline.ts:634:37)
+
+86 |     return (params ? stmt.get(...(params as SqlParams)) : stmt.get()) as T | undefined;
+87 |   }
+88 | 
+89 |   run(sql: string, params?: unknown[]): MutationResult {
+90 |     const stmt = this.db.prepare(sql);
+91 |     const result = params ? stmt.run(...(params as SqlParams)) : stmt.run();
+                                      ^
+SQLiteError: UNIQUE constraint failed: elements.id
+      errno: 1555,
+ byteOffset: -1,
+       code: "SQLITE_CONSTRAINT_PRIMARYKEY"
+
+      at #run (bun:sqlite:185:20)
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:91:34)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1061:10)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:284:22)
+      at create (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1059:18)
+      at createAgentChannel (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/orchestrator-api.baseline.ts:634:37)
+      at async registerWorker (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/orchestrator-api.baseline.ts:327:32)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/agent-id-collision.baseline.test.ts:65:45)
+(fail) Agent registration ID collisions > worker preserves an existing element when its channel ID collides [4.22ms]
+122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element already exists (duplicate id)
+    details: {
+  elementId: undefined,
+  table: "elements",
+  column: "id",
+  operation: "transaction",
+},
+ httpStatus: 409,
+       code: "ALREADY_EXISTS"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/core/src/errors/error.ts:127:5)
+      at mapStorageError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/errors.ts:222:12)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:293:13)
+      at create (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1059:18)
+
+86 |     return (params ? stmt.get(...(params as SqlParams)) : stmt.get()) as T | undefined;
+87 |   }
+88 | 
+89 |   run(sql: string, params?: unknown[]): MutationResult {
+90 |     const stmt = this.db.prepare(sql);
+91 |     const result = params ? stmt.run(...(params as SqlParams)) : stmt.run();
+                                      ^
+SQLiteError: UNIQUE constraint failed: elements.id
+      errno: 1555,
+ byteOffset: -1,
+       code: "SQLITE_CONSTRAINT_PRIMARYKEY"
+
+      at #run (bun:sqlite:185:20)
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:91:34)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1061:10)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:284:22)
+      at create (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1059:18)
+      at async registerSteward (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/orchestrator-api.baseline.ts:363:30)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/agent-id-collision.baseline.test.ts:66:25)
+(fail) Agent registration ID collisions > steward preserves an existing element when its entity ID collides [2.85ms]
+122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element already exists (duplicate id)
+    details: {
+  elementId: undefined,
+  table: "elements",
+  column: "id",
+  operation: "transaction",
+},
+ httpStatus: 409,
+       code: "ALREADY_EXISTS"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/core/src/errors/error.ts:127:5)
+      at mapStorageError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/errors.ts:222:12)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:293:13)
+      at create (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1059:18)
+      at createAgentChannel (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/orchestrator-api.baseline.ts:634:37)
+
+86 |     return (params ? stmt.get(...(params as SqlParams)) : stmt.get()) as T | undefined;
+87 |   }
+88 | 
+89 |   run(sql: string, params?: unknown[]): MutationResult {
+90 |     const stmt = this.db.prepare(sql);
+91 |     const result = params ? stmt.run(...(params as SqlParams)) : stmt.run();
+                                      ^
+SQLiteError: UNIQUE constraint failed: elements.id
+      errno: 1555,
+ byteOffset: -1,
+       code: "SQLITE_CONSTRAINT_PRIMARYKEY"
+
+      at #run (bun:sqlite:185:20)
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:91:34)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1061:10)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/src/bun-backend.ts:284:22)
+      at create (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/quarry/src/api/quarry-api.ts:1059:18)
+      at createAgentChannel (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/orchestrator-api.baseline.ts:634:37)
+      at async registerSteward (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/orchestrator-api.baseline.ts:368:32)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/smithy/src/api/agent-id-collision.baseline.test.ts:66:25)
+(fail) Agent registration ID collisions > steward preserves an existing element when its channel ID collides [4.48ms]
+
+ 1 pass
+ 6 fail
+ 3 expect() calls
+Ran 7 tests across 1 file. [102.00ms]

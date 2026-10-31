@@ -1,0 +1,161 @@
+bun test v1.3.11 (af24e281)
+
+packages/core/src/id/generator.bun.test.ts:
+(pass) Constants > ID_PREFIX is el
+(pass) Constants > BASE36_CHARS contains 36 characters
+(pass) Constants > hash length bounds are valid
+(pass) Constants > MAX_HIERARCHY_DEPTH is 3
+(pass) Constants > MAX_NONCE is 9
+(pass) ROOT_ID_PATTERN > matches valid root IDs [0.25ms]
+(pass) ROOT_ID_PATTERN > rejects IDs with wrong prefix
+(pass) ROOT_ID_PATTERN > rejects IDs with invalid hash length [0.03ms]
+(pass) ROOT_ID_PATTERN > rejects IDs with invalid characters [0.01ms]
+(pass) ROOT_ID_PATTERN > rejects hierarchical IDs
+(pass) HIERARCHICAL_ID_PATTERN > matches valid hierarchical IDs
+(pass) HIERARCHICAL_ID_PATTERN > rejects root IDs
+(pass) HIERARCHICAL_ID_PATTERN > rejects IDs with too many segments [0.08ms]
+(pass) HIERARCHICAL_ID_PATTERN > rejects IDs with non-numeric segments
+(pass) isValidIdFormat > accepts valid root IDs [0.02ms]
+(pass) isValidIdFormat > accepts valid hierarchical IDs
+(pass) isValidIdFormat > rejects non-strings
+(pass) isValidIdFormat > rejects invalid formats
+(pass) isValidRootId > accepts only root IDs [0.07ms]
+(pass) isValidHierarchicalId > accepts only hierarchical IDs
+(pass) validateIdFormat > returns valid ID [0.06ms]
+(pass) validateIdFormat > throws ValidationError for invalid ID [0.28ms]
+(pass) validateIdFormat > throws for non-strings [0.07ms]
+(pass) parseId > parses root ID [0.13ms]
+(pass) parseId > parses single-level hierarchical ID [0.12ms]
+(pass) parseId > parses multi-level hierarchical ID
+(pass) parseId > throws for invalid ID
+(pass) getIdRoot > returns root for root ID
+(pass) getIdRoot > extracts root from hierarchical ID
+(pass) getIdParent > returns null for root ID
+(pass) getIdParent > returns root for first-level child
+(pass) getIdParent > returns parent for deeper children [0.18ms]
+(pass) getIdDepth > returns 0 for root
+(pass) getIdDepth > returns correct depth for hierarchical IDs [0.08ms]
+(pass) sha256 > produces 32-byte hash [0.24ms]
+(pass) sha256 > produces consistent hash for same input
+(pass) sha256 > produces different hash for different input
+(pass) sha256 > handles empty string
+(pass) sha256 > handles unicode characters
+(pass) toBase36 > converts zero bytes to 0
+(pass) toBase36 > converts small numbers correctly
+(pass) toBase36 > converts larger byte arrays
+(pass) toBase36 > produces only base36 characters
+(pass) toBase36 > produces consistent results
+(pass) truncateHash > truncates to specified length
+(pass) truncateHash > clamps to minimum length
+(pass) truncateHash > clamps to maximum length
+(pass) truncateHash > handles exact length input
+(pass) calculateIdLength > returns 3 for small databases [0.70ms]
+(pass) calculateIdLength > returns 4 for medium-small databases [0.02ms]
+(pass) calculateIdLength > returns 5 for medium databases
+(pass) calculateIdLength > returns 6 for larger databases
+(pass) calculateIdLength > returns 7 for large databases
+(pass) calculateIdLength > returns 8 for very large databases
+(pass) generateIdHash > generates base36 hash [0.10ms]
+(pass) generateIdHash > generates consistent hash for same input
+(pass) generateIdHash > generates different hash for different identifier [0.17ms]
+(pass) generateIdHash > generates different hash for different createdBy [0.14ms]
+(pass) generateIdHash > generates different hash for different timestamp [0.08ms]
+(pass) generateIdHash > generates different hash for different nonce [0.07ms]
+(pass) generateId > generates valid ID [0.57ms]
+(pass) generateId > uses specified hash length [0.08ms]
+(pass) generateId > generates different IDs for different identifiers [0.07ms]
+(pass) generateId > generates different IDs for different creators [0.10ms]
+(pass) generateId > calculates length from element count [0.05ms]
+(pass) generateId > handles collision with nonce increment [0.11ms]
+(pass) generateId > handles collision with length increase [0.26ms]
+(pass) generateChildId > generates valid child ID [0.02ms]
+(pass) generateChildId > generates grandchild ID
+(pass) generateChildId > generates great-grandchild ID
+(pass) generateChildId > throws for depth limit exceeded [0.10ms]
+(pass) generateChildId > throws for invalid parent ID [0.01ms]
+(pass) generateChildId > throws for non-positive child number [0.04ms]
+(pass) generateChildId > throws for non-integer child number
+(pass) generateChildId > handles large child numbers
+(pass) Property-based tests > parseId is inverse of ID construction
+(pass) Property-based tests > getIdRoot returns valid root ID
+(pass) Property-based tests > getIdParent returns valid ID or null [0.17ms]
+(pass) Property-based tests > getIdDepth equals number of segments [0.02ms]
+(pass) Property-based tests > generateChildId increments depth by 1 [0.03ms]
+(pass) Property-based tests > toBase36 only produces valid characters
+(pass) Edge cases > handles empty identifier
+(pass) Edge cases > handles very long identifier [0.69ms]
+(pass) Edge cases > handles special characters in identifier [0.21ms]
+(pass) Edge cases > handles boundary hash lengths [0.12ms]
+(pass) Edge cases > maximum hierarchy depth is enforced [0.07ms]
+(pass) Uniqueness tests > generates unique IDs in rapid succession [1.26ms]
+(pass) Uniqueness tests > different identifiers produce different IDs with same timestamp [0.67ms]
+(pass) DefaultIdMetricsCollector > initializes with zero counts [0.24ms]
+(pass) DefaultIdMetricsCollector > records generation_started event [0.08ms]
+(pass) DefaultIdMetricsCollector > records generation_completed event [0.05ms]
+(pass) DefaultIdMetricsCollector > records generation_failed event [0.01ms]
+(pass) DefaultIdMetricsCollector > records collision_detected event [0.04ms]
+(pass) DefaultIdMetricsCollector > records nonce_increment event
+(pass) DefaultIdMetricsCollector > records length_increase event
+(pass) DefaultIdMetricsCollector > calculates average generation time correctly
+(pass) DefaultIdMetricsCollector > reset clears all metrics
+(pass) ConsoleIdLogger > creates logger with default minLevel [0.10ms]
+(pass) ConsoleIdLogger > creates logger with custom minLevel [0.01ms]
+[2026-09-26T20:58:46.986Z] [id-gen] [DEBUG] Debug message
+[2026-09-26T20:58:46.986Z] [id-gen] [INFO] Info message
+[2026-09-26T20:58:46.986Z] [id-gen] [WARN] Warning message
+[2026-09-26T20:58:46.986Z] [id-gen] [ERROR] Error message
+(pass) ConsoleIdLogger > log method accepts all log levels [0.09ms]
+[2026-09-26T20:58:46.986Z] [id-gen] [INFO] Message with data {
+  key: "value",
+  number: 42,
+}
+(pass) ConsoleIdLogger > log method accepts data parameter [0.05ms]
+(pass) ID Generation with Metrics > tracks successful generation [0.09ms]
+(pass) ID Generation with Metrics > tracks collisions when they occur [0.05ms]
+(pass) ID Generation with Metrics > tracks multiple generations [0.15ms]
+(pass) ID Generation with Logging > calls logger for successful generation [0.15ms]
+(pass) ID Generation with Logging > calls logger for collision events [0.13ms]
+(pass) ID Generation with Metrics and Logging Combined > tracks metrics and logs simultaneously [0.13ms]
+
+packages/smithy/src/api/orchestrator-api.integration.bun.test.ts:
+(pass) OrchestratorAPI > Agent Registration > registerDirector creates a director agent [10.55ms]
+(pass) OrchestratorAPI > Agent Registration > registerWorker creates an ephemeral worker [5.84ms]
+(pass) OrchestratorAPI > Agent Registration > registerWorker creates a persistent worker [3.69ms]
+(pass) OrchestratorAPI > Agent Registration > registerWorker with maxConcurrentTasks stores value in metadata [2.98ms]
+(pass) OrchestratorAPI > Agent Registration > registerSteward creates a merge steward [3.47ms]
+(pass) OrchestratorAPI > Agent Registration > registerSteward creates a docs steward with cron trigger [3.32ms]
+(pass) OrchestratorAPI > Agent Registration > registerDirector persists provider, model, and executablePath [3.16ms]
+(pass) OrchestratorAPI > Agent Registration > registerWorker persists provider, model, and executablePath [3.44ms]
+(pass) OrchestratorAPI > Agent Registration > registerSteward persists provider, model, and executablePath [4.09ms]
+(pass) OrchestratorAPI > Agent Registration > registerSteward persists playbook and playbookId [2.98ms]
+(pass) OrchestratorAPI > Agent Registration > registerDirector with targetBranch stores it in metadata [3.81ms]
+(pass) OrchestratorAPI > Agent Registration > registerDirector without targetBranch leaves it undefined [5.25ms]
+(pass) OrchestratorAPI > Agent Registration > registerSteward without playbook fields leaves them undefined [4.08ms]
+(pass) OrchestratorAPI > Agent Queries > getAgent retrieves an agent by ID [4.84ms]
+(pass) OrchestratorAPI > Agent Queries > getAgentByName retrieves an agent by name [3.89ms]
+(pass) OrchestratorAPI > Agent Queries > listAgents returns all agents [5.26ms]
+(pass) OrchestratorAPI > Agent Queries > listAgents filters by role [3.57ms]
+(pass) OrchestratorAPI > Agent Queries > listAgents filters by workerMode [4.16ms]
+(pass) OrchestratorAPI > Agent Queries > getAgentsByRole returns agents of a specific role [4.24ms]
+(pass) OrchestratorAPI > Agent Queries > getAvailableWorkers returns idle workers [3.28ms]
+(pass) OrchestratorAPI > Agent Queries > getStewards returns all stewards [3.65ms]
+(pass) OrchestratorAPI > Agent Queries > getDirector returns the director [3.40ms]
+(pass) OrchestratorAPI > Agent Session Management > updateAgentSession updates session status [2.85ms]
+(pass) OrchestratorAPI > Agent Session Management > getAgentChannel returns direct channel ID created during registration (TB-O7a) [4.32ms]
+(pass) OrchestratorAPI > Orchestrator Task Metadata > setTaskOrchestratorMeta sets orchestrator metadata [3.24ms]
+(pass) OrchestratorAPI > Orchestrator Task Metadata > updateTaskOrchestratorMeta updates existing metadata [3.74ms]
+(pass) OrchestratorAPI > Orchestrator Task Metadata > assignTaskToAgent assigns task and sets metadata [3.33ms]
+
+packages/smithy/src/api/agent-id-collision.bun.test.ts:
+(pass) Agent registration ID collisions > Quarry still rejects an explicitly supplied duplicate ID without altering the original [4.31ms]
+(pass) Agent registration ID collisions > director preserves an existing element when its entity ID collides [4.14ms]
+(pass) Agent registration ID collisions > director preserves an existing element when its channel ID collides [3.94ms]
+(pass) Agent registration ID collisions > worker preserves an existing element when its entity ID collides [2.29ms]
+(pass) Agent registration ID collisions > worker preserves an existing element when its channel ID collides [3.48ms]
+(pass) Agent registration ID collisions > steward preserves an existing element when its entity ID collides [3.09ms]
+(pass) Agent registration ID collisions > steward preserves an existing element when its channel ID collides [3.96ms]
+
+ 141 pass
+ 0 fail
+ 382 expect() calls
+Ran 141 tests across 3 files. [214.00ms]

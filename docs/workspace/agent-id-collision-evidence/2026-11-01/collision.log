@@ -1,0 +1,15 @@
+bun test v1.3.11 (af24e281)
+
+packages/smithy/src/api/agent-id-collision.bun.test.ts:
+(pass) Agent registration ID collisions > Quarry still rejects an explicitly supplied duplicate ID without altering the original [10.03ms]
+(pass) Agent registration ID collisions > director preserves an existing element when its entity ID collides [5.73ms]
+(pass) Agent registration ID collisions > director preserves an existing element when its channel ID collides [3.42ms]
+(pass) Agent registration ID collisions > worker preserves an existing element when its entity ID collides [3.52ms]
+(pass) Agent registration ID collisions > worker preserves an existing element when its channel ID collides [3.50ms]
+(pass) Agent registration ID collisions > steward preserves an existing element when its entity ID collides [3.60ms]
+(pass) Agent registration ID collisions > steward preserves an existing element when its channel ID collides [3.44ms]
+
+ 7 pass
+ 0 fail
+ 75 expect() calls
+Ran 7 tests across 1 file. [92.00ms]

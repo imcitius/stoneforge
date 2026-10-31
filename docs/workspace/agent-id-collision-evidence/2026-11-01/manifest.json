@@ -1,0 +1,77 @@
+[
+  {
+    "source": "/tmp/el-2zj6n-worker-install-20261101.log",
+    "file": "install.log",
+    "sha256": "6b4852ec8b9381248f801ab8bef91a5efeb290edda41c143def3ec84cd3b2fb0"
+  },
+  {
+    "source": "/tmp/el-2zj6n-worker-20261101-baseline.log",
+    "file": "baseline.log",
+    "sha256": "b99d5cb7ee6cfb076223d1cbd17b71479e2ae7f2a7bc66804a9cc77358f8fd78"
+  },
+  {
+    "source": "/tmp/el-2zj6n-worker-20261101-focused.log",
+    "file": "focused.log",
+    "sha256": "85403e0fddba1b954979a79e23abc5e035b74a73e3af07cc3a136cb51bade80e"
+  },
+  {
+    "source": "/tmp/el-2zj6n-worker-20261101-regressions.json",
+    "file": "regressions.json",
+    "sha256": "05b3de8c1a76a98001f763998bcaf9db46c57175edfa76dc8cfeb735255108fb"
+  },
+  {
+    "source": "/tmp/el-2zj6n-worker-20261101-preflight.json",
+    "file": "preflight.json",
+    "sha256": "eac164f3bf43c6afc74d09915c5b5192cd6d1ce66cff526c5480aadb2bfb0db6"
+  },
+  {
+    "source": "/tmp/el-2zj6n-worker-20261101-gate.log",
+    "file": "gate.log",
+    "sha256": "5143d465ba0bbf3501c786d11ecd630a9b07ba408345ecc06d53317bfb5d2b51"
+  },
+  {
+    "source": "/tmp/el-2zj6n-worker-20261101-gate.json",
+    "file": "gate.json",
+    "sha256": "cd00cdbff73a414febee38f98683f71c4e42481e266f726b02aec222c4bcef27"
+  },
+  {
+    "source": "/tmp/el-2zj6n-worker-20261101-node-sqlite.log",
+    "file": "node-sqlite.log",
+    "sha256": "34d9f77d1208a4d020cd0a7cc6b723fda24c457ec58b359250cd6fb7bdf195ae"
+  },
+  {
+    "source": "/tmp/el-2zj6n-worker-20261101-node22-sqlite.log",
+    "file": "node22-sqlite.log",
+    "sha256": "f6570e4dc39e95a8658d0f2424ca2b3505091b466942f87e1d83a7e1862223dc"
+  },
+  {
+    "source": "/tmp/el-2zj6n-worker-20261101-cli-runtime.json",
+    "file": "cli-runtime.json",
+    "sha256": "8fdf996c936942d7230967fc1e8b3e46785bc8540fb8a717f3f667cc9317af8e"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-ShDh3S/results.json",
+    "file": "gate-results.json",
+    "sha256": "093424c82f7c95c9094136613fcf9fb3508c430bd93acde8bdd303f48ff1917a"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-ShDh3S/075.log",
+    "file": "failed-metrics.log",
+    "sha256": "631882fa653af7c6aabb173697579b37bece6d96a879cac7722c023da2731098"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-ShDh3S/089.log",
+    "file": "failed-piped-output.log",
+    "sha256": "6fa253a920d2c0b3f6eb1c006b9fc925514f20326ea9c721fa3c3fb7857906a9"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-ShDh3S/131.log",
+    "file": "collision.log",
+    "sha256": "6f8687d762f42c69935a1e8249bae57666e01b53e43affb88622cbe7954433d8"
+  },
+  {
+    "source": "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-ShDh3S/132.log",
+    "file": "original-api.log",
+    "sha256": "e5f1c35bb9044d0115092e15f49fa937ddac86459844c47bed538375ece9539e"
+  }
+]

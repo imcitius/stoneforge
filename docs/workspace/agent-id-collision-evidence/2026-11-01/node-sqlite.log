@@ -1,0 +1,43 @@
+{"command": ["node", "--input-type=module", "-e", "import { createStorage, initializeSchema } from './packages/storage/dist/index.js'; const storage = createStorage({path: ':memory:'}); initializeSchema(storage); storage.close(); console.log('SQLite in-memory OK');"], "exit": 1}
+file:///Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/core/dist/errors/error.js:79
+        super(message, code, details, cause);
+        ^
+
+StorageError: Failed to open database at :memory:: The module '/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/node_modules/.pnpm/better-sqlite3@11.10.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 127. This version of Node.js requires
+NODE_MODULE_VERSION 147. Please try re-compiling or re-installing
+the module (for instance, using `npm rebuild` or `npm install`).
+    at new StorageError (file:///Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/core/dist/errors/error.js:79:9)
+    at connectionError (file:///Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/dist/errors.js:260:12)
+    at new NodeStorageBackend (file:///Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/dist/node-backend.js:105:19)
+    at createNodeStorage (file:///Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/dist/node-backend.js:480:12)
+    at createStorage (file:///Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/dist/create-backend.js:145:40)
+    at file:///Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/[eval1]:1:101
+    at ModuleJob.run (node:internal/modules/esm/module_job:569:25)
+    at async node:internal/modules/esm/loader:226:26
+    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:223:20)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  code: 'DATABASE_ERROR',
+  details: { path: ':memory:' },
+  httpStatus: 500,
+  cause: Error: The module '/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/node_modules/.pnpm/better-sqlite3@11.10.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node'
+  was compiled against a different Node.js version using
+  NODE_MODULE_VERSION 127. This version of Node.js requires
+  NODE_MODULE_VERSION 147. Please try re-compiling or re-installing
+  the module (for instance, using `npm rebuild` or `npm install`).
+      at Object..node (node:internal/modules/cjs/loader:2101:18)
+      at Module.load (node:internal/modules/cjs/loader:1656:32)
+      at Module._load (node:internal/modules/cjs/loader:1448:12)
+      at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+      at Module.require (node:internal/modules/cjs/loader:1679:12)
+      at require (node:internal/modules/helpers:196:16)
+      at bindings (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js:112:48)
+      at new Database (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/node_modules/.pnpm/better-sqlite3@11.10.0/node_modules/better-sqlite3/lib/database.js:48:64)
+      at new NodeStorageBackend (file:///Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/dist/node-backend.js:96:23)
+      at createNodeStorage (file:///Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-duplicate-elementsid-createag/packages/storage/dist/node-backend.js:480:12) {
+    code: 'ERR_DLOPEN_FAILED'
+  }
+}
+
+Node.js v26.8.2
