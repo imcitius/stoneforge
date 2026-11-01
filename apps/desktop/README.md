@@ -144,6 +144,16 @@ Focus settings, and require Desktop to remain running (closing its window is OK)
 
 The registry is `projects.json` in Electron's application userData directory.
 Project databases, JSONL exports, prompts and worktrees remain in their workspace.
+Project roots are stored canonically: the parent of the realpath of the project's
+`.stoneforge` directory, the same path the managed backend reports in its identity
+(on macOS `/private/var/…`, not `/var/…`; symlinked folders resolve to their target).
+Loading the registry migrates older non-canonical entries and collapses aliases of
+one workspace into the first entry (its ID, logs and dashboard storage are kept); an
+unavailable folder keeps its stored root and reports "Project folder is unavailable"
+when opened. The root is re-resolved before each start. If a backend still reports
+a different identity, Desktop stops it, logs the reason to the project's Logs, and
+keeps the project in the `error` state (shown in the sidebar) with the differing
+roots in the project view and the native error dialog, instead of a silent stop.
 Runtime logs are capped at 128 KB per project and persisted under `userData/logs`;
 the Logs viewer shows a snapshot of the last 10,000 characters from the current run.
 It opens in a separate child window above the project dashboard, sized to the
@@ -255,6 +265,10 @@ node apps/desktop/scripts/check-tabs.mjs
 node apps/desktop/scripts/check-getting-started.mjs
 node apps/desktop/scripts/check-attention.mjs
 ```
+
+`tests/canonical-root.test.mjs` covers the registry migration (`/var` vs
+`/private/var` and a symlinked alias, started against a real backend) and reports of
+genuine identity mismatches through a stub backend.
 
 `check-app.mjs` uses the workspace's Playwright installation to verify the actual
 packaged Electron views, HTTP/WS/SSE authentication, isolated storage and project

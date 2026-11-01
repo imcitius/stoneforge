@@ -28,6 +28,8 @@ export interface Instance {
   ready: Promise<Instance>;
   exited: Promise<void>;
   stopping?: Promise<void>;
+  /** Set when the manager itself stops a failed startup; the project then stays in `error`. */
+  failure?: string;
 }
 export interface ManagerOptions {
   dataDir: string;
@@ -35,6 +37,16 @@ export interface ManagerOptions {
   entry: string;
   webRoot: string;
   binDir: string;
+}
+
+/**
+ * Canonical project root: the parent of the realpath'd `.stoneforge` directory.
+ * Worktrees may share the data directory through a symlink, and the managed
+ * backend reports realpath roots (for example /private/var rather than /var on
+ * macOS), so every stored root and identity comparison uses this form.
+ */
+export async function canonicalProjectRoot(path: string): Promise<string> {
+  return dirname(await realpath(join(path, '.stoneforge')));
 }
 
 /** Electron-independent supervisor; each workspace has its own child and identity. */
@@ -53,12 +65,24 @@ export class ProjectManager extends EventEmitter {
     try { entries = JSON.parse(await readFile(join(this.options.dataDir, 'projects.json'), 'utf8')); }
     catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return; throw error; }
     if (!Array.isArray(entries)) throw new Error('Invalid project registry');
+    let migrated = false;
     for (const item of entries) {
       if (!item || typeof item.id !== 'string' || !/^[a-f0-9-]{36}$/.test(item.id) || typeof item.root !== 'string' || typeof item.name !== 'string') {
         throw new Error('Invalid project registry entry');
       }
-      this.projects.set(item.id, { id: item.id, root: item.root, name: item.name, state: 'stopped' });
+      // Older registries may hold non-canonical roots (/var vs /private/var,
+      // symlinked folders). Migrate them; an unavailable folder keeps its stored
+      // root and reports a clear error when it is opened.
+      let root = item.root;
+      try { root = await canonicalProjectRoot(item.root); }
+      catch (error) { console.warn(`[desktop] Project folder unavailable, keeping stored root: ${item.root} (${(error as NodeJS.ErrnoException).code ?? error})`); }
+      // Aliases of one workspace collapse into the first entry, keeping its ID
+      // (session partition, logs and preferences are keyed by it).
+      if ([...this.projects.values()].some((p) => p.root === root)) { migrated = true; continue; }
+      if (root !== item.root) migrated = true;
+      this.projects.set(item.id, { id: item.id, root, name: item.name, state: 'stopped' });
     }
+    if (migrated) await this.save();
   }
   list(): Project[] { return [...this.projects.values()].map((p) => ({ ...p })); }
   setNeedsInput(id: string, needsInput: boolean): void {
@@ -117,9 +141,8 @@ export class ProjectManager extends EventEmitter {
   }
   async add(path: string): Promise<Project> {
     // realpath the data directory too: worktrees can share it through a symlink.
-    const dataRoot = await realpath(join(path, '.stoneforge'));
-    await access(join(dataRoot, 'stoneforge.db'));
-    const root = dirname(dataRoot);
+    const root = await canonicalProjectRoot(path);
+    await access(join(root, '.stoneforge', 'stoneforge.db'));
     const previous = this.list().find((p) => p.root === root);
     if (previous) return this.projects.get(previous.id)!;
     const project: Project = { id: randomUUID(), name: basename(root), root, state: 'stopped' };
@@ -165,6 +188,7 @@ export class ProjectManager extends EventEmitter {
     if (!project) throw new Error('Unknown project');
     project.state = 'starting'; delete project.error; this.changed();
     try {
+      await this.canonicalize(project);
       const external = await findExternalServer(project.root);
       if (!external) return await this.spawn(id);
       const instance: Instance = {
@@ -181,6 +205,34 @@ export class ProjectManager extends EventEmitter {
     } catch (error) {
       project.state = 'error'; project.error = error instanceof Error ? error.message : String(error); this.changed(); throw error;
     }
+  }
+  /** Re-resolve the root before every start: a symlink may have been retargeted since load. */
+  private async canonicalize(project: Project): Promise<void> {
+    let root: string;
+    try { root = await canonicalProjectRoot(project.root); }
+    catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      throw new Error(`Project folder is unavailable: ${project.root}${code ? ` (${code})` : ''}. Check that it exists and contains .stoneforge, or remove the project.`);
+    }
+    if (root === project.root) return;
+    const other = [...this.projects.values()].find((p) => p !== project && p.root === root);
+    if (other) throw new Error(`${project.root} now resolves to ${root}, which is already open as project "${other.name}".`);
+    this.appendLog(project.id, `[desktop] Project root ${project.root} resolves to ${root}; using the canonical path.\n`);
+    project.root = root; await this.save();
+  }
+  private appendLog(id: string, text: string): void {
+    const tail = ((this.logs.get(id) ?? '') + text).slice(-128_000);
+    this.logs.set(id, tail);
+    this.logWrites = this.logWrites.catch(() => {}).then(() =>
+      writeFile(join(this.options.dataDir, 'logs', id + '.log'), tail, { mode: 0o600 }));
+  }
+  /** Stop a startup that failed after the child was spawned, keeping the project in `error` with a visible reason. */
+  private fail(id: string, instance: Instance, error: Error, rejectReady: (error: Error) => void): void {
+    instance.failure ??= error.message;
+    this.appendLog(id, `[desktop] Startup failed, stopping backend: ${error.message}\n`);
+    console.error(`[desktop] Project ${id} startup failed: ${error.message}`);
+    rejectReady(error);
+    this.stop(id).catch(() => { /* stop() records its own error state */ });
   }
   async isCurrent(id: string, instance: Instance): Promise<boolean> {
     if (this.instances.get(id) !== instance) return false;
@@ -205,14 +257,8 @@ export class ProjectManager extends EventEmitter {
     const exited = new Promise<void>((resolve) => { child.once('exit', () => resolve()); child.once('error', () => resolve()); });
     const instance: Instance = { projectId: id, instanceId: randomUUID(), secret: randomBytes(32).toString('hex'), child, ready, exited };
     this.instances.set(id, instance);
-    const timer = setTimeout(() => { rejectReady(new Error('Backend startup timed out')); void this.stop(id); }, 45_000);
-    const append = (chunk: Buffer) => {
-      const text = chunk.toString().replaceAll(instance.secret, '[redacted]');
-      const tail = ((this.logs.get(id) ?? '') + text).slice(-128_000);
-      this.logs.set(id, tail);
-      this.logWrites = this.logWrites.catch(() => {}).then(() =>
-        writeFile(join(this.options.dataDir, 'logs', id + '.log'), tail, { mode: 0o600 }));
-    };
+    const timer = setTimeout(() => this.fail(id, instance, new Error('Backend startup timed out'), rejectReady), 45_000);
+    const append = (chunk: Buffer) => this.appendLog(id, chunk.toString().replaceAll(instance.secret, '[redacted]'));
     child.stdout?.on('data', append); child.stderr?.on('data', append);
     child.on('error', (error) => {
       clearTimeout(timer); rejectReady(error);
@@ -225,8 +271,9 @@ export class ProjectManager extends EventEmitter {
       clearTimeout(timer);
       if (this.instances.get(id) !== instance) return;
       this.instances.delete(id);
-      project.state = instance.stopping ? 'stopped' : 'error';
-      if (!instance.stopping) project.error ??= `Backend exited (${signal ?? code}); open Logs for details`;
+      project.state = instance.stopping && !instance.failure ? 'stopped' : 'error';
+      if (instance.failure) project.error = instance.failure;
+      else if (!instance.stopping) project.error ??= `Backend exited (${signal ?? code}); open Logs for details`;
       rejectReady(new Error(project.error ?? 'Backend stopped'));
       project.needsInput = false; this.emit('stopped', id); this.changed();
     });
@@ -238,19 +285,19 @@ export class ProjectManager extends EventEmitter {
       }
       if (msg.type !== 'ready') return;
       void (async () => {
-        if (msg.projectId !== id || msg.instanceId !== instance.instanceId || msg.projectRoot !== project.root ||
-            msg.pid !== child.pid || msg.protocolVersion !== 1 || typeof msg.port !== 'number' || msg.port < 1 || msg.port > 65535) {
-          throw new Error('Backend identity mismatch');
-        }
+        const problems = identityProblems(msg, { projectId: id, instanceId: instance.instanceId, projectRoot: project.root });
+        if (msg.pid !== child.pid) problems.push(`PID ${String(msg.pid)} (expected ${String(child.pid)})`);
+        if (msg.protocolVersion !== 1) problems.push(`protocol ${String(msg.protocolVersion)} (expected 1)`);
+        if (typeof msg.port !== 'number' || msg.port < 1 || msg.port > 65535) problems.push(`port ${String(msg.port)}`);
+        if (problems.length) throw new Error(`Backend identity mismatch: ${problems.join('; ')}`);
         instance.endpoint = `http://127.0.0.1:${msg.port}`;
         const response = await fetch(instance.endpoint + '/api/desktop/identity', { headers: this.headers(instance), signal: AbortSignal.timeout(5000) });
-        const health = await response.json() as Record<string, unknown>;
-        if (!response.ok || health.projectId !== id || health.instanceId !== instance.instanceId || health.projectRoot !== project.root) {
-          throw new Error('Endpoint identity mismatch');
-        }
+        if (!response.ok) throw new Error(`Endpoint identity mismatch: HTTP ${response.status}`);
+        const health = identityProblems(await response.json() as Record<string, unknown>, { projectId: id, instanceId: instance.instanceId, projectRoot: project.root });
+        if (health.length) throw new Error(`Endpoint identity mismatch: ${health.join('; ')}`);
         if (instance.stopping) throw new Error('Backend stopped during startup');
         clearTimeout(timer); project.state = 'ready'; this.changed(); resolveReady(instance);
-      })().catch((error) => { rejectReady(error); void this.stop(id); });
+      })().catch((error) => { clearTimeout(timer); this.fail(id, instance, error instanceof Error ? error : new Error(String(error)), rejectReady); });
     });
     child.send({ type: 'start', projectRoot: project.root, projectId: id, instanceId: instance.instanceId, secret: instance.secret, webRoot: this.options.webRoot });
     void ready.catch((error: Error) => { project.error = error.message; if (project.state !== 'stopped') project.state = 'error'; this.changed(); });
@@ -302,4 +349,13 @@ export class ProjectManager extends EventEmitter {
     await Promise.allSettled([...this.starts.values()]);
     await Promise.all([...this.instances.keys()].map((id) => this.stop(id))); await this.logWrites;
   }
+}
+
+/** Human-readable differences between a reported and an expected backend identity (never includes secrets). */
+function identityProblems(reported: Record<string, unknown>, expected: { projectId: string; instanceId: string; projectRoot: string }): string[] {
+  const problems: string[] = [];
+  if (reported.projectRoot !== expected.projectRoot) problems.push(`backend serves ${JSON.stringify(reported.projectRoot)} but the project is ${JSON.stringify(expected.projectRoot)}`);
+  if (reported.projectId !== expected.projectId) problems.push('project ID differs');
+  if (reported.instanceId !== expected.instanceId) problems.push('instance ID differs');
+  return problems;
 }
