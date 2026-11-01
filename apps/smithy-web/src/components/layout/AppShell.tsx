@@ -1020,6 +1020,8 @@ export function AppShell() {
     if (
       workflowPreset.isConfigured &&
       !workflowPreset.isLoading &&
+      // Wait for the workspace's persisted completion/dismissal before deciding.
+      onboardingTour.isHydrated &&
       !onboardingTour.isCompleted &&
       !onboardingTour.isActive &&
       !hasProviderIssues
@@ -1046,6 +1048,7 @@ export function AppShell() {
   }, [
     workflowPreset.isConfigured,
     workflowPreset.isLoading,
+    onboardingTour.isHydrated,
     onboardingTour.isCompleted,
     onboardingTour.isActive,
     hasProviderIssues,

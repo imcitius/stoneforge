@@ -3,10 +3,13 @@ import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+/** Completion is stored per workspace by its backend (survives port changes). */
+const workspaceTour = (page) => page.evaluate(async () => (await fetch('/api/settings/onboarding-tour')).json());
+
 export async function skipNewProjectOnboarding(page, activityURL, temp) {
   const observations = [];
   const snapshot = async (stage) => {
-    observations.push({ stage, ...await page.evaluate(() => ({
+    observations.push({ stage, workspace: await workspaceTour(page), ...await page.evaluate(() => ({
       completed: localStorage.getItem('stoneforge:onboarding-complete'),
       step: localStorage.getItem('stoneforge:onboarding-step'),
       backdrop: !!document.querySelector('[data-testid="onboarding-backdrop"]'),
@@ -27,6 +30,7 @@ export async function skipNewProjectOnboarding(page, activityURL, temp) {
     await page.getByTestId('activity-page').waitFor();
     await snapshot('preset-pending');
     assert.equal(observations.at(-1).completed, null, 'Fresh project must not inherit tour completion');
+    assert.equal(observations.at(-1).workspace.completed, false, 'Fresh workspace must not inherit tour completion');
     assert.equal(observations.at(-1).backdrop, false, 'Pending preset must exercise initially absent overlay');
     releasePreset();
 
@@ -37,8 +41,8 @@ export async function skipNewProjectOnboarding(page, activityURL, temp) {
     await snapshot('active');
     await page.screenshot({ path: join(temp, 'onboarding-active.png') });
     await page.getByTestId('onboarding-skip').click();
-    await page.waitForFunction(() =>
-      localStorage.getItem('stoneforge:onboarding-complete') === 'true' &&
+    await page.waitForFunction(async () =>
+      (await (await fetch('/api/settings/onboarding-tour')).json()).status === 'dismissed' &&
       localStorage.getItem('stoneforge:onboarding-step') === null);
     await page.getByTestId('onboarding-backdrop').waitFor({ state: 'detached' });
     await page.getByTestId('onboarding-tooltip').waitFor({ state: 'detached' });
@@ -53,7 +57,7 @@ export async function skipNewProjectOnboarding(page, activityURL, temp) {
 }
 
 export async function checkDirectorStartFailure(page, state, temp) {
-  assert.equal(await page.evaluate(() => localStorage.getItem('stoneforge:onboarding-complete')), 'true');
+  assert.equal((await workspaceTour(page)).completed, true);
   await page.getByTestId('onboarding-backdrop').waitFor({ state: 'detached' });
   let requests = 0;
   const pattern = '**/api/agents/*/start';

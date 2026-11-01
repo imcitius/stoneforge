@@ -76,6 +76,7 @@ export const SETTING_KEYS = {
   AGENT_DEFAULTS: 'agentDefaults',
   RATE_LIMITS: 'rateLimits',
   EXTERNAL_SYNC: 'externalSync',
+  ONBOARDING_TOUR: 'onboardingTour',
 } as const;
 
 // ============================================================================

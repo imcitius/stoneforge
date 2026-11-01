@@ -10,6 +10,12 @@
 
 import { test, expect } from '@playwright/test';
 import { initCheckpoints } from '../test-utils/checkpoint';
+import { mockOnboardingTourState } from '../test-utils/onboarding-tour-state';
+
+// Isolated per-page workspace tour state (see helper).
+test.beforeEach(async ({ page }) => {
+  await mockOnboardingTourState(page);
+});
 
 // ============================================================================
 // Helper: Clear onboarding state for a fresh start

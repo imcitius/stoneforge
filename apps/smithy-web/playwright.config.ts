@@ -13,6 +13,8 @@ const testWebPort = 5175;
 
 export default defineConfig({
   testDir: './tests',
+  // Uses its own built backends and config: playwright.onboarding-persistence.config.ts
+  testIgnore: ['onboarding-persistence.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

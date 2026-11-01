@@ -1,16 +1,21 @@
 /**
- * useOnboardingTour - Manages onboarding tour state with localStorage persistence
+ * useOnboardingTour - Manages onboarding tour state
  *
  * Controls whether the tour should be shown, tracks the current step,
- * and persists completion/skip state so the tour only shows once.
+ * and persists completion/skip state in the workspace so the tour only shows
+ * once per workspace, across backend/app restarts (see onboardingTourPersistence).
  * Supports sectioned progress and cross-page navigation.
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { TourStep } from '../components/onboarding';
-
-const STORAGE_KEY = 'stoneforge:onboarding-complete';
-const STEP_STORAGE_KEY = 'stoneforge:onboarding-step';
+import {
+  STEP_STORAGE_KEY,
+  createOnboardingTourStore,
+  readLocalCompleted,
+  type OnboardingTourStatus,
+  type OnboardingTourStore,
+} from './onboardingTourPersistence';
 
 export interface TourSection {
   label: string;
@@ -27,6 +32,11 @@ export interface OnboardingTourState {
   totalSteps: number;
   /** Whether the tour has been completed or skipped previously */
   isCompleted: boolean;
+  /**
+   * Whether the persisted workspace state is known. Never auto-start before
+   * this: the overlay must not flash for a user who already dismissed it.
+   */
+  isHydrated: boolean;
   /** Computed sections from step.section grouping */
   sections: TourSection[];
   /** Index of the current section (0-based) */
@@ -64,8 +74,33 @@ export function useOnboardingTour(steps: TourStep[]): OnboardingTourState {
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return localStorage.getItem(STORAGE_KEY) === 'true';
+    return readLocalCompleted(localStorage);
   });
+  const [isHydrated, setIsHydrated] = useState(false);
+  // Serialized workspace writes with a mutation version: user mutations
+  // (finish, skip, restart) always win over a late hydration response and its
+  // legacy migration (see createOnboardingTourStore).
+  const store = useRef<OnboardingTourStore | null>(null);
+  const getStore = useCallback(() => {
+    store.current ??= createOnboardingTourStore(() => ({ fetch: window.fetch.bind(window), storage: localStorage }));
+    return store.current;
+  }, []);
+
+  const persist = useCallback((status: OnboardingTourStatus | null) => {
+    if (typeof window === 'undefined') return;
+    getStore().save(status).catch(() => {});
+  }, [getStore]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let cancelled = false;
+    getStore().hydrate().then((snapshot) => {
+      if (cancelled) return;
+      if (snapshot) setIsCompleted(snapshot.completed);
+      setIsHydrated(true);
+    });
+    return () => { cancelled = true; };
+  }, [getStore]);
 
   // Compute active steps (filter enabled !== false)
   const activeSteps = useMemo(
@@ -106,8 +141,7 @@ export function useOnboardingTour(steps: TourStep[]): OnboardingTourState {
   // Restore currentStep from localStorage on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const completed = localStorage.getItem(STORAGE_KEY) === 'true';
-    if (!completed) {
+    if (!isCompleted) {
       const savedStep = localStorage.getItem(STEP_STORAGE_KEY);
       if (savedStep !== null) {
         const parsed = parseInt(savedStep, 10);
@@ -116,7 +150,7 @@ export function useOnboardingTour(steps: TourStep[]): OnboardingTourState {
         }
       }
     }
-  }, [totalSteps]);
+  }, [totalSteps, isCompleted]);
 
   // Persist currentStep to localStorage whenever it changes
   useEffect(() => {
@@ -126,13 +160,13 @@ export function useOnboardingTour(steps: TourStep[]): OnboardingTourState {
     }
   }, [currentStep, isActive]);
 
-  const markCompleted = useCallback(() => {
-    localStorage.setItem(STORAGE_KEY, 'true');
+  const markCompleted = useCallback((status: OnboardingTourStatus = 'completed') => {
+    persist(status);
     localStorage.removeItem(STEP_STORAGE_KEY);
     setIsCompleted(true);
     setIsActive(false);
     setCurrentStep(0);
-  }, []);
+  }, [persist]);
 
   const start = useCallback(() => {
     setCurrentStep(0);
@@ -160,7 +194,7 @@ export function useOnboardingTour(steps: TourStep[]): OnboardingTourState {
   }, []);
 
   const skip = useCallback(() => {
-    markCompleted();
+    markCompleted('dismissed');
   }, [markCompleted]);
 
   const complete = useCallback(() => {
@@ -168,11 +202,11 @@ export function useOnboardingTour(steps: TourStep[]): OnboardingTourState {
   }, [markCompleted]);
 
   const reset = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+    persist(null);
     localStorage.removeItem(STEP_STORAGE_KEY);
     setIsCompleted(false);
     setCurrentStep(0);
-  }, []);
+  }, [persist]);
 
   const goToStep = useCallback(
     (index: number) => {
@@ -197,7 +231,7 @@ export function useOnboardingTour(steps: TourStep[]): OnboardingTourState {
   // Listen for custom event to restart tour (from settings page)
   useEffect(() => {
     const handleRestart = () => {
-      localStorage.removeItem(STORAGE_KEY);
+      persist(null);
       localStorage.removeItem(STEP_STORAGE_KEY);
       setIsCompleted(false);
       setCurrentStep(0);
@@ -205,13 +239,14 @@ export function useOnboardingTour(steps: TourStep[]): OnboardingTourState {
     };
     window.addEventListener('restart-onboarding-tour', handleRestart);
     return () => window.removeEventListener('restart-onboarding-tour', handleRestart);
-  }, []);
+  }, [persist]);
 
   return {
     isActive,
     currentStep,
     totalSteps,
     isCompleted,
+    isHydrated,
     sections,
     currentSection,
     totalSections,

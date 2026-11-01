@@ -7,7 +7,7 @@
 
 import { Hono } from 'hono';
 import type { Services } from '../services.js';
-import type { ServerAgentDefaults } from '../../services/settings-service.js';
+import { SETTING_KEYS, type ServerAgentDefaults, type Setting } from '../../services/settings-service.js';
 import {
   getValue,
   updateConfigFile,
@@ -19,6 +19,24 @@ import {
 import { createLogger } from '../../utils/logger.js';
 
 const logger = createLogger('settings-routes');
+
+const ONBOARDING_TOUR_STATUSES = ['completed', 'dismissed'] as const;
+type OnboardingTourStatus = (typeof ONBOARDING_TOUR_STATUSES)[number];
+
+export interface OnboardingTourState {
+  /** true once the tour was finished or dismissed in this workspace */
+  completed: boolean;
+  status: OnboardingTourStatus | null;
+  updatedAt: string | null;
+}
+
+function readOnboardingTour(setting: Setting | undefined): OnboardingTourState {
+  const status = (setting?.value as { status?: unknown } | undefined)?.status;
+  if (!setting || !ONBOARDING_TOUR_STATUSES.includes(status as OnboardingTourStatus)) {
+    return { completed: false, status: null, updatedAt: null };
+  }
+  return { completed: true, status: status as OnboardingTourStatus, updatedAt: setting.updatedAt };
+}
 
 export function createSettingsRoutes(services: Services) {
   const { settingsService } = services;
@@ -145,6 +163,53 @@ export function createSettingsRoutes(services: Services) {
       return c.json(result);
     } catch (error) {
       logger.error('Failed to disable demo mode:', error);
+      return c.json({ error: { code: 'INTERNAL_ERROR', message: String(error) } }, 500);
+    }
+  });
+
+  // ==========================================================================
+  // Onboarding Tour
+  // ==========================================================================
+
+  // Stored in this workspace's database, not browser storage: Desktop loads each
+  // project from a backend on a dynamic port, so origin-scoped localStorage does
+  // not survive a backend restart. One record per workspace keeps projects isolated.
+
+  // GET /api/settings/onboarding-tour
+  app.get('/api/settings/onboarding-tour', (c) => {
+    try {
+      return c.json(readOnboardingTour(settingsService.getSetting(SETTING_KEYS.ONBOARDING_TOUR)));
+    } catch (error) {
+      logger.error('Failed to get onboarding tour state:', error);
+      return c.json({ error: { code: 'INTERNAL_ERROR', message: String(error) } }, 500);
+    }
+  });
+
+  // PUT /api/settings/onboarding-tour — { status: 'completed' | 'dismissed' | null }
+  app.put('/api/settings/onboarding-tour', async (c) => {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: { code: 'INVALID_INPUT', message: 'Request body must be JSON' } }, 400);
+    }
+    const status = (body as { status?: unknown } | null)?.status;
+    if (status !== null && !ONBOARDING_TOUR_STATUSES.includes(status as OnboardingTourStatus)) {
+      return c.json(
+        { error: { code: 'INVALID_INPUT', message: `status must be one of: ${ONBOARDING_TOUR_STATUSES.join(', ')}, or null` } },
+        400
+      );
+    }
+    try {
+      // null is an explicit restart (Settings → Restart Onboarding Tour).
+      if (status === null) {
+        settingsService.deleteSetting(SETTING_KEYS.ONBOARDING_TOUR);
+        return c.json(readOnboardingTour(undefined));
+      }
+      const setting = settingsService.setSetting(SETTING_KEYS.ONBOARDING_TOUR, { status });
+      return c.json(readOnboardingTour(setting));
+    } catch (error) {
+      logger.error('Failed to update onboarding tour state:', error);
       return c.json({ error: { code: 'INTERNAL_ERROR', message: String(error) } }, 500);
     }
   });

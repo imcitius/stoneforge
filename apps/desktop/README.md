@@ -60,6 +60,10 @@ This metadata is baked into the application, independent of subsequent source ed
    terminal sessions keep running and nothing is reloaded. The choice is stored in
    `preferences.json` in the application userData directory, never in a project;
    the sidebar is visible by default and when that file is missing or invalid.
+   Getting Started (the dashboard tour) shows once per project. Skip, Esc and
+   finishing are stored in that project's workspace settings, so they survive project
+   restarts and app relaunches even though each backend start uses a new local port.
+   Settings → Restart Onboarding Tour shows it again.
 6. Closing the window keeps the application running. Quit asks before stopping
    running project servers and their agents.
 
@@ -186,6 +190,7 @@ bun test packages/smithy/src/server/server.bun.test.ts packages/quarry/src/cli/c
 node apps/desktop/scripts/check-app.mjs
 node apps/desktop/scripts/check-launch-services.mjs
 node apps/desktop/scripts/check-sidebar.mjs
+node apps/desktop/scripts/check-getting-started.mjs
 node apps/desktop/scripts/check-attention.mjs
 ```
 
@@ -203,7 +208,13 @@ the View menu item (also with a project view focused), across resizes, project s
 loading and stopped states, and requires the shell layout and every native project view
 bound to agree. It checks accessible name/`aria-expanded`, Tab order, unchanged project
 views and backend identities, and persistence over two relaunches. Screenshots and
-`sidebar-observations.json` stay in its printed fixture directory. `check-launch-services.mjs` launches through macOS LaunchServices with
+`sidebar-observations.json` stay in its printed fixture directory.
+`check-getting-started.mjs` opens two temporary projects with fresh userData and checks
+that each gets its first Getting Started tour, that Skip/Escape are remembered after a
+Desktop project Restart (new backend port/origin) and a full app relaunch, that one
+project's dismissal does not affect another, and that Settings → Restart Onboarding Tour
+still works. Screenshots and `getting-started-observations.json` stay in its fixture
+directory. `check-launch-services.mjs` launches through macOS LaunchServices with
 a minimal PATH and a Unicode workspace path, and checks parent-loss cleanup.
 Both use temporary fixtures and a separate app-data directory. When running backend
 tests or LaunchServices from a managed agent session, clear inherited routing
