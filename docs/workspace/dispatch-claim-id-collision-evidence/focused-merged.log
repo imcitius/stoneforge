@@ -1,0 +1,105 @@
+bun test v1.3.11 (af24e281)
+
+packages/smithy/src/services/dispatch-claim.bun.test.ts:
+[session-manager] Starting session for agent el-1mv2 mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Cleaned up event listeners for session internal-1
+[dispatch-daemon] Skipping stale/failed dispatch for task el-5d6: Cannot claim task el-5d6: ready/unassigned candidate changed.
+[session-manager] Starting session for agent el-5py0 mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Cleaned up event listeners for session internal-1
+[dispatch-daemon] Skipping stale/failed dispatch for task el-1a8: Cannot claim task el-1a8: ready/unassigned candidate changed.
+[session-manager] Starting session for agent el-91b4 mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Cleaned up event listeners for session internal-1
+[dispatch-daemon] Skipping stale/failed dispatch for task el-1nz: Cannot claim task el-1nz: ready/unassigned candidate changed.
+[session-manager] Starting session for agent el-5tto mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Cleaned up event listeners for session internal-1
+[dispatch-daemon] Skipping stale/failed dispatch for task el-qd7: Cannot claim task el-qd7: ready/unassigned candidate changed.
+[session-manager] Starting session for agent el-1mvh mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Cleaned up event listeners for session internal-1
+[dispatch-daemon] Skipping stale/failed dispatch for task el-l2k: Task is no longer ready and unassigned: el-l2k
+[session-manager] Starting session for agent el-1hce mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Cleaned up event listeners for session internal-1
+[dispatch-daemon] Skipping stale/failed dispatch for task el-4yo: Cannot claim task el-4yo: ready/unassigned candidate changed.
+[session-manager] Starting session for agent el-51pl mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Cleaned up event listeners for session internal-1
+[dispatch-daemon] Skipping stale/failed dispatch for task el-6bf: Cannot claim task el-6bf: ready/unassigned candidate changed.
+[session-manager] Starting session for agent el-5h37 mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Starting session for agent el-2u4s mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Cleaned up event listeners for session internal-2
+[dispatch-daemon] Skipping stale/failed dispatch for task el-18d: Task is no longer ready and unassigned: el-18d
+[session-manager] Starting session for agent el-5zou mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Starting session for agent el-raac mode: headless provider: claude-code model: default executablePath: default prompt length: 575
+[session-manager] Starting session for agent el-2b1k mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Starting session for agent el-5nza mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-5hvn mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-43ui mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-43ui mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+[session-manager] Starting session for agent el-586u mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session internal-1, agent el-586u, code=0, signal=null
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Cleaning up running session internal-1 for agent el-586u
+[session-manager] Cleared active session mapping for agent el-586u
+[session-manager] Starting session for agent el-586u mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+[session-manager] Starting session for agent el-4zwf mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+[session-manager] Starting session for agent el-5q8y mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+[session-manager] Starting session for agent el-2qju mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+[session-manager] Starting session for agent el-7xoa mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-3ev8 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-3ev8 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-2
+[session-manager] Session internal-2: incomplete current-field cleanup; ownership not proven, history saved
+[session-manager] Starting session for agent el-5nhv mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-1a5r mode: headless provider: claude-code model: default executablePath: default prompt length: 12658
+[session-manager] Starting session for agent el-4xpp mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-13v1 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+[session-manager] Starting session for agent el-k2wn mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+[session-manager] Starting session for agent el-1k6w mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-5q1h mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-4yzr mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-2a7c mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-3krt mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-3deq mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-21u8 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-2epp mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-3rna mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-1ide mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-3fyh mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-53du mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-8vgz mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-9g9q mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-4w2p mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-gdxq mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[dispatch-daemon] Failed to release steward dispatch el-2ip: ConflictError: Cannot unassign task el-2ip: failed dispatch no longer owns this assignment.
+    details: {
+  taskId: "el-2ip",
+},
+ httpStatus: 409,
+      cause: undefined,
+       code: "CONCURRENT_MODIFICATION"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-7a21f61d-efba-48e2-a171-fbe52adc454e-id-fixture-dispatch-claim-cre/packages/core/src/errors/error.ts:127:5)
+      at unassignTask (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-1-7a21f61d-efba-48e2-a171-fbe52adc454e-id-fixture-dispatch-claim-cre/packages/smithy/src/services/task-assignment-service.ts:493:13)
+
+
+ 54 pass
+ 0 fail
+ 331 expect() calls
+Ran 54 tests across 1 file. [7.42s]

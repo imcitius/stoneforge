@@ -1,5 +1,5 @@
 /** Automatic dispatch boundaries. Only temporary SQLite/Git and inert process handles. */
-import { beforeEach, afterEach, test, expect } from 'bun:test';
+import { beforeEach, afterEach, test, expect, spyOn } from 'bun:test';
 import { EventEmitter } from 'node:events';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createStorage, initializeSchema, type StorageBackend } from '@stoneforge/storage';
 import { createQuarryAPI, createInboxService, type QuarryAPI } from '@stoneforge/quarry';
-import { createEntity, createTask, createPlan, EntityTypeValue, PlanStatus, TaskStatus, type Task, type EntityId, type Plan } from '@stoneforge/core';
+import { createEntity, createTask, createPlan, calculateIdLength, EntityTypeValue, PlanStatus, TaskStatus, type Task, type EntityId, type Plan } from '@stoneforge/core';
 import { createAgentRegistry, type AgentEntity } from './agent-registry.js';
 import { createTaskAssignmentService } from './task-assignment-service.js';
 import { createDispatchService } from './dispatch-service.js';
@@ -35,11 +35,14 @@ beforeEach(async () => {
   db = createStorage({ path: path.join(root, '.stoneforge/test.db') }); initializeSchema(db);
   db2 = createStorage({ path: path.join(root, '.stoneforge/test.db') });
   api = createQuarryAPI(db); other = createQuarryAPI(db2);
-  creator = (await api.create(await createEntity({ name: 'fixture-system', entityType: EntityTypeValue.SYSTEM, createdBy: 'system:test' as EntityId }) as never)).id as unknown as EntityId;
+  // Fixture factories receive the database-aware ID config (adaptive length plus
+  // SQLite lookup). Unconfigured factories return an unchecked six-character ID
+  // (DEFAULT_HASH_LENGTH since el-4rgbi0; four characters at bdd07d4).
+  creator = (await api.create(await createEntity({ name: 'fixture-system', entityType: EntityTypeValue.SYSTEM, createdBy: 'system:test' as EntityId }, api.getIdGeneratorConfig()) as never)).id as unknown as EntityId;
   const registry = createAgentRegistry(api);
   worker = await registry.registerWorker({ name: 'first', workerMode: 'ephemeral', createdBy: creator });
   second = await registry.registerWorker({ name: 'second', workerMode: 'ephemeral', createdBy: creator });
-  task = await api.create<Task>(await createTask({ title: 'claim', createdBy: creator }) as never);
+  task = await api.create<Task>(await createTask({ title: 'claim', createdBy: creator }, api.getIdGeneratorConfig()) as never);
   beforeSpawn = undefined; beforeTerminate = undefined; serial = 0; handles = new Map();
   const spawn = async (agentId: EntityId, agentRole: string): Promise<SpawnResult> => {
     const id = `internal-${++serial}`;
@@ -76,7 +79,7 @@ for (const competitor of ['closed', 'deferred', 'human', 'worker', 'draft', 'blo
     const s = await services();
     let plan: Plan | undefined;
     if (competitor === 'draft' || competitor === 'blocked-parent') {
-      plan = await api.create<Plan>(await createPlan({ title: 'Parent', createdBy: creator, status: PlanStatus.ACTIVE }) as never);
+      plan = await api.create<Plan>(await createPlan({ title: 'Parent', createdBy: creator, status: PlanStatus.ACTIVE }, api.getIdGeneratorConfig()) as never);
       await api.addDependency({ blockedId: task.id, blockerId: plan.id, type: 'parent-child', createdBy: creator });
     }
     let winner: Task | null = null; let eventSnapshot: unknown;
@@ -84,7 +87,7 @@ for (const competitor of ['closed', 'deferred', 'human', 'worker', 'draft', 'blo
     beforeSpawn = async () => {
       if (competitor === 'draft') await other.update(plan!.id, { status: PlanStatus.DRAFT } as never);
       else if (competitor === 'blocked-parent') {
-        const blocker = await other.create<Task>(await createTask({ title: 'Blocker', createdBy: creator }) as never);
+        const blocker = await other.create<Task>(await createTask({ title: 'Blocker', createdBy: creator }, other.getIdGeneratorConfig()) as never);
         await other.addDependency({ blockedId: plan!.id, blockerId: blocker.id, type: 'blocks', createdBy: creator });
       } else if (competitor === 'worker') await createTaskAssignmentService(other).assignToAgent(task.id, second.id as unknown as EntityId, { sessionId: 'successor' });
       else await other.update<Task>(task.id, competitor === 'human' ? { assignee: 'human:fixture' as EntityId }
@@ -240,9 +243,9 @@ test('two managers publishing for one agent: CAS loser terminates only its own p
 
 test('claim rejects authoritative blocked parent even before writer publishes blocked_cache', async () => {
   const s = await services();
-  const plan = await api.create<Plan>(await createPlan({ title: 'Parent', createdBy: creator, status: PlanStatus.ACTIVE }) as never);
+  const plan = await api.create<Plan>(await createPlan({ title: 'Parent', createdBy: creator, status: PlanStatus.ACTIVE }, api.getIdGeneratorConfig()) as never);
   await api.addDependency({ blockedId: task.id, blockerId: plan.id, type: 'parent-child', createdBy: creator });
-  const blocker = await api.create<Task>(await createTask({ title: 'Blocker', createdBy: creator }) as never);
+  const blocker = await api.create<Task>(await createTask({ title: 'Blocker', createdBy: creator }, api.getIdGeneratorConfig()) as never);
   // Hold precisely the cache-publication boundary of the real dependency writer.
   const cache = (other as unknown as { blockedCache: { onDependencyAdded: (...args: unknown[]) => void } }).blockedCache;
   const publish = cache.onDependencyAdded.bind(cache); let pending: unknown[] | undefined;
@@ -268,7 +271,7 @@ test('startup persistence error terminates the exact newly published process', a
 
 test('parent DRAFT after Quarry update snapshot is rejected inside the write transaction', async () => {
   const s = await services();
-  const plan = await api.create<Plan>(await createPlan({ title: 'Parent', createdBy: creator, status: PlanStatus.ACTIVE }) as never);
+  const plan = await api.create<Plan>(await createPlan({ title: 'Parent', createdBy: creator, status: PlanStatus.ACTIVE }, api.getIdGeneratorConfig()) as never);
   await api.addDependency({ blockedId: task.id, blockerId: plan.id, type: 'parent-child', createdBy: creator });
   const update = api.update.bind(api); const get = api.get.bind(api); let armed = false;
   api.update = async (...args) => { if (args[0] === task.id) armed = true; return update(...args); };
@@ -402,7 +405,7 @@ for (const boundary of ['candidate', 'transaction'] as const) {
       const agentSnapshot = await api.get(second.id);
       let plan: Plan | undefined;
       if (competitor === 'draft' || competitor === 'blocked-parent') {
-        plan = await api.create<Plan>(await createPlan({ title: 'Parent', createdBy: creator, status: PlanStatus.ACTIVE }) as never);
+        plan = await api.create<Plan>(await createPlan({ title: 'Parent', createdBy: creator, status: PlanStatus.ACTIVE }, api.getIdGeneratorConfig()) as never);
         await api.addDependency({ blockedId: task.id, blockerId: plan.id, type: 'parent-child', createdBy: creator });
       }
       let winner: Task | null = null; let events: unknown;
@@ -410,7 +413,7 @@ for (const boundary of ['candidate', 'transaction'] as const) {
       const compete = async () => {
         if (competitor === 'draft') await other.update(plan!.id, { status: PlanStatus.DRAFT } as never);
         else if (competitor === 'blocked-parent') {
-          const blocker = await other.create<Task>(await createTask({ title: 'Blocker', createdBy: creator }) as never);
+          const blocker = await other.create<Task>(await createTask({ title: 'Blocker', createdBy: creator }, other.getIdGeneratorConfig()) as never);
           await other.addDependency({ blockedId: plan!.id, blockerId: blocker.id, type: 'blocks', createdBy: creator });
         } else if (competitor === 'successor') await createTaskAssignmentService(other).assignToAgent(task.id, second.id as unknown as EntityId,
           { sessionId: existingSession.session.id, worktree: directory });
@@ -480,7 +483,7 @@ for (const tag of ['docs', 'steward-docs', 'workflow']) {
     const s = await stewardServices();
     await api.update<Task>(task.id, { tags: [tag], priority: 1, status: TaskStatus.IN_PROGRESS,
       scheduledFor: '2020-01-01T00:00:00.000Z' as Task['scheduledFor'] });
-    const low = await api.create<Task>(await createTask({ title: 'Lower priority', tags: [tag], priority: 4, createdBy: creator }) as never);
+    const low = await api.create<Task>(await createTask({ title: 'Lower priority', tags: [tag], priority: 4, createdBy: creator }, api.getIdGeneratorConfig()) as never);
     expect((await s.daemon.pollWorkflowTasks()).processed).toBe(1);
     expect((await api.get<Task>(task.id))!.assignee).toBe(s.steward.id as unknown as EntityId);
     expect((await api.get<Task>(low.id))!.assignee).toBeUndefined();
@@ -550,4 +553,53 @@ test('non-merge steward explicit dispatch retains intentional Human reassignment
   expect(result.task.assignee).toBe(s.steward.id as unknown as EntityId);
   expect(result.isNewAssignment).toBe(false);
   expect(messages()).toHaveLength(1);
+});
+
+test('fixture factories use database-aware IDs when the claim task candidate collides', async () => {
+  // Force only nonce-zero digests for the seed and the fixture task title. Every
+  // other candidate keeps native SHA-256; generator, lookup and SQLite are real.
+  const digest = crypto.subtle.digest.bind(crypto.subtle);
+  let forced = 0; let resolved = 0;
+  const spy = spyOn(crypto.subtle, 'digest').mockImplementation(async (algorithm, data) => {
+    const [identifier, , , nonce] = new TextDecoder().decode(data as ArrayBuffer).split('|');
+    if (identifier === 'claim' && nonce !== '0') resolved++;
+    if (nonce === '0' && (identifier === 'collision-seed' || identifier === 'claim')) {
+      forced++;
+      return new Uint8Array(32).fill(0x42).buffer;
+    }
+    return digest(algorithm, data);
+  });
+  try {
+    const seed = await createEntity({ name: 'collision-seed', entityType: EntityTypeValue.SYSTEM, createdBy: creator });
+    const savedSeed = await api.create(seed as never);
+    // Occupy the configured small-database candidate too, so a length change alone
+    // cannot pass: the generator must consult SQLite and advance its nonce. IDs
+    // use the low-order base36 digits of the digest (el-4rgbi0), so the length-L
+    // candidate for the forced digest is the last L characters of the seed hash.
+    const configuredLength = calculateIdLength(api.getIdGeneratorConfig().elementCount!);
+    expect(configuredLength).toBeLessThan(seed.id.length - 3);
+    const shortSeed = { ...seed, id: `el-${seed.id.slice(-configuredLength)}` as typeof seed.id, name: 'collision-seed-short' };
+    const savedShortSeed = await api.create(shortSeed as never);
+    const config = api.getIdGeneratorConfig();
+    expect(calculateIdLength(config.elementCount!)).toBe(configuredLength);
+    const tasksBefore = await api.list({ type: 'task' });
+
+    // Control: the original unconfigured fixture expression collides deterministically.
+    const unchecked = await createTask({ title: 'claim', createdBy: creator });
+    expect(unchecked.id).toBe(seed.id);
+    await expect(api.create(unchecked as never)).rejects.toMatchObject({ code: 'ALREADY_EXISTS' });
+    expect(await api.list({ type: 'task' })).toEqual(tasksBefore);
+
+    const created = await api.create<Task>(await createTask({ title: 'claim', createdBy: creator }, config) as never);
+    expect(forced).toBe(3);
+    expect(resolved).toBeGreaterThan(0);
+    expect(new Set([seed.id, shortSeed.id, task.id, created.id]).size).toBe(4);
+    expect(await api.get(created.id)).toEqual(created);
+    expect(await api.get(seed.id)).toEqual(savedSeed);
+    expect(await api.get(shortSeed.id)).toEqual(savedShortSeed);
+    expect(await api.get(task.id)).toEqual(task);
+    expect(await api.list({ type: 'task' })).toHaveLength(tasksBefore.length + 1);
+  } finally {
+    spy.mockRestore();
+  }
 });
