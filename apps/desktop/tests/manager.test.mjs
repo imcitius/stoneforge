@@ -8,6 +8,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { once } from 'node:events';
 import { ProjectManager } from '../dist/manager.js';
+import { fixtureEnv as sanitizedEnv } from './fixture-env.mjs';
 const require = createRequire(import.meta.url);
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const smithyRequire = createRequire(join(root, 'packages/smithy/package.json'));
@@ -24,7 +25,7 @@ test('three real backends isolate identical agent IDs, credentials and events; r
   try {
     await manager.load();
     const a = join(temp, 'A'); await mkdir(a);
-    const fixtureEnv = { ...process.env }; delete fixtureEnv.STONEFORGE_ROOT;
+    const fixtureEnv = sanitizedEnv();
     execFileSync(node, [cli, 'init', '--preset', 'auto', '--name', 'isolation-fixture'], { cwd: a, env: fixtureEnv, stdio: 'pipe' });
     execFileSync(node, [cli, 'agent', 'register', 'fixture-worker', '--role', 'worker', '--mode', 'ephemeral'], { cwd: a, env: fixtureEnv, stdio: 'pipe' });
     execFileSync(node, [cli, 'task', 'create', '--title', 'isolation-task'], { cwd: a, env: fixtureEnv, stdio: 'pipe' });

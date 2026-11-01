@@ -299,15 +299,22 @@ project's dismissal does not affect another, and that Settings → Restart Onboa
 still works. Screenshots and `getting-started-observations.json` stay in its fixture
 directory. `check-launch-services.mjs` launches through macOS LaunchServices with
 a minimal PATH and a Unicode workspace path, and checks parent-loss cleanup.
-Both use temporary fixtures and a separate app-data directory. When running backend
-tests or LaunchServices from a managed agent session, clear inherited routing
-variables for the test process only:
+Both use temporary fixtures and a separate app-data directory.
+
+Environment isolation: a managed agent session exports `STONEFORGE_*`/`SF_*`
+routing variables (workspace root, database path, Desktop instance ID, entity ID).
+Test fixtures must never pass them to child `sf` processes. The backend tests build
+every fixture child environment with `tests/fixture-env.mjs`, which strips
+`STONEFORGE_*`, `SF_*`, `ORCHESTRATOR_URL` and `ELECTRON_RUN_AS_NODE` before applying
+the fixture's own values, so `pnpm --filter @stoneforge/desktop test` needs no
+`env -u` prefix inside an agent session. New tests that spawn `sf` must use that
+helper rather than `{ ...process.env }`. When running LaunchServices from a managed
+agent session, clear inherited routing variables for that process only:
 
 ```sh
 env -u STONEFORGE_ROOT -u STONEFORGE_DESKTOP_INSTANCE_ID \
   -u STONEFORGE_DB_PATH -u STONEFORGE_UPLOAD_DIR -u ELECTRON_RUN_AS_NODE \
-  pnpm --filter @stoneforge/desktop test
-# Use the same env prefix for node apps/desktop/scripts/check-launch-services.mjs.
+  node apps/desktop/scripts/check-launch-services.mjs
 ```
 
 The packaged UI smoke clears these variables in its fixture environment itself. Diagnostics stay

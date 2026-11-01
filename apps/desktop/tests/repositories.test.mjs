@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { ProjectManager } from '../dist/manager.js';
+import { fixtureEnv } from './fixture-env.mjs';
 const require = createRequire(import.meta.url);
 const source = resolve(import.meta.dirname, '../../..');
 const node = require.resolve('node/bin/node');
@@ -33,7 +34,7 @@ test('non-Git Desktop project registers two repositories; real CLI uses shared p
       git(repo, 'init', '-q', '-b', 'main'); git(repo, 'config', 'user.name', 'Fixture'); git(repo, 'config', 'user.email', 'fixture@example.com');
       await writeFile(join(repo, 'README'), name); git(repo, 'add', '.'); git(repo, 'commit', '-qm', 'initial');
     }
-    const env = () => ({ ...process.env, STONEFORGE_ROOT: project.root, STONEFORGE_DESKTOP_INSTANCE_ID: instance.instanceId });
+    const env = () => fixtureEnv({ STONEFORGE_ROOT: project.root, STONEFORGE_DESKTOP_INSTANCE_ID: instance.instanceId });
     // Deliberately execute from B even for operations on A.
     const sf = (...args) => execFileSync(node, [cli, ...args], { cwd: repos[1], env: env(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 20000 });
     sf('repo', 'add', 'a', repos[0], '--target-branch', 'main'); sf('repo', 'add', 'b', repos[1], '--target-branch', 'main');

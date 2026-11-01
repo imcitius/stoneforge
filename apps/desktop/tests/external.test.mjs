@@ -7,6 +7,7 @@ import { createRequire } from 'node:module';
 import { spawn, execFileSync } from 'node:child_process';
 import { ProjectManager } from '../dist/manager.js';
 import { findExternalServer } from '../dist/external.js';
+import { fixtureEnv } from './fixture-env.mjs';
 const require = createRequire(import.meta.url);
 const root = resolve(import.meta.dirname, '../../..');
 const node = require.resolve('node/bin/node');
@@ -17,8 +18,7 @@ test('adopts an existing standalone process only for its database, then stops it
   const temp = await realpath(await mkdtemp(join(tmpdir(), 'sf-adopt-')));
   const projectRoot = join(temp, 'Existing'); await mkdir(projectRoot);
   const otherRoot = join(temp, 'Other'); await mkdir(otherRoot);
-  const env = { ...process.env, STONEFORGE_ROOT: projectRoot, DAEMON_AUTO_START: 'false' };
-  delete env.STONEFORGE_DESKTOP_INSTANCE_ID;
+  const env = fixtureEnv({ STONEFORGE_ROOT: projectRoot, DAEMON_AUTO_START: 'false' });
   execFileSync(node, [cli, 'init', '--preset', 'approve'], { cwd: projectRoot, env, stdio: 'pipe' });
   execFileSync(node, [cli, 'init', '--preset', 'approve'], { cwd: otherRoot, env: { ...env, STONEFORGE_ROOT: otherRoot }, stdio: 'pipe' });
   const child = spawn(node, [cli, 'serve', '--no-open', '--host', '127.0.0.1', '--port', '0'], { cwd: projectRoot, env, stdio: 'ignore' });
