@@ -3,9 +3,27 @@
  *
  * Generates unique, collision-resistant identifiers using:
  * - SHA256 for hashing
- * - Base36 encoding for human-readable output
+ * - Base36 encoding for human-readable output (low-order digits, see
+ *   {@link toBase36Digits})
  * - Adaptive length based on database size
  * - Hierarchical ID support for parent-child relationships
+ *
+ * ID contract (el-4rgbi0, 2026-11-01):
+ * - Root IDs match ROOT_ID_PATTERN (`el-` + 3..8 base36 chars). The hash part is
+ *   the low-order L base36 digits of the SHA-256 digest (`D mod 36^L`,
+ *   zero-padded), so every character is uniform up to a relative pair-collision
+ *   excess below 1e-130. A leading `0` is therefore possible.
+ *   Before el-4rgbi0 the hash was the HIGH-order L digits of `toBase36(D)`;
+ *   because 36^49 < 2^256 < 36^50 the first character was heavily skewed
+ *   (`0` unreachable, `1..5` ~16% each), raising pair-collision probability
+ *   ~5.05x over uniform (el-45m5h). Existing stored IDs were generated that
+ *   way and remain valid opaque strings; no code in this repository recomputes
+ *   IDs from their inputs, so no migration is needed.
+ * - Without hashLength/elementCount the default length is
+ *   {@link DEFAULT_HASH_LENGTH} (6; it was 4 before el-4rgbi0).
+ * - checkCollision is a read-only pre-check against already persisted IDs,
+ *   not a reservation: two concurrent generations can return the same ID, and
+ *   the later insert then fails with ALREADY_EXISTS.
  */
 
 import { ValidationError, ConstraintError, ConflictError } from '../errors/error.js';
@@ -27,6 +45,18 @@ export const MIN_HASH_LENGTH = 3;
 
 /** Maximum hash length */
 export const MAX_HASH_LENGTH = 8;
+
+/**
+ * Hash length used when neither `hashLength` nor `elementCount` is configured.
+ *
+ * Callers without an IdGeneratorConfig usually also have no collision check.
+ * With uniform digits the probability that one new ID equals one of N existing
+ * IDs is about N / 36^L. For N = 10,000 that is ~0.0005% at L = 6
+ * (36^6 ≈ 2.18e9) versus ~0.6% at the former default L = 4 (36^4 = 1,679,616;
+ * ~3% with the pre-el-4rgbi0 high-order-digit bias). Callers that need a
+ * collision guarantee against persisted data must still pass checkCollision.
+ */
+export const DEFAULT_HASH_LENGTH = 6;
 
 /** Maximum hierarchy depth (root + 3 child levels) */
 export const MAX_HIERARCHY_DEPTH = 3;
@@ -504,14 +534,14 @@ export async function sha256(input: string): Promise<Uint8Array> {
 }
 
 /**
- * Converts a byte array to Base36 string
+ * Converts a byte array to a variable-length Base36 string (no leading zeros).
+ *
+ * Full rendering of the big-endian integer. Its leading characters are not
+ * uniform for random input, so ID hashes use {@link toBase36Digits} instead.
  */
 export function toBase36(bytes: Uint8Array): string {
   // Convert bytes to a BigInt
-  let num = BigInt(0);
-  for (const byte of bytes) {
-    num = (num << BigInt(8)) | BigInt(byte);
-  }
+  let num = bytesToBigInt(bytes);
 
   // Convert to base36
   if (num === BigInt(0)) {
@@ -530,11 +560,49 @@ export function toBase36(bytes: Uint8Array): string {
 }
 
 /**
- * Truncates a hash string to specified length
+ * Truncates a hash string to specified length (keeps the leading characters).
+ *
+ * Note: generateId no longer uses `truncateHash(toBase36(digest), L)`; taking
+ * the leading digits of a variable-length base36 rendering is biased (see the
+ * module header). It is kept as an exported utility for compatibility.
  */
 export function truncateHash(hash: string, length: number): string {
   const clampedLength = Math.max(MIN_HASH_LENGTH, Math.min(MAX_HASH_LENGTH, length));
   return hash.substring(0, clampedLength);
+}
+
+/** Converts a byte array (big-endian) to a non-negative BigInt */
+function bytesToBigInt(bytes: Uint8Array): bigint {
+  let num = BigInt(0);
+  for (const byte of bytes) {
+    num = (num << BigInt(8)) | BigInt(byte);
+  }
+  return num;
+}
+
+/**
+ * Renders the low-order `length` base36 digits of a byte array, zero-padded.
+ *
+ * Equivalent to `(D mod 36^L)` written in base36 with exactly L characters,
+ * where D is the big-endian integer value of `bytes` and L is `length`
+ * clamped to [MIN_HASH_LENGTH, MAX_HASH_LENGTH].
+ *
+ * For a uniform 256-bit digest, write 2^256 = q·36^L + r. Then r residues occur
+ * q+1 times and the rest q times, so the relative excess of the pair-collision
+ * probability over uniform (36^L · Σp² − 1) is r(36^L − r) / 2^512, at most
+ * ~5.03e-131 for L ≤ 8. Every character position, including the first, is
+ * therefore uniform for practical purposes; `0` may appear in any position.
+ */
+export function toBase36Digits(bytes: Uint8Array, length: number): string {
+  const clampedLength = Math.max(MIN_HASH_LENGTH, Math.min(MAX_HASH_LENGTH, length));
+  let num = bytesToBigInt(bytes);
+  const base = BigInt(36);
+  let result = '';
+  for (let i = 0; i < clampedLength; i++) {
+    result = BASE36_CHARS[Number(num % base)] + result;
+    num = num / base;
+  }
+  return result;
 }
 
 // ============================================================================
@@ -542,8 +610,22 @@ export function truncateHash(hash: string, length: number): string {
 // ============================================================================
 
 /**
- * Birthday paradox thresholds for ~1% collision probability
- * These are more conservative than 50% collision thresholds
+ * Adaptive length bands: length L is used while elementCount < upper bound.
+ *
+ * Collision model (uniform digits, which generateId provides since el-4rgbi0):
+ * with N existing IDs and S = 36^L possible hashes,
+ * - one new ID equals an existing one with probability ≈ N / S
+ *   (at each band's upper bound: L3 0.21%, L4 0.030%, L5 0.0050%,
+ *   L6 0.0009%, L7 0.0001%);
+ * - at least one pair among N independently generated IDs collides with
+ *   probability ≈ 1 − exp(−N(N−1) / 2S) (at the upper bounds: L3 ~10.1%,
+ *   L4 ~7.2%, L5 ~7.2%, L6 ~8.8%, L7 ~6.2%).
+ * The bands therefore do NOT give "~1% collision probability" for a whole
+ * population; they are sized so that per-insert collisions are rare and are
+ * resolved by `checkCollision` (nonce retry, then length increase). Without a
+ * checkCollision callback those collisions are not detected. (Before
+ * el-4rgbi0, high-order-digit bias made both figures ~5.05x worse; see
+ * docs/workspace/id-base36-bias-el-45m5h/.) Thresholds are unchanged.
  */
 const LENGTH_THRESHOLDS: [number, number][] = [
   [3, 100], // Length 3 for 0-100 elements
@@ -570,21 +652,38 @@ export function calculateIdLength(elementCount: number): number {
 // ID Generation
 // ============================================================================
 
-/**
- * Generates a hash from ID components
- */
-export async function generateIdHash(components: IdComponents): Promise<string> {
-  // Concatenate components with separator
-  const input = [
+/** Builds the SHA-256 input string for ID components */
+function idHashInput(components: IdComponents): string {
+  return [
     components.identifier,
     components.createdBy,
     components.timestampNs.toString(),
     components.nonce.toString(),
   ].join('|');
+}
 
-  // Hash and encode
-  const hashBytes = await sha256(input);
+/**
+ * Generates the full variable-length Base36 hash from ID components.
+ *
+ * Returns `toBase36(sha256(input))`. generateId does not take a prefix of this
+ * string (that was biased before el-4rgbi0); it uses {@link generateIdHashDigits}.
+ */
+export async function generateIdHash(components: IdComponents): Promise<string> {
+  const hashBytes = await sha256(idHashInput(components));
   return toBase36(hashBytes);
+}
+
+/**
+ * Generates the fixed-length ID hash used by generateId: the low-order
+ * `length` base36 digits of SHA-256 over the components (see
+ * {@link toBase36Digits}). Deterministic for identical components and length.
+ */
+export async function generateIdHashDigits(
+  components: IdComponents,
+  length: number
+): Promise<string> {
+  const hashBytes = await sha256(idHashInput(components));
+  return toBase36Digits(hashBytes, length);
 }
 
 /**
@@ -613,11 +712,16 @@ function getTimestampNs(date?: Date): bigint {
  * Algorithm:
  * 1. Concatenate identifier, createdBy, timestamp, nonce
  * 2. Compute SHA256 hash
- * 3. Encode as Base36
- * 4. Truncate to adaptive length
- * 5. Check for collision
- * 6. If collision, increment nonce and retry
- * 7. If nonce exhausted, increase length and retry
+ * 3. Take the low-order L base36 digits (D mod 36^L, zero-padded), where L is
+ *    `hashLength`, else calculateIdLength(elementCount), else
+ *    DEFAULT_HASH_LENGTH (6)
+ * 4. Check for collision (only if `checkCollision` is provided)
+ * 5. If collision, increment nonce and retry
+ * 6. If nonce exhausted, increase length and retry
+ *
+ * `checkCollision` only detects IDs that are already visible to the callback
+ * when it runs. It does not reserve the returned ID: two overlapping calls can
+ * return the same ID, and the second insert then fails with ALREADY_EXISTS.
  *
  * @param input - Input for ID generation
  * @param config - Configuration options including metrics and logging
@@ -630,7 +734,7 @@ export async function generateId(
   const {
     hashLength = config.elementCount !== undefined
       ? calculateIdLength(config.elementCount)
-      : MIN_HASH_LENGTH + 1, // Default to 4 for reasonable collision resistance
+      : DEFAULT_HASH_LENGTH,
     checkCollision,
     metrics,
     logger,
@@ -667,9 +771,8 @@ export async function generateId(
         nonce,
       };
 
-      const fullHash = await generateIdHash(components);
-      const truncatedHash = truncateHash(fullHash, currentLength);
-      const id = `${ID_PREFIX}-${truncatedHash}` as ElementId;
+      const hashDigits = await generateIdHashDigits(components, currentLength);
+      const id = `${ID_PREFIX}-${hashDigits}` as ElementId;
 
       // If no collision checker provided, assume no collision
       if (!checkCollision) {

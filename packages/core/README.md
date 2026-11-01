@@ -93,7 +93,9 @@ Collision-resistant, hierarchical, human-readable IDs:
 |--------|-------------|
 | `generateId(input)` | Create a root ID from identifier + createdBy |
 | `generateChildId(parentId, childNumber)` | Create a scoped child ID |
-| `generateIdHash(components)` | Hash from ID components (identifier, createdBy, timestampNs, nonce) |
+| `generateIdHash(components)` | Full variable-length base36 SHA-256 hash of ID components (identifier, createdBy, timestampNs, nonce) |
+| `generateIdHashDigits(components, length)` | Fixed-length hash used by `generateId`: low-order base36 digits, zero-padded |
+| `toBase36Digits(bytes, length)` | Low-order `length` base36 digits of a byte array (`D mod 36^L`), zero-padded |
 | `parseId(id)` | Extract root, depth, components |
 | `getIdRoot(id)` | Get the root segment |
 | `getIdParent(id)` | Get the parent ID |
@@ -101,6 +103,13 @@ Collision-resistant, hierarchical, human-readable IDs:
 | `isValidIdFormat(id)` | Validate ID format |
 | `isValidRootId(id)` | Check if root-level ID |
 | `isValidHierarchicalId(id)` | Check if hierarchical ID |
+
+Root IDs match `/^el-[0-9a-z]{3,8}$/`. The hash is the low-order L base36 digits
+of SHA-256, so digits are uniform and a leading `0` is possible. L is `hashLength`
+if given, otherwise `calculateIdLength(elementCount)`, otherwise
+`DEFAULT_HASH_LENGTH` (6). `checkCollision` is a read-only pre-check, not a
+reservation: concurrent creates can still produce the same ID, and the second
+insert then fails with `ALREADY_EXISTS`. See `docs/workspace/id-generator-contract.md`.
 
 ### Utilities
 

@@ -4,7 +4,15 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createStorage, initializeSchema, type StorageBackend } from '@stoneforge/storage';
-import { createEntity, EntityTypeValue, type EntityId, type Channel } from '@stoneforge/core';
+import {
+  createEntity,
+  DEFAULT_HASH_LENGTH,
+  EntityTypeValue,
+  toBase36Digits,
+  type ElementId,
+  type EntityId,
+  type Channel,
+} from '@stoneforge/core';
 import { createOrchestratorAPI, getAgentMetadata, type OrchestratorAPI } from './orchestrator-api.js';
 
 describe('Agent registration ID collisions', () => {
@@ -39,6 +47,7 @@ describe('Agent registration ID collisions', () => {
         // Force only nonce zero for the seed and target. Other candidates retain
         // native SHA-256; the generator, collision lookup and SQLite are real.
         const digest = crypto.subtle.digest.bind(crypto.subtle);
+        const forcedDigest = new Uint8Array(32).fill(0x42);
         let forced = 0;
         let resolvedCandidates = 0;
         const spy = spyOn(crypto.subtle, 'digest').mockImplementation(async (algorithm, data) => {
@@ -48,17 +57,20 @@ describe('Agent registration ID collisions', () => {
           if (isTarget && nonce !== '0') resolvedCandidates++;
           if (nonce === '0' && (identifier === 'occupied' || isTarget)) {
             forced++;
-            return new Uint8Array(32).fill(0x42).buffer;
+            return forcedDigest.slice().buffer;
           }
           return digest(algorithm, data);
         });
         try {
           const seed = await createEntity({ name: 'occupied', entityType: EntityTypeValue.SYSTEM, createdBy: creator });
           const savedSeed = await api.create(seed);
-          // Unconfigured factories use four hash characters; configured small
-          // databases use three. Occupy both so changing length cannot by itself
-          // satisfy the test: the generator must consult SQLite and advance nonce.
-          const shortSeed = { ...seed, id: seed.id.slice(0, -1) as typeof seed.id, name: 'occupied-short' };
+          // Unconfigured factories use DEFAULT_HASH_LENGTH (6) hash characters;
+          // configured small databases use three. Occupy both so changing length
+          // cannot by itself satisfy the test: the generator must consult SQLite
+          // and advance nonce. (Since el-4rgbi0 the hash is the low-order digits,
+          // so the 3-char ID is derived from the digest, not a prefix of seed.id.)
+          expect(seed.id).toBe(`el-${toBase36Digits(forcedDigest, DEFAULT_HASH_LENGTH)}` as ElementId);
+          const shortSeed = { ...seed, id: `el-${toBase36Digits(forcedDigest, 3)}` as typeof seed.id, name: 'occupied-short' };
           const savedShortSeed = await api.create(shortSeed);
           const input = { name: 'candidate', createdBy: creator };
           const agent = role === 'director' ? await api.registerDirector(input)

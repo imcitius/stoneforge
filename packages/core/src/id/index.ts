@@ -24,6 +24,7 @@ export {
   BASE36_CHARS,
   MIN_HASH_LENGTH,
   MAX_HASH_LENGTH,
+  DEFAULT_HASH_LENGTH,
   MAX_HIERARCHY_DEPTH,
   MAX_NONCE,
   ROOT_ID_PATTERN,
@@ -44,10 +45,12 @@ export {
   // Hash utilities
   sha256,
   toBase36,
+  toBase36Digits,
   truncateHash,
 
   // ID Generation
   generateIdHash,
+  generateIdHashDigits,
   generateId,
   generateChildId,
 

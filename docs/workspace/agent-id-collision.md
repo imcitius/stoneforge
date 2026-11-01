@@ -159,3 +159,16 @@ build/lint/test, browser/packaged GUI, live providers and cross-platform checks
 were not run. Installed app, live sessions/agents, maintenance and the el-4bwuz
 worktree/failed acceptance remain unchanged. Historical collision attribution is
 still unproven. Hand off through normal lifecycle; no merge approval or delivery.
+
+## Update — el-4rgbi0 (2026-11-01)
+
+The text above describes the generator as it stood at el-2zj6n and is kept as
+history. Since el-4rgbi0, core takes the **low-order** L base36 digits of the
+SHA-256 digest (`D mod 36^L`, zero-padded) instead of truncating the leading digits.
+Unconfigured factories now use `DEFAULT_HASH_LENGTH` = 6 instead of four characters.
+Configured length, collision lookup and nonce/length escalation are unchanged.
+
+The collision regression in this report assumed that the 3-character ID was a
+prefix of the default-length ID. It now derives both occupied IDs from the forced
+digest, so its intent is preserved. The reservation and atomicity limits stated
+above still apply. See `id-generator-contract.md`.
