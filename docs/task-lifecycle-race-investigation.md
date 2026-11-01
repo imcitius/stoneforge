@@ -2141,3 +2141,38 @@ branches or repeatedly rerun until green. Normal review rejection preserves the
 branch/evidence; task handoff is unavailable for review-status tasks by its current
 ownership contract. No production edits or installed/live operations by steward.
 
+## Spawn failure after provider handle acquisition — el-4f7pc9, 2026-11-01
+
+Steward observation from el-56khe re-review, reproduced before any fix. Spawner
+`spawn()` rejects without returning a session, so its caller (SessionManager, CLI)
+cannot terminate the internal session. Before this change two paths orphaned an
+already acquired provider handle:
+
+- **Headless**: `waitForInit` rejection after `headlessProvider.spawn()` returned —
+  init timeout on a silent stream, resume failure (`error_during_execution` with an
+  open stream) or stream end before init — marked the session terminated but never
+  called `HeadlessSession.close()`. For Claude, `close()` is what releases the SDK
+  query/subprocess (el-1mo5c); the reader loop also stayed blocked on a silent
+  stream, so the five-second retention timer was never scheduled.
+- **Interactive**: an exception after `interactiveProvider.spawn()` returned
+  (`getSessionId`, `onData`/`onExit` registration, transition) never called `kill()`.
+
+Fix (Spawner only): the headless catch calls the shared `closeHeadlessSession()`
+latch once (no interrupt), so an earlier automatic close (provider `error` message)
+is not repeated; the interactive catch calls `kill()` only if exit was not already
+observed. Cleanup errors are logged (`spawner` warn) and never replace the original
+spawn error. A thrown headless close leaves the latch unset, so an explicit
+`terminate(id)` on the retained terminated session retries close (el-4bwuz).
+Retention, termination confirmation, SessionManager, providers and el-56khe HTTP
+admission/receipt behavior are unchanged. A successful `close()`/`kill()` is the
+cleanup request contract, not proof that every external process stopped.
+
+Evidence: `packages/smithy/src/runtime/spawner-init-cleanup.test.ts` (Vitest, real
+Spawner, inert mocked handles). Baseline on unmodified source: 7 fail / 3 pass
+(`/tmp/el-4f7pc9-repro-baseline.keep.log`); with fix 10/10, focused
+spawner-terminate + Claude headless-close + new file 47/47; Bun spawner77/77,
+SessionManager92/92; smithy typecheck exit0. One pinned-Node (v22.23.3) `pnpm
+check:merge` on 30789ab: **194/194, exit0, 325.87s** (Smithy Node 375/375), log
+`/tmp/el-4f7pc9-gate.log`. Root build/lint, Playwright, packaged GUI and live
+providers were not run. Independent steward review and approved local delivery
+remain required; installed Desktop unchanged.

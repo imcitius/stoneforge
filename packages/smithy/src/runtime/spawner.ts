@@ -1025,6 +1025,17 @@ export class SpawnerServiceImpl implements SpawnerService {
       if (!session.endedAt) {
         session.endedAt = createTimestamp();
       }
+      // The rejected spawn returns no session, so nobody else will release an
+      // acquired handle (silent stream, resume failure, or stream end before
+      // init). Close once via shared bookkeeping; a failed close stays
+      // retryable through terminate() and never replaces the original error.
+      if (session.headlessSession) {
+        try {
+          this.closeHeadlessSession(session);
+        } catch (cleanupError) {
+          spawnerLogger.warn(`Failed to close headless session ${session.id} after spawn failure: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`);
+        }
+      }
       throw error;
     }
   }
@@ -1233,6 +1244,16 @@ export class SpawnerServiceImpl implements SpawnerService {
       this.transitionStatus(session, 'running');
       session.startedAt = createTimestamp();
     } catch (error) {
+      // Kill an acquired PTY that the rejected spawn would otherwise orphan,
+      // unless its exit was already observed. A kill failure must not replace
+      // the original error.
+      if (session.interactiveSession && session.status !== 'terminated') {
+        try {
+          session.interactiveSession.kill();
+        } catch (cleanupError) {
+          spawnerLogger.warn(`Failed to kill interactive session ${session.id} after spawn failure: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`);
+        }
+      }
       if (session.status !== 'terminated') {
         this.transitionStatus(session, 'terminated');
       }
