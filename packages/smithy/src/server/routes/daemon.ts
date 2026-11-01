@@ -216,6 +216,7 @@ export function createDaemonRoutes(services: Services) {
         sessionIdleTimeoutMs?: number;
         idleSessionWithoutTaskMs?: number;
         orphanResumeBackoffMs?: number;
+        releaseRateLimitedTasks?: boolean;
       };
 
       for (const key of ['sessionIdleTimeoutMs', 'idleSessionWithoutTaskMs', 'orphanResumeBackoffMs'] as const) {
@@ -223,6 +224,10 @@ export function createDaemonRoutes(services: Services) {
         if (value !== undefined && (typeof value !== 'number' || !Number.isFinite(value) || value < 0)) {
           return c.json({ error: { code: 'INVALID_INPUT', message: `${key} must be a non-negative number of milliseconds` } }, 400);
         }
+      }
+
+      if (body.releaseRateLimitedTasks !== undefined && typeof body.releaseRateLimitedTasks !== 'boolean') {
+        return c.json({ error: { code: 'INVALID_INPUT', message: 'releaseRateLimitedTasks must be a boolean' } }, 400);
       }
 
       dispatchDaemon.updateConfig(body);
@@ -233,6 +238,7 @@ export function createDaemonRoutes(services: Services) {
       if (body.sessionIdleTimeoutMs !== undefined) persisted.sessionIdleTimeoutMs = body.sessionIdleTimeoutMs;
       if (body.idleSessionWithoutTaskMs !== undefined) persisted.idleSessionWithoutTaskMs = body.idleSessionWithoutTaskMs;
       if (body.orphanResumeBackoffMs !== undefined) persisted.orphanResumeBackoffMs = body.orphanResumeBackoffMs;
+      if (body.releaseRateLimitedTasks !== undefined) persisted.releaseRateLimitedTasks = body.releaseRateLimitedTasks;
       if (Object.keys(persisted).length > 0) {
         saveDaemonConfigOverrides(persisted);
       }

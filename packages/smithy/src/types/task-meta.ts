@@ -140,6 +140,21 @@ export interface OrchestratorTaskMeta {
   readonly lastHungSession?: HungSessionRecord;
 
   /**
+   * Last worker/steward session on this task for which a provider rate limit
+   * was detected. The next orphan resume of that agent after such a session is
+   * not counted toward `resumeCount` / `stewardRecoveryCount`, and a hang stop
+   * of that session is not counted toward the no-progress guard.
+   */
+  readonly lastRateLimitedSession?: RateLimitedSessionRecord;
+
+  /**
+   * Last time the dispatch daemon released this task from an executor whose
+   * provider was rate-limited (no live session), so another executor with
+   * capacity could take it. Branch and worktree are kept.
+   */
+  readonly lastRateLimitRelease?: RateLimitReleaseRecord;
+
+  /**
    * Set of issue types that have been reported for this task.
    * Prevents duplicate messages/fix tasks for the same type of issue.
    * Format: "test_failure", "merge_conflict", etc.
@@ -269,6 +284,33 @@ export interface HungSessionRecord {
   readonly idleMs: number;
 }
 
+/** A worker/steward session that hit a provider rate limit. */
+export interface RateLimitedSessionRecord {
+  /** Internal session ID */
+  readonly sessionId: string;
+  readonly providerSessionId?: string;
+  readonly agentId: EntityId;
+  readonly agentRole: 'worker' | 'steward';
+  /** Provider whose limit was reported (e.g. 'codex', 'claude-code') */
+  readonly provider?: string;
+  readonly detectedAt: Timestamp;
+  /** Tracked reset time of the limit (after floor/cap clamping) */
+  readonly resetsAt?: Timestamp;
+}
+
+/** A task released from a rate-limited executor (no live session). */
+export interface RateLimitReleaseRecord {
+  readonly fromAgentId: EntityId;
+  readonly fromAgentRole: 'worker' | 'steward';
+  /** Provider of the released executor */
+  readonly provider?: string;
+  /** Internal session ID of that executor's last session on the task */
+  readonly sessionId?: string;
+  readonly releasedAt: Timestamp;
+  /** Soonest reset of the executor's limit at release time */
+  readonly resetsAt?: string;
+}
+
 // ============================================================================
 // Handoff History Entry
 // ============================================================================
@@ -312,6 +354,16 @@ export interface TaskSessionHistoryEntry {
   readonly startedAt: Timestamp;
   /** Timestamp when the session ended (undefined if still running) */
   readonly endedAt?: Timestamp;
+  /**
+   * Why the session ended, when the dispatch daemon knows it. 'rate-limited':
+   * a provider rate limit was detected in this session; it is not counted
+   * toward the resume/recovery caps.
+   */
+  readonly endReason?: 'rate-limited';
+  /** When the provider rate limit was detected in this session */
+  readonly rateLimitedAt?: Timestamp;
+  /** Tracked reset time of that limit */
+  readonly rateLimitResetsAt?: Timestamp;
 }
 
 // ============================================================================
@@ -521,6 +573,50 @@ export function closeTaskSessionHistory(
   return updateOrchestratorTaskMeta(existingMetadata, {
     sessionHistory: updatedHistory,
   });
+}
+
+/**
+ * Records on a session history entry that a provider rate limit was detected
+ * in that session (`endReason: 'rate-limited'`). Unknown session IDs leave the
+ * history unchanged; an entry keeps its first detection time.
+ */
+export function markTaskSessionRateLimited(
+  existingMetadata: Record<string, unknown> | undefined,
+  sessionId: string,
+  detectedAt: Timestamp,
+  resetsAt?: Timestamp,
+): Record<string, unknown> {
+  const existing = getOrchestratorTaskMeta(existingMetadata);
+  const existingHistory = existing?.sessionHistory ?? [];
+  if (!existingHistory.some((entry) => entry.sessionId === sessionId)) return existingMetadata ?? {};
+  const updatedHistory = existingHistory.map((entry) => {
+    if (entry.sessionId !== sessionId) return entry;
+    return {
+      ...entry,
+      endReason: 'rate-limited' as const,
+      rateLimitedAt: entry.rateLimitedAt ?? detectedAt,
+      ...(resetsAt ? { rateLimitResetsAt: resetsAt } : {}),
+    };
+  });
+  return updateOrchestratorTaskMeta(existingMetadata, { sessionHistory: updatedHistory });
+}
+
+/**
+ * Returns the rate-limit record when the agent's most recent session on this
+ * task hit a provider rate limit, i.e. that session must not count toward the
+ * resume/recovery caps. Matches the agent's last session-history entry (or,
+ * without history, the task's recorded provider session ID).
+ */
+export function findRateLimitedPreviousSession(
+  meta: OrchestratorTaskMeta | undefined,
+  agentId: EntityId,
+): RateLimitedSessionRecord | undefined {
+  const record = meta?.lastRateLimitedSession;
+  if (!record || record.agentId !== agentId) return undefined;
+  const last = [...(meta?.sessionHistory ?? [])].reverse().find((entry) => entry.agentId === agentId);
+  if (last) return last.sessionId === record.sessionId ? record : undefined;
+  const current = meta?.sessionId;
+  return current !== undefined && (current === record.sessionId || current === record.providerSessionId) ? record : undefined;
 }
 
 // ============================================================================

@@ -49,7 +49,7 @@ import { createDispatchService, type DispatchService } from './dispatch-service.
 import type { SessionManager, SessionRecord, StartSessionOptions } from '../runtime/session-manager.js';
 import type { WorktreeManager, CreateWorktreeResult, CreateWorktreeOptions } from '../git/worktree-manager.js';
 import type { StewardScheduler } from './steward-scheduler.js';
-import { getOrchestratorTaskMeta, updateOrchestratorTaskMeta, appendTaskSessionHistory, type TaskSessionHistoryEntry } from '../types/task-meta.js';
+import { getOrchestratorTaskMeta, updateOrchestratorTaskMeta, appendTaskSessionHistory, findRateLimitedPreviousSession, type TaskSessionHistoryEntry } from '../types/task-meta.js';
 
 // Mock ensureTargetBranchExists to prevent real git remote operations in tests.
 // Injected via DispatchDaemonConfig to avoid mock.module() which leaks globally in Bun.
@@ -5255,10 +5255,15 @@ describe('recoverOrphanedTask - rapid-exit detection', () => {
     // Wait for async handler to complete
     await new Promise(resolve => setTimeout(resolve, 50));
 
-    // resumeCount should be rolled back to 1 (rate limit detected from assistant message)
+    // The limited session is recorded on the task (el-5x4x9v): resumeCount is
+    // not rolled back, but the next resume of this worker is not counted.
     updatedTask = await api.get<Task>(task.id);
     meta = getOrchestratorTaskMeta(updatedTask!.metadata as Record<string, unknown>);
-    expect(meta?.resumeCount).toBe(1);
+    expect(meta?.resumeCount).toBe(2);
+    const lastEntry = meta?.sessionHistory?.[meta.sessionHistory.length - 1];
+    expect(meta?.lastRateLimitedSession?.sessionId).toBe(lastEntry?.sessionId);
+    expect(lastEntry?.endReason).toBe('rate-limited');
+    expect(findRateLimitedPreviousSession(meta, workerId)?.sessionId).toBe(lastEntry?.sessionId);
   });
 
   test('rapid-exit recovery preserves the absolute provider reset rather than rolling clock text to tomorrow', async () => {
@@ -5284,7 +5289,9 @@ describe('recoverOrphanedTask - rapid-exit detection', () => {
       // Existing minimum safety floor may apply, but never a new day-long pause.
       for (const limit of limits) expect(new Date(limit.resetsAt).getTime()).toBe(now + RATE_LIMIT_MINIMUM_FLOOR_MS);
       const updated = await api.get<Task>(task.id);
-      expect(getOrchestratorTaskMeta(updated!.metadata)?.resumeCount).toBe(1);
+      // Recorded as a rate-limited session (next resume uncounted), not rolled back.
+      expect(getOrchestratorTaskMeta(updated!.metadata)?.resumeCount).toBe(2);
+      expect(getOrchestratorTaskMeta(updated!.metadata)?.lastRateLimitedSession?.agentId).toBe(workerId);
     } finally {
       Date.now = originalNow;
     }

@@ -346,6 +346,8 @@ The daemon automatically detects and handles provider rate limits:
 3. **Fallback** — only executables compatible with the agent's provider can be selected. Legacy unnamed wrappers in a fallback chain are treated as Claude wrappers; other providers can use their named binary, workspace default path or explicit per-agent path.
 4. **Auto-pause** — the daemon skips limited agents and continues available providers. Explicit manual sleep pauses all providers.
 5. **Auto-resume** — expired entries allow the next poll to try again. Historical failed sessions and silent exits never renew a quota pause; ordinary failures use the bounded orphan-recovery path.
+6. **Budgets** — a worker or steward session in which a provider limit is detected is recorded on its task (session history `endReason: rate-limited`). The next orphan resume of that agent is not counted toward `maxResumeAttemptsBeforeRecovery` or the merge steward recovery cap, and a hang stop of that session is not counted as no progress.
+7. **Release** — when a worker's or merge steward's provider is limited, it has no live session, and another executor of the same kind with an unlimited provider is free, the task is released (branch and worktree kept; worker tasks return to open, reviews to pending) so dispatch assigns it to that executor. Disable with `releaseRateLimitedTasks: false`.
 
 Known reset times use the existing 15-minute minimum and 24-hour maximum. Messages
 without a parseable reset use the existing fallback (one hour, or six hours for a
@@ -407,6 +409,7 @@ The daemon's behavior can be tuned through configuration:
 | `sessionIdleTimeoutMs` | `1800000` | No provider output for this long with an assigned task: worker/steward session is treated as hung, stopped and resumed via orphan recovery (`0` disables) |
 | `idleSessionWithoutTaskMs` | `600000` | Idle worker/steward session without any assigned task is ended (`0` disables) |
 | `orphanResumeBackoffMs` | `60000` | Base delay before resuming the same orphaned task again: `base * 2^n` after the previous session started, capped at 30 min (`0` disables) |
+| `releaseRateLimitedTasks` | `true` | Release a task held by a rate-limited worker/merge steward without a live session when another executor with an unlimited provider is free |
 | `directorInboxForwardingEnabled` | `true` | Auto-forward inbox messages to director's session |
 | `directorInboxIdleThresholdMs` | `120000` | Idle time before forwarding to director (2 min) |
 | `directorWatchdogEnabled` | `true` | Nudge idle running directors with outstanding work |

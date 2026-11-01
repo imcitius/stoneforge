@@ -378,7 +378,7 @@ describe('(c) rate-limit and crash paths do not touch the counter', () => {
     expect(holdMessages()).toHaveLength(0);
   });
 
-  test('rapid exit with an explicit limit message rolls back resumeCount only; counter untouched', async () => {
+  test('rapid exit with an explicit limit message: the session is recorded as rate-limited and its resume is not counted; counter untouched', async () => {
     // Counter semantics only: the session crashes right after it started, which the
     // orphan resume back-off (el-4dcv06, covered in dispatch-liveness) would delay.
     const s = await services({ orphanResumeBackoffMs: 0 });
@@ -395,9 +395,18 @@ describe('(c) rate-limit and crash paths do not touch the counter', () => {
     resumed[0].events.emit('exit', 1, null);
     await new Promise((resolve) => setTimeout(resolve, 100));
     const after = metaOf(await current());
-    expect(after.resumeCount).toBe(0);
+    // The resume after the crash is counted; the limited session is recorded
+    // instead of rolling the counter back (el-5x4x9v).
+    expect(after.resumeCount).toBe(1);
+    const limitedSession = after.sessionHistory![after.sessionHistory!.length - 1];
+    expect(after.lastRateLimitedSession?.sessionId).toBe(limitedSession.sessionId);
+    expect(limitedSession.endReason).toBe('rate-limited');
     expect(after.noProgress).toEqual(beforeCrash.noProgress);
     expect(s.daemon.getRateLimitStatus().limits.length).toBeGreaterThan(0);
+    // Resuming after the limit (here: a manual wake) does not count.
+    s.daemon.wake();
+    expect((await s.daemon.recoverOrphanedAssignments()).processed).toBe(1);
+    expect(metaOf(await current()).resumeCount).toBe(1);
     expect(holdMessages()).toHaveLength(0);
   });
 });

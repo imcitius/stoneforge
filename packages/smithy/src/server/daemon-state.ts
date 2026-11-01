@@ -23,6 +23,8 @@ interface DaemonConfigOverrides {
   idleSessionWithoutTaskMs?: number;
   /** Orphan resume back-off base delay (ms, 0 disables). */
   orphanResumeBackoffMs?: number;
+  /** Release tasks of rate-limited executors to free capacity (el-5x4x9v). */
+  releaseRateLimitedTasks?: boolean;
 }
 
 interface DaemonState {

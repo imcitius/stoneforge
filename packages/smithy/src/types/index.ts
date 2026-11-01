@@ -57,6 +57,8 @@ export {
   type NoProgressState,
   type DispatchHold,
   type HungSessionRecord,
+  type RateLimitedSessionRecord,
+  type RateLimitReleaseRecord,
   type TaskSessionHistoryEntry,
   type SyncResultMeta,
   // Utilities
@@ -66,6 +68,8 @@ export {
   isOrchestratorTaskMeta,
   appendTaskSessionHistory,
   closeTaskSessionHistory,
+  markTaskSessionRateLimited,
+  findRateLimitedPreviousSession,
   // Naming utilities
   generateBranchName,
   generateWorktreePath,

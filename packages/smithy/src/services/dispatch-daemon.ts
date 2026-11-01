@@ -71,6 +71,11 @@ import {
   type DispatchHold,
   type ProgressFingerprint,
   type HungSessionRecord,
+  type RateLimitedSessionRecord,
+  type RateLimitReleaseRecord,
+  markTaskSessionRateLimited,
+  findRateLimitedPreviousSession,
+  closeTaskSessionHistory,
 } from '../types/task-meta.js';
 import {
   computeProgressFingerprint,
@@ -98,6 +103,13 @@ import {
 } from './task-workspace.js';
 
 const logger = createLogger('dispatch-daemon');
+
+/** Ephemeral worker or merge steward, the executors dispatch assigns tasks to. */
+function isExecutorOfKind(agent: AgentEntity, kind: 'worker' | 'merge-steward'): boolean {
+  const meta = getAgentMetadata(agent);
+  if (kind === 'worker') return meta?.agentRole === 'worker' && (meta as WorkerMetadata).workerMode === 'ephemeral';
+  return meta?.agentRole === 'steward' && (meta as StewardMetadata).stewardFocus === 'merge';
+}
 
 // ============================================================================
 // Constants
@@ -329,6 +341,14 @@ export interface DispatchDaemonConfig {
   readonly orphanResumeBackoffMs?: number;
 
   /**
+   * When an ephemeral worker's or merge steward's provider is rate-limited,
+   * its task has no live session, and another executor of the same kind with
+   * an unlimited provider is free, release the task (branch and worktree
+   * kept) so dispatch can assign it to that executor. Default: true.
+   */
+  readonly releaseRateLimitedTasks?: boolean;
+
+  /**
    * Callback fired when a session is started by the daemon.
    * Allows the server to attach event savers and save the initial prompt.
    */
@@ -409,6 +429,7 @@ interface NormalizedConfig {
   sessionIdleTimeoutMs: number;
   idleSessionWithoutTaskMs: number;
   orphanResumeBackoffMs: number;
+  releaseRateLimitedTasks: boolean;
   onSessionStarted?: OnSessionStartedCallback;
   projectRoot: string;
   directorInboxForwardingEnabled: boolean;
@@ -612,6 +633,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   private pollIntervalHandle?: NodeJS.Timeout;
   private currentPollCycle?: Promise<void>;
   private rateLimitSleepTimer?: NodeJS.Timeout;
+  /** In-flight writes of rate-limited session records (see trackRateLimitedSession). */
+  private readonly pendingRateLimitRecords = new Set<Promise<void>>();
   private lastWakeAt?: number;
   private manualSleepUntil?: number;
   private dispatchAgents: AgentEntity[] = [];
@@ -689,8 +712,11 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     this.operationLog = operationLog;
     this.rateLimitTracker = createRateLimitTracker(settingsService);
     this.sessionManager.setRateLimitHandler?.((session, data) => {
-      this.handleRateLimitDetected(data.executablePath ?? session.provider ?? 'claude-code',
-        data.resetsAt ?? getFallbackResetTime(data.message ?? ''), session.provider);
+      const resetsAt = data.resetsAt ?? getFallbackResetTime(data.message ?? '');
+      this.handleRateLimitDetected(data.executablePath ?? session.provider ?? 'claude-code', resetsAt, session.provider);
+      // Remember the limited session on its task so its end is not counted
+      // toward the resume/recovery caps (el-5x4x9v).
+      this.trackRateLimitedSession(session, this.clampRateLimitReset(resetsAt), session.provider);
     });
     this.emitter = new EventEmitter();
     this.config = this.normalizeConfig(config);
@@ -809,29 +835,37 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   // Rate Limiting
   // ----------------------------------------
 
-  handleRateLimitDetected(executable: string, resetsAt: Date, provider?: string): void {
-    // Clamp reset time to at least RATE_LIMIT_MINIMUM_FLOOR_MS from now.
-    // The rate limit parser can produce reset times that are too short due to
-    // timezone issues or rounding. Premature expiry causes orphan recovery to
-    // proceed and burn through the resume budget.
+  /**
+   * Clamps a parsed reset time to [now + floor, now + cap]. The rate limit
+   * parser can produce reset times that are too short due to timezone issues
+   * or rounding; premature expiry would let orphan recovery proceed and burn
+   * the resume budget.
+   */
+  private clampRateLimitReset(resetsAt: Date, executable?: string): Date {
     const now = Date.now();
     const minimumResetsAt = new Date(now + RATE_LIMIT_MINIMUM_FLOOR_MS);
     const maximumResetsAt = new Date(now + RATE_LIMIT_MAXIMUM_CAP_MS);
-
-    let effectiveResetsAt: Date;
     if (resetsAt.getTime() < minimumResetsAt.getTime()) {
-      effectiveResetsAt = minimumResetsAt;
-      logger.warn(
-        `Rate limit reset time for '${executable}' was too short (${resetsAt.toISOString()}), clamped to minimum floor (${effectiveResetsAt.toISOString()})`
-      );
-    } else if (resetsAt.getTime() > maximumResetsAt.getTime()) {
-      effectiveResetsAt = maximumResetsAt;
-      logger.warn(
-        `Rate limit reset time for '${executable}' was too far in the future (${resetsAt.toISOString()}), clamped to maximum cap (${effectiveResetsAt.toISOString()})`
-      );
-    } else {
-      effectiveResetsAt = resetsAt;
+      if (executable) {
+        logger.warn(
+          `Rate limit reset time for '${executable}' was too short (${resetsAt.toISOString()}), clamped to minimum floor (${minimumResetsAt.toISOString()})`
+        );
+      }
+      return minimumResetsAt;
     }
+    if (resetsAt.getTime() > maximumResetsAt.getTime()) {
+      if (executable) {
+        logger.warn(
+          `Rate limit reset time for '${executable}' was too far in the future (${resetsAt.toISOString()}), clamped to maximum cap (${maximumResetsAt.toISOString()})`
+        );
+      }
+      return maximumResetsAt;
+    }
+    return resetsAt;
+  }
+
+  handleRateLimitDetected(executable: string, resetsAt: Date, provider?: string): void {
+    const effectiveResetsAt = this.clampRateLimitReset(resetsAt, executable);
 
     // Keep limits within the reporting provider. Never apply Claude limits to Codex.
     const key = provider ?? this.executableProvider(executable);
@@ -848,6 +882,73 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       }
     }
     this.operationLog?.write('warn', 'rate-limit', `Rate limit detected for '${key}', resets at ${effectiveResetsAt.toISOString()}`, { executable, provider: key, resetsAt: effectiveResetsAt.toISOString() });
+  }
+
+  /**
+   * Records a provider rate limit seen in a worker/steward session on the
+   * task(s) its agent holds. Tracked as a pending write so orphan recovery,
+   * which decides whether a resume is counted, waits for it.
+   */
+  private trackRateLimitedSession(
+    session: Pick<SessionRecord, 'id' | 'agentId' | 'agentRole' | 'providerSessionId' | 'workerMode'>,
+    resetsAt: Date,
+    provider?: string,
+  ): void {
+    if (session.agentRole !== 'worker' && session.agentRole !== 'steward') return;
+    if (session.agentRole === 'worker' && session.workerMode === 'persistent') return;
+    const pending = this.recordRateLimitedSession(session, resetsAt, provider)
+      .catch((error) => logger.warn(`Failed to record rate-limited session ${session.id}:`, error))
+      .finally(() => { this.pendingRateLimitRecords.delete(pending); });
+    this.pendingRateLimitRecords.add(pending);
+  }
+
+  private async recordRateLimitedSession(
+    session: Pick<SessionRecord, 'id' | 'agentId' | 'agentRole' | 'providerSessionId'>,
+    resetsAt: Date,
+    provider?: string,
+  ): Promise<void> {
+    const role = session.agentRole as 'worker' | 'steward';
+    const assignments = await this.taskAssignment.getAgentTasks(session.agentId, {
+      taskStatus: [TaskStatus.OPEN, TaskStatus.IN_PROGRESS, TaskStatus.REVIEW],
+    });
+    const detectedAt = createTimestamp();
+    for (const { task } of assignments) {
+      const fresh = await this.api.get<Task>(task.id);
+      if (!fresh || fresh.assignee !== session.agentId) continue;
+      const meta = getOrchestratorTaskMeta(fresh.metadata as Record<string, unknown> | undefined);
+      const previous = meta?.lastRateLimitedSession;
+      const record: RateLimitedSessionRecord = previous?.sessionId === session.id
+        ? { ...previous, resetsAt: resetsAt.toISOString() }
+        : {
+          sessionId: session.id,
+          providerSessionId: session.providerSessionId,
+          agentId: session.agentId,
+          agentRole: role,
+          provider,
+          detectedAt,
+          resetsAt: resetsAt.toISOString(),
+        };
+      if (previous?.sessionId === session.id && previous.resetsAt === record.resetsAt &&
+        meta?.sessionHistory?.find((entry) => entry.sessionId === session.id)?.endReason === 'rate-limited') continue;
+      const withHistory = markTaskSessionRateLimited(fresh.metadata as Record<string, unknown> | undefined,
+        session.id, record.detectedAt, record.resetsAt);
+      await this.api.update<Task>(fresh.id, {
+        metadata: updateOrchestratorTaskMeta(withHistory, { lastRateLimitedSession: record }),
+      });
+      if (previous?.sessionId !== session.id) {
+        logger.info(`Provider rate limit in ${role} session ${session.id} on task ${fresh.id}; its end will not count toward the resume/recovery caps`);
+        this.operationLog?.write('info', 'rate-limit', `Rate-limited ${role} session on task ${fresh.id} is not counted toward resume/recovery caps`, {
+          taskId: fresh.id, agentId: session.agentId, sessionId: session.id, provider, resetsAt: record.resetsAt,
+        });
+      }
+    }
+  }
+
+  /** Waits for rate-limited session records still being written. */
+  private async settleRateLimitRecords(): Promise<void> {
+    while (this.pendingRateLimitRecords.size > 0) {
+      await Promise.allSettled([...this.pendingRateLimitRecords]);
+    }
   }
 
   private executableProvider(executable: string): string {
@@ -989,6 +1090,9 @@ export class DispatchDaemonImpl implements DispatchDaemon {
         if (isAgentDisabled(worker)) continue;
         const session = this.sessionManager.getActiveSession(asEntityId(worker.id));
         if (session) continue;
+        // A worker whose provider is rate-limited takes no new task; leave the
+        // task for a worker with capacity instead of selecting it here.
+        if (this.resolveExecutableWithFallback(worker) === 'all_limited') continue;
 
         const unreadItems = this.inboxService.getInbox(asEntityId(worker.id), {
           status: InboxStatus.UNREAD,
@@ -1200,13 +1304,16 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       const stewards = await this.agentRegistry.getStewards();
 
       // Find available stewards (no active session, not disabled)
+      // A steward whose provider is rate-limited is not available: otherwise
+      // it would take a review task off the queue below without starting a
+      // session, leaving it for this cycle instead of another free steward.
       const availableStewards: AgentEntity[] = [];
       for (const steward of stewards) {
         if (isAgentDisabled(steward)) continue;
         const session = this.sessionManager.getActiveSession(asEntityId(steward.id));
-        if (!session) {
-          availableStewards.push(steward);
-        }
+        if (session) continue;
+        if (this.resolveExecutableWithFallback(steward) === 'all_limited') continue;
+        availableStewards.push(steward);
       }
 
       // Separate merge stewards from other stewards
@@ -1344,6 +1451,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     this.emitter.emit('poll:start', 'orphan-recovery');
 
     try {
+      // Whether a resume is counted depends on rate-limit records of the
+      // previous session; never decide while one is still being written.
+      await this.settleRateLimitRecords();
+
       // 1. Get all ephemeral workers
       const workers = await this.agentRegistry.listAgents({
         role: 'worker',
@@ -1378,11 +1489,23 @@ export class DispatchDaemonImpl implements DispatchDaemon {
           logger.debug(
             `All executables rate-limited, skipping orphan recovery for ${worker.name}`
           );
+          // Hand the task to a free executor of another provider instead of
+          // waiting for the reset (el-5x4x9v). Nothing is counted.
+          try {
+            if (await this.releaseFromRateLimitedExecutor(worker, workerTasks[0].task, 'worker')) processed++;
+          } catch (error) {
+            errors++;
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            errorMessages.push(`Release from rate-limited worker ${worker.name}: ${errorMessage}`);
+          }
           continue; // Skip this worker entirely — do NOT increment resumeCount
         }
 
         // 4. Check if the task is stuck in a resume loop
         const taskAssignment = workerTasks[0];
+        // A session that ended because of a provider rate limit is not a
+        // failed attempt: its resume is not counted (el-5x4x9v).
+        const workerLimitEnded = findRateLimitedPreviousSession(taskAssignment.orchestratorMeta, workerId);
         let resumeCount = taskAssignment.orchestratorMeta?.resumeCount ?? 0;
         const maxResumes = this.config.maxResumeAttemptsBeforeRecovery;
 
@@ -1436,15 +1559,20 @@ export class DispatchDaemonImpl implements DispatchDaemon {
             if (recovered) {
               // Only increment resumeCount after successful recovery — if recovery fails
               // or was skipped due to rate limiting, the count stays the same so the task
-              // isn't prematurely flagged as stuck.
-              // Re-read task metadata since recoverOrphanedTask may have updated it (e.g., new sessionId).
-              const freshTask = await this.api.get<Task>(taskAssignment.task.id);
-              await this.api.update<Task>(taskAssignment.task.id, {
-                metadata: updateOrchestratorTaskMeta(
-                  freshTask?.metadata as Record<string, unknown> | undefined,
-                  { resumeCount: resumeCount + 1 }
-                ),
-              });
+              // isn't prematurely flagged as stuck. A resume after a rate-limited
+              // session is not counted at all.
+              if (workerLimitEnded) {
+                this.logUncountedResume(taskAssignment.task.id, workerId, 'worker', workerLimitEnded, resumeCount);
+              } else {
+                // Re-read task metadata since recoverOrphanedTask may have updated it (e.g., new sessionId).
+                const freshTask = await this.api.get<Task>(taskAssignment.task.id);
+                await this.api.update<Task>(taskAssignment.task.id, {
+                  metadata: updateOrchestratorTaskMeta(
+                    freshTask?.metadata as Record<string, unknown> | undefined,
+                    { resumeCount: resumeCount + 1 }
+                  ),
+                });
+              }
               processed++;
             }
           } catch (error) {
@@ -1488,10 +1616,19 @@ export class DispatchDaemonImpl implements DispatchDaemon {
           logger.debug(
             `All executables rate-limited, skipping steward orphan recovery for ${steward.name}`
           );
+          // Let a free merge steward of another provider review it (el-5x4x9v).
+          try {
+            if (await this.releaseFromRateLimitedExecutor(steward, stewardTasks[0].task, 'merge-steward')) processed++;
+          } catch (error) {
+            errors++;
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            errorMessages.push(`Release from rate-limited steward ${steward.name}: ${errorMessage}`);
+          }
           continue;
         }
 
         const orphanedAssignment = stewardTasks[0];
+        const stewardLimitEnded = findRateLimitedPreviousSession(orphanedAssignment.orchestratorMeta, stewardId);
 
         // Safety valve: cap steward recovery attempts to prevent infinite re-dispatch loops
         const stewardRecoveryCount = orphanedAssignment.orchestratorMeta?.stewardRecoveryCount ?? 0;
@@ -1525,13 +1662,18 @@ export class DispatchDaemonImpl implements DispatchDaemon {
         if (this.deferOrphanResume(orphanedAssignment.task, orphanedAssignment.orchestratorMeta, stewardId, 'steward', stewardRecoveryCount)) continue;
 
         try {
-          // Increment stewardRecoveryCount before recovering
-          await this.api.update<Task>(orphanedAssignment.task.id, {
-            metadata: updateOrchestratorTaskMeta(
-              orphanedAssignment.task.metadata as Record<string, unknown> | undefined,
-              { stewardRecoveryCount: stewardRecoveryCount + 1 }
-            ),
-          });
+          // Increment stewardRecoveryCount before recovering — unless the
+          // previous steward session ended because of a provider rate limit.
+          if (stewardLimitEnded) {
+            this.logUncountedResume(orphanedAssignment.task.id, stewardId, 'steward', stewardLimitEnded, stewardRecoveryCount);
+          } else {
+            await this.api.update<Task>(orphanedAssignment.task.id, {
+              metadata: updateOrchestratorTaskMeta(
+                orphanedAssignment.task.metadata as Record<string, unknown> | undefined,
+                { stewardRecoveryCount: stewardRecoveryCount + 1 }
+              ),
+            });
+          }
           await this.recoverOrphanedStewardTask(steward, orphanedAssignment.task, orphanedAssignment.orchestratorMeta);
           processed++;
         } catch (error) {
@@ -2166,6 +2308,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       sessionIdleTimeoutMs: Math.max(0, config?.sessionIdleTimeoutMs ?? DEFAULT_SESSION_IDLE_TIMEOUT_MS),
       idleSessionWithoutTaskMs: Math.max(0, config?.idleSessionWithoutTaskMs ?? DEFAULT_IDLE_SESSION_WITHOUT_TASK_MS),
       orphanResumeBackoffMs: Math.max(0, config?.orphanResumeBackoffMs ?? DEFAULT_ORPHAN_RESUME_BACKOFF_MS),
+      releaseRateLimitedTasks: config?.releaseRateLimitedTasks ?? true,
       onSessionStarted: config?.onSessionStarted,
       projectRoot: config?.projectRoot ?? process.cwd(),
       directorInboxForwardingEnabled: config?.directorInboxForwardingEnabled ?? true,
@@ -2459,29 +2602,12 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    * no eligible executor exists at all; both need the Director.
    */
   private async executorWait(kind: 'worker' | 'merge-steward'): Promise<Omit<WatchdogWait, 'taskId'> | undefined> {
-    const executors = this.dispatchAgents.filter(agent => {
-      const meta = getAgentMetadata(agent);
-      if (kind === 'worker') return meta?.agentRole === 'worker' && (meta as WorkerMetadata).workerMode === 'ephemeral';
-      return meta?.agentRole === 'steward' && (meta as StewardMetadata).stewardFocus === 'merge';
-    });
+    const executors = this.dispatchAgents.filter(agent => isExecutorOfKind(agent, kind));
     if (!executors.length) return undefined;
     const freeLimited: AgentEntity[] = [];
     let freeUnlimited = 0;
     for (const agent of executors) {
-      const id = asEntityId(agent.id);
-      if (this.sessionManager.getActiveSession(id)) continue;
-      if (kind === 'worker') {
-        // Same availability rules as pollWorkerAvailability.
-        if (this.inboxService.getInbox(id, { status: InboxStatus.UNREAD, limit: 1 }).length > 0) continue;
-        const assigned = await this.taskAssignment.getAgentTasks(id, {
-          taskStatus: [TaskStatus.OPEN, TaskStatus.IN_PROGRESS, TaskStatus.REVIEW],
-        });
-        if (assigned.length) continue;
-        if (this.poolService) {
-          const check = await this.poolService.canSpawn({ role: 'worker', workerMode: 'ephemeral', agentId: id });
-          if (!check.canSpawn) continue;
-        }
-      }
+      if (!(await this.executorIsFree(agent, kind))) continue;
       if (this.resolveExecutableWithFallback(agent) === 'all_limited') freeLimited.push(agent);
       else freeUnlimited++;
     }
@@ -2491,6 +2617,128 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       return { kind: 'provider-limit', resetsAt: resets[0] };
     }
     return { kind: kind === 'worker' ? 'worker-capacity' : 'steward-capacity' };
+  }
+
+  /**
+   * Whether an executor could take new work now, using the same rules as
+   * dispatch: no live session; for workers also no unread non-dispatch inbox
+   * item, no assigned OPEN/IN_PROGRESS/REVIEW task and pool capacity. Rate
+   * limits are checked separately.
+   */
+  private async executorIsFree(agent: AgentEntity, kind: 'worker' | 'merge-steward'): Promise<boolean> {
+    const id = asEntityId(agent.id);
+    if (this.sessionManager.getActiveSession(id)) return false;
+    if (kind === 'worker') {
+      if (this.inboxService.getInbox(id, { status: InboxStatus.UNREAD, limit: 1 }).length > 0) return false;
+      const assigned = await this.taskAssignment.getAgentTasks(id, {
+        taskStatus: [TaskStatus.OPEN, TaskStatus.IN_PROGRESS, TaskStatus.REVIEW],
+      });
+      if (assigned.length) return false;
+      if (this.poolService) {
+        const check = await this.poolService.canSpawn({ role: 'worker', workerMode: 'ephemeral', agentId: id });
+        if (!check.canSpawn) return false;
+      }
+    }
+    return true;
+  }
+
+  /** Logs (once per session) that a resume after a rate-limited session was not counted. */
+  private logUncountedResume(
+    taskId: ElementId,
+    agentId: EntityId,
+    role: 'worker' | 'steward',
+    record: RateLimitedSessionRecord,
+    attempts: number,
+  ): void {
+    const counter = role === 'worker' ? 'resumeCount' : 'stewardRecoveryCount';
+    const message = `Resuming task ${taskId} (${role}) after session ${record.sessionId} ended by a provider rate limit` +
+      `${record.provider ? ` (${record.provider})` : ''}; not counted (${counter} stays ${attempts})`;
+    logger.info(message);
+    this.operationLog?.write('info', 'recovery', message, { taskId, agentId, role, sessionId: record.sessionId, [counter]: attempts });
+  }
+
+  /**
+   * Releases a task held by an executor whose provider is rate-limited when
+   * another executor of the same kind with an unlimited provider is free
+   * (el-5x4x9v). Never while the executor has a live session, so two
+   * executors never run on one task. Branch and worktree are kept; the
+   * provider session ID is cleared (it belongs to the limited provider);
+   * resume/recovery counters are kept. A worker task returns to OPEN, a
+   * review task to mergeStatus 'pending'. The task update is a CAS on the
+   * observed version, so a concurrent change wins.
+   *
+   * @returns true when the task was released
+   */
+  private async releaseFromRateLimitedExecutor(
+    executor: AgentEntity,
+    task: Task,
+    kind: 'worker' | 'merge-steward',
+  ): Promise<boolean> {
+    if (!this.config.releaseRateLimitedTasks) return false;
+    const executorId = asEntityId(executor.id);
+    if (this.sessionManager.getActiveSession(executorId)) return false;
+    if (this.resolveExecutableWithFallback(executor) !== 'all_limited') return false;
+    const candidates = (await this.agentRegistry.listAgents(kind === 'worker'
+      ? { role: 'worker', workerMode: 'ephemeral' }
+      : { role: 'steward', stewardFocus: 'merge' }))
+      .filter(agent => agent.id !== executor.id && !isAgentDisabled(agent) && isExecutorOfKind(agent, kind));
+    let target: AgentEntity | undefined;
+    for (const agent of candidates) {
+      if (this.resolveExecutableWithFallback(agent) === 'all_limited') continue;
+      if (await this.executorIsFree(agent, kind)) { target = agent; break; }
+    }
+    if (!target) return false;
+
+    const fresh = await this.api.get<Task>(task.id);
+    if (!fresh || fresh.assignee !== executorId) return false;
+    const expectedStatus: TaskStatus[] = kind === 'worker' ? [TaskStatus.OPEN, TaskStatus.IN_PROGRESS] : [TaskStatus.REVIEW];
+    if (!expectedStatus.includes(fresh.status as TaskStatus)) return false;
+    const meta = getOrchestratorTaskMeta(fresh.metadata as Record<string, unknown> | undefined);
+    if (kind === 'merge-steward' && meta?.mergeStatus !== 'pending' && meta?.mergeStatus !== 'testing') return false;
+    // Re-check right before the write: a session may have started meanwhile.
+    if (this.sessionManager.getActiveSession(executorId)) return false;
+
+    const role = kind === 'worker' ? 'worker' : 'steward';
+    const provider = getAgentMetadata(executor)?.provider ?? 'claude-code';
+    const releasedAt = createTimestamp();
+    const lastEntry = [...(meta?.sessionHistory ?? [])].reverse().find(entry => entry.agentId === executorId);
+    const release: RateLimitReleaseRecord = {
+      fromAgentId: executorId,
+      fromAgentRole: role,
+      provider,
+      sessionId: lastEntry?.sessionId,
+      releasedAt,
+      resetsAt: this.getRateLimitStatus(executor).soonestReset,
+    };
+    let metadata = fresh.metadata as Record<string, unknown> | undefined;
+    if (lastEntry && lastEntry.endedAt === undefined) metadata = closeTaskSessionHistory(metadata, lastEntry.sessionId, releasedAt);
+    metadata = updateOrchestratorTaskMeta(metadata, {
+      // Keep branch and worktree so the next executor continues the same work.
+      assignedAgent: undefined,
+      sessionId: undefined,
+      startedAt: undefined,
+      lastRateLimitRelease: release,
+      ...(kind === 'merge-steward' ? { mergeStatus: 'pending' as const } : {}),
+    });
+    try {
+      await this.api.update<Task>(fresh.id, {
+        assignee: undefined,
+        ...(kind === 'worker' ? { status: TaskStatus.OPEN } : {}),
+        metadata,
+      }, { expectedUpdatedAt: fresh.updatedAt });
+    } catch (error) {
+      // A concurrent decision owns the task now; never overwrite it.
+      if (error instanceof ConflictError) return false;
+      throw error;
+    }
+
+    const message = `Released task ${fresh.id} from ${role} ${executor.name}: provider '${provider}' is rate-limited` +
+      `${release.resetsAt ? ` until ${release.resetsAt}` : ''} and ${target.name} is free; branch and worktree kept`;
+    logger.info(message);
+    this.operationLog?.write('info', 'dispatch', message, {
+      taskId: fresh.id, agentId: executor.id, provider, availableAgentId: target.id, resetsAt: release.resetsAt,
+    });
+    return true;
   }
 
   /**
@@ -2663,7 +2911,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     if (!task) return;
     const meta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
     if (meta?.lastHungSession?.sessionId === record.sessionId) return; // counted already
-    const countable = record.agentRole === 'worker' &&
+    // A session silenced by a provider rate limit is waiting for quota, not
+    // failing to make progress (el-5x4x9v).
+    const rateLimited = meta?.lastRateLimitedSession?.sessionId === record.sessionId;
+    const countable = record.agentRole === 'worker' && !rateLimited &&
       (task.status === TaskStatus.OPEN || task.status === TaskStatus.IN_PROGRESS);
     let evaluation: ReturnType<typeof evaluateHungSession> | undefined;
     if (countable) {
@@ -2714,6 +2965,11 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       const entry = [...(taskMeta?.sessionHistory ?? [])].reverse()
         .find((item) => item.providerSessionId === previousSessionId || item.sessionId === previousSessionId);
       if (entry) previous = { id: entry.sessionId, startedAt: entry.startedAt, endedAt: entry.endedAt };
+    }
+    const limited = taskMeta?.lastRateLimitedSession;
+    if (limited && (limited.providerSessionId === previousSessionId || limited.sessionId === previousSessionId || limited.sessionId === previous?.id)) {
+      const note = `provider rate limit${limited.provider ? ` (${limited.provider})` : ''} detected at ${limited.detectedAt}`;
+      previous = { ...(previous ?? { id: limited.sessionId }), terminationReason: previous?.terminationReason ? `${previous.terminationReason}; ${note}` : note };
     }
     const hungRecord = taskMeta?.lastHungSession;
     const hung = hungRecord && (hungRecord.providerSessionId === previousSessionId || hungRecord.sessionId === previousSessionId ||
@@ -2827,7 +3083,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
 
         // Attach rapid-exit detector to catch silent rate limits
         if (events) {
-          this.attachRapidExitDetector(events, task, worker);
+          this.attachRapidExitDetector(events, task, worker, session);
         }
 
         this.emitter.emit('agent:spawned', workerId, worktreePath);
@@ -2902,7 +3158,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
 
     // Attach rapid-exit detector to catch silent rate limits
     if (events) {
-      this.attachRapidExitDetector(events, task, worker);
+      this.attachRapidExitDetector(events, task, worker, session);
     }
 
     this.emitter.emit('agent:spawned', workerId, worktreePath);
@@ -2913,11 +3169,14 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   /**
    * Preserve the retry budget only when a rapid exit includes an explicit limit
    * message. Silence, crashes and old session history are not quota evidence.
+   * The limited session is recorded on the task (same record as a limit the
+   * session manager reports), so the next resume is not counted.
    */
   private attachRapidExitDetector(
     events: import('events').EventEmitter,
     task: Task,
-    worker: AgentEntity
+    worker: AgentEntity,
+    session: SessionRecord,
   ): void {
     const startTime = Date.now();
     let lastAssistantContent: string | undefined;
@@ -2948,32 +3207,12 @@ export class DispatchDaemonImpl implements DispatchDaemon {
         `Session exited rapidly — suspected ${reason} (task=${task.id}, worker=${worker.name}, duration=${sessionDuration}ms)`
       );
 
-      // Roll back the resumeCount that was incremented before recovery
-      try {
-        const currentTask = await this.api.get<Task>(task.id);
-        if (currentTask) {
-          const currentMeta = getOrchestratorTaskMeta(currentTask.metadata as Record<string, unknown>);
-          const currentResumeCount = currentMeta?.resumeCount ?? 0;
-          if (currentResumeCount > 0) {
-            await this.api.update<Task>(task.id, {
-              metadata: updateOrchestratorTaskMeta(
-                currentTask.metadata as Record<string, unknown> | undefined,
-                { resumeCount: currentResumeCount - 1 }
-              ),
-            });
-            logger.info(
-              `Rolled back resumeCount for task ${task.id} from ${currentResumeCount} to ${currentResumeCount - 1}`
-            );
-          }
-        }
-      } catch (error) {
-        logger.warn(`Failed to roll back resumeCount for task ${task.id}:`, error);
-      }
-
       const resetTime = parseRateLimitResetTime(lastAssistantContent, lastAssistantRaw)
         ?? getFallbackResetTime(lastAssistantContent);
+      const provider = getAgentMetadata(worker)?.provider ?? 'claude-code';
 
-      this.handleRateLimitDetected(this.agentExecutable(worker), resetTime, getAgentMetadata(worker)?.provider ?? 'claude-code');
+      this.handleRateLimitDetected(this.agentExecutable(worker), resetTime, provider);
+      this.trackRateLimitedSession(session, this.clampRateLimitReset(resetTime), provider);
 
       logger.info(
         `Applied rate limit (${reason}) for task ${task.id}, resets at ${resetTime.toISOString()}`
