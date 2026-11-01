@@ -10,7 +10,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createStorage, initializeSchema, type StorageBackend } from '@stoneforge/storage';
-import { createQuarryAPI, type QuarryAPI } from '@stoneforge/quarry';
+import { createQuarryAPI, type QuarryAPI, type InboxService } from '@stoneforge/quarry';
 import { createTask, createEntity, EntityTypeValue, TaskStatus, type Task, type EntityId } from '@stoneforge/core';
 import { ProjectRepositories } from './project-repositories.js';
 import { deliveryForDirectory, hasDeliveryRemote } from './delivery.js';
@@ -21,6 +21,10 @@ import type { TaskAssignmentService } from '../services/task-assignment-service.
 import type { DispatchService } from '../services/dispatch-service.js';
 import type { AgentRegistry } from '../services/agent-registry.js';
 import { createLocalMergeProvider } from '../services/merge-request-provider.js';
+import { createDispatchDaemon } from '../services/dispatch-daemon.js';
+import type { SyncResult } from '../cli/commands/task.js';
+import type { StewardScheduler } from '../services/steward-scheduler.js';
+import type { SessionManager } from '../runtime/session-manager.js';
 import { getOrchestratorTaskMeta } from '../types/task-meta.js';
 import { applyDeliveryBlocks, loadRolePrompt, renderPromptTemplate } from '../prompts/index.js';
 
@@ -275,4 +279,49 @@ test('workspace steward-merge override resolves delivery blocks like the built-i
   expect(local).not.toContain('git push origin');
   expect(local).toContain('Local-only delivery');
   expect(applyDeliveryBlocks(override)).toContain('origin/{{baseBranch}}..HEAD');
+});
+
+// --------------------------------------------------------------------------
+// Daemon branch sync (before a merge steward is spawned)
+// --------------------------------------------------------------------------
+
+/** The daemon's private sync step, invoked at its deterministic boundary without starting the daemon. */
+function daemonSync(task: Task) {
+  const daemon = createDispatchDaemon(api, {} as AgentRegistry, {} as SessionManager, {} as DispatchService,
+    repositories, {} as TaskAssignmentService, {} as StewardScheduler, {} as InboxService, { projectRoot: root });
+  return (daemon as unknown as { syncTaskBranch(t: Task): Promise<SyncResult> }).syncTaskBranch(task);
+}
+const contains = (cwd: string, commitOid: string) =>
+  spawnSync('git', ['merge-base', '--is-ancestor', commitOid, 'HEAD'], { cwd }).status === 0;
+
+test('daemon sync merges the local target when origin/<target> is behind under local delivery', async () => {
+  const { task, worktree } = await workerTask(TaskStatus.REVIEW);
+  const work = commit(worktree.path, 'TASK');
+  // Local master advances; origin/master stays at the initial commit (stale public fork).
+  const localTip = commit(repo, 'LOCAL');
+  expect(git(repo, 'rev-parse', 'origin/master')).toBe(initial);
+  const before = remoteRefs();
+
+  const result = await daemonSync(task);
+  expect(result.success, result.error).toBe(true);
+  expect(contains(worktree.path, localTip)).toBe(true);
+  expect(contains(worktree.path, work)).toBe(true);
+  expect(git(worktree.path, 'diff', '--name-only', 'master..HEAD')).toBe('TASK');
+  expect(result.message).toContain(`local master (${localTip})`);
+  expect(remoteRefs()).toBe(before);
+});
+
+test('daemon sync with remote delivery still merges origin/<target>, not unpublished local commits', async () => {
+  await setDelivery('remote');
+  const { task, worktree } = await workerTask(TaskStatus.REVIEW);
+  commit(worktree.path, 'TASK');
+  const published = commit(repo, 'PUBLISHED');
+  git(repo, 'push', '-q', 'origin', 'master');
+  const unpublished = commit(repo, 'UNPUBLISHED');
+
+  const result = await daemonSync(task);
+  expect(result.success, result.error).toBe(true);
+  expect(result.message).toBe('Branch synced with origin/master');
+  expect(contains(worktree.path, published)).toBe(true);
+  expect(contains(worktree.path, unpublished)).toBe(false);
 });

@@ -117,16 +117,24 @@ running application or restart sessions as part of ordinary implementation/testi
 
 ## Agent workflow and review policy
 
-Current configuration (2026-09-26 snapshot): Director, two ephemeral workers and
-one merge steward all specify `codex` / `gpt-6-astra`. Both workers have
-`maxConcurrentTasks: 1`. These are settings, not guarantees of model availability,
-throughput, reasoning effort or metrics. Verify live state with `sf agent list`
-and `sf show <agent-id> --json`; do not infer unsupported controls or measurements.
+Agent roster, providers, models and concurrency change over time; this file does
+not record them. Read live state with `sf agent list` and `sf show <agent-id> --json`.
+Configured settings are not guarantees of model availability, throughput,
+reasoning effort or metrics; do not infer unsupported controls or measurements.
 
 Director scopes tasks and dependencies. A worker implements one assigned task,
-verifies it, commits only its files with a conventional prefix, pushes its assigned
-branch, and runs `sf task complete <task-id>`. Do not create PRs directly or take
-another task. If blocked, message the Director with task ID and run
+verifies it, commits only its files with a conventional prefix and runs
+`sf task complete <task-id>`. Do not create PRs directly or take another task.
+
+Delivery is configured per repository (`sf repo list`; change with
+`sf repo update <id> --delivery local|remote`). With **local delivery** (e.g. a
+public fork) task branches stay local: do not push them to `origin`, and
+`sf task complete` performs delivery (no push, no hosted merge request; the
+steward merges into the local target branch). Branch sync before review merges
+the local target branch, not a possibly stale `origin/<target>`. With the default
+**remote delivery**, push the assigned branch before `sf task complete`.
+
+If blocked, message the Director with task ID and run
 `sf task handoff <task-id> --message "Completed / blocker / next step"`.
 
 Before merge, the steward independently reads the task, diff and affected code;
