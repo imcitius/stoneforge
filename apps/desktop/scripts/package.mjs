@@ -1,4 +1,5 @@
 import { collectBuildInfo } from './build-info.mjs';
+import { resolveReleaseVersion, assertReleaseTree, gitHead, RELEASE_ARCH } from './release.mjs';
 import { packager } from '@electron/packager';
 import { cp, mkdir, rm, writeFile, chmod, readdir, readlink } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -11,8 +12,23 @@ const root = resolve(desktop, '../..');
 const stage = join(desktop, 'dist/stage');
 const bundle = join(stage, 'app');
 const resources = join(stage, 'resources');
-const { version } = require('../package.json');
+// Release mode: `--version v1.26.0` or STONEFORGE_RELEASE_VERSION=v1.26.0 (strict semver, leading v stripped).
+// Without either, local builds keep using package.json's version and allow modified trees.
+const fail = (message) => { console.error(`package:mac: ${message}`); process.exit(1); };
+let releaseVersion;
+try { releaseVersion = resolveReleaseVersion(process.argv.slice(2), process.env); } catch (error) { fail(error.message); }
+const version = releaseVersion ?? require('../package.json').version;
 const build = collectBuildInfo(root, version);
+if (releaseVersion) {
+  if (process.arch !== RELEASE_ARCH) fail(`Release builds are ${RELEASE_ARCH} only; this Node runs on ${process.arch}`);
+  try { assertReleaseTree(build, gitHead(root)); } catch (error) { fail(error.message); }
+  build.release = true;
+  console.log(`Release build ${version} from ${build.commit}`);
+  // Compiled outputs are ignored by Git, so a clean tree does not prove they match HEAD.
+  // Rebuild everything the app copies from (Desktop main process, discovery module, backend).
+  execFileSync('pnpm', ['--filter', '@stoneforge/smithy...', 'build'], { cwd: root, stdio: 'inherit' });
+  execFileSync('pnpm', ['--filter', '@stoneforge/desktop', 'build'], { cwd: root, stdio: 'inherit' });
+}
 await rm(stage, { recursive: true, force: true });
 await mkdir(bundle, { recursive: true });
 await mkdir(resources, { recursive: true });
@@ -43,6 +59,9 @@ const paths = await packager({
   platform: 'darwin', arch: process.arch, electronVersion: '44.4.5',
   appBundleId: 'ai.stoneforge.desktop', appCategoryType: 'public.app-category.developer-tools',
   asar: false, prune: false, overwrite: true,
+  // Info.plist CFBundleShortVersionString/CFBundleVersion. Local builds keep packager's
+  // default (the staged package.json version), so their behavior is unchanged.
+  ...(releaseVersion ? { appVersion: version, buildVersion: version } : {}),
 });
 // packager's extraResource copier turns relative pnpm symlinks into absolute
 // staging paths. Copy these resources verbatim so the app remains relocatable.
@@ -66,5 +85,19 @@ for (const output of paths) {
   // its Info.plist. Local ad-hoc signing needs no Developer ID or account changes.
   execFileSync('/usr/bin/codesign', ['--force', '--deep', '--sign', '-', '--identifier', 'ai.stoneforge.desktop', appPath], { stdio: 'inherit' });
   execFileSync('/usr/bin/codesign', ['--verify', '--deep', '--strict', appPath], { stdio: 'inherit' });
+  if (releaseVersion) {
+    const plist = join(appPath, 'Contents/Info.plist');
+    for (const key of ['CFBundleShortVersionString', 'CFBundleVersion']) {
+      const value = execFileSync('/usr/bin/plutil', ['-extract', key, 'raw', '-o', '-', plist], { encoding: 'utf8' }).trim();
+      if (value !== version) fail(`Info.plist ${key} is ${value}, expected ${version}`);
+    }
+  }
+}
+if (releaseVersion) {
+  // Packaging takes minutes; refuse a release whose source changed underneath it.
+  const after = collectBuildInfo(root, version);
+  if (after.commit !== build.commit || after.dirty) {
+    fail(`Refusing release ${version}: source changed during packaging (HEAD ${build.commit} -> ${after.commit}, dirty=${after.dirty})`);
+  }
 }
 console.log('Packaged:', paths.join('\n'));

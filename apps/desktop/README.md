@@ -36,6 +36,43 @@ of the checkout. Packaging applies and verifies a local ad-hoc code signature af
 final bundle, including its notification identity; external
 distribution and notarization are a later step. Intel builds are not verified.
 
+### Release packaging (version, zip, dmg, checksums)
+
+Release builds are Apple Silicon (arm64) only, ad-hoc signed and not notarized.
+Pass the release tag to `package:mac`, then archive the final signed app:
+
+```sh
+# From the repository root, after `pnpm install --frozen-lockfile`, with the pinned
+# Node 22.23.3 first on PATH. Either form works; they must agree if both are set.
+STONEFORGE_RELEASE_VERSION=v1.26.0 pnpm --filter @stoneforge/desktop package:mac
+# node apps/desktop/scripts/package.mjs --version v1.26.0-rc.1
+node apps/desktop/scripts/release-artifacts.mjs --version v1.26.0
+```
+
+- The version must be strict semver `MAJOR.MINOR.PATCH[-PRERELEASE]`, optionally
+  prefixed with `v` (stripped): `v1.26.0` and `v1.26.0-rc.1` are valid; `v1.2`,
+  `1.2.3.4`, leading zeros and build metadata (`+…`) are rejected before any work.
+- Release mode refuses to start when the Git tree has modified or untracked files,
+  or when the build-info commit is not `HEAD`, and fails if HEAD moves or the tree
+  becomes dirty during packaging. It rebuilds `@stoneforge/smithy...` and Desktop
+  first, because ignored `dist/` output is not covered by the clean-tree check.
+- The version is written to `Info.plist` (`CFBundleShortVersionString` and
+  `CFBundleVersion`, both the full semver string, including any prerelease suffix),
+  the bundled `package.json`/`build-info.json` (`"release": true`) and therefore the
+  sidebar footer and About panel. Without a release version, local packaging is
+  unchanged: `package.json`'s version, modified trees allowed (shown as `(modified)`).
+- `release-artifacts.mjs` accepts only a clean release-mode arm64 app (default
+  `dist/mac/Stoneforge Desktop-darwin-arm64/`, or `--app`/`DESKTOP_APP`). It recreates
+  `apps/desktop/dist/release/` with `Stoneforge-Desktop-<version>-arm64.zip`
+  (`ditto -c -k --sequesterRsrc --keepParent`, preserving the signature),
+  `Stoneforge-Desktop-<version>-arm64.dmg` (UDZO, HFS+, app plus an `/Applications`
+  link) and `SHA256SUMS.txt` (check with `shasum -a 256 -c SHA256SUMS.txt`).
+- It then extracts the zip and mounts the dmg read-only in temporary directories,
+  runs `codesign --verify --deep --strict` on each app, compares each against the
+  source app's complete `bundle-manifest.mjs` inventory, checks their version, and runs
+  `scripts/check-app.mjs` on the extracted zip app. The GUI smoke needs an unlocked
+  graphical session; `--no-smoke` skips it and is not release acceptance.
+
 For development, rebuild the workspace SQLite addon for the pinned runtime first:
 
 ```sh

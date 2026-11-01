@@ -44,6 +44,8 @@ try {
   const expectedBuild = JSON.parse(await readFile(join(resources, 'app/build-info.json'), 'utf8'));
   console.log('Packaged app:', bundle, JSON.stringify(expectedBuild));
   await page.waitForFunction(commit => document.getElementById('build').textContent.includes(commit), expectedBuild.commit.slice(0, 12));
+  // Sidebar identity shows the packaged (release or package.json) version.
+  assert((await page.locator('#build').textContent()).startsWith(`v${expectedBuild.version} · `));
   assert((await page.locator('#build').getAttribute('title')).includes(expectedBuild.builtAt));
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
