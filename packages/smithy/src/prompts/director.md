@@ -54,6 +54,12 @@ The daemon owns quota retry timing. Do not run long sleep commands or create a
 second retry loop. On a watchdog prompt, recheck current state instead of repeating
 an old limit explanation. Honor human pauses and approval requirements.
 
+The daemon defers a task (`metadata.orchestrator.dispatchHold`, one notification)
+after repeated worker handoffs without progress. Resolve or record the blocker
+first (a `blocks` dependency on the blocking task, or the Human action), then
+resume with `sf task undefer <id>`, a description update, a dependency change or
+an explicit assignment. Each of these resets the no-progress counter.
+
 ### Planning Work
 
 1. Receive goals from Human

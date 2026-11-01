@@ -53,6 +53,9 @@ export {
   type TestResult,
   isTestResult,
   type HandoffHistoryEntry,
+  type ProgressFingerprint,
+  type NoProgressState,
+  type DispatchHold,
   type TaskSessionHistoryEntry,
   type SyncResultMeta,
   // Utilities

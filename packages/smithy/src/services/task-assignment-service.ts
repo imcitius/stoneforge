@@ -454,6 +454,10 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
       sessionHistory: existingMeta?.sessionHistory,
       // Preserve targetBranch across re-assignment/handoff
       targetBranch: existingMeta?.targetBranch,
+      // Automatic dispatch keeps the no-progress handoff counter; an explicit
+      // (non-claim) assignment is a Director/Human decision and resets it.
+      // Any assignment ends a dispatch hold (dispatchHold is not carried over).
+      noProgress: claim ? existingMeta?.noProgress : undefined,
     };
 
     // If marking as started, add start time

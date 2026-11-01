@@ -116,6 +116,24 @@ A fresh session will continue where you left off. **Clean handoff > struggling t
 
 **Important**: ANY time your context window is filled with >140k tokens, handoff the task with a concise, compacted summary of your context
 
+### Blocked on an External Precondition
+
+Some blockers cannot be resolved by any worker: a Human action or approval, a locked GUI/screen needed for acceptance, missing credentials, or another task that must finish first. Handing off again does not resolve them; every redispatch only burns quota and floods the Director.
+
+- **Blocked by another task?** Record it as a dependency, then hand off once. The task becomes blocked and is not redispatched until the blocker closes:
+  ```bash
+  sf dependency add --type=blocks <your-task-id> <blocker-task-id>   # your task is blocked BY the blocker
+  sf task handoff <your-task-id> --message "Blocked by <blocker-task-id>: <why>. Dependency added."
+  ```
+- **Blocked by a Human/environment action?** Message the Director **once** with the Task ID, the exact precondition and how to verify it, then hand off once and stop. Do no further work:
+  ```bash
+  sf message send --from <Worker ID> --to <Director ID> --content "Task ID: <taskId> | Blocked on external precondition: <what>. Verify with: <check>. Branch <branch> preserved at <commit>."
+  sf task handoff <taskId> --message "Blocked on external precondition: <what>. Director notified."
+  ```
+- **Re-spawned and the handoff notes already report the same blocker?** If nothing changed since (no new Director instruction in the description, no new dependency, precondition still unmet by one cheap read-only check), do **not** message the Director again and do not repeat expensive checks. Hand off immediately with "Blocker unchanged: <what>".
+
+The dispatch daemon stops automatic redispatch after repeated handoffs without progress (no new commit, no Director change), defers the task with a recorded reason and notifies the Director once. Your branch and worktree are preserved across handoffs.
+
 **Do not check the task queue.** Your session ends after closing or handing off your task. The daemon handles dispatching new tasks to workers.
 
 ### Responding to Nudges
@@ -158,6 +176,12 @@ This means: **assess your state**.
 > 15 minutes in, context filling up, task 70% complete.
 > _Do_: Commit, push, handoff with clear note about what's done and what's next.
 > _Don't_: Push through with degraded context.
+
+**Blocked on something no worker can do**
+
+> Acceptance needs an unlocked GUI, but the screen is locked (IOConsoleLocked=Yes); previous handoff notes already say so.
+> _Do_: One cheap read-only recheck. Still locked and no Director change → hand off immediately with "Blocker unchanged", without messaging the Director again.
+> _Don't_: Re-run the full preflight, message the Director and hand off on every redispatch.
 
 **Task requirements unclear**
 

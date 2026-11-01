@@ -22,6 +22,8 @@ import { taskWorktreeManager, ProjectRepositories } from '../git/project-reposit
 import { ProjectNodeError } from '../runtime/project-node.js';
 import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { basename } from 'node:path';
 import type {
   EntityId,
@@ -34,7 +36,7 @@ import type {
   Plan,
   Workflow,
 } from '@stoneforge/core';
-import { ConflictError, InboxStatus, createTimestamp, TaskStatus, asEntityId, asElementId, PlanStatus, canAutoComplete, WorkflowStatus, computeWorkflowStatus, updateWorkflowStatus } from '@stoneforge/core';
+import { ConflictError, InboxStatus, createTimestamp, createDocument, ContentType, TaskStatus, asEntityId, asElementId, PlanStatus, canAutoComplete, WorkflowStatus, computeWorkflowStatus, updateWorkflowStatus } from '@stoneforge/core';
 import type { QuarryAPI, InboxService } from '@stoneforge/quarry';
 import { loadTriagePrompt, loadRolePrompt, renderPromptTemplate, buildWorkflowPresetSection } from '../prompts/index.js';
 import type { WorkflowPresetContext } from '../prompts/index.js';
@@ -64,10 +66,35 @@ import {
   updateOrchestratorTaskMeta,
   appendTaskSessionHistory,
   type TaskSessionHistoryEntry,
+  type OrchestratorTaskMeta,
+  type NoProgressState,
+  type DispatchHold,
+  type ProgressFingerprint,
 } from '../types/task-meta.js';
+import {
+  computeProgressFingerprint,
+  evaluateNoProgress,
+  sameFingerprint,
+  DEFAULT_NO_PROGRESS_HANDOFF_LIMIT,
+} from './no-progress-guard.js';
 import type { OperationLogService } from './operation-log-service.js';
 
 const logger = createLogger('dispatch-daemon');
+const execFileForGit = promisify(execFile);
+
+/** Raised when a task's recorded branch cannot be found locally or on origin. */
+class TaskBranchUnavailableError extends Error {
+  constructor(readonly taskId: string, readonly branch: string) {
+    super(`Task ${taskId} records branch ${branch}, which no longer exists locally or on origin. ` +
+      'Refusing to start a fresh branch from the target; restore the branch or reset the task explicitly.');
+    this.name = 'TaskBranchUnavailableError';
+  }
+}
+
+function sameBranchName(a: string | undefined, b: string | undefined): boolean {
+  const normalize = (value: string | undefined) => value?.replace(/^refs\/heads\//, '');
+  return !!a && !!b && normalize(a) === normalize(b);
+}
 
 // ============================================================================
 // Constants
@@ -245,6 +272,15 @@ export interface DispatchDaemonConfig {
   readonly maxResumeAttemptsBeforeRecovery?: number;
 
   /**
+   * Consecutive worker handoffs without progress (no new commit on the task
+   * branch and no title/description/dependency change other than agent
+   * handoff notes) after which automatic redispatch stops: the task is
+   * DEFERRED with metadata.orchestrator.dispatchHold and the owning Director
+   * is notified once. Set to 0 to disable. Default: 3
+   */
+  readonly noProgressHandoffLimit?: number;
+
+  /**
    * Maximum session duration in ms before the daemon terminates it.
    * Prevents stuck workers from blocking their slot indefinitely.
    * Default: 0 (disabled).
@@ -334,6 +370,7 @@ interface NormalizedConfig {
   stuckMergeRecoveryEnabled: boolean;
   stuckMergeRecoveryGracePeriodMs: number;
   maxResumeAttemptsBeforeRecovery: number;
+  noProgressHandoffLimit: number;
   maxSessionDurationMs: number;
   maxStewardSessionDurationMs: number;
   onSessionStarted?: OnSessionStartedCallback;
@@ -888,6 +925,13 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     this.emitter.emit('poll:start', 'worker-availability');
 
     try {
+      // 0. Release no-progress holds whose task changed while deferred.
+      try {
+        await this.releaseNoProgressHolds();
+      } catch (error) {
+        logger.warn('Failed to evaluate no-progress dispatch holds:', error);
+      }
+
       // 1. Get all ephemeral workers
       const workers = await this.agentRegistry.listAgents({
         role: 'worker',
@@ -2068,6 +2112,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       stuckMergeRecoveryEnabled: config?.stuckMergeRecoveryEnabled ?? true,
       stuckMergeRecoveryGracePeriodMs: config?.stuckMergeRecoveryGracePeriodMs ?? 600_000,
       maxResumeAttemptsBeforeRecovery: config?.maxResumeAttemptsBeforeRecovery ?? 3,
+      noProgressHandoffLimit: Math.max(0, config?.noProgressHandoffLimit ?? DEFAULT_NO_PROGRESS_HANDOFF_LIMIT),
       maxSessionDurationMs: config?.maxSessionDurationMs ?? 0,
       maxStewardSessionDurationMs: config?.maxStewardSessionDurationMs ?? 30 * 60 * 1000,
       onSessionStarted: config?.onSessionStarted,
@@ -2375,34 +2420,20 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       return false;
     }
 
-    // 1. Resolve worktree — reuse existing or create new
-    let worktreePath = taskMeta?.worktree ?? taskMeta?.handoffWorktree;
-    let branch = taskMeta?.branch ?? taskMeta?.handoffBranch;
-
-    if (worktreePath) {
-      const exists = await worktreeManager.worktreeExists(worktreePath);
-      if (!exists) {
-        const worktreeResult = await this.createWorktreeForTask(worker, task);
-        worktreePath = worktreeResult.path;
-        branch = worktreeResult.branch;
-
-        // Update task metadata with new worktree info
-        await this.api.update(task.id, {
-          metadata: updateOrchestratorTaskMeta(
-            task.metadata as Record<string, unknown> | undefined,
-            { worktree: worktreePath, branch }
-          ),
-        });
-      }
-    } else {
-      const worktreeResult = await this.createWorktreeForTask(worker, task);
-      worktreePath = worktreeResult.path;
-      branch = worktreeResult.branch;
-
+    // 1. Resolve worktree — reuse existing, re-attach the recorded branch, or
+    // create new only when the task has no branch yet.
+    const resolved = await this.resolveTaskWorkspace(
+      worker, task, worktreeManager,
+      taskMeta?.branch ?? taskMeta?.handoffBranch,
+      taskMeta?.worktree ?? taskMeta?.handoffWorktree,
+    );
+    const worktreePath = resolved.path;
+    if (resolved.path !== taskMeta?.worktree || resolved.branch !== taskMeta?.branch) {
+      // Update task metadata with the (re)attached worktree info
       await this.api.update(task.id, {
         metadata: updateOrchestratorTaskMeta(
           task.metadata as Record<string, unknown> | undefined,
-          { worktree: worktreePath, branch }
+          { worktree: resolved.path, branch: resolved.branch }
         ),
       });
     }
@@ -2722,12 +2753,23 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       return false;
     }
 
-    // ready() already sorts by effective priority, take the first
+    // ready() already sorts by effective priority, take the first eligible one
     let task: Task | undefined;
     let worktreeManager: WorktreeManager = this.worktreeManager;
+    let progressState: NoProgressState | undefined;
     for (const candidate of unassignedTasks) {
-      try { worktreeManager = await taskWorktreeManager(this.worktreeManager, candidate); task = candidate; break; }
-      catch (error) { this.emitWarningOnce(`repository:${candidate.id}`, { type: 'warning', title: 'Task needs a repository', message: `${candidate.id}: ${String(error)}` }); }
+      let candidateManager: WorktreeManager;
+      try { candidateManager = await taskWorktreeManager(this.worktreeManager, candidate); }
+      catch (error) { this.emitWarningOnce(`repository:${candidate.id}`, { type: 'warning', title: 'Task needs a repository', message: `${candidate.id}: ${String(error)}` }); continue; }
+      // Stop no-progress handoff/redispatch loops before spending a session.
+      const guard = await this.checkNoProgressGuard(candidate, candidateManager);
+      if (guard === 'held') continue;
+      // Never silently restart a task whose recorded branch has disappeared.
+      if (!(await this.recordedBranchAvailable(candidate, candidateManager))) continue;
+      task = candidate;
+      worktreeManager = candidateManager;
+      progressState = guard?.state;
+      break;
     }
     if (!task) return false;
     const workerId = asEntityId(worker.id);
@@ -2762,52 +2804,23 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       return false;
     }
 
-    // Check for existing worktree/branch in task metadata
-    // Priority: handoff > existing assignment > create new
+    // Reuse the task's recorded branch/worktree. Priority: handoff > existing
+    // assignment > create new. A recorded branch is always preserved, even when
+    // its worktree is gone or was cleared (e.g. failed-dispatch cleanup).
     const taskMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
-    const handoffBranch = taskMeta?.handoffBranch;
-    const handoffWorktree = taskMeta?.handoffWorktree;
-    const existingBranch = taskMeta?.branch;
-    const existingWorktree = taskMeta?.worktree;
-
     // A stale preparation must never replace another attempt's Git directory.
     const attemptId = randomUUID();
-    let worktreePath: string;
-    let branch: string;
-
-    // Check handoff first (takes priority)
-    if (handoffBranch && handoffWorktree) {
-      worktreePath = handoffWorktree;
-      branch = handoffBranch;
-
-      // Verify the worktree still exists
-      const exists = await worktreeManager.worktreeExists(worktreePath);
-      if (!exists) {
-        // Worktree was cleaned up, create a new one
-        const worktreeResult = await this.createWorktreeForTask(worker, task, attemptId);
-        worktreePath = worktreeResult.path;
-        branch = worktreeResult.branch;
-      }
-    }
-    // Check for existing assignment worktree (from previous attempt)
-    else if (existingBranch && existingWorktree) {
-      worktreePath = existingWorktree;
-      branch = existingBranch;
-
-      // Verify the worktree still exists
-      const exists = await worktreeManager.worktreeExists(worktreePath);
-      if (!exists) {
-        // Worktree was cleaned up, create a new one
-        const worktreeResult = await this.createWorktreeForTask(worker, task, attemptId);
-        worktreePath = worktreeResult.path;
-        branch = worktreeResult.branch;
-      }
-    }
-    // No existing worktree, create a new one
-    else {
-      const worktreeResult = await this.createWorktreeForTask(worker, task, attemptId);
-      worktreePath = worktreeResult.path;
-      branch = worktreeResult.branch;
+    const { path: worktreePath, branch } = await this.resolveTaskWorkspace(
+      worker, task, worktreeManager,
+      taskMeta?.handoffBranch ?? taskMeta?.branch,
+      taskMeta?.handoffBranch ? taskMeta?.handoffWorktree ?? taskMeta?.worktree : taskMeta?.worktree ?? taskMeta?.handoffWorktree,
+      attemptId,
+    );
+    // The baseline must describe the branch this dispatch actually uses (a
+    // first dispatch only gets its branch here).
+    if (progressState?.fingerprint) {
+      const commit = await this.readGitCommit(worktreeManager, `refs/heads/${branch}`);
+      if (commit) progressState = { ...progressState, fingerprint: { ...progressState.fingerprint, commit } };
     }
 
     // Build initial prompt with task context
@@ -2888,6 +2901,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
 
         if (Object.keys(metaUpdate).length > 0) {
           finalMetadata = updateOrchestratorTaskMeta(finalMetadata, metaUpdate);
+        }
+        // Baseline for the next handoff's no-progress decision.
+        if (progressState) {
+          finalMetadata = updateOrchestratorTaskMeta(finalMetadata, { noProgress: progressState, dispatchHold: undefined });
         }
         await this.api.update<Task>(task.id, { metadata: finalMetadata }, { expectedUpdatedAt: updatedTask.updatedAt });
       }
@@ -2983,7 +3000,12 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    * Creates a worktree for a task assignment.
    * Includes dependency installation so workers have node_modules available.
    */
-  private async createWorktreeForTask(worker: AgentEntity, task: Task, attemptId?: string): Promise<CreateWorktreeResult> {
+  private async createWorktreeForTask(
+    worker: AgentEntity,
+    task: Task,
+    attemptId?: string,
+    existing?: { branch: string; baseBranch?: string },
+  ): Promise<CreateWorktreeResult> {
     const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
     const orcMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
     const targetBranch = orcMeta?.targetBranch;
@@ -2999,8 +3021,305 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       taskId: task.id,
       taskTitle: task.title,
       installDependencies: true,
-      baseBranch: targetBranch,
+      // An existing task branch is checked out as-is (never recreated from the
+      // target); a branch present only on origin starts from the origin tip.
+      customBranch: existing?.branch,
+      baseBranch: existing?.baseBranch ?? targetBranch,
     });
+  }
+
+  /**
+   * Resolves the worktree for (re)dispatching a task.
+   *
+   * 1. Reuse the recorded worktree when it is registered and on the recorded branch.
+   * 2. With a recorded branch: reuse any worktree that has it checked out, else
+   *    attach a fresh worktree path to that same branch (local, or created from
+   *    origin's tip). The branch is never recreated from the target.
+   * 3. Only a task without any recorded branch gets a new branch from the target.
+   */
+  private async resolveTaskWorkspace(
+    worker: AgentEntity,
+    task: Task,
+    worktreeManager: WorktreeManager,
+    recordedBranch: string | undefined,
+    recordedWorktree: string | undefined,
+    attemptId?: string,
+  ): Promise<{ path: string; branch: string }> {
+    if (recordedWorktree && await worktreeManager.worktreeExists(recordedWorktree)) {
+      let info: Awaited<ReturnType<WorktreeManager['getWorktree']>>;
+      try { info = await worktreeManager.getWorktree(recordedWorktree); } catch { info = undefined; }
+      const branch = recordedBranch ?? info?.branch;
+      if (branch && (!info?.branch || !recordedBranch || sameBranchName(info.branch, recordedBranch))) {
+        return { path: recordedWorktree, branch: branch.replace(/^refs\/heads\//, '') };
+      }
+      if (branch) {
+        logger.warn(`Worktree ${recordedWorktree} for task ${task.id} is on ${info?.branch}, not recorded branch ${recordedBranch}; not reusing it`);
+      }
+    }
+
+    if (recordedBranch) {
+      let checkedOut: Awaited<ReturnType<WorktreeManager['listWorktrees']>> = [];
+      try { checkedOut = await worktreeManager.listWorktrees(); } catch { checkedOut = []; }
+      const holder = checkedOut.find((w) => sameBranchName(w.branch, recordedBranch));
+      if (holder) {
+        logger.info(`Reusing worktree ${holder.path} that has task ${task.id} branch ${recordedBranch} checked out`);
+        return { path: holder.path, branch: recordedBranch };
+      }
+      const local = await this.localBranchExists(worktreeManager, recordedBranch);
+      if (!local && !(await this.remoteBranchCommit(worktreeManager, recordedBranch))) {
+        throw new TaskBranchUnavailableError(task.id, recordedBranch);
+      }
+      logger.warn(`Worktree for task ${task.id} is missing; re-attaching recorded branch ${recordedBranch}${local ? '' : ' from origin'}`);
+      this.operationLog?.write('warn', 'dispatch', `Re-attached recorded branch ${recordedBranch} for task ${task.id} in a new worktree`, { taskId: task.id, branch: recordedBranch, previousWorktree: recordedWorktree });
+      const result = await this.createWorktreeForTask(worker, task, attemptId ?? randomUUID(), {
+        branch: recordedBranch,
+        baseBranch: local ? undefined : recordedBranch,
+      });
+      return { path: result.path, branch: result.branch };
+    }
+
+    const result = await this.createWorktreeForTask(worker, task, attemptId);
+    return { path: result.path, branch: result.branch };
+  }
+
+  private async localBranchExists(worktreeManager: WorktreeManager, branch: string): Promise<boolean> {
+    // Managers without branch inspection (test doubles) cannot disprove the branch.
+    if (typeof worktreeManager.branchExists !== 'function') return true;
+    try { return await worktreeManager.branchExists(branch); } catch { return false; }
+  }
+
+  /** Reads `refs/remotes/origin/<branch>`; undefined when absent or not a Git repository. */
+  private async remoteBranchCommit(worktreeManager: WorktreeManager, branch: string): Promise<string | undefined> {
+    return this.readGitCommit(worktreeManager, `refs/remotes/origin/${branch}`);
+  }
+
+  private async readGitCommit(worktreeManager: WorktreeManager, ref: string): Promise<string | undefined> {
+    const repositoryRoot = worktreeManager.getRepositoryRoot?.();
+    if (!repositoryRoot) return undefined;
+    try {
+      const { stdout } = await execFileForGit('git', ['rev-parse', '--verify', '--quiet', '--end-of-options', `${ref}^{commit}`], {
+        cwd: repositoryRoot, encoding: 'utf8', timeout: 30_000,
+      });
+      return stdout.trim() || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Candidate check: a task that records a branch which exists neither locally
+   * nor on origin is skipped with a warning instead of restarting from the target.
+   */
+  private async recordedBranchAvailable(task: Task, worktreeManager: WorktreeManager): Promise<boolean> {
+    const meta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
+    const branch = meta?.handoffBranch ?? meta?.branch;
+    if (!branch) return true;
+    const worktree = meta?.handoffBranch ? meta?.handoffWorktree ?? meta?.worktree : meta?.worktree ?? meta?.handoffWorktree;
+    if (worktree) {
+      try { if (await worktreeManager.worktreeExists(worktree)) return true; } catch { /* fall through to branch checks */ }
+    }
+    if (await this.localBranchExists(worktreeManager, branch)) return true;
+    if (await this.remoteBranchCommit(worktreeManager, branch)) return true;
+    const error = new TaskBranchUnavailableError(task.id, branch);
+    this.emitWarningOnce(`task-branch-missing:${task.id}`, { type: 'warning', title: 'Task branch missing', message: error.message });
+    this.operationLog?.write('warn', 'dispatch', error.message, { taskId: task.id, branch });
+    return false;
+  }
+
+  // ----------------------------------------
+  // No-progress handoff guard
+  // ----------------------------------------
+
+  /** Builds the progress fingerprint (branch head + title/description/dependencies). */
+  private async readProgressFingerprint(
+    task: Task,
+    worktreeManager: WorktreeManager,
+    meta: OrchestratorTaskMeta | undefined,
+  ): Promise<ProgressFingerprint> {
+    const branch = meta?.handoffBranch ?? meta?.branch;
+    let description = '';
+    if (task.descriptionRef) {
+      const doc = await this.api.get<Document>(asElementId(task.descriptionRef));
+      description = doc?.content ?? '';
+    }
+    const dependencies = await this.api.getDependencies(task.id);
+    const commit = branch
+      ? await this.readGitCommit(worktreeManager, `refs/heads/${branch}`) ?? await this.remoteBranchCommit(worktreeManager, branch)
+      : undefined;
+    return computeProgressFingerprint({
+      title: task.title,
+      description,
+      handoffHistory: meta?.handoffHistory,
+      dependencies: dependencies.map((dependency) => `${dependency.type}:${dependency.blockerId}`),
+      commit,
+    });
+  }
+
+  /**
+   * Evaluates the no-progress handoff counter for a ready candidate. Returns
+   * 'held' when the task was (or is being) deferred and must not be dispatched;
+   * otherwise the state to persist with the dispatch. Evaluation failures fail
+   * open (dispatch proceeds) and never modify the counter.
+   */
+  private async checkNoProgressGuard(
+    task: Task,
+    worktreeManager: WorktreeManager,
+  ): Promise<'held' | { state: NoProgressState } | undefined> {
+    const meta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
+    let fingerprint: ProgressFingerprint;
+    try {
+      fingerprint = await this.readProgressFingerprint(task, worktreeManager, meta);
+    } catch (error) {
+      logger.warn(`No-progress evaluation failed for task ${task.id}; dispatching without updating the counter:`, error);
+      return undefined;
+    }
+    const limit = this.config.noProgressHandoffLimit;
+    const evaluation = evaluateNoProgress(meta, fingerprint, limit);
+    if (evaluation.holdReleased) {
+      logger.info(`Dispatch hold for task ${task.id} was lifted externally; no-progress counter reset`);
+      this.operationLog?.write('info', 'dispatch', `Dispatch hold lifted for task ${task.id}; no-progress counter reset`, { taskId: task.id });
+    }
+    if (!evaluation.hold) return { state: evaluation.state };
+    await this.holdNoProgressTask(task, meta, evaluation.state, limit);
+    return 'held';
+  }
+
+  /** Defers the task with an explicit orchestrator flag and notifies the Director once. */
+  private async holdNoProgressTask(
+    task: Task,
+    meta: OrchestratorTaskMeta | undefined,
+    state: NoProgressState,
+    limit: number,
+  ): Promise<void> {
+    const branch = meta?.handoffBranch ?? meta?.branch;
+    const directorId = meta?.owningDirector ?? await this.resolveOwningDirector(task);
+    const reason = `Automatic dispatch stopped after ${state.count} consecutive handoffs without progress ` +
+      `(limit ${limit}): no new commit on ${branch ?? 'the task branch'} and no title/description/dependency ` +
+      'change other than agent handoff notes.';
+    const hold: DispatchHold = {
+      reason,
+      heldAt: createTimestamp(),
+      count: state.count,
+      limit,
+      fingerprint: state.fingerprint!,
+      handoffAt: meta?.handoffAt,
+      directorId,
+    };
+    let held: Task;
+    try {
+      held = await this.api.update<Task>(task.id, {
+        status: TaskStatus.DEFERRED,
+        metadata: updateOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined, { noProgress: state, dispatchHold: hold }),
+      }, { expectedUpdatedAt: task.updatedAt });
+    } catch (error) {
+      // Someone changed the task meanwhile; re-evaluate on the next poll.
+      if (error instanceof ConflictError) return;
+      throw error;
+    }
+    logger.warn(`Task ${task.id}: ${reason} Task deferred.`);
+    this.operationLog?.write('warn', 'dispatch', `Deferred task ${task.id}: ${reason}`, { taskId: task.id, count: state.count, limit, branch });
+    this.emitWarningOnce(`no-progress-hold:${task.id}:${hold.heldAt}`, {
+      type: 'warning',
+      title: 'Task dispatch stopped (no progress)',
+      message: `${task.id} ("${task.title}"): ${reason}`,
+    });
+    await this.notifyDirectorOfHold(held, meta, hold, branch);
+  }
+
+  /** Sends exactly one Director message for a newly created hold (never retried). */
+  private async notifyDirectorOfHold(
+    task: Task,
+    meta: OrchestratorTaskMeta | undefined,
+    hold: DispatchHold,
+    branch: string | undefined,
+  ): Promise<void> {
+    const sessions = meta?.sessionHistory ?? [];
+    const sender = [...sessions].reverse().find((entry) => entry.agentRole === 'worker' && entry.agentId !== hold.directorId);
+    const lastNote = meta?.handoffHistory?.[meta.handoffHistory.length - 1]?.message;
+    let notification: Partial<DispatchHold>;
+    try {
+      if (!hold.directorId) throw new Error('no owning director');
+      if (!sender) throw new Error('no worker session to send from');
+      const content = [
+        `Task ID: ${task.id} | Worker: ${sender.agentName} (${sender.agentId}) | Automatic dispatch stopped (no-progress handoff loop).`,
+        `Title: ${task.title}`,
+        hold.reason,
+        `Branch: ${branch ?? '(none)'}${hold.fingerprint.commit ? ` at ${hold.fingerprint.commit.slice(0, 12)}` : ''}.`,
+        lastNote ? `Last handoff note: ${lastNote.length > 800 ? `${lastNote.slice(0, 800)}…` : lastNote}` : undefined,
+        `The task is now DEFERRED with metadata.orchestrator.dispatchHold and will not be redispatched automatically.`,
+        `Resume after resolving the precondition: \`sf task undefer ${task.id}\`, append instructions to the task description, ` +
+          `change its dependencies (e.g. \`sf dependency add --type=blocks ${task.id} <blocker-id>\`), or assign it explicitly.`,
+        'This is the only notification for this hold.',
+      ].filter((line): line is string => line !== undefined).join('\n');
+      const doc = await createDocument({
+        contentType: ContentType.TEXT,
+        content,
+        createdBy: sender.agentId,
+        tags: ['dispatch-hold'],
+        metadata: { dispatchHold: true, taskId: task.id },
+      }, { checkCollision: async (id) => (await this.api.get(id)) !== null });
+      const savedDoc = await this.api.create(doc as unknown as Record<string, unknown> & { createdBy: EntityId });
+      const { message } = await this.api.sendDirectMessage(sender.agentId, {
+        recipient: hold.directorId,
+        contentRef: savedDoc.id as unknown as import('@stoneforge/core').DocumentId,
+        tags: ['dispatch-hold'],
+        metadata: { type: 'dispatch-hold', taskId: task.id, count: hold.count, limit: hold.limit },
+      });
+      notification = { notifiedAt: createTimestamp(), notificationMessageId: message.id };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.warn(`Failed to notify Director about dispatch hold for task ${task.id}: ${message}`);
+      this.operationLog?.write('warn', 'dispatch', `Dispatch hold notification failed for task ${task.id}: ${message}`, { taskId: task.id });
+      notification = { notificationError: message };
+    }
+    // Record the outcome on the same hold only (best effort, no retry).
+    try {
+      const current = await this.api.get<Task>(task.id);
+      const currentHold = current && getOrchestratorTaskMeta(current.metadata as Record<string, unknown> | undefined)?.dispatchHold;
+      if (current && currentHold?.heldAt === hold.heldAt) {
+        await this.api.update<Task>(task.id, {
+          metadata: updateOrchestratorTaskMeta(current.metadata as Record<string, unknown> | undefined, { dispatchHold: { ...currentHold, ...notification } }),
+        }, { expectedUpdatedAt: current.updatedAt });
+      }
+    } catch (error) {
+      logger.warn(`Failed to record dispatch hold notification for task ${task.id}:`, error);
+    }
+  }
+
+  /**
+   * Releases held tasks when a Director/Human made progress possible while the
+   * task was deferred: a new commit on the task branch, or a title/description
+   * (other than agent handoff notes) or dependency change. Undefer is detected
+   * at dispatch time (a ready task with a leftover dispatchHold).
+   */
+  async releaseNoProgressHolds(): Promise<number> {
+    const filter: { type: 'task'; status: TaskStatus } = { type: 'task', status: TaskStatus.DEFERRED };
+    const deferred = await this.api.list<Task>(filter);
+    let released = 0;
+    for (const task of deferred) {
+      const meta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
+      const hold = meta?.dispatchHold;
+      if (!hold) continue;
+      try {
+        const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
+        const fingerprint = await this.readProgressFingerprint(task, worktreeManager, meta);
+        if (sameFingerprint(hold.fingerprint, fingerprint)) continue;
+        await this.api.update<Task>(task.id, {
+          status: TaskStatus.OPEN,
+          metadata: updateOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined, {
+            dispatchHold: undefined,
+            noProgress: { count: 0, fingerprint, evaluatedHandoffAt: meta?.handoffAt },
+          }),
+        }, { expectedUpdatedAt: task.updatedAt });
+        released++;
+        logger.info(`Released dispatch hold for task ${task.id}: task changed while deferred`);
+        this.operationLog?.write('info', 'dispatch', `Released dispatch hold for task ${task.id} after a task/branch change`, { taskId: task.id });
+      } catch (error) {
+        if (error instanceof ConflictError) continue;
+        logger.warn(`Failed to evaluate dispatch hold for task ${task.id}:`, error);
+      }
+    }
+    return released;
   }
 
   /**

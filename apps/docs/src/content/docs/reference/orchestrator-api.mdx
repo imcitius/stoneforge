@@ -223,6 +223,9 @@ interface OrchestratorTaskMeta {
   stuckMergeRecoveryCount?: number;
   stewardRecoveryCount?: number;
   resumeCount?: number;
+  // No-progress handoff guard (dispatch daemon)
+  noProgress?: { count: number; fingerprint?: { commit?: string; content: string }; evaluatedHandoffAt?: Timestamp };
+  dispatchHold?: { reason: string; heldAt: Timestamp; count: number; limit: number; directorId?: EntityId; notifiedAt?: Timestamp; notificationMessageId?: string; notificationError?: string };
   reportedIssues?: readonly string[];
   // Handoff context
   handoffBranch?: string;

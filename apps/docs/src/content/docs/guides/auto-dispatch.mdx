@@ -97,6 +97,44 @@ This is the core dispatch loop:
 6. Send a **dispatch message** to the worker's inbox with the task details
 </Steps>
 
+### Branch reuse on redispatch
+
+A task keeps one branch across handoffs, rejections and failed dispatch attempts.
+When a task is dispatched again, the daemon:
+
+1. Reuses the recorded worktree if it is still registered and on the recorded branch.
+2. Otherwise reuses any worktree that has the recorded branch checked out.
+3. Otherwise attaches a **new worktree path to the same branch** (from the local
+   branch, or from `origin/<branch>` if only the remote copy exists).
+4. Creates a new branch from the target **only** for a task that has no recorded branch.
+
+If the recorded branch exists neither locally nor on origin, the task is skipped
+with a "Task branch missing" warning instead of silently restarting from the target.
+Restore the branch, or reset the task explicitly.
+
+### No-progress handoff guard
+
+A worker that cannot resolve a precondition (Human action, locked GUI, another
+task) may hand off every session. To stop such loops the daemon counts
+**consecutive handoffs without progress**. A handoff made progress if, compared
+with the previous dispatch, the task branch has a new commit or the task title,
+description (ignoring `[AGENT HANDOFF NOTE]` lines that handoffs append) or
+dependencies changed.
+
+When the count reaches `noProgressHandoffLimit` (default `3`), the daemon:
+
+- sets the task to **DEFERRED** with `metadata.orchestrator.dispatchHold`
+  (reason, count, limit, fingerprint);
+- sends the owning Director **one** direct message (from the last worker) and
+  records `notifiedAt` / `notificationMessageId` on the hold. It is never resent.
+
+The counter resets, and a held task resumes, after a Director/Human change:
+`sf task undefer <id>`, a description or title change, a dependency change, a new
+commit on the task branch, or an explicit assignment. Rate-limit pauses, session
+crashes and orphan resumes do not change the counter. The existing
+`resumeCount` / recovery steward logic is unchanged. Set
+`noProgressHandoffLimit: 0` to disable the guard.
+
 A task is "ready" when it meets all of these conditions:
 - Status is OPEN (not blocked, closed, or deferred)
 - Not assigned to any agent
@@ -286,7 +324,7 @@ When the orchestrator server restarts:
 2. Task assignments persist (assignee and status are unchanged)
 3. **Orphan recovery** detects workers with assigned tasks but no session
 4. The daemon attempts to **resume** existing sessions, falling back to fresh spawns
-5. Existing worktrees and branches are reused when available
+5. Existing worktrees and branches are reused; a missing worktree is recreated on the task's recorded branch
 
 This means a server restart doesn't lose work — agents pick up where they left off.
 
@@ -308,6 +346,7 @@ The daemon's behavior can be tuned through configuration:
 | `stuckMergeRecoveryEnabled` | `true` | Detect and recover stalled merge operations |
 | `stuckMergeRecoveryGracePeriodMs` | `600000` | Grace period before recovering stuck merges (10 min) |
 | `maxResumeAttemptsBeforeRecovery` | `3` | Resume attempts before spawning a recovery steward |
+| `noProgressHandoffLimit` | `3` | Consecutive no-progress handoffs before the task is deferred with a dispatch hold (`0` disables) |
 | `maxSessionDurationMs` | `0` (disabled) | Max worker session duration before termination |
 | `maxStewardSessionDurationMs` | `1800000` | Max steward session duration (30 min) |
 | `directorInboxForwardingEnabled` | `true` | Auto-forward inbox messages to director's session |

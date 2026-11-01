@@ -120,6 +120,19 @@ export interface OrchestratorTaskMeta {
   readonly resumeCount?: number;
 
   /**
+   * Consecutive worker handoffs without progress (no new commit on the task
+   * branch, no title/description/dependency change other than handoff notes).
+   * Maintained by the dispatch daemon; not reset by rate-limit or crash paths.
+   */
+  readonly noProgress?: NoProgressState;
+
+  /**
+   * Set when the dispatch daemon stopped automatic redispatch (task DEFERRED)
+   * after repeated no-progress handoffs. Cleared on release.
+   */
+  readonly dispatchHold?: DispatchHold;
+
+  /**
    * Set of issue types that have been reported for this task.
    * Prevents duplicate messages/fix tasks for the same type of issue.
    * Format: "test_failure", "merge_conflict", etc.
@@ -195,6 +208,42 @@ export interface SyncResultMeta {
   readonly message: string;
   /** When the sync was performed */
   readonly syncedAt: Timestamp;
+}
+
+// ============================================================================
+// No-progress handoff guard
+// ============================================================================
+
+/** Snapshot used to decide whether a handoff made progress. */
+export interface ProgressFingerprint {
+  /** Head commit of the task branch, or undefined when it could not be read */
+  readonly commit?: string;
+  /** Hash of title, description without agent handoff notes, and dependencies */
+  readonly content: string;
+}
+
+export interface NoProgressState {
+  /** Consecutive handoffs without progress */
+  readonly count: number;
+  /** Fingerprint recorded at the last dispatch (baseline for the next handoff) */
+  readonly fingerprint?: ProgressFingerprint;
+  /** handoffAt value already counted, so one handoff is never counted twice */
+  readonly evaluatedHandoffAt?: Timestamp;
+}
+
+export interface DispatchHold {
+  readonly reason: string;
+  readonly heldAt: Timestamp;
+  readonly count: number;
+  readonly limit: number;
+  /** Fingerprint at hold time; a different fingerprint releases the hold */
+  readonly fingerprint: ProgressFingerprint;
+  readonly handoffAt?: Timestamp;
+  readonly directorId?: EntityId;
+  /** Director notification (sent at most once per hold) */
+  readonly notifiedAt?: Timestamp;
+  readonly notificationMessageId?: string;
+  readonly notificationError?: string;
 }
 
 // ============================================================================

@@ -696,10 +696,15 @@ async function taskRejectHandler(
   }
 
   try {
+    // Append the review note; never erase earlier handoff history (it is the
+    // evidence the dispatch daemon and Director use to detect handoff loops).
+    const existingHistory = options.message
+      ? getOrchestratorTaskMeta((await api.get<Task>(taskId as ElementId))?.metadata as Record<string, unknown> | undefined)?.handoffHistory ?? []
+      : [];
     await api.updateTaskOrchestratorMeta(taskId as ElementId, {
       mergeStatus: 'test_failed',
       mergeFailureReason: options.reason,
-      ...(options.message ? { handoffHistory: [{ sessionId: 'cli', message: options.message, handoffAt: new Date().toISOString() }] } : {}),
+      ...(options.message ? { handoffHistory: [...existingHistory, { sessionId: 'cli', message: options.message, handoffAt: createTimestamp() }] } : {}),
     });
 
     await api.update<Task>(taskId as ElementId, {
@@ -1018,7 +1023,7 @@ Examples:
 // Task Merge-Status Command
 // ============================================================================
 
-import { MergeStatusValues, isMergeStatus, type MergeStatus } from '../../types/task-meta.js';
+import { MergeStatusValues, isMergeStatus, getOrchestratorTaskMeta, type MergeStatus } from '../../types/task-meta.js';
 
 interface TaskMergeStatusOptions {
   force?: boolean;
