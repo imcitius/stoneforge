@@ -5,6 +5,8 @@ Bun **1.3.11** and Node **22.23.3** (the Desktop runtime pinned in the lockfile)
 
 ```sh
 pnpm install --frozen-lockfile
+export PATH="$PWD/apps/desktop/node_modules/node/bin:$PATH"
+node -v
 pnpm check:merge
 ```
 
@@ -14,6 +16,24 @@ No new dependencies or lockfile changes are required. Git, local listening socke
 PTY support and macOS `lsof` are needed by the existing integration fixtures.
 Run one gate per worktree at a time. Installation needs registry access or a warm
 pnpm store; Git/worktree tests may also invoke Corepack/package-manager setup.
+
+Before discovering or running any steps, the runner prints its Node version,
+native ABI (`process.versions.modules`), executable path, pnpm/Bun versions and
+the Node resolved through PATH. The validated major comes from
+`apps/desktop/package.json` → `devDependencies.node` (currently 22.23.3).
+A different major or runner/PATH ABI mismatch exits 1 immediately. Under a
+matching runtime, child processes resolve `better-sqlite3` from storage and
+`node-pty` from Smithy. SQLite opens and closes `:memory:` to force its deferred
+native load; PTY loads its addon without starting a terminal. Missing tools,
+an invalid pin or an unloadable addon also fail before any gate step. Each probe
+has a five-second timeout.
+
+Preflight errors retain the underlying diagnostic and print the worktree's pinned
+runtime path and a shell-quoted `export PATH=...` command. Select that runtime
+and rerun; the gate never switches runtimes or rebuilds native modules itself.
+If native loading still fails under pinned Node, inspect the addon error and the
+Desktop README's development setup. Preflight output stays on the console;
+per-step logs and `results.json` are created only after preflight succeeds.
 
 `check:merge` prints every command, exit code and elapsed seconds. It runs all
 checks sequentially, reports every failed step and exits **1 if any step fails**
@@ -30,7 +50,7 @@ An interrupted run is incomplete and must never count as acceptance.
 
 | Step | What it actually checks |
 | --- | --- |
-| `node --test scripts/check-merge.test.mjs` | Failure propagation, including first/middle/last failure, missing executable, signal and worker environment isolation. |
+| `node --test scripts/check-merge.test.mjs` | Runtime/native preflight fixtures and failure-before-steps checks; failure propagation, including first/middle/last failure, missing executable, signal and worker environment isolation. |
 | `pnpm typecheck --force` | All workspace packages that declare `typecheck`, including shared routes/UI, web/server apps and Desktop; Turbo also builds their dependencies. |
 | `pnpm --filter @stoneforge/desktop build` | Fresh Desktop JavaScript and shell resources; backend SDK builds were prerequisites of Desktop typecheck. |
 | `bun test ./<file>` for every `*.bun.test.ts` under `packages/{core,storage,quarry,smithy}/src` | Core types/config/errors, real Bun SQLite/schema, Quarry API/CLI/dependencies/sync and Smithy orchestration/runtime/providers/Git/repository routing. Each file runs in its own process so Bun module mocks cannot leak into other files. |
@@ -284,3 +304,37 @@ endpoint/project/instance identity прежние, restart не нужен. Эт
 Это worker acceptance/activation; независимое ревью steward текущего commit и
 общих изменений обязательно до закрытия el-1r6 и local delivery. Приложение и
 сессии не заменялись/не перезапускались; installed dispatch ещё требует ancestry check.
+
+
+## Runtime preflight validation — 2026-11-01, el-127xg
+
+
+Worker validation on implementation `8f1b5ceb7428bfe5bd158c858e3fca6df13c7dac`
+(base `bdd07d45252ad3f9a052902b4255c5089f0253fa`), macOS arm64:
+
+| Command | Result |
+| --- | --- |
+| `pnpm install --frozen-lockfile` with pinned Node PATH | Exit 0; existing missing-dist CLI bin warnings before builds; lockfile unchanged. |
+| `node --test scripts/check-merge.test.mjs` with pinned Node PATH | Exit 0, 12/12; 2.577s final focused run. |
+| One ambient `pnpm check:merge` | Expected exit 1 in **1.101s**, Node v26.8.2 / ABI147, `/opt/homebrew/Cellar/node/26.8.2/bin/node`; no gate steps ran. |
+| One full `pnpm check:merge` with pinned Node PATH | **193/193, exit 0**, 306.75s runner / 307.902s wall; Node **v22.23.3 / ABI127**, pnpm8.15.5, Bun1.3.11; both native probes pass. |
+
+The full gate includes uncached typecheck17/17 (0 cached), fresh Desktop build,
+12 gate regressions, all discovered per-file Bun suites, Smithy Node352/352 and
+Desktop Node17/17. Existing skips/exclusions remain; separate root build/lint/test,
+Playwright, packaged GUI, live-provider and cross-platform checks were not run.
+Step discovery and execution functions are byte-identical to the baseline.
+
+Evidence: `/tmp/el-127xg-install.log`, `/tmp/el-127xg-tests.log`,
+`/tmp/el-127xg-ambient.json`, `/tmp/el-127xg-gate.{log,json}`. The gate log starts
+with the separately recorded `node -v` and all preflight tool/runtime details.
+All exact step commands/exits/timings and full logs are retained at
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-oMTYAE/results.json`.
+
+Only documentation changed after the tested implementation. Author and committer
+use the approved command-scoped Ilya Rubinchik identity. Independent exact-final
+steward review and approved local delivery remain required; this is worker
+acceptance, not merge approval. Installed Desktop/live sessions/global Node were
+not changed. The approved installed d58bd815 operational CLI build-info and all
+four hashes from el-of6 were verified; the exact documented aggregate-hash command
+matched (an initial alternate Python ordering was not equivalent).

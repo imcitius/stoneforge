@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { checkEnvironment, runChecks } from './check-merge.mjs';
+import { dirname, join } from 'node:path';
+import { checkEnvironment, checkRuntime, runChecks, runMergeGate } from './check-merge.mjs';
 
 const options = { log: () => {}, stdio: 'pipe' };
 const child = (name, code) => ({ name, command: process.execPath, args: ['-e', code] });
@@ -47,4 +47,100 @@ test('worker routing and live-provider opt-in cannot leak into fixtures', () => 
   const original = { PATH: '/bin', STONEFORGE_ROOT: '/live', SF_ENTITY_ID: 'worker', ORCHESTRATOR_URL: 'http://live', RUN_INTEGRATION_TESTS: 'true' };
   assert.deepEqual(checkEnvironment(original), { PATH: '/bin', RUN_INTEGRATION_TESTS: 'false' });
   assert.equal(original.STONEFORGE_ROOT, '/live');
+});
+
+function runtimeFixture(t) {
+  const cwd = mkdtempSync(join(tmpdir(), "sf gate's runtime-"));
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  const write = (file, content, mode) => {
+    const path = join(cwd, file);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, content, { mode });
+  };
+  // Pin the test's actual runtime, so these tests need no globally installed version.
+  write('apps/desktop/package.json', JSON.stringify({ devDependencies: { node: process.versions.node } }));
+  for (const tool of ['pnpm', 'bun']) write(`bin/${tool}`, '#!/bin/sh\necho fixture-version\n', 0o755);
+  symlinkSync(process.execPath, join(cwd, 'bin/node'));
+  write('packages/storage/node_modules/better-sqlite3/index.js', `
+    module.exports = class {
+      constructor(name) {
+        if (name !== ':memory:') throw new Error('Expected in-memory probe');
+        require('node:fs').writeFileSync(${JSON.stringify(join(cwd, 'opened'))}, 'yes');
+      }
+      close() { require('node:fs').writeFileSync(${JSON.stringify(join(cwd, 'closed'))}, 'yes'); }
+    };
+  `);
+  write('packages/smithy/node_modules/node-pty/index.js', 'module.exports = {};');
+  const logs = [];
+  return { cwd, write, logs, options: { cwd, env: checkEnvironment({ PATH: join(cwd, 'bin') }), log: line => logs.push(line) } };
+}
+
+test('preflight accepts the manifest runtime and loads package-local native modules in children', t => {
+  const fixture = runtimeFixture(t);
+  assert.equal(checkRuntime(fixture.options), 0);
+  assert(existsSync(join(fixture.cwd, 'opened')));
+  assert(existsSync(join(fixture.cwd, 'closed')));
+  const output = fixture.logs.join('\n');
+  for (const value of [process.version, process.versions.modules, process.execPath, 'pnpm=fixture-version', 'bun=fixture-version', 'node-pty loaded']) {
+    assert(output.includes(value), value);
+  }
+});
+
+function assertFailsBeforeSteps(fixture, options = fixture.options) {
+  let called = false;
+  assert.equal(runMergeGate(options, () => { called = true; return [child('must not run', 'process.exit(0)')]; }), 1);
+  assert.equal(called, false, 'must not even discover gate steps');
+  const output = fixture.logs.join('\n');
+  assert.match(output, /PREFLIGHT FAILED; no gate steps ran/);
+  assert(output.includes(join(fixture.cwd, 'apps/desktop/node_modules/node/bin/node')));
+  assert.match(output, /export PATH='/);
+  assert.match(output, /':"\$PATH"/);
+  assert.match(output, /rerun pnpm check:merge/);
+  return output;
+}
+
+test('a mismatched Node major fails before native probes or gate steps', t => {
+  const fixture = runtimeFixture(t);
+  fixture.write('apps/desktop/package.json', JSON.stringify({ devDependencies: { node: '999.0.0' } }));
+  assert.match(assertFailsBeforeSteps(fixture), /does not match validated Node 999.x/);
+  assert.equal(existsSync(join(fixture.cwd, 'opened')), false);
+});
+
+test('a runner and PATH Node ABI mismatch cannot run steps with a different runtime', t => {
+  const fixture = runtimeFixture(t);
+  const runtime = { version: process.version, versions: { ...process.versions, modules: 'different-ABI' }, execPath: process.execPath };
+  assert.match(assertFailsBeforeSteps(fixture, { ...fixture.options, runtime }), /PATH Node.*differs from the validated runner/);
+});
+
+test('a deferred SQLite ABI load error fails before any gate step', t => {
+  const fixture = runtimeFixture(t);
+  fixture.write('packages/storage/node_modules/better-sqlite3/index.js', `
+    module.exports = class { constructor() { throw new Error('ERR_DLOPEN_FAILED: NODE_MODULE_VERSION mismatch'); } };
+  `);
+  const output = assertFailsBeforeSteps(fixture);
+  assert.match(output, /Cannot load better-sqlite3/);
+  assert.match(output, /ERR_DLOPEN_FAILED: NODE_MODULE_VERSION mismatch/);
+});
+
+test('an unloadable PTY addon fails before any gate step', t => {
+  const fixture = runtimeFixture(t);
+  fixture.write('packages/smithy/node_modules/node-pty/index.js', "throw new Error('PTY addon unavailable');");
+  assert.match(assertFailsBeforeSteps(fixture), /Cannot load node-pty[\s\S]*PTY addon unavailable/);
+});
+
+test('missing tools and invalid manifest pins fail closed', t => {
+  const fixture = runtimeFixture(t);
+  rmSync(join(fixture.cwd, 'bin/bun'));
+  fixture.write('apps/desktop/package.json', '{"devDependencies":{"node":"^22.0.0"}}');
+  const output = assertFailsBeforeSteps(fixture);
+  assert.match(output, /Cannot read bun version/);
+  assert.match(output, /must pin an exact version/);
+});
+
+test('a successful preflight proceeds to the requested checks and preserves their failure', t => {
+  const fixture = runtimeFixture(t);
+  assert.equal(runMergeGate(fixture.options, () => [child('intentional failure', 'process.exit(17)')]), 1);
+  assert.match(fixture.logs.join('\n'), /FAILED exit=17: intentional failure/);
+  const logDirectory = fixture.logs.find(line => line.includes('Full logs and results.json: ')).split('Full logs and results.json: ')[1];
+  t.after(() => rmSync(logDirectory, { recursive: true, force: true }));
 });
