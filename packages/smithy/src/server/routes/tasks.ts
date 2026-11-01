@@ -578,6 +578,10 @@ export function createTaskRoutes(services: Services) {
       if (errorMessage.includes('not a worker')) {
         return c.json({ error: { code: 'INVALID_AGENT', message: 'Agent is not a worker' } }, 400);
       }
+      if (error instanceof Error && error.name === 'TaskBranchUnavailableError') {
+        // The recorded task branch is gone; never restart it from the target.
+        return c.json({ error: { code: 'TASK_BRANCH_UNAVAILABLE', message: error.message } }, 409);
+      }
       logger.error('Failed to start worker on task:', error);
       return c.json({ error: { code: 'INTERNAL_ERROR', message: errorMessage } }, 500);
     }

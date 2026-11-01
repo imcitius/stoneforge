@@ -100,6 +100,8 @@ This is the core dispatch loop:
 ### Branch reuse on redispatch
 
 A task keeps one branch across handoffs, rejections and failed dispatch attempts.
+The same rules apply to automatic dispatch, orphan recovery and an explicit
+start (`startWorkerOnTask`, `POST /api/tasks/:id/start-worker`).
 When a task is dispatched again, the daemon:
 
 1. Reuses the recorded worktree if it is still registered and on the recorded branch.
@@ -110,7 +112,14 @@ When a task is dispatched again, the daemon:
 
 If the recorded branch exists neither locally nor on origin, the task is skipped
 with a "Task branch missing" warning instead of silently restarting from the target.
-Restore the branch, or reset the task explicitly.
+An explicit start is refused with `TaskBranchUnavailableError` (HTTP 409
+`TASK_BRANCH_UNAVAILABLE`). Restore the branch, or reset the task explicitly.
+
+Exception: a branch name that an assignment recorded but no worker ever used
+(no session or handoff history, no session ID, completion or merge request) is
+created under that name from the target. This covers a manual dispatch without a
+worktree. An explicit start with a different `branch` option is an override and
+uses the requested branch.
 
 ### No-progress handoff guard
 

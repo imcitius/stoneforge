@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import path from 'node:path';
 import { taskWorktreeManager } from '../git/project-repositories.js';
 /**
  * Worker Task Service
@@ -38,6 +41,23 @@ import type {
 } from '../git/worktree-manager.js';
 import type { SpawnerService } from '../runtime/spawner.js';
 import type { SessionManager, SessionRecord } from '../runtime/session-manager.js';
+import { getOrchestratorTaskMeta } from '../types/task-meta.js';
+import { createLogger } from '../utils/logger.js';
+import { recordedTaskWorkspace, resolveTaskWorkspace, sameBranchName } from './task-workspace.js';
+
+const logger = createLogger('worker-task-service');
+
+/** Describes a reused worktree in the same shape as a created one. */
+async function reusedWorktreeResult(worktreeManager: WorktreeManager, worktreePath: string, branch: string): Promise<CreateWorktreeResult> {
+  let info: WorktreeInfo | undefined;
+  try { info = await worktreeManager.getWorktree(worktreePath); } catch { info = undefined; }
+  return {
+    worktree: info ?? ({ path: worktreePath, relativePath: worktreePath, branch, head: '', isMain: false, state: 'active' } as WorktreeInfo),
+    branch,
+    path: worktreePath,
+    branchCreated: false,
+  };
+}
 
 // ============================================================================
 // Types
@@ -163,7 +183,11 @@ export interface WorkerTaskService {
    *
    * This method performs the complete workflow:
    * 1. Dispatches the task to the worker (assigns + notifies)
-   * 2. Creates a worktree for the task (if worktrees enabled)
+   * 2. Resolves the task worktree (if worktrees enabled): a recorded task
+   *    branch is always continued (reused worktree, or a new worktree attached
+   *    to the same branch); a missing recorded branch with prior work is
+   *    refused (TaskBranchUnavailableError). `options.branch` that differs from
+   *    the recorded branch is an explicit override.
    * 3. Spawns the worker session in the worktree
    * 4. Sends task context to the worker
    *
@@ -323,14 +347,45 @@ export class WorkerTaskServiceImpl implements WorkerTaskService {
 
     if (this.worktreeManager && !options.skipWorktree) {
       const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
-      worktreeResult = await worktreeManager.createWorktree({
-        agentName: agent.name ?? `agent-${agentId.substring(0, 8)}`,
-        taskId,
-        taskTitle: task.title,
-        customBranch: options.branch,
-        customPath: options.worktreePath,
-        baseBranch: options.baseBranch,
-      });
+      const agentName = agent.name ?? `agent-${agentId.substring(0, 8)}`;
+      const taskMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
+      const recorded = recordedTaskWorkspace(taskMeta);
+      if (!recorded.branch || (options.branch && !sameBranchName(options.branch, recorded.branch))) {
+        // No recorded branch yet, or the caller explicitly chose another branch.
+        if (recorded.branch) {
+          logger.warn(`Explicit start of task ${taskId} uses requested branch ${options.branch} instead of recorded branch ${recorded.branch}`);
+        }
+        worktreeResult = await worktreeManager.createWorktree({
+          agentName,
+          taskId,
+          taskTitle: task.title,
+          customBranch: options.branch,
+          customPath: options.worktreePath,
+          baseBranch: options.baseBranch,
+        });
+      } else {
+        // Same contract as automatic dispatch/orphan recovery (el-5jwe6q): reuse
+        // the recorded worktree, else attach a new worktree to the SAME branch.
+        // An existing directory is never replaced: a requested path is used only
+        // when free, otherwise an attempt-specific path.
+        const requestedPathFree = !!options.worktreePath &&
+          !existsSync(path.resolve(worktreeManager.getWorkspaceRoot(), options.worktreePath));
+        const resolved = await resolveTaskWorkspace({
+          task,
+          worktreeManager,
+          recordedBranch: recorded.branch,
+          recordedWorktree: recorded.worktree,
+          createWorktree: (attach) => worktreeManager.createWorktree({
+            agentName: requestedPathFree ? agentName : `${agentName}-${randomUUID()}`,
+            taskId,
+            taskTitle: task.title,
+            customBranch: attach?.branch,
+            customPath: requestedPathFree ? options.worktreePath : undefined,
+            baseBranch: attach?.baseBranch ?? (attach?.create ? options.baseBranch ?? taskMeta?.targetBranch : undefined),
+          }),
+        });
+        worktreeResult = resolved.created ?? await reusedWorktreeResult(worktreeManager, resolved.path, resolved.branch);
+      }
       workingDirectory = worktreeResult.path;
       branch = worktreeResult.branch;
       worktreePath = worktreeResult.path;

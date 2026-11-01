@@ -10,6 +10,7 @@ import { createTimestamp, Priority, Complexity, TaskStatus } from '@stoneforge/c
 import type { Task, ElementId, EntityId } from '@stoneforge/core';
 import type { Services } from '../services.js';
 import { createTaskRoutes } from './tasks.js';
+import { TaskBranchUnavailableError } from '../../services/task-workspace.js';
 
 // ============================================================================
 // Test Fixtures
@@ -239,5 +240,21 @@ describe('POST /api/tasks/:id/reset — session termination', () => {
 
     // Should not attempt session termination
     expect(sessionManager.getActiveSession).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/tasks/:id/start-worker — recorded branch unavailable (el-2q3e2y)', () => {
+  it('returns 409 TASK_BRANCH_UNAVAILABLE instead of starting from the target', async () => {
+    const { services, api } = createMockServices();
+    api.get.mockResolvedValue(createMockTask());
+    (services.agentRegistry.getAgent as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'agent-worker-001', name: 'worker' });
+    const refused = new TaskBranchUnavailableError('task-001', 'agent/worker/task-001');
+    (services.workerTaskService.startWorkerOnTask as ReturnType<typeof vi.fn>).mockRejectedValue(refused);
+
+    const res = await createTaskRoutes(services).request('/api/tasks/task-001/start-worker', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentId: 'agent-worker-001' }),
+    });
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toEqual({ code: 'TASK_BRANCH_UNAVAILABLE', message: refused.message });
   });
 });

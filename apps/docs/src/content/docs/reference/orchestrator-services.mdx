@@ -30,6 +30,13 @@ const task = await assignmentService.assignToAgent(taskId, agentId, {
   markAsStarted: true,
 });
 
+// assignToAgent merges into the existing orchestrator metadata. It replaces only
+// ASSIGNMENT_RESET_FIELDS: assignedAgent, branch/worktree (the recorded branch is
+// continued), sessionId, mergeStatus ('pending'), startedAt, the consumed
+// handoffBranch/handoffWorktree, noProgress (kept for automatic claims) and
+// dispatchHold. Counters (resumeCount, recovery counts), reportedIssues,
+// owningDirector, histories and completion/merge-request data are kept.
+
 // Unassign
 await assignmentService.unassignTask(taskId, { mode: 'admin' }); // deliberate current-owner release
 
@@ -316,6 +323,10 @@ const result = await workerTaskService.startWorkerOnTask(taskId, agentId, {
   skipWorktree: false,
 });
 // result.task, result.agent, result.dispatch, result.worktree, result.session
+// A recorded task branch is continued (reused worktree, or a new worktree on the
+// same branch); `branch` above is an override only when it differs from it.
+// A recorded branch with prior work that no longer exists is refused with
+// TaskBranchUnavailableError instead of restarting from the target.
 
 // Complete a task
 const result = await workerTaskService.completeTask(taskId, {

@@ -22,8 +22,6 @@ import { taskWorktreeManager, ProjectRepositories } from '../git/project-reposit
 import { ProjectNodeError } from '../runtime/project-node.js';
 import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { basename } from 'node:path';
 import type {
   EntityId,
@@ -78,23 +76,12 @@ import {
   DEFAULT_NO_PROGRESS_HANDOFF_LIMIT,
 } from './no-progress-guard.js';
 import type { OperationLogService } from './operation-log-service.js';
+import {
+  TaskBranchUnavailableError, recordedTaskWorkspace, resolveTaskWorkspace, taskHasWorkEvidence, type AttachBranch,
+  localBranchExists, remoteBranchCommit, readGitCommit,
+} from './task-workspace.js';
 
 const logger = createLogger('dispatch-daemon');
-const execFileForGit = promisify(execFile);
-
-/** Raised when a task's recorded branch cannot be found locally or on origin. */
-class TaskBranchUnavailableError extends Error {
-  constructor(readonly taskId: string, readonly branch: string) {
-    super(`Task ${taskId} records branch ${branch}, which no longer exists locally or on origin. ` +
-      'Refusing to start a fresh branch from the target; restore the branch or reset the task explicitly.');
-    this.name = 'TaskBranchUnavailableError';
-  }
-}
-
-function sameBranchName(a: string | undefined, b: string | undefined): boolean {
-  const normalize = (value: string | undefined) => value?.replace(/^refs\/heads\//, '');
-  return !!a && !!b && normalize(a) === normalize(b);
-}
 
 // ============================================================================
 // Constants
@@ -2810,16 +2797,14 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const taskMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
     // A stale preparation must never replace another attempt's Git directory.
     const attemptId = randomUUID();
+    const recorded = recordedTaskWorkspace(taskMeta);
     const { path: worktreePath, branch } = await this.resolveTaskWorkspace(
-      worker, task, worktreeManager,
-      taskMeta?.handoffBranch ?? taskMeta?.branch,
-      taskMeta?.handoffBranch ? taskMeta?.handoffWorktree ?? taskMeta?.worktree : taskMeta?.worktree ?? taskMeta?.handoffWorktree,
-      attemptId,
+      worker, task, worktreeManager, recorded.branch, recorded.worktree, attemptId,
     );
     // The baseline must describe the branch this dispatch actually uses (a
     // first dispatch only gets its branch here).
     if (progressState?.fingerprint) {
-      const commit = await this.readGitCommit(worktreeManager, `refs/heads/${branch}`);
+      const commit = await readGitCommit(worktreeManager, `refs/heads/${branch}`);
       if (commit) progressState = { ...progressState, fingerprint: { ...progressState.fingerprint, commit } };
     }
 
@@ -3004,7 +2989,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     worker: AgentEntity,
     task: Task,
     attemptId?: string,
-    existing?: { branch: string; baseBranch?: string },
+    existing?: AttachBranch,
   ): Promise<CreateWorktreeResult> {
     const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
     const orcMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
@@ -3029,15 +3014,11 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   }
 
   /**
-   * Resolves the worktree for (re)dispatching a task.
-   *
-   * 1. Reuse the recorded worktree when it is registered and on the recorded branch.
-   * 2. With a recorded branch: reuse any worktree that has it checked out, else
-   *    attach a fresh worktree path to that same branch (local, or created from
-   *    origin's tip). The branch is never recreated from the target.
-   * 3. Only a task without any recorded branch gets a new branch from the target.
+   * Resolves the worktree for (re)dispatching a task through the shared
+   * contract in task-workspace.ts (reuse, re-attach the same branch, or a new
+   * branch only when none is recorded).
    */
-  private async resolveTaskWorkspace(
+  private resolveTaskWorkspace(
     worker: AgentEntity,
     task: Task,
     worktreeManager: WorktreeManager,
@@ -3045,65 +3026,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     recordedWorktree: string | undefined,
     attemptId?: string,
   ): Promise<{ path: string; branch: string }> {
-    if (recordedWorktree && await worktreeManager.worktreeExists(recordedWorktree)) {
-      let info: Awaited<ReturnType<WorktreeManager['getWorktree']>>;
-      try { info = await worktreeManager.getWorktree(recordedWorktree); } catch { info = undefined; }
-      const branch = recordedBranch ?? info?.branch;
-      if (branch && (!info?.branch || !recordedBranch || sameBranchName(info.branch, recordedBranch))) {
-        return { path: recordedWorktree, branch: branch.replace(/^refs\/heads\//, '') };
-      }
-      if (branch) {
-        logger.warn(`Worktree ${recordedWorktree} for task ${task.id} is on ${info?.branch}, not recorded branch ${recordedBranch}; not reusing it`);
-      }
-    }
-
-    if (recordedBranch) {
-      let checkedOut: Awaited<ReturnType<WorktreeManager['listWorktrees']>> = [];
-      try { checkedOut = await worktreeManager.listWorktrees(); } catch { checkedOut = []; }
-      const holder = checkedOut.find((w) => sameBranchName(w.branch, recordedBranch));
-      if (holder) {
-        logger.info(`Reusing worktree ${holder.path} that has task ${task.id} branch ${recordedBranch} checked out`);
-        return { path: holder.path, branch: recordedBranch };
-      }
-      const local = await this.localBranchExists(worktreeManager, recordedBranch);
-      if (!local && !(await this.remoteBranchCommit(worktreeManager, recordedBranch))) {
-        throw new TaskBranchUnavailableError(task.id, recordedBranch);
-      }
-      logger.warn(`Worktree for task ${task.id} is missing; re-attaching recorded branch ${recordedBranch}${local ? '' : ' from origin'}`);
-      this.operationLog?.write('warn', 'dispatch', `Re-attached recorded branch ${recordedBranch} for task ${task.id} in a new worktree`, { taskId: task.id, branch: recordedBranch, previousWorktree: recordedWorktree });
-      const result = await this.createWorktreeForTask(worker, task, attemptId ?? randomUUID(), {
-        branch: recordedBranch,
-        baseBranch: local ? undefined : recordedBranch,
-      });
-      return { path: result.path, branch: result.branch };
-    }
-
-    const result = await this.createWorktreeForTask(worker, task, attemptId);
-    return { path: result.path, branch: result.branch };
-  }
-
-  private async localBranchExists(worktreeManager: WorktreeManager, branch: string): Promise<boolean> {
-    // Managers without branch inspection (test doubles) cannot disprove the branch.
-    if (typeof worktreeManager.branchExists !== 'function') return true;
-    try { return await worktreeManager.branchExists(branch); } catch { return false; }
-  }
-
-  /** Reads `refs/remotes/origin/<branch>`; undefined when absent or not a Git repository. */
-  private async remoteBranchCommit(worktreeManager: WorktreeManager, branch: string): Promise<string | undefined> {
-    return this.readGitCommit(worktreeManager, `refs/remotes/origin/${branch}`);
-  }
-
-  private async readGitCommit(worktreeManager: WorktreeManager, ref: string): Promise<string | undefined> {
-    const repositoryRoot = worktreeManager.getRepositoryRoot?.();
-    if (!repositoryRoot) return undefined;
-    try {
-      const { stdout } = await execFileForGit('git', ['rev-parse', '--verify', '--quiet', '--end-of-options', `${ref}^{commit}`], {
-        cwd: repositoryRoot, encoding: 'utf8', timeout: 30_000,
-      });
-      return stdout.trim() || undefined;
-    } catch {
-      return undefined;
-    }
+    return resolveTaskWorkspace({
+      task, worktreeManager, recordedBranch, recordedWorktree, operationLog: this.operationLog,
+      createWorktree: (attach) => this.createWorktreeForTask(worker, task, attach ? attemptId ?? randomUUID() : attemptId, attach),
+    });
   }
 
   /**
@@ -3112,14 +3038,15 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    */
   private async recordedBranchAvailable(task: Task, worktreeManager: WorktreeManager): Promise<boolean> {
     const meta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
-    const branch = meta?.handoffBranch ?? meta?.branch;
+    const { branch, worktree } = recordedTaskWorkspace(meta);
     if (!branch) return true;
-    const worktree = meta?.handoffBranch ? meta?.handoffWorktree ?? meta?.worktree : meta?.worktree ?? meta?.handoffWorktree;
     if (worktree) {
       try { if (await worktreeManager.worktreeExists(worktree)) return true; } catch { /* fall through to branch checks */ }
     }
-    if (await this.localBranchExists(worktreeManager, branch)) return true;
-    if (await this.remoteBranchCommit(worktreeManager, branch)) return true;
+    if (await localBranchExists(worktreeManager, branch)) return true;
+    if (await remoteBranchCommit(worktreeManager, branch)) return true;
+    // A generated-but-never-created branch name (no worker ever ran) is created.
+    if (!taskHasWorkEvidence(meta)) return true;
     const error = new TaskBranchUnavailableError(task.id, branch);
     this.emitWarningOnce(`task-branch-missing:${task.id}`, { type: 'warning', title: 'Task branch missing', message: error.message });
     this.operationLog?.write('warn', 'dispatch', error.message, { taskId: task.id, branch });
@@ -3144,7 +3071,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     }
     const dependencies = await this.api.getDependencies(task.id);
     const commit = branch
-      ? await this.readGitCommit(worktreeManager, `refs/heads/${branch}`) ?? await this.remoteBranchCommit(worktreeManager, branch)
+      ? await readGitCommit(worktreeManager, `refs/heads/${branch}`) ?? await remoteBranchCommit(worktreeManager, branch)
       : undefined;
     return computeProgressFingerprint({
       title: task.title,

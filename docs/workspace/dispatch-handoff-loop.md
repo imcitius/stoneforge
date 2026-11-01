@@ -155,7 +155,107 @@ required gate are recorded in the task handoff and shared runbook el-of6.
   `notificationError` plus a UI warning instead of a message.
 - The explicit `startWorkerOnTask` path (WorkerTaskService) still creates its
   worktree from options and does not consult the recorded branch. This was
-  reported to the Director and is not changed here.
+  reported to the Director and is not changed here. *(Resolved by el-2q3e2y,
+  see below.)*
 - A merge steward that keeps REVIEW for an external blocker may be re-spawned by
   steward orphan recovery up to the existing cap of 3, after which `mergeStatus`
   becomes `failed`. That logic is unchanged.
+
+## Follow-up el-2q3e2y: explicit start and assignment metadata
+
+Source only; the installed Desktop application is unchanged until a separately
+approved install.
+
+### Defects (reproduced at 67d0f7a, the el-5jwe6q delivery)
+
+1. **Explicit start lost the branch.** `WorkerTaskService.startWorkerOnTask`
+   called `createWorktree` with the request options only. A handed-off task with
+   commits got a fresh `agent/<worker>/<task>` branch from `main`; the recorded
+   branch was ignored (the el-2zeuz branch-loss class).
+2. **`assignToAgent` rebuilt the orchestrator metadata.** It kept only a fixed
+   list (repository, branch/worktree, handoff/completion/session histories,
+   targetBranch, noProgress for claims) and dropped every other field:
+   `resumeCount`, `reportedIssues`, `lastCommitHash`, completion and merge-request
+   data, recovery counters, test/sync results, `owningDirector`, `handoffAt`
+   and others. It also ignored a recorded `branch` without a pending handoff and
+   generated a new name. The recovery-steward escalation comment "keep
+   resumeCount high so a fresh worker doesn't get auto-dispatched into a
+   known-failing loop" was defeated by the next assignment.
+3. **Found while reproducing (introduced by el-5jwe6q).** A manual dispatch
+   without a worktree (`POST /api/tasks/:id/dispatch`, `DispatchService.dispatch`)
+   records a generated branch *name* through `assignToAgent`, without creating it.
+   Orphan recovery then treated that name as a lost branch and threw
+   `TaskBranchUnavailableError` on every poll (`processed: 0`); before el-5jwe6q
+   it created the worktree. The candidate check would also skip such a task.
+
+### Fix
+
+- The el-5jwe6q resolver moved unchanged from a private `DispatchDaemon` method to
+  `packages/smithy/src/services/task-workspace.ts` (`resolveTaskWorkspace`,
+  `recordedTaskWorkspace`, `TaskBranchUnavailableError`, Git ref helpers). The
+  daemon (dispatch, orphan recovery, candidate check) and `startWorkerOnTask` use
+  the same module.
+- `startWorkerOnTask` with a recorded branch (handoff first, then assignment):
+  reuse the recorded worktree, else a worktree holding the branch, else a new
+  worktree path attached to the **same** branch (local, or from `origin/<branch>`).
+  A requested `worktreePath` is used only if free; otherwise an attempt-specific
+  path, never replacing an existing directory. A recorded branch with prior work
+  that is missing everywhere is refused **before** assignment
+  (`TaskBranchUnavailableError`, HTTP 409 `TASK_BRANCH_UNAVAILABLE`). An explicit
+  `branch` option that differs from the recorded branch is an override (logged).
+  No recorded branch: previous behavior.
+- Missing recorded branch **without work evidence** (`taskHasWorkEvidence`: no
+  session or handoff history, `handoffBranch`, `sessionId`, `lastCommitHash`,
+  completion operation/history or merge request ID) is a name that was never
+  materialized. It is created under that name from the target, in all paths.
+  A deleted branch with any of that evidence is still refused/skipped as before.
+- `assignToAgent` merges into the existing metadata. Only
+  `ASSIGNMENT_RESET_FIELDS` change:
+
+| Field | Assignment sets | Why |
+|------|-----------------|-----|
+| `assignedAgent` | new agent | the new owner |
+| `branch` / `worktree` | option > pending handoff > recorded > generated | continue the task branch; worktree paired with its branch |
+| `sessionId` | option (else cleared) | previous owner's session must not pass current-session guards (el-1f5tm); history keeps it |
+| `mergeStatus` | `pending` | new work cycle; the old outcome no longer describes the branch (`mergeFailureReason` is kept for the next worker) |
+| `startedAt` | now if `markAsStarted`, else cleared | previous owner's start; unassign clears it for the same reason |
+| `handoffBranch` / `handoffWorktree` | cleared | one-shot pointer consumed into branch/worktree; a leftover would override the assigned worktree on redispatch |
+| `noProgress` | kept for automatic claims, cleared otherwise | el-5jwe6q contract: explicit assignment is a Director/Human decision |
+| `dispatchHold` | cleared | any assignment ends a hold (el-5jwe6q) |
+
+Everything else is kept, including `handoffAt`, `handoffFrom`, `lastSessionId`
+(facts about the last handoff), `resumeCount` and recovery counters, and
+`completedAt`/merge-request fields (a completion overwrites them).
+
+### Evidence
+
+`packages/smithy/src/services/dispatch-no-progress.bun.test.ts` reuses the el-5jwe6q
+fixture (temporary SQLite, Git repository with bare origin, real
+`WorktreeManager`/`SessionManager`/`TaskAssignmentService`/`DispatchService`,
+inert provider double) and adds 11 tests:
+
+- (d) explicit start after a handoff reuses the worktree and commit; worktree
+  removed and cleared by admin unassign attaches the same branch; origin-only
+  branch from the origin tip; missing branch with prior work refused with
+  task version unchanged and no branch created; explicit different `branch`
+  override; generated-only name created by explicit start; manual dispatch
+  followed by orphan recovery.
+- (e) explicit assignment keeps 21 unrelated fields and changes only the
+  documented fields; automatic claim keeps them; a recorded branch without a
+  handoff is kept; the exported reset list matches the documented one.
+
+Baseline (fix sources reverted, same test file): **18 pass / 9 fail**. For
+example, explicit start received `agent/c-worker-1/<task>-…` instead of the
+recorded `agent/c-worker-1-<uuid>/…` branch, orphan recovery processed 0
+instead of 1, and `resumeCount` became `undefined` instead of 2. The two
+override/generated-name tests pass on both (compatibility controls). With the
+fix: **27/27**. An HTTP route test covers the 409 mapping.
+
+### Limitations
+
+- Work evidence is metadata-based. A task worked only through explicit starts
+  (they record `sessionId` but no `sessionHistory`) and then reassigned keeps no
+  trace. If its branch is then deleted locally and on origin, it is recreated
+  from the target under the same name.
+- `startWorkerOnTask` still records no `sessionHistory` entry (unchanged).
+

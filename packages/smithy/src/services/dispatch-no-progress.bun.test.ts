@@ -10,6 +10,11 @@
  * (b) Consecutive no-progress handoffs stop automatic redispatch after the limit
  *     with exactly one Director notification; Director/Human changes reset it.
  * (c) Rate-limit and crash/resume paths neither increment nor reset the counter.
+ * (d) el-2q3e2y: explicit start (WorkerTaskService.startWorkerOnTask) follows the
+ *     same branch contract; an assignment that only recorded a generated branch
+ *     name is materialized under that name (explicit start and orphan recovery).
+ * (e) el-2q3e2y: assignToAgent merges orchestrator metadata and replaces only
+ *     the documented assignment fields.
  */
 import { beforeEach, afterEach, test, expect, describe } from 'bun:test';
 import { EventEmitter } from 'node:events';
@@ -27,11 +32,12 @@ import { createAgentRegistry, type AgentEntity } from './agent-registry.js';
 import { createTaskAssignmentService } from './task-assignment-service.js';
 import { createDispatchService } from './dispatch-service.js';
 import { createDispatchDaemon, type DispatchDaemon } from './dispatch-daemon.js';
+import { createWorkerTaskService } from './worker-task-service.js';
 import { createSessionManager } from '../runtime/session-manager.js';
 import type { SpawnerService, SpawnResult } from '../runtime/spawner.js';
 import { createWorktreeManager } from '../git/worktree-manager.js';
 import type { StewardScheduler } from './steward-scheduler.js';
-import { getOrchestratorTaskMeta, type OrchestratorTaskMeta } from '../types/task-meta.js';
+import { getOrchestratorTaskMeta, updateOrchestratorTaskMeta, type OrchestratorTaskMeta } from '../types/task-meta.js';
 import { stripHandoffNotes, evaluateNoProgress, computeProgressFingerprint } from './no-progress-guard.js';
 
 let root: string, origin: string, db: StorageBackend, api: QuarryAPI;
@@ -99,7 +105,11 @@ async function services(config: { noProgressHandoffLimit?: number } = {}) {
     await assignment.handoffTask(task.id, { sessionId, message });
     await sessions.stopSession(sessionId, { graceful: false, reason: 'handoff' }).catch(() => undefined);
   };
-  return { registry, assignment, dispatch, sessions, worktrees, daemon, inbox, claim, release, handoff };
+  const workerTasks = createWorkerTaskService(api, assignment, registry, dispatch, spawner, sessions, worktrees);
+  /** Explicit start (HTTP start-worker / API) for the fixture worker. */
+  const start = (options?: Parameters<typeof workerTasks.startWorkerOnTask>[2]) =>
+    workerTasks.startWorkerOnTask(task.id, worker.id as unknown as EntityId, options);
+  return { registry, assignment, dispatch, sessions, worktrees, daemon, inbox, claim, release, handoff, start };
 }
 
 const metaOf = (t: Task) => getOrchestratorTaskMeta(t.metadata as Record<string, unknown>) as OrchestratorTaskMeta;
@@ -385,6 +395,207 @@ describe('(c) rate-limit and crash paths do not touch the counter', () => {
     expect(after.noProgress).toEqual(beforeCrash.noProgress);
     expect(s.daemon.getRateLimitStatus().limits.length).toBeGreaterThan(0);
     expect(holdMessages()).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// (d) Explicit start keeps the recorded branch (el-2q3e2y)
+// ---------------------------------------------------------------------------
+
+const stopAll = async (s: Awaited<ReturnType<typeof services>>) => {
+  for (const [id, handle] of handles) if (handle.alive) await s.sessions.stopSession(id, { graceful: false }).catch(() => undefined);
+};
+
+describe('(d) explicit start keeps the recorded task branch', () => {
+  test('after a handoff: reuses the recorded worktree and branch with its commits', async () => {
+    const s = await services();
+    expect(await s.claim()).toBe(true);
+    const first = metaOf(await current());
+    const work = commitIn(first.worktree!, 'work.txt');
+    await s.handoff('Context full; continue from work.txt');
+
+    const result = await s.start();
+    const meta = metaOf(await current());
+    expect(meta.branch).toBe(first.branch);
+    expect(realpathSync(meta.worktree!)).toBe(realpathSync(first.worktree!));
+    expect(result.worktree?.branchCreated).toBe(false);
+    expect(git(meta.worktree!, 'rev-parse', 'HEAD')).toBe(work);
+    expect(taskBranches()).toEqual([first.branch!]);
+  });
+
+  test('worktree gone and cleared from metadata by unassign: a new worktree attaches the same branch', async () => {
+    const s = await services();
+    expect(await s.claim()).toBe(true);
+    const first = metaOf(await current());
+    const work = commitIn(first.worktree!, 'work.txt');
+    await stopAll(s);
+    // The incident state: worktree cleared from metadata, directory removed.
+    await s.assignment.unassignTask(task.id, { mode: 'admin' });
+    git(root, 'worktree', 'remove', '--force', first.worktree!);
+    expect(metaOf(await current()).worktree).toBeUndefined();
+
+    await s.start();
+    const meta = metaOf(await current());
+    expect(meta.branch).toBe(first.branch);
+    expect(meta.worktree).not.toBe(first.worktree);
+    expect(git(meta.worktree!, 'rev-parse', '--abbrev-ref', 'HEAD')).toBe(first.branch);
+    expect(git(meta.worktree!, 'rev-parse', 'HEAD')).toBe(work);
+    expect(taskBranches()).toEqual([first.branch!]);
+  });
+
+  test('branch only on origin: attached from the origin tip, never from main', async () => {
+    const s = await services();
+    expect(await s.claim()).toBe(true);
+    const first = metaOf(await current());
+    const pushed = commitIn(first.worktree!, 'pushed.txt');
+    git(first.worktree!, 'push', '-q', 'origin', first.branch!);
+    await s.handoff('Pushed; continue');
+    git(root, 'worktree', 'remove', '--force', first.worktree!);
+    git(root, 'branch', '-D', first.branch!);
+
+    await s.start();
+    const meta = metaOf(await current());
+    expect(meta.branch).toBe(first.branch);
+    expect(git(meta.worktree!, 'rev-parse', 'HEAD')).toBe(pushed);
+  });
+
+  test('recorded branch with prior work missing everywhere: refused, nothing assigned or created', async () => {
+    const s = await services();
+    expect(await s.claim()).toBe(true);
+    const first = metaOf(await current());
+    await s.handoff('Stopping');
+    git(root, 'worktree', 'remove', '--force', first.worktree!);
+    git(root, 'branch', '-D', first.branch!);
+    const before = await current();
+
+    await expect(s.start()).rejects.toThrow('no longer exists locally or on origin');
+    const after = await current();
+    expect(after.updatedAt).toBe(before.updatedAt);
+    expect(after.assignee).toBeUndefined();
+    expect(taskBranches()).toEqual([]);
+  });
+
+  test('an explicitly requested different branch is honoured as an override', async () => {
+    const s = await services();
+    expect(await s.claim()).toBe(true);
+    const first = metaOf(await current());
+    await s.handoff('Restart on a new branch');
+    await s.start({ branch: 'agent/explicit/override' });
+    expect(metaOf(await current()).branch).toBe('agent/explicit/override');
+    expect(taskBranches()).toEqual([first.branch!]);
+  });
+
+  test('assignment that only recorded a generated name: explicit start creates that branch', async () => {
+    const s = await services();
+    await s.assignment.assignToAgent(task.id, worker.id as unknown as EntityId);
+    const recorded = metaOf(await current()).branch!;
+    expect(taskBranches()).toEqual([]);
+
+    const result = await s.start();
+    expect(result.worktree?.branch).toBe(recorded);
+    expect(metaOf(await current()).branch).toBe(recorded);
+    expect(git(result.worktree!.path, 'rev-parse', 'HEAD')).toBe(git(root, 'rev-parse', 'main'));
+  });
+
+  test('manual dispatch without a worktree: orphan recovery creates the recorded branch name', async () => {
+    const s = await services();
+    await s.dispatch.dispatch(task.id, worker.id as unknown as EntityId, { markAsStarted: true });
+    const recorded = metaOf(await current()).branch!;
+    expect(taskBranches()).toEqual([]);
+
+    expect((await s.daemon.recoverOrphanedAssignments()).processed).toBe(1);
+    const meta = metaOf(await current());
+    expect(meta.branch).toBe(recorded);
+    expect(git(meta.worktree!, 'rev-parse', '--abbrev-ref', 'HEAD')).toBe(recorded);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// (e) assignToAgent merges orchestrator metadata (el-2q3e2y)
+// ---------------------------------------------------------------------------
+
+/** Documented assignment-owned fields; every other field must survive. */
+const ASSIGNMENT_RESETS = [
+  'assignedAgent', 'branch', 'worktree', 'sessionId', 'mergeStatus', 'startedAt',
+  'handoffBranch', 'handoffWorktree', 'noProgress', 'dispatchHold',
+].sort();
+
+const unrelated = {
+  resumeCount: 2,
+  reportedIssues: ['test_failure'],
+  lastCommitHash: 'abc1234',
+  completedAt: '2026-11-01T01:00:00.000Z',
+  completionSummary: 'first attempt',
+  mergeRequestUrl: 'https://example.test/pr/7',
+  mergeRequestId: 7,
+  mergeRequestProvider: 'github',
+  mergeFailureReason: 'Tests failed',
+  stewardRecoveryCount: 1,
+  reconciliationCount: 1,
+  stuckMergeRecoveryCount: 1,
+  testRunCount: 3,
+  lastTestResult: { passed: false, completedAt: '2026-11-01T01:05:00.000Z' },
+  lastSyncResult: { success: true, conflicts: [], message: 'synced', syncedAt: '2026-11-01T01:06:00.000Z' },
+  owningDirector: 'el-director',
+  targetBranch: 'main',
+  handoffAt: '2026-11-01T02:00:00.000Z',
+  handoffFrom: 'el-previous',
+  lastSessionId: 'previous-provider',
+  handoffHistory: [{ sessionId: 'previous-provider', message: 'note', handoffAt: '2026-11-01T02:00:00.000Z' }],
+} as unknown as Partial<OrchestratorTaskMeta>;
+
+async function seedMetadata(extra: Partial<OrchestratorTaskMeta>) {
+  const t = await current();
+  await api.update<Task>(task.id, { metadata: updateOrchestratorTaskMeta(t.metadata as Record<string, unknown>, { ...unrelated, ...extra }) });
+}
+
+const changedKeys = (before: OrchestratorTaskMeta, after: OrchestratorTaskMeta) =>
+  [...new Set([...Object.keys(before), ...Object.keys(after)])]
+    .filter((key) => JSON.stringify((before as Record<string, unknown>)[key]) !== JSON.stringify((after as Record<string, unknown>)[key]))
+    .sort();
+
+describe('(e) assignToAgent merges orchestrator metadata', () => {
+  test('explicit assignment keeps unrelated fields and replaces only the documented ones', async () => {
+    const s = await services();
+    await seedMetadata({
+      branch: 'agent/old/el-x-task', worktree: '/old/worktree', sessionId: 'old-session', mergeStatus: 'test_failed',
+      startedAt: '2026-11-01T00:00:00.000Z' as OrchestratorTaskMeta['startedAt'],
+      handoffBranch: 'agent/old/el-x-task', handoffWorktree: '/old/worktree',
+      noProgress: { count: 1 }, dispatchHold: { reason: 'held' },
+    } as unknown as Partial<OrchestratorTaskMeta>);
+    const before = metaOf(await current());
+
+    await s.assignment.assignToAgent(task.id, worker.id as unknown as EntityId);
+    const after = metaOf(await current());
+    for (const [key, value] of Object.entries(unrelated)) expect((after as Record<string, unknown>)[key]).toEqual(value);
+    expect(changedKeys(before, after).every((key) => ASSIGNMENT_RESETS.includes(key))).toBe(true);
+    expect(after).toMatchObject({ assignedAgent: worker.id, branch: 'agent/old/el-x-task', worktree: '/old/worktree', mergeStatus: 'pending' });
+    for (const key of ['sessionId', 'startedAt', 'handoffBranch', 'handoffWorktree', 'noProgress', 'dispatchHold']) {
+      expect((after as Record<string, unknown>)[key]).toBeUndefined();
+    }
+  });
+
+  test('automatic claim keeps unrelated fields', async () => {
+    const s = await services();
+    await seedMetadata({});
+    expect(await s.claim()).toBe(true);
+    const after = metaOf(await current());
+    for (const [key, value] of Object.entries(unrelated)) expect((after as Record<string, unknown>)[key]).toEqual(value);
+  });
+
+  test('a recorded branch without a pending handoff is kept on reassignment', async () => {
+    const s = await services();
+    expect(await s.claim()).toBe(true);
+    const first = metaOf(await current());
+    await stopAll(s);
+    await s.assignment.unassignTask(task.id, { mode: 'admin' });
+    await s.assignment.assignToAgent(task.id, director.id as unknown as EntityId);
+    expect(metaOf(await current()).branch).toBe(first.branch);
+  });
+
+  test('the service exports exactly the documented reset list', async () => {
+    const module = await import('./task-assignment-service.js') as { ASSIGNMENT_RESET_FIELDS?: readonly string[] };
+    expect([...(module.ASSIGNMENT_RESET_FIELDS ?? [])].sort()).toEqual(ASSIGNMENT_RESETS);
   });
 });
 

@@ -29,7 +29,6 @@ import type { QuarryAPI } from '@stoneforge/quarry';
 import type { OrchestratorTaskMeta, MergeStatus, HandoffHistoryEntry } from '../types/index.js';
 import {
   getOrchestratorTaskMeta,
-  setOrchestratorTaskMeta,
   updateOrchestratorTaskMeta,
   closeTaskSessionHistory,
   generateBranchName,
@@ -366,6 +365,42 @@ export interface TaskAssignmentService {
 }
 
 // ============================================================================
+// Assignment metadata contract
+// ============================================================================
+
+/**
+ * Orchestrator metadata fields an assignment replaces; everything else is kept
+ * (assignToAgent merges into the existing metadata).
+ *
+ * - `assignedAgent`: the new owner.
+ * - `branch` / `worktree`: the work location. The recorded branch is continued
+ *   (option > pending handoff > current); a name is generated only for a task
+ *   without one. The worktree stays paired with its branch.
+ * - `sessionId`: identifies the previous owner's session; keeping it would let
+ *   that session pass the current-session ownership guards (el-1f5tm).
+ *   Past sessions remain in `sessionHistory`.
+ * - `mergeStatus`: `pending`; a new work cycle starts, a previous merge outcome
+ *   (`test_failed`, `failed`, ...) no longer describes the branch state. The
+ *   reason stays in `mergeFailureReason` for the next worker.
+ * - `startedAt`: the previous owner's start; set again only by `markAsStarted`
+ *   (failed-dispatch/admin unassign clears it for the same reason).
+ * - `handoffBranch` / `handoffWorktree`: a one-shot pointer that this
+ *   assignment consumes into `branch` / `worktree`; left behind, it would make
+ *   a later redispatch prefer a stale handoff worktree over the assigned one.
+ *   `handoffAt`, `handoffFrom`, `lastSessionId` and `handoffHistory` are facts
+ *   about the last handoff and are kept.
+ * - `noProgress`: kept for automatic claims, reset by an explicit assignment
+ *   (a Director/Human decision) — el-5jwe6q contract.
+ * - `dispatchHold`: any assignment ends a no-progress dispatch hold.
+ */
+export const ASSIGNMENT_RESET_FIELDS = [
+  'assignedAgent', 'branch', 'worktree', 'sessionId', 'mergeStatus', 'startedAt',
+  'handoffBranch', 'handoffWorktree', 'noProgress', 'dispatchHold',
+] as const satisfies readonly (keyof OrchestratorTaskMeta)[];
+
+export type AssignmentResetField = typeof ASSIGNMENT_RESET_FIELDS[number];
+
+// ============================================================================
 // Task Assignment Service Implementation
 // ============================================================================
 
@@ -434,39 +469,38 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     const branch = options?.branch ?? generateBranchName(agent.name, taskId, slug);
     const worktree = options?.worktree ?? repositoryManager?.getWorktreePath(agent.name, task.title) ?? generateWorktreePath(agent.name, slug);
 
-    // Get existing orchestrator metadata to preserve handoff history
+    // Assignment is a MERGE into the existing orchestrator metadata: every field
+    // not listed in ASSIGNMENT_RESET_FIELDS (counters such as resumeCount and
+    // the recovery counts, reportedIssues, owningDirector, targetBranch,
+    // repository, histories, completion/merge-request and test/sync data) is
+    // kept. See ASSIGNMENT_RESET_FIELDS for what an assignment replaces and why.
     const existingMeta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
 
-    // Build new orchestrator metadata, preserving handoff context if this is a reassignment
-    const orchestratorMeta: Record<string, unknown> = {
+    // The recorded task branch is continued: explicit option > pending handoff >
+    // current assignment > newly generated name. The worktree is paired with
+    // the branch it was recorded for.
+    const recordedBranch = existingMeta?.handoffBranch ?? existingMeta?.branch;
+    const recordedWorktree = existingMeta?.handoffBranch
+      ? existingMeta?.handoffWorktree ?? (existingMeta?.branch === existingMeta?.handoffBranch ? existingMeta?.worktree : undefined)
+      : existingMeta?.worktree;
+    const assignedBranch = options?.branch ?? recordedBranch ?? branch;
+    const reset: Pick<OrchestratorTaskMeta, AssignmentResetField> = {
       assignedAgent: agentId,
-      repositoryId: existingMeta?.repositoryId,
-      repositoryLocked: existingMeta?.repositoryLocked,
-      branch: options?.branch ?? existingMeta?.handoffBranch ?? branch,
-      worktree: options?.worktree ?? existingMeta?.handoffWorktree ?? worktree,
+      branch: assignedBranch,
+      worktree: options?.worktree ?? (assignedBranch === recordedBranch ? recordedWorktree : undefined) ?? worktree,
       sessionId: options?.sessionId,
       mergeStatus: 'pending' as MergeStatus,
-      // Preserve handoff history from previous assignments
-      handoffHistory: existingMeta?.handoffHistory,
-      // Reassignment/reopen cannot erase an unresolved completion or its audit.
-      completionOperation: existingMeta?.completionOperation,
-      completionHistory: existingMeta?.completionHistory,
-      sessionHistory: existingMeta?.sessionHistory,
-      // Preserve targetBranch across re-assignment/handoff
-      targetBranch: existingMeta?.targetBranch,
+      startedAt: options?.markAsStarted ? createTimestamp() : undefined,
+      handoffBranch: undefined,
+      handoffWorktree: undefined,
       // Automatic dispatch keeps the no-progress handoff counter; an explicit
       // (non-claim) assignment is a Director/Human decision and resets it.
-      // Any assignment ends a dispatch hold (dispatchHold is not carried over).
       noProgress: claim ? existingMeta?.noProgress : undefined,
+      dispatchHold: undefined,
     };
 
-    // If marking as started, add start time
-    if (options?.markAsStarted) {
-      orchestratorMeta.startedAt = createTimestamp();
-    }
-
     const currentMeta = task.metadata as Record<string, unknown> | undefined;
-    const newMetadata = setOrchestratorTaskMeta(currentMeta, orchestratorMeta as OrchestratorTaskMeta);
+    const newMetadata = updateOrchestratorTaskMeta(currentMeta, reset);
 
     // Update status to active if marking as started
     const updates: Partial<Task> = { assignee: agentId, metadata: newMetadata };
