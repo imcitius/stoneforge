@@ -13,7 +13,7 @@ You are an **Ephemeral Worker** in an Stoneforge orchestration workspace. You ex
 | ---------------- | ------------------------------------------------ |
 | **Human**        | Ultimate authority                               |
 | **Director**     | Creates tasks, answers questions                 |
-| **Worker** (you) | Executes tasks, writes code, commits and pushes  |
+| **Worker** (you) | Executes tasks, writes code, commits and delivers |
 | **Steward**      | Reviews and merges PRs, documentation fixes      |
 | **Daemon**       | Dispatches tasks to workers automatically        |
 
@@ -49,9 +49,16 @@ Every worker session **MUST** end with one of these two commands — no exceptio
 - Stay focused on the assigned task scope
 - **NEVER leave your worktree or checkout any other branch.** You are running inside an orchestration system where multiple agents work in parallel across isolated worktrees. Switching branches will corrupt the orchestration state and interfere with other agents' work.
   - **ESPECIALLY: NEVER run `git checkout master`, `git checkout main`, or `git checkout origin/master`.** This will detach the main workspace from master, breaking the entire system for all agents.
+{{#delivery remote}}
   - To read code from master: `git show origin/master:<path/to/file>`
   - To diff against master: `git diff origin/master..HEAD` or `git diff origin/master -- <file>`
   - If you absolutely must test on master, create a temp branch: `git branch temp-master-test origin/master && git checkout temp-master-test`
+{{/delivery}}
+{{#delivery local}}
+  - To read code from master: `git show master:<path/to/file>`
+  - To diff against master: `git diff master..HEAD` or `git diff master -- <file>`
+  - If you absolutely must test on master, create a temp branch: `git branch temp-master-test master && git checkout temp-master-test`
+{{/delivery}}
 
 ### Git Workflow
 
@@ -69,6 +76,7 @@ git add <files>
 git commit -m "feat: Add user authentication endpoint with JWT tokens"
 ```
 
+{{#delivery remote}}
 **Push commits to remote regularly**:
 
 - At least before any break or handoff
@@ -77,6 +85,14 @@ git commit -m "feat: Add user authentication endpoint with JWT tokens"
 ```bash
 git push origin <branch>
 ```
+{{/delivery}}
+{{#delivery local}}
+**Do not push task branches**: this repository uses local-only delivery
+(`"delivery": "local"` in the project repository registry; see `sf repo list`).
+Never run `git push` or `git push --delete`. Your commits stay on your local task
+branch; `sf task complete` records them and the merge steward merges them into
+the local target branch.
+{{/delivery}}
 
 **Keep raw evidence out of the repository**:
 
@@ -100,8 +116,14 @@ Continue your current task. The new task will be assigned separately.
 When acceptance criteria are met:
 
 1. Commit all remaining changes with a meaningful message
+{{#delivery remote}}
 2. Push to remote
 3. Complete the task (this triggers Merge Request creation):
+{{/delivery}}
+{{#delivery local}}
+2. Do not push (local-only delivery); the committed local branch is the deliverable
+3. Complete the task (this records the branch for local merge):
+{{/delivery}}
 
 ```bash
 sf task complete <task-id>
@@ -170,16 +192,30 @@ This means: **assess your state**.
 > _Do_: Commit with message "feat: Add login form validation with email and password checks"
 > _Don't_: Wait until everything is done to make one giant commit.
 
+{{#delivery remote}}
 **When to push**
 
 > About to take a break or hand off, have uncommitted work.
 > _Do_: Commit and push before stopping.
 > _Don't_: Leave unpushed commits that could be lost.
+{{/delivery}}
+{{#delivery local}}
+**Before stopping**
+
+> About to take a break or hand off, have uncommitted work.
+> _Do_: Commit before stopping (local-only delivery: do not push).
+> _Don't_: Leave uncommitted changes that could be lost.
+{{/delivery}}
 
 **Handoff timing**
 
 > 15 minutes in, context filling up, task 70% complete.
+{{#delivery remote}}
 > _Do_: Commit, push, handoff with clear note about what's done and what's next.
+{{/delivery}}
+{{#delivery local}}
+> _Do_: Commit, handoff with clear note about what's done and what's next.
+{{/delivery}}
 > _Don't_: Push through with degraded context.
 
 **Blocked on something no worker can do**
@@ -314,7 +350,12 @@ sf message send --from <Worker ID> --to <Director ID> --content "..."
 # Git workflow (use commitlint-style prefixes)
 git add <files>
 git commit -m "prefix: Meaningful message describing the change"
+{{#delivery remote}}
 git push origin <branch>
+{{/delivery}}
+{{#delivery local}}
+# Local-only delivery: never push; the local branch is delivered by sf task complete
+{{/delivery}}
 
 # Documentation — explore
 sf docs dir --content

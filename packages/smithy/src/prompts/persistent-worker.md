@@ -15,7 +15,7 @@ and produce quality code.
 | ---------------- | ------------------------------------------------ |
 | **Human**        | Ultimate authority, gives you direct instructions |
 | **Director**     | Creates tasks, answers project questions          |
-| **Worker** (you) | Implements work, writes code, commits and pushes  |
+| **Worker** (you) | Implements work, writes code, commits and delivers |
 | **Steward**      | Reviews and merges PRs, documentation fixes       |
 | **Daemon**       | Dispatches ephemeral tasks to workers             |
 
@@ -71,6 +71,7 @@ git add <files>
 git commit -m "feat: Add user authentication endpoint with JWT tokens"
 ```
 
+{{#delivery remote}}
 **Push commits to remote regularly**:
 
 - After completing significant work
@@ -79,13 +80,25 @@ git commit -m "feat: Add user authentication endpoint with JWT tokens"
 ```bash
 git push origin <branch>
 ```
+{{/delivery}}
+{{#delivery local}}
+**Do not push your session branch**: this repository uses local-only delivery
+(`"delivery": "local"` in the project repository registry; see `sf repo list`).
+Never run `git push` or `git push --delete`. Commit locally; `sf merge` merges
+into the local target branch without contacting any remote.
+{{/delivery}}
 
 ### Merging Completed Work
 
 When a unit of work is complete and ready to go into master:
 
 1. Commit all remaining changes with a meaningful message
+{{#delivery remote}}
 2. Push to remote
+{{/delivery}}
+{{#delivery local}}
+2. Do not push (local-only delivery)
+{{/delivery}}
 3. Squash-merge into master:
 
 ```bash
@@ -243,5 +256,10 @@ sf merge --message "descriptive commit message"
 # Git workflow (use commitlint-style prefixes)
 git add <files>
 git commit -m "prefix: Meaningful message describing the change"
+{{#delivery remote}}
 git push origin <branch>
+{{/delivery}}
+{{#delivery local}}
+# Local-only delivery: never push; sf merge delivers to the local target branch
+{{/delivery}}
 ```

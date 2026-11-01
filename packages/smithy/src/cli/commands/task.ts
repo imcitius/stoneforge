@@ -467,7 +467,8 @@ async function taskMergeHandler(
     targetBranch ??= await detectTargetBranch(workspaceRoot);
     if (sourceBranch === targetBranch) return failure('Source branch must differ from target branch.', ExitCode.GENERAL_ERROR);
     const commitMessage = `${task.title} (${taskId})`;
-    const localDelivery = options.local === true || !await hasRemote(workspaceRoot);
+    // Explicit --local, no origin, or a repository registered with delivery: local.
+    const localDelivery = options.local === true || repository.delivery === 'local' || !await hasRemote(workspaceRoot);
 
     const mergeResult = await mergeBranch({
       workspaceRoot,
@@ -1168,12 +1169,15 @@ async function taskMergeStatusHandler(
             const repository = await repositories.repositoryForTask(task);
             const workspaceRoot = path.resolve(repositories.root, repository.path);
 
-            // Check if a remote exists (skip verification for local-only workspaces)
+            // Check if a remote exists (skip verification for local-only workspaces
+            // and repositories registered with delivery: local)
             let hasRemote = false;
-            try {
-              const { stdout } = await execFileAsync('git', ['remote'], { cwd: workspaceRoot, encoding: 'utf8' });
-              hasRemote = stdout.trim().length > 0;
-            } catch { /* no remote */ }
+            if (repository.delivery !== 'local') {
+              try {
+                const { stdout } = await execFileAsync('git', ['remote'], { cwd: workspaceRoot, encoding: 'utf8' });
+                hasRemote = stdout.trim().length > 0;
+              } catch { /* no remote */ }
+            }
 
             if (hasRemote) {
               // Determine effective target branch

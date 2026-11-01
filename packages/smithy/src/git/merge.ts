@@ -14,14 +14,16 @@
  *  7. Deliver locally in local-only mode; retain temp worktree on delivery failure
  *  8. (Optional) Sync local target branch via fast-forward
  *
- * Local-only mode is auto-detected when no 'origin' remote exists, or can
- * be forced via the `localOnly` option in MergeBranchOptions.
+ * Local-only mode is auto-detected when no 'origin' remote exists or the
+ * repository is registered with `delivery: local`, or can be forced via the
+ * `localOnly` option in MergeBranchOptions.
  *
  * @module
  */
 
 import { execFile } from 'node:child_process';
 import { resolveTarget, requireRemoteTarget } from './target.js';
+import { hasDeliveryRemote, isLocalDelivery } from './delivery.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -54,7 +56,8 @@ export interface MergeBranchOptions {
   syncLocal?: boolean;
   /**
    * When true, skip all remote operations (fetch, push).
-   * Auto-detected when no remote named 'origin' is configured.
+   * Auto-detected when no remote named 'origin' is configured or the
+   * repository is registered with `delivery: local`.
    */
   localOnly?: boolean;
 }
@@ -216,17 +219,20 @@ export async function detectTargetBranch(
  *
  * @param workspaceRoot - The git repository root directory
  * @param targetBranch - The branch to ensure exists
- * @param localOnly - Whether the repo has no remote (skip push)
+ * @param localOnly - Skip remote lookups and push (default: true when the
+ *   repository is registered with `delivery: local`)
  */
 export async function ensureTargetBranchExists(
   workspaceRoot: string,
   targetBranch: string,
-  localOnly = false
+  localOnlyOption?: boolean
 ): Promise<void> {
   // Never auto-create main/master — they should already exist
   if (MAIN_BRANCH_NAMES.has(targetBranch)) {
     return;
   }
+
+  const localOnly = localOnlyOption ?? await isLocalDelivery(workspaceRoot);
 
   // Check if the branch exists locally
   const localExists = await branchExistsLocally(workspaceRoot, targetBranch);
@@ -338,8 +344,8 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
     syncLocal = true,
   } = options;
 
-  // Auto-detect local-only mode when no remote is configured
-  const localOnly = options.localOnly ?? !(await hasRemote(workspaceRoot));
+  // Auto-detect local-only mode: no remote, or local-only delivery configured
+  const localOnly = options.localOnly ?? !(await hasDeliveryRemote(workspaceRoot));
 
   const targetBranch = options.targetBranch ?? await detectTargetBranch(workspaceRoot);
 

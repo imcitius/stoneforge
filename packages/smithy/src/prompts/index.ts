@@ -12,6 +12,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AgentRole, StewardFocus, WorkerMode } from '../types/index.js';
 import type { WorkflowPreset, AgentPermissionModel } from '@stoneforge/quarry';
+import type { RepositoryDelivery } from '../git/delivery.js';
 
 // ============================================================================
 // Constants
@@ -67,6 +68,12 @@ export interface LoadPromptOptions {
    * Defaults to ephemeral behavior (worker.md) for backward compatibility.
    */
   workerMode?: WorkerMode;
+
+  /**
+   * Repository delivery mode used to resolve `{{#delivery remote}}` /
+   * `{{#delivery local}}` blocks. Defaults to `remote`.
+   */
+  delivery?: RepositoryDelivery;
 }
 
 export interface RolePromptResult {
@@ -126,6 +133,16 @@ function getProjectPromptPath(projectRoot: string, filename: string): string {
 export function loadBuiltInPrompt(
   role: AgentRole,
   stewardFocus?: StewardFocus,
+  workerMode?: WorkerMode,
+  delivery?: RepositoryDelivery
+): string | undefined {
+  const content = loadBuiltInPromptRaw(role, stewardFocus, workerMode);
+  return content === undefined ? undefined : applyDeliveryBlocks(content, delivery);
+}
+
+function loadBuiltInPromptRaw(
+  role: AgentRole,
+  stewardFocus?: StewardFocus,
   workerMode?: WorkerMode
 ): string | undefined {
   if (role === 'steward') {
@@ -171,6 +188,15 @@ export function loadBuiltInPrompt(
  * @returns The prompt result with content and source information
  */
 export function loadRolePrompt(
+  role: AgentRole,
+  stewardFocus?: StewardFocus,
+  options: LoadPromptOptions = {}
+): RolePromptResult | undefined {
+  const result = loadRolePromptRaw(role, stewardFocus, options);
+  return result && { ...result, prompt: applyDeliveryBlocks(result.prompt, options.delivery) };
+}
+
+function loadRolePromptRaw(
   role: AgentRole,
   stewardFocus?: StewardFocus,
   options: LoadPromptOptions = {}
@@ -565,6 +591,28 @@ export interface PromptTemplateVars {
    * Replaces `{{baseBranch}}` in prompt templates.
    */
   baseBranch?: string;
+  /**
+   * Repository delivery mode; resolves any remaining delivery blocks.
+   */
+  delivery?: RepositoryDelivery;
+}
+
+const DELIVERY_BLOCK = /\{\{#delivery (remote|local)\}\}\n?([\s\S]*?)\{\{\/delivery\}\}\n?/g;
+
+/**
+ * Resolves delivery-conditional prompt sections. Content between
+ * `{{#delivery remote}}` and `{{/delivery}}` is kept only for remote delivery
+ * (the default); `{{#delivery local}}` sections only for local-only delivery,
+ * where task branches are never pushed to origin. `{{baseRef}}` becomes
+ * `origin/{{baseBranch}}` (remote) or `{{baseBranch}}` (local). Applied by loadRolePrompt,
+ * so built-in and project override prompts never expose the raw markers.
+ */
+export function applyDeliveryBlocks(content: string, delivery: RepositoryDelivery = 'remote'): string {
+  return content
+    .replace(DELIVERY_BLOCK, (_match, mode: string, body: string) => (mode === delivery ? body : ''))
+    // `{{baseRef}}`: the ref to compare task work against. Local-only delivery
+    // compares with the local target, since origin may be stale or absent.
+    .replace(/\{\{baseRef\}\}/g, delivery === 'local' ? '{{baseBranch}}' : 'origin/{{baseBranch}}');
 }
 
 /**
@@ -573,6 +621,7 @@ export interface PromptTemplateVars {
  *
  * Currently supported variables:
  * - `{{baseBranch}}` — the repository's base/target branch name
+ * - `delivery` — resolves `{{#delivery remote|local}}` blocks
  *
  * Unknown template variables are left as-is (not replaced).
  *
@@ -588,6 +637,10 @@ export function renderPromptTemplate(
 
   if (vars.baseBranch !== undefined) {
     result = result.replace(/\{\{baseBranch\}\}/g, vars.baseBranch);
+  }
+
+  if (vars.delivery !== undefined) {
+    result = applyDeliveryBlocks(result, vars.delivery);
   }
 
   return result;

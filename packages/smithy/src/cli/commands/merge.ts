@@ -8,12 +8,16 @@ import { dirname, resolve } from 'node:path';
  * - sf merge                          -- squash-merge current branch into master
  * - sf merge --branch feature/xyz     -- squash-merge a specific branch
  * - sf merge --cleanup                -- also delete source branch and worktree
+ *
+ * Repositories registered with `delivery: local` merge into the local target
+ * branch only: nothing is pushed to or deleted from origin.
  */
 
 import type { Command, GlobalOptions, CommandResult, CommandOption } from '@stoneforge/quarry/cli';
 import { success, failure, ExitCode, getOutputMode } from '@stoneforge/quarry/cli';
 import { resolveTarget, requireRemoteTarget } from '../../git/target.js';
-import { detectTargetBranch } from '../../git/merge.js';
+import { detectTargetBranch, syncLocalBranchFromCommit } from '../../git/merge.js';
+import { deliveryForDirectory, type RepositoryDelivery } from '../../git/delivery.js';
 
 // ============================================================================
 // Types
@@ -91,11 +95,13 @@ async function mergeHandler(
     const stoneforgeDir = findStoneforgeDir(process.cwd());
     let repositoryRoot = cwd;
     let repositoryTarget: string | undefined;
+    let delivery: RepositoryDelivery | undefined;
     if (stoneforgeDir) {
       const repositories = new ProjectRepositories(dirname(stoneforgeDir));
       const repo = await repositories.forDirectory(cwd, options.repository);
       repositoryRoot = resolve(repositories.root, repo.path);
       repositoryTarget = repo.targetBranch;
+      delivery = repo.delivery ?? 'remote';
       if (options.repository || cwd === repositories.root) cwd = repositoryRoot;
     }
     // Determine source branch
@@ -110,9 +116,12 @@ async function mergeHandler(
       );
     }
 
-    // 1. Fetch latest from origin
-    const target = await resolveTarget(repositoryRoot, targetBranch, 'required');
-    requireRemoteTarget(target, targetBranch);
+    delivery ??= await deliveryForDirectory(repositoryRoot);
+    const localDelivery = delivery === 'local';
+
+    // 1. Fetch latest from origin (local delivery uses the local target as-is)
+    const target = await resolveTarget(repositoryRoot, targetBranch, localDelivery ? 'none' : 'required');
+    if (!localDelivery) requireRemoteTarget(target, targetBranch);
 
     // 2. Create a temporary merge worktree at target branch
     const path = await import('node:path');
@@ -141,8 +150,12 @@ async function mergeHandler(
       });
       const commitHash = hashOutput.trim();
 
-      // 6. Push to origin
-      await execGit(['push', '--', 'origin', `HEAD:${targetBranch}`], { cwd: mergeDir });
+      // 6. Deliver: push to origin, or fast-forward the local target (local delivery)
+      if (localDelivery) {
+        await syncLocalBranchFromCommit(workspaceRoot, targetBranch, commitHash);
+      } else {
+        await execGit(['push', '--', 'origin', `HEAD:${targetBranch}`], { cwd: mergeDir });
+      }
 
       // 7. Remove temp merge worktree
       await execGit(['worktree', 'remove', '--force', '--', mergeDir], {
@@ -182,18 +195,20 @@ async function mergeHandler(
           // Ignore worktree removal errors
         }
 
-        // Delete source branch locally and remotely
+        // Delete source branch locally and (unless local delivery) remotely
         try {
           await execGit(['branch', '-D', '--', sourceBranch], { cwd: workspaceRoot });
         } catch {
           // Branch may not exist locally
         }
-        try {
-          await execGit(['push', '--delete', '--', 'origin', sourceBranch], {
-            cwd: workspaceRoot,
-          });
-        } catch {
-          // Branch may not exist on remote
+        if (!localDelivery) {
+          try {
+            await execGit(['push', '--delete', '--', 'origin', sourceBranch], {
+              cwd: workspaceRoot,
+            });
+          } catch {
+            // Branch may not exist on remote
+          }
         }
       }
 

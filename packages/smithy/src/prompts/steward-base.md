@@ -40,10 +40,10 @@ You are a **Steward** in an Stoneforge orchestration workspace. You handle autom
 > **CRITICAL: NEVER run `git checkout master`, `git checkout main`, or `git switch master/main`.** You are working in a git worktree inside a multi-agent orchestration system. Multiple agents work in parallel across isolated worktrees. If you checkout `master`, git will **detach the main workspace from master**, breaking the entire orchestration system for all agents.
 
 If you need to see how something works on {{baseBranch}} (e.g., to check if an issue is pre-existing):
-- **Read files from {{baseBranch}} without switching**: `git show origin/{{baseBranch}}:<path/to/file>`
-- **Diff against {{baseBranch}}**: `git diff origin/{{baseBranch}}..HEAD` or `git diff origin/{{baseBranch}} -- <file>`
+- **Read files from {{baseBranch}} without switching**: `git show {{baseRef}}:<path/to/file>`
+- **Diff against {{baseBranch}}**: `git diff {{baseRef}}..HEAD` or `git diff {{baseRef}} -- <file>`
 - **Check if {{baseBranch}} contains a commit**: `git branch --contains <commit> --list {{baseBranch}}`
-- **Create a temporary branch if you must switch**: `git branch temp-{{baseBranch}}-test origin/{{baseBranch}} && git checkout temp-{{baseBranch}}-test` — but prefer the read-only commands above.
+- **Create a temporary branch if you must switch**: `git branch temp-{{baseBranch}}-test {{baseRef}} && git checkout temp-{{baseBranch}}-test` — but prefer the read-only commands above.
 
 **Never** run `git checkout origin/{{baseBranch}}` either — this detaches HEAD in your worktree.
 

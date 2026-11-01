@@ -27,6 +27,7 @@ import {
 } from '../types/task-meta.js';
 import { detectTargetBranch } from './merge.js';
 import { resolveTarget } from './target.js';
+import { isLocalDelivery, type RepositoryDelivery } from './delivery.js';
 import { ProjectNodeError, projectNodeEnvironment, resolveProjectNode } from '../runtime/project-node.js';
 
 const execFileAsync = promisify(execFile);
@@ -167,6 +168,11 @@ export interface WorktreeManagerConfig {
    * engines.node / .nvmrc requirement. Stoneforge's own runtime is unaffected.
    */
   readonly projectNodePath?: string;
+  /**
+   * Repository delivery mode. `local` never deletes (or pushes) remote refs.
+   * When unset, the mode is read from the project repository registry.
+   */
+  readonly delivery?: RepositoryDelivery;
 }
 
 /** Package manager output that reports an engines mismatch. */
@@ -372,8 +378,8 @@ export interface WorktreeManager {
  * Implementation of the WorktreeManager.
  */
 export class WorktreeManagerImpl implements WorktreeManager {
-  private readonly config: Required<Omit<WorktreeManagerConfig, 'repositoryId' | 'projectNodePath'>> &
-    Pick<WorktreeManagerConfig, 'repositoryId' | 'projectNodePath'>;
+  private readonly config: Required<Omit<WorktreeManagerConfig, 'repositoryId' | 'projectNodePath' | 'delivery'>> &
+    Pick<WorktreeManagerConfig, 'repositoryId' | 'projectNodePath' | 'delivery'>;
   private initialized = false;
   private defaultBranch: string | undefined;
   private worktreeStates: Map<string, WorktreeState> = new Map();
@@ -387,6 +393,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
       defaultBaseBranch: config.defaultBaseBranch ?? '',
       repositoryId: config.repositoryId,
       projectNodePath: config.projectNodePath,
+      delivery: config.delivery,
     };
   }
 
@@ -439,6 +446,12 @@ export class WorktreeManagerImpl implements WorktreeManager {
   }
 
   getRepositoryRoot(): string { return this.config.repositoryRoot; }
+
+  /** Local-only delivery never touches remote refs; explicit config wins over the registry. */
+  private async isLocalDelivery(): Promise<boolean> {
+    if (this.config.delivery) return this.config.delivery === 'local';
+    return isLocalDelivery(this.config.repositoryRoot, this.config.workspaceRoot);
+  }
 
   getWorkspaceRoot(): string {
     return this.config.workspaceRoot;
@@ -705,8 +718,8 @@ export class WorktreeManagerImpl implements WorktreeManager {
 
       // Delete branch if requested
       if (options?.deleteBranch && worktree.branch) {
-        // Delete remote branch first if requested
-        if (options.deleteRemoteBranch) {
+        // Delete remote branch first if requested (never with local-only delivery)
+        if (options.deleteRemoteBranch && !await this.isLocalDelivery()) {
           try {
             await this.execGit(['push', 'origin', '--delete', worktree.branch]);
           } catch {

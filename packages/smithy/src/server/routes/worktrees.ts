@@ -8,6 +8,7 @@ import { Hono } from 'hono';
 import type { ElementId } from '@stoneforge/core';
 import type { Services } from '../services.js';
 import { formatWorktreeInfo } from '../formatters.js';
+import { isRepositoryDelivery } from '../../git/delivery.js';
 import { createLogger } from '../../utils/logger.js';
 
 const logger = createLogger('orchestrator');
@@ -27,16 +28,23 @@ export function createWorktreeRoutes(services: Services) {
       if (typeof body.id !== 'string' || typeof body.path !== 'string' ||
           (body.targetBranch !== undefined && typeof body.targetBranch !== 'string') ||
           (body.testCommand !== undefined && typeof body.testCommand !== 'string') ||
-          (body.nodePath !== undefined && typeof body.nodePath !== 'string')) return c.json({ error: 'Invalid repository settings' }, 400);
-      return c.json({ repository: await services.repositories.add({ id: body.id, path: body.path, targetBranch: body.targetBranch, testCommand: body.testCommand, nodePath: body.nodePath }) }, 201);
+          (body.nodePath !== undefined && typeof body.nodePath !== 'string') ||
+          (body.delivery !== undefined && !isRepositoryDelivery(body.delivery))) return c.json({ error: 'Invalid repository settings' }, 400);
+      return c.json({ repository: await services.repositories.add({ id: body.id, path: body.path, targetBranch: body.targetBranch, testCommand: body.testCommand, nodePath: body.nodePath, delivery: body.delivery }) }, 201);
     } catch (error) { return c.json({ error: String(error) }, 400); }
   });
   app.patch('/api/repositories/:id', async c => {
     try {
       if (!services.repositories) return c.json({ error: 'Repository registry unavailable' }, 503);
       const body = await c.req.json();
-      if (!body || !('nodePath' in body) || (body.nodePath !== null && typeof body.nodePath !== 'string')) return c.json({ error: 'Invalid repository settings' }, 400);
-      return c.json({ repository: await services.repositories.setNodePath(c.req.param('id'), body.nodePath) });
+      const hasNodePath = !!body && 'nodePath' in body;
+      const hasDelivery = !!body && 'delivery' in body;
+      if (!body || (!hasNodePath && !hasDelivery) ||
+          (hasNodePath && body.nodePath !== null && typeof body.nodePath !== 'string') ||
+          (hasDelivery && !isRepositoryDelivery(body.delivery))) return c.json({ error: 'Invalid repository settings' }, 400);
+      let repository = hasNodePath ? await services.repositories.setNodePath(c.req.param('id'), body.nodePath) : undefined;
+      if (hasDelivery) repository = await services.repositories.setDelivery(c.req.param('id'), body.delivery);
+      return c.json({ repository });
     } catch (error) { return c.json({ error: String(error) }, 400); }
   });
   app.delete('/api/repositories/:id', async c => {

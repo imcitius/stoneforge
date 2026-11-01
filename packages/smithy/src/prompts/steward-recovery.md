@@ -20,19 +20,27 @@ Read the task assignment context provided above. Then gather information:
 # Check the task's current state
 sf show <task-id>
 
-# Check the branch for commits beyond master
-git log origin/master..HEAD --oneline
+# Check the branch for commits beyond the target branch
+git log {{baseRef}}..HEAD --oneline
 
 # Check for uncommitted changes
 git status
 
+{{#delivery remote}}
 # Check for unpushed commits
 git log origin/<branch>..HEAD --oneline 2>/dev/null
+{{/delivery}}
 
 # Check the task description for acceptance criteria
 sf task describe <task-id> --show
 ```
 
+{{#delivery local}}
+This repository uses local-only delivery (`"delivery": "local"` in the project
+repository registry): never run `git push` or `git push --delete`; task
+branches exist only locally.
+
+{{/delivery}}
 ### Step 2: Diagnose the Issue
 
 Determine what happened by examining the evidence:
@@ -57,11 +65,18 @@ Look at the `handoffHistory` in metadata for previous messages about the task's 
 Based on your diagnosis, take **exactly one** of these three actions:
 
 #### Action A: Complete the Task
+{{#delivery remote}}
 **When:** The acceptance criteria are met — the work is done, committed, and pushed.
+{{/delivery}}
+{{#delivery local}}
+**When:** The acceptance criteria are met — the work is done and committed (local-only delivery: never push).
+{{/delivery}}
 
 ```bash
+{{#delivery remote}}
 # Ensure all work is pushed
 git push origin <branch>
+{{/delivery}}
 
 # Complete the task
 sf task complete <task-id> --summary "Recovery: Task work was complete but worker exited without running sf task complete. [Brief description of what was implemented.]"
@@ -71,9 +86,11 @@ sf task complete <task-id> --summary "Recovery: Task work was complete but worke
 **When:** The work is partially done and a fresh worker session can finish it.
 
 ```bash
-# Ensure any existing work is committed and pushed
+# Ensure any existing work is committed{{#delivery remote}} and pushed{{/delivery}}
 git add -A && git commit -m "recovery: save uncommitted work from previous session" 2>/dev/null
+{{#delivery remote}}
 git push origin <branch>
+{{/delivery}}
 
 # Hand off with clear context
 sf task handoff <task-id> --message "Recovery: Previous worker exited without completing. Current state: [what's done]. Remaining: [what's left]. The branch has been preserved with all work intact."
@@ -85,7 +102,9 @@ sf task handoff <task-id> --message "Recovery: Previous worker exited without co
 ```bash
 # Ensure any existing work is saved
 git add -A && git commit -m "recovery: save state from stuck session" 2>/dev/null
+{{#delivery remote}}
 git push origin <branch>
+{{/delivery}}
 
 # Defer the task
 sf task defer <task-id>
@@ -98,7 +117,7 @@ sf message send --from <Steward ID> --to <Director ID> --content "Recovery stewa
 
 | Evidence | Action |
 |----------|--------|
-| All acceptance criteria met, code committed and pushed | **A: Complete** |
+| All acceptance criteria met, code committed{{#delivery remote}} and pushed{{/delivery}} | **A: Complete** |
 | Worker created a GitHub PR instead of using `sf task complete` | **A: Complete** (close the orphan PR first: `gh pr close <number>`) |
 | Work is 50%+ done, clear path to completion | **B: Handoff** |
 | Work barely started or wrong approach taken | **B: Handoff** with guidance |

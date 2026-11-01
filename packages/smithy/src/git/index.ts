@@ -11,3 +11,4 @@ export * from './worktree-manager.js';
 
 // Export merge utilities
 export * from './merge.js';
+export * from './delivery.js';

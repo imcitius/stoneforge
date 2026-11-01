@@ -11,6 +11,7 @@ import { createTimestamp, ElementType } from '@stoneforge/core';
 import type { AssignmentIdentity, SessionFilter, SpawnedSessionEvent, AgentRole, WorkerMetadata, StewardMetadata } from '../../index.js';
 import { tryAcquireHttpSessionStart, SessionStartupCleanupError, loadRolePrompt, buildWorkflowPresetSection, getOrchestratorTaskMeta, getAgentMetadata, generateSessionBranchName, generateSessionWorktreePath, trackListeners } from '../../index.js';
 import { isAgentDisabled } from '../../services/agent-registry.js';
+import { deliveryForDirectory } from '../../git/delivery.js';
 import type { WorkflowPresetContext } from '../../prompts/index.js';
 import { getValue } from '@stoneforge/quarry';
 import type { WorkflowPreset, AgentPermissionModel } from '@stoneforge/quarry';
@@ -333,7 +334,10 @@ export function createSessionRoutes(
       // This is prepended to any other prompt content
       let rolePrompt: string | undefined;
       if (agentRole) {
-        const roleResult = loadRolePrompt(agentRole, stewardFocus, { projectRoot: process.cwd(), workerMode });
+        // Delivery blocks follow the session's repository (worktree) or the project.
+        const deliveryDirectory = worktreePath ?? body.workingDirectory ?? process.cwd();
+        const delivery = await deliveryForDirectory(deliveryDirectory, process.cwd());
+        const roleResult = loadRolePrompt(agentRole, stewardFocus, { projectRoot: process.cwd(), workerMode, delivery });
         logger.debug('Role prompt result:', roleResult ? `${roleResult.prompt.length} chars from ${roleResult.source}` : 'undefined');
         if (roleResult) {
           rolePrompt = roleResult.prompt;

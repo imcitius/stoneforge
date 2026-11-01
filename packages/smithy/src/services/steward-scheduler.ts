@@ -40,6 +40,7 @@ import { getValue } from '@stoneforge/quarry';
 import type { WorkflowPreset, AgentPermissionModel } from '@stoneforge/quarry';
 import { AUTO_ALLOWED_TOOLS, AUTO_ALLOWED_SF_COMMANDS } from '../permissions/types.js';
 import { detectTargetBranch } from '../git/merge.js';
+import { deliveryForDirectory } from '../git/delivery.js';
 import type { AgentRegistry, AgentEntity } from './agent-registry.js';
 import { getAgentMetadata, isAgentDisabled } from './agent-registry.js';
 import type { MergeStewardService } from './merge-steward-service.js';
@@ -1505,6 +1506,7 @@ export function createStewardExecutor(deps: StewardExecutorDeps): StewardExecuto
 
           const roleResult = loadRolePrompt('steward', focus as StewardFocus, {
             projectRoot: deps.projectRoot,
+            delivery: await deliveryForDirectory(deps.projectRoot),
           });
           // Render template variables (e.g. {{baseBranch}}) in the prompt
           const baseBranch = await detectTargetBranch(deps.projectRoot);
@@ -1606,6 +1608,7 @@ export function createStewardExecutor(deps: StewardExecutorDeps): StewardExecuto
           // Load the steward base prompt for shared context
           const roleResult = loadRolePrompt('steward', undefined, {
             projectRoot: deps.projectRoot,
+            delivery: await deliveryForDirectory(deps.projectRoot),
           });
           // Render template variables (e.g. {{baseBranch}}) in the base prompt
           const customBaseBranch = await detectTargetBranch(deps.projectRoot);

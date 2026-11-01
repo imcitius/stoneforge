@@ -14,7 +14,7 @@ import { getOrchestratorTaskMeta, updateOrchestratorTaskMeta, closeTaskSessionHi
 import type { CompletionOperation } from '../types/task-meta.js';
 import type { CompleteTaskOptions, TaskCompletionResult } from './task-assignment-service.js';
 import { ProjectRepositories } from '../git/project-repositories.js';
-import { hasRemote } from '../git/merge.js';
+import { deliveryForDirectory, hasDeliveryRemote, type RepositoryDelivery } from '../git/delivery.js';
 import { createGitHubMergeProvider, type MergeRequestProvider } from './merge-request-provider.js';
 
 const exec = promisify(execFile);
@@ -108,9 +108,11 @@ export class TaskCompletionProtocol {
     if (previous && previous.sessionId === sessionId) conflict('Reopened completion requires a new internal session');
     let cwd = meta?.worktree || this.workspaceRoot;
     let base = options.baseBranch || meta?.targetBranch || 'main';
+    let delivery: RepositoryDelivery | undefined;
     if (this.workspaceRoot && meta?.repositoryId) {
       const repos = new ProjectRepositories(this.workspaceRoot);
       const repo = await repos.repositoryForTask(task);
+      delivery = repo.delivery ?? 'remote';
       cwd = resolve(this.workspaceRoot, meta.worktree || repo.path);
       if (!options.baseBranch && !meta.targetBranch) base = await (await repos.forTask(task)).getDefaultBranch();
     }
@@ -125,10 +127,13 @@ export class TaskCompletionProtocol {
       await git(['check-ref-format', `refs/heads/${meta.branch}`]);
       await git(['check-ref-format', '--branch', meta.branch]);
       commitOid = (await git(['rev-parse', '--verify', '--end-of-options', `refs/heads/${meta.branch}^{commit}`])).stdout.trim();
-      push = await hasRemote(cwd);
+      // Local-only delivery (public forks): the task branch never leaves this machine.
+      delivery ??= await deliveryForDirectory(cwd, this.workspaceRoot);
+      push = await hasDeliveryRemote(cwd, delivery);
     }
     const provider = await this.providerFor(task);
-    const createMR = Boolean(meta?.branch && provider && options.createMergeRequest !== false);
+    // A hosted merge request needs a pushed branch; local delivery merges locally instead.
+    const createMR = Boolean(meta?.branch && provider && options.createMergeRequest !== false && delivery !== 'local');
     if (createMR && !commitOid) conflict('MR completion requires a resolved local commit');
     const operationId = randomUUID();
     const op: CompletionOperation = {

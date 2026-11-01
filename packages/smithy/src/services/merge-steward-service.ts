@@ -43,7 +43,8 @@ import {
 import type { TaskAssignmentService, TaskAssignment } from './task-assignment-service.js';
 import type { DispatchService } from './dispatch-service.js';
 import type { WorktreeManager } from '../git/worktree-manager.js';
-import { mergeBranch, syncLocalBranch, hasRemote, detectTargetBranch } from '../git/merge.js';
+import { mergeBranch, syncLocalBranch, detectTargetBranch } from '../git/merge.js';
+import { deliveryForDirectory, hasDeliveryRemote, type RepositoryDelivery } from '../git/delivery.js';
 import type { AgentRegistry } from './agent-registry.js';
 import { createLogger } from '../utils/logger.js';
 import { ProjectNodeError, projectNodeEnvironment, resolveProjectNode } from '../runtime/project-node.js';
@@ -117,6 +118,12 @@ export interface MergeStewardConfig {
   readonly requireApproval?: boolean;
   /** Merge request provider for creating PRs when requireApproval is true */
   readonly mergeRequestProvider?: MergeRequestProvider;
+  /**
+   * Repository delivery mode. `local` never pushes or deletes remote refs and
+   * delivers merges to the local target branch. When unset, the mode is read
+   * from the project repository registry for `workspaceRoot`.
+   */
+  readonly delivery?: RepositoryDelivery;
 }
 
 /**
@@ -401,8 +408,8 @@ const DEFAULT_CONFIG = {
  */
 export class MergeStewardServiceImpl implements MergeStewardService {
   private readonly api: QuarryAPI;
-  private readonly config: Required<Omit<MergeStewardConfig, 'targetBranch' | 'stewardEntityId' | 'mergeRequestProvider' | 'projectNodePath' | 'repositoryId'>> &
-    Pick<MergeStewardConfig, 'targetBranch' | 'stewardEntityId' | 'mergeRequestProvider' | 'projectNodePath' | 'repositoryId'>;
+  private readonly config: Required<Omit<MergeStewardConfig, 'targetBranch' | 'stewardEntityId' | 'mergeRequestProvider' | 'projectNodePath' | 'repositoryId' | 'delivery'>> &
+    Pick<MergeStewardConfig, 'targetBranch' | 'stewardEntityId' | 'mergeRequestProvider' | 'projectNodePath' | 'repositoryId' | 'delivery'>;
   private readonly taskAssignment: TaskAssignmentService;
   private readonly dispatchService: DispatchService;
   private readonly worktreeManager: WorktreeManager | undefined;
@@ -431,6 +438,11 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     };
   }
 
+  /** origin exists and the repository is not configured for local-only delivery. */
+  private hasDeliveryRemote(): Promise<boolean> {
+    return hasDeliveryRemote(this.config.workspaceRoot, this.config.delivery);
+  }
+
   private async scoped(taskId: ElementId): Promise<MergeStewardServiceImpl | undefined> {
     if (!(this.worktreeManager instanceof ProjectRepositories)) return undefined;
     const task = await this.api.get<Task>(taskId);
@@ -445,6 +457,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
       testCommand: repo.testCommand ?? this.config.testCommand,
       projectNodePath: repo.nodePath,
       repositoryId: repo.id,
+      delivery: repo.delivery ?? 'remote',
     }, manager, this.operationLog);
   }
 
@@ -678,7 +691,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
 
       // 6. Sync local target branch (best-effort, after all bookkeeping)
       const targetBranch = await this.getTargetBranchForTask(task);
-      const remoteExists = await hasRemote(this.config.workspaceRoot);
+      const remoteExists = await this.hasDeliveryRemote();
       if (remoteExists) {
         try {
           await execFileAsync('git', ['fetch', 'origin'], { cwd: this.config.workspaceRoot, encoding: 'utf8' });
@@ -882,6 +895,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
       ? `${task.title} (${taskId})`
       : `Merge branch '${sourceBranch}' (Task: ${taskId})`;
 
+    const remoteDelivery = await this.hasDeliveryRemote();
     return mergeBranch({
       workspaceRoot: this.config.workspaceRoot,
       sourceBranch,
@@ -890,7 +904,8 @@ export class MergeStewardServiceImpl implements MergeStewardService {
       autoPush: this.config.autoPushAfterMerge,
       commitMessage: commitMessage ?? defaultMessage,
       preflight: true,
-      syncLocal: !await hasRemote(this.config.workspaceRoot),
+      syncLocal: !remoteDelivery,
+      localOnly: !remoteDelivery,
     });
   }
 
@@ -1045,7 +1060,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
 
     try {
       // Only attempt remote branch deletion when a remote actually exists
-      const remoteExists = await hasRemote(this.config.workspaceRoot);
+      const remoteExists = await this.hasDeliveryRemote();
       await this.worktreeManager.removeWorktree(orchestratorMeta.worktree, {
         deleteBranch,
         deleteRemoteBranch: deleteBranch && remoteExists,
@@ -1113,7 +1128,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
 
           // Sync local target branch (best-effort)
           const targetBranch = await this.getTargetBranchForTask(task);
-          const remoteExists = await hasRemote(this.config.workspaceRoot);
+          const remoteExists = await this.hasDeliveryRemote();
           if (remoteExists) {
             try {
               await execFileAsync('git', ['fetch', 'origin'], { cwd: this.config.workspaceRoot, encoding: 'utf8' });
@@ -1246,6 +1261,19 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     processedAt: Timestamp
   ): Promise<MergeProcessResult> {
     const provider = this.config.mergeRequestProvider;
+    if (provider && (this.config.delivery ?? await deliveryForDirectory(this.config.workspaceRoot)) === 'local') {
+      // A hosted PR would require publishing the task branch; local delivery never pushes.
+      logger.warn(`requireApproval needs a hosted merge request, but task ${taskId} uses local-only delivery; leaving it pending`);
+      await this.updateMergeStatus(taskId, 'pending', { testResult });
+      return {
+        taskId,
+        status: 'pending',
+        merged: false,
+        testResult,
+        error: 'requireApproval with local-only delivery: hosted merge requests are disabled; merge locally (sf task merge --local)',
+        processedAt,
+      };
+    }
     if (!provider) {
       // No provider configured — fall back to pending status
       logger.warn(`requireApproval is true but no mergeRequestProvider configured for task ${taskId}`);
@@ -1294,11 +1322,11 @@ export class MergeStewardServiceImpl implements MergeStewardService {
 
     const targetBranch = await this.getTargetBranchForTask(task);
     const target = await resolveTarget(this.config.workspaceRoot, targetBranch);
-    if (await hasRemote(this.config.workspaceRoot)) requireRemoteTarget(target, targetBranch);
+    if (await this.hasDeliveryRemote()) requireRemoteTarget(target, targetBranch);
 
     // Ensure branch is pushed to remote
     try {
-      const remoteExists = await hasRemote(this.config.workspaceRoot);
+      const remoteExists = await this.hasDeliveryRemote();
       if (remoteExists) {
         await execFileAsync('git', ['push', '--', 'origin', sourceBranch], {
           cwd: this.config.workspaceRoot,
@@ -1443,7 +1471,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
    */
   private async branchHasCommitsAhead(sourceBranch: string, task: Task): Promise<boolean> {
     const targetBranch = await this.getTargetBranchForTask(task);
-    const remoteExists = await hasRemote(this.config.workspaceRoot);
+    const remoteExists = await this.hasDeliveryRemote();
 
     try {
       const target = await resolveTarget(this.config.workspaceRoot, targetBranch, remoteExists ? 'required' : 'none');

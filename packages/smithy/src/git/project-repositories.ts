@@ -8,6 +8,7 @@ import type { QuarryAPI } from '@stoneforge/quarry';
 import { getOrchestratorTaskMeta, updateOrchestratorTaskMeta } from '../types/task-meta.js';
 import { createWorktreeManager, type WorktreeManager, type CreateWorktreeOptions, type RemoveWorktreeOptions } from './worktree-manager.js';
 import { validateNodeExecutable } from '../runtime/project-node.js';
+import { isRepositoryDelivery, type RepositoryDelivery } from './delivery.js';
 const exec = promisify(execFile);
 
 export interface ProjectRepository {
@@ -22,6 +23,12 @@ export interface ProjectRepository {
    * the checkout's engines.node / .nvmrc is selected automatically.
    */
   nodePath?: string;
+  /**
+   * `local` keeps task branches and merges on this machine: completion, merge,
+   * cleanup and sync never push to or delete refs on a remote. Unset or
+   * `remote` (default) publishes task branches to origin.
+   */
+  delivery?: RepositoryDelivery;
   /** Local Git identity, shared by all linked worktrees of this repository. */
   gitCommonDir: string;
 }
@@ -52,7 +59,8 @@ export class ProjectRepositories implements WorktreeManager {
       const identities = new Set<string>();
       for (const repo of data.repositories) {
         if (!repo || typeof repo.id !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(repo.id) || typeof repo.path !== 'string' || typeof repo.gitCommonDir !== 'string' ||
-            (repo.nodePath !== undefined && (typeof repo.nodePath !== 'string' || !path.isAbsolute(repo.nodePath)))) throw new Error('Invalid repository entry');
+            (repo.nodePath !== undefined && (typeof repo.nodePath !== 'string' || !path.isAbsolute(repo.nodePath))) ||
+            (repo.delivery !== undefined && !isRepositoryDelivery(repo.delivery))) throw new Error('Invalid repository entry');
         const identity = repo.gitCommonDir;
         if (ids.has(repo.id) || identities.has(identity)) throw new Error('Duplicate repository or linked worktree registration');
         ids.add(repo.id); identities.add(identity);
@@ -63,8 +71,9 @@ export class ProjectRepositories implements WorktreeManager {
     try { return [{ id: 'default', path: '.', gitCommonDir: await this.inspect(this.root) }]; }
     catch { return []; }
   }
-  async add(input: { id: string; path: string; targetBranch?: string; testCommand?: string; nodePath?: string }): Promise<ProjectRepository> {
+  async add(input: { id: string; path: string; targetBranch?: string; testCommand?: string; nodePath?: string; delivery?: RepositoryDelivery }): Promise<ProjectRepository> {
     if (!/^[a-z0-9][a-z0-9_-]*$/.test(input.id)) throw new Error('Repository ID must contain lowercase letters, digits, - or _');
+    if (input.delivery !== undefined && !isRepositoryDelivery(input.delivery)) throw new Error("Repository delivery must be 'remote' or 'local'");
     if (input.nodePath !== undefined) await validateNodeExecutable(input.nodePath);
     const directory = realpathSync(path.resolve(this.root, input.path));
     const gitCommonDir = await this.inspect(directory);
@@ -74,6 +83,7 @@ export class ProjectRepositories implements WorktreeManager {
       if (repos.some(r => r.gitCommonDir === gitCommonDir)) throw new Error('This repository is already registered (possibly through another worktree)');
       const repo: ProjectRepository = { ...input, path: path.relative(this.root, directory) || '.', gitCommonDir };
       if (repo.nodePath === undefined) delete repo.nodePath;
+      if (repo.delivery === undefined || repo.delivery === 'remote') delete repo.delivery;
       repos.push(repo);
       return repo;
     });
@@ -86,6 +96,17 @@ export class ProjectRepositories implements WorktreeManager {
       if (!repo) throw new Error(`Unknown repository: ${id}`);
       if (nodePath === null) delete repo.nodePath;
       else repo.nodePath = nodePath;
+      return repo;
+    });
+  }
+  /** Sets local-only (`local`) or default remote (`remote`) delivery. `remote` removes the key. */
+  async setDelivery(id: string, delivery: RepositoryDelivery): Promise<ProjectRepository> {
+    if (!isRepositoryDelivery(delivery)) throw new Error("Repository delivery must be 'remote' or 'local'");
+    return this.mutate(async repos => {
+      const repo = repos.find(r => r.id === id);
+      if (!repo) throw new Error(`Unknown repository: ${id}`);
+      if (delivery === 'remote') delete repo.delivery;
+      else repo.delivery = delivery;
       return repo;
     });
   }
@@ -176,7 +197,7 @@ export class ProjectRepositories implements WorktreeManager {
     let pending = this.managers.get(key);
     if (!pending) {
       pending = (async () => {
-        const manager = createWorktreeManager({ workspaceRoot: this.root, repositoryRoot: path.resolve(this.root, repo.path), worktreeDir: repo.id === 'default' && repo.path === '.' ? '.stoneforge/.worktrees' : `.stoneforge/.worktrees/${repo.id}`, defaultBaseBranch: repo.targetBranch, repositoryId: repo.id, projectNodePath: repo.nodePath });
+        const manager = createWorktreeManager({ workspaceRoot: this.root, repositoryRoot: path.resolve(this.root, repo.path), worktreeDir: repo.id === 'default' && repo.path === '.' ? '.stoneforge/.worktrees' : `.stoneforge/.worktrees/${repo.id}`, defaultBaseBranch: repo.targetBranch, repositoryId: repo.id, projectNodePath: repo.nodePath, delivery: repo.delivery });
         await manager.initWorkspace();
         return manager;
       })();

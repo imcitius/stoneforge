@@ -42,6 +42,8 @@ import { getValue } from '@stoneforge/quarry';
 import type { WorkflowPreset, AgentPermissionModel } from '@stoneforge/quarry';
 import { AUTO_ALLOWED_TOOLS, AUTO_ALLOWED_SF_COMMANDS } from '../permissions/types.js';
 import { detectTargetBranch, ensureTargetBranchExists } from '../git/merge.js';
+import { deliveryForDirectory, isLocalDelivery, type RepositoryDelivery } from '../git/delivery.js';
+import { resolveTarget } from '../git/target.js';
 import { createLogger } from '../utils/logger.js';
 import { isRateLimitMessage, parseRateLimitResetTime, getFallbackResetTime } from '../utils/rate-limit-parser.js';
 
@@ -3658,6 +3660,21 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   }
 
   /**
+   * Delivery mode of the task's repository (selects prompt delivery blocks).
+   * Falls back to the default `remote` when the repository cannot be resolved.
+   */
+  private async taskDelivery(task: Task): Promise<RepositoryDelivery> {
+    try {
+      if (this.worktreeManager instanceof ProjectRepositories) {
+        return (await this.worktreeManager.repositoryForTask(task)).delivery ?? 'remote';
+      }
+      return await deliveryForDirectory(this.worktreeManager.getRepositoryRoot?.() ?? this.config.projectRoot, this.config.projectRoot);
+    } catch {
+      return 'remote';
+    }
+  }
+
+  /**
    * Builds the initial prompt for a task assignment.
    * Includes the worker role prompt followed by task-specific details.
    * Fetches the description Document content so handoff notes (appended to
@@ -3670,7 +3687,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
 
     // Load and include the worker role prompt, framed as operating instructions
     // so Claude understands this is its role definition, not file content
-    const roleResult = loadRolePrompt('worker', undefined, { projectRoot: this.config.projectRoot, workerMode: 'ephemeral' });
+    const roleResult = loadRolePrompt('worker', undefined, { projectRoot: this.config.projectRoot, workerMode: 'ephemeral', delivery: await this.taskDelivery(task) });
     if (roleResult) {
       parts.push(
         'Please read and internalize the following operating instructions. These define your role and how you should behave:',
@@ -3787,7 +3804,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const parts: string[] = [];
 
     // Load and include the steward role prompt, rendering template variables
-    const roleResult = loadRolePrompt('steward', stewardFocus, { projectRoot: this.config.projectRoot });
+    const roleResult = loadRolePrompt('steward', stewardFocus, { projectRoot: this.config.projectRoot, delivery: await this.taskDelivery(task) });
     // Get orchestrator metadata early — needed for baseBranch and later for PR/branch info
     const taskMeta = task.metadata as Record<string, unknown> | undefined;
     const orchestratorMeta = taskMeta?.orchestrator as Record<string, unknown> | undefined;
@@ -4281,7 +4298,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const parts: string[] = [];
 
     // Load the recovery steward role prompt, rendering template variables
-    const roleResult = loadRolePrompt('steward', 'recovery' as StewardFocus, { projectRoot: this.config.projectRoot });
+    const roleResult = loadRolePrompt('steward', 'recovery' as StewardFocus, { projectRoot: this.config.projectRoot, delivery: await this.taskDelivery(task) });
     if (roleResult) {
       const baseBranch = taskMeta?.targetBranch ?? await this.getTargetBranch(task);
       const renderedPrompt = renderPromptTemplate(roleResult.prompt, { baseBranch });
@@ -4865,51 +4882,75 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       ? worktreePath
       : path.join(workspaceRoot, worktreePath);
 
-    const remoteAvailable = await worktreeManager.ensureWorktreeRemote(fullWorktreePath);
-    if (!remoteAvailable) {
-      return {
-        success: false,
-        error: 'No origin remote is configured for this workspace or worktree',
-        message: 'Git origin remote is not configured',
-        worktreePath,
-        branch,
-      };
-    }
+    // Local-only delivery: the local target branch is canonical and origin may
+    // be absent or stale, so merge the local target without requiring a remote.
+    const repositoryRoot = worktreeManager.getRepositoryRoot?.() ?? workspaceRoot;
+    const localDelivery = await isLocalDelivery(repositoryRoot, workspaceRoot);
+    let syncRef: string;
+    let syncDescription: string;
+    if (localDelivery) {
+      const defaultBranch = await worktreeManager.getDefaultBranch();
+      try {
+        const target = await resolveTarget(repositoryRoot, defaultBranch, 'none');
+        syncRef = target.commit;
+        syncDescription = `local ${defaultBranch} (${target.commit})`;
+      } catch (targetError) {
+        return {
+          success: false,
+          error: (targetError as Error).message,
+          message: `Local target ${defaultBranch} could not be resolved`,
+          worktreePath,
+          branch,
+        };
+      }
+    } else {
+      const remoteAvailable = await worktreeManager.ensureWorktreeRemote(fullWorktreePath);
+      if (!remoteAvailable) {
+        return {
+          success: false,
+          error: 'No origin remote is configured for this workspace or worktree',
+          message: 'Git origin remote is not configured',
+          worktreePath,
+          branch,
+        };
+      }
 
-    // Fetch from origin
-    try {
-      await execFileAsync('git', ['fetch', 'origin'], {
-        cwd: fullWorktreePath,
-        encoding: 'utf8',
-        timeout: 60_000,
-      });
-    } catch (fetchError) {
-      return {
-        success: false,
-        error: `Failed to fetch from origin: ${(fetchError as Error).message}`,
-        message: 'Git fetch failed',
-        worktreePath,
-        branch,
-      };
-    }
+      // Fetch from origin
+      try {
+        await execFileAsync('git', ['fetch', 'origin'], {
+          cwd: fullWorktreePath,
+          encoding: 'utf8',
+          timeout: 60_000,
+        });
+      } catch (fetchError) {
+        return {
+          success: false,
+          error: `Failed to fetch from origin: ${(fetchError as Error).message}`,
+          message: 'Git fetch failed',
+          worktreePath,
+          branch,
+        };
+      }
 
-    // Get default branch
-    const defaultBranch = await worktreeManager.getDefaultBranch();
-    const remoteBranch = `origin/${defaultBranch}`;
+      // Get default branch
+      const defaultBranch = await worktreeManager.getDefaultBranch();
+      syncRef = `origin/${defaultBranch}`;
+      syncDescription = syncRef;
+    }
 
     // Attempt to merge
     try {
-      await execFileAsync('git', ['merge', remoteBranch, '--no-edit'], {
+      await execFileAsync('git', ['merge', syncRef, '--no-edit'], {
         cwd: fullWorktreePath,
         encoding: 'utf8',
         timeout: 120_000,
       });
 
       // Merge succeeded
-      logger.debug(`Synced task ${task.id} branch with ${remoteBranch}`);
+      logger.debug(`Synced task ${task.id} branch with ${syncDescription}`);
       return {
         success: true,
-        message: `Branch synced with ${remoteBranch}`,
+        message: `Branch synced with ${syncDescription}`,
         worktreePath,
         branch,
       };
