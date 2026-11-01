@@ -32,7 +32,7 @@ if (releaseVersion) {
 await rm(stage, { recursive: true, force: true });
 await mkdir(bundle, { recursive: true });
 await mkdir(resources, { recursive: true });
-for (const name of ['main.js', 'socket-workaround.js', 'manager.js', 'attention.js', 'preload.cjs', 'shell.html', 'shell.css', 'shell.js', 'tab-layout.js', 'tabs.js', 'logs.js', 'logs-window.js', 'logs-preload.cjs', 'preferences.js']) {
+for (const name of ['main.js', 'socket-workaround.js', 'manager.js', 'attention.js', 'preload.cjs', 'shell.html', 'shell.css', 'shell.js', 'tab-layout.js', 'tabs.js', 'lifecycle.js', 'logs.js', 'logs-window.js', 'logs-preload.cjs', 'preferences.js']) {
   await cp(join(desktop, 'dist', name), join(bundle, name));
 }
 // The discovery module has only Node built-ins; copy it without pulling SDK/native code into Electron.

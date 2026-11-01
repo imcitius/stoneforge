@@ -4,6 +4,7 @@ import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { recordPopups, chooseTabAction } from './tab-menu.mjs';
 
 export async function checkLogs(electron, page, resources, temp) {
   const managerURL = pathToFileURL(join(resources, 'app/manager.js')).href;
@@ -44,9 +45,11 @@ export async function checkLogs(electron, page, resources, temp) {
       window.once('focus', () => { clearTimeout(timeout); resolve(); });
     });
   }, child);
+  // Logs opens from the active tab's ⋯ project menu (the toolbar buttons were removed).
+  const restorePopup = await recordPopups(electron);
   const open = async () => {
     const waiting = electron.waitForEvent('window');
-    await page.locator('[data-command="logs"]').click();
+    await chooseTabAction(electron, page, 'Show Logs');
     const viewer = await waiting;
     viewer.on('pageerror', (error) => errors.push(error.message));
     await viewer.locator('#close').waitFor();
@@ -99,7 +102,7 @@ export async function checkLogs(electron, page, resources, temp) {
     }
     await closed;
     await nativeFocus(false);
-    await page.waitForFunction(() => document.hasFocus() && document.activeElement?.dataset.command === 'logs');
+    await page.waitForFunction(() => document.hasFocus() && document.activeElement?.id === 'tab-actions');
     assert.equal(await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 1);
     observations.push({ closedBy: method, ownerFocusRestored: true });
   };
@@ -163,7 +166,7 @@ export async function checkLogs(electron, page, resources, temp) {
     const previousClosed = previous.waitForEvent('close');
     await page.evaluate(async () => {
       const atlas = [...document.querySelectorAll('[role="tab"]')].find(button => button.textContent.includes('Atlas'));
-      await window.desktop.command('open', atlas.dataset.project);
+      await window.desktop.command('select', atlas.dataset.project);
       void window.desktop.command('logs', atlas.dataset.project);
     });
     await previousClosed;
@@ -178,6 +181,7 @@ export async function checkLogs(electron, page, resources, temp) {
     assert.deepEqual(errors, []);
     console.log('Packaged Logs: 600px work area, text safety, scrolling, Close/Escape/native close, focus, reopening, child above project: passed');
   } finally {
+    await restorePopup();
     await writeFile(join(temp, 'logs-observations.json'), JSON.stringify({ area: original.area, observations, errors }, null, 2));
     await electron.evaluate(async ({ BrowserWindow, screen }, { managerURL, original }) => {
       const { ProjectManager } = process.getBuiltinModule('module').createRequire(managerURL)(process.getBuiltinModule('url').fileURLToPath(managerURL));

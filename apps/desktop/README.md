@@ -59,7 +59,7 @@ node apps/desktop/scripts/release-artifacts.mjs --version v1.26.0
 - The version is written to `Info.plist` (`CFBundleShortVersionString` and
   `CFBundleVersion`, both the full semver string, including any prerelease suffix),
   the bundled `package.json`/`build-info.json` (`"release": true`) and therefore the
-  sidebar footer and About panel. Without a release version, local packaging is
+  project-toolbar build label and About panel. Without a release version, local packaging is
   unchanged: `package.json`'s version, modified trees allowed (shown as `(modified)`).
 - `release-artifacts.mjs` accepts only a clean release-mode arm64 app (default
   `dist/mac/Stoneforge Desktop-darwin-arm64/`, or `--app`/`DESKTOP_APP`). It recreates
@@ -94,7 +94,9 @@ This metadata is baked into the application, independent of subsequent source ed
    Desktop offers initialization with the bundled CLI. Choose Review, Auto, or
    Approve; existing configuration and exported data are reused when present.
    Cancel leaves the folder unchanged. Setup progress appears in the project toolbar,
-   and failures use a native dialog visible above an open project.
+   and failures use a native dialog visible above an open project. Adding a project
+   (or launching with `--project=<path>`) is an explicit request to open it, so its
+   server starts once; its agents stay stopped.
 3. Projects are tabs in the window's title bar, right of the macOS window buttons;
    the project dashboard uses the full window width beneath the tab bar and toolbar.
    Each tab shows the project name (truncated with an ellipsis) and a status dot:
@@ -108,15 +110,29 @@ This metadata is baked into the application, independent of subsequent source ed
    shortcuts also work while a project dashboard or terminal has focus, and focus
    follows to the newly shown project. In the tab list ← → move focus, Home/End jump,
    Enter/Space select (role `tablist`/`tab` with `aria-selected`). Selecting a tab
-   only moves the dashboard: projects, agents and terminal sessions keep running and
-   nothing is reloaded. Selecting a stopped project starts it, as before.
-   Start agents using the existing dashboard. Opening a project does not resume
+   only shows that project: projects, agents and terminal sessions keep running and
+   nothing is reloaded. **Selecting never starts a project** (mouse, keyboard, ⌘1…9,
+   ⌃Tab, the » menu or a notification): a stopped project shows its state page with
+   **Start project** (and **Show logs**), and stays stopped until you start it.
+   Desktop does not restore a selection at launch, so nothing starts invisibly.
+   Start agents using the existing dashboard. Starting a project does not resume
    directors or start its dispatch daemon.
    Empty title-bar space drags the window; tabs and buttons do not.
-4. **Stop**, **Restart**, **Logs**, **Repositories** and **Remove** in the toolbar apply
-   to the selected project. Remove only removes registration; project files remain.
-5. Drag a tab to reorder, or right-click / Control-click a tab (Shift+F10 when it has
-   keyboard focus) for **Move Tab Left/Right**. The order is stored in
+4. Project commands are in each tab's menu: right-click / Control-click a tab, press
+   Shift+F10 when it has keyboard focus, or use the compact **⋯** button at the right
+   end of the active tab (it follows the tablist in the Tab order; accessible name
+   "Actions for <project>"). The menu shows **Start Project** or **Stop Project…** by
+   state, **Restart Project…** while running, then **Show Logs**, **Repositories…**
+   (needs a running project; it never starts one), **Move Tab Left/Right** and
+   **Remove Project…**. Items act on that tab's project only and do not change the
+   selection. Stop, Restart and Remove ask for confirmation. Each project has at most
+   one start/stop/restart/remove in progress: while one is pending (including its
+   dialog) the menu shows Starting…/Stopping… and repeated clicks are ignored, so Start
+   starts once and Restart stops and starts once; other projects are unaffected.
+   The toolbar beneath the tabs shows the project name, a state label (Running,
+   Stopped, Starting…, Stopping…, Error, Needs your input), path and build. Remove only
+   removes registration; project files remain.
+5. Drag a tab to reorder, or use **Move Tab Left/Right** in the tab menu. The order is stored in
    `preferences.json` in the application userData directory, never in a project;
    without that file, or when it is invalid, tabs follow registration order. New
    projects are added at the end. (The former project sidebar and its
@@ -280,13 +296,20 @@ the child window above an open project. It retains viewer PNGs and
 macOS screen capture permission is available. The work-area override is test-side;
 it does not change the host display configuration. `check-tabs.mjs` launches the packaged app with fresh userData,
 a 1024 × 700 window and ten registered temporary projects (Unicode and long names; only
-the projects it selects get a backend). It requires the shell layout and every native
+the projects it starts explicitly get a backend). It counts real backend starts per
+project and requires that mouse, ⌘N, ⌃Tab, tablist Enter/Space, ⋯ and relaunch selection
+of stopped projects start nothing; that Start (double-clicked and requested twice) starts
+exactly once, a menu Start of an inactive tab keeps the selection, Stop (clicked twice)
+stops only the selected project, reselecting it leaves it stopped, Restart (clicked twice)
+stops and starts once with a new backend instance, and Remove keeps the project files.
+It checks the per-tab menu items by state, the ⋯ button position, size, accessible name
+and Tab order, and that the toolbar has no project buttons. It requires the shell layout and every native
 project view to agree (full width below the 76px tab bar + toolbar), checks drag/no-drag
 title-bar regions and the traffic-light position, tab status, accessible names,
 tooltips and truncation, overflow into the » menu (native menu items recorded, not
 tracked) with the active tab kept visible, ⌘1…⌘9 and ⌃Tab/⌃⇧Tab delivered as native key
 events to the shell and to focused project views (exactly one switch each, focus follows),
-tablist arrow/Home/End/Enter/Tab keyboard behaviour, the per-tab menu and Shift+F10,
+tablist arrow/Home/End/Enter/Tab keyboard behaviour, the per-tab menu via right-click, ⋯ and Shift+F10,
 drag-to-reorder and its persistence in userData only, resizes 1440/960/1280/1024 px, a
 stopped project, unchanged view markers and backend identities (no reloads), and the
 order after a relaunch that starts no project. Screenshots (shell page; plus a native

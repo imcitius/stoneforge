@@ -29,7 +29,7 @@ function onTabKey(event) {
   const target = focusTarget(event.key, shown.indexOf(tab), shown.length);
   if (target === undefined) return;
   event.preventDefault();
-  // Arrow keys move focus only (manual activation): selecting can start a stopped project.
+  // Arrow keys move focus only (manual activation); Enter/Space select. Selecting never starts a project.
   shown.forEach((item, index) => { item.tabIndex = index === target ? 0 : -1; });
   shown[target].focus();
 }
@@ -43,7 +43,8 @@ function tabElement(id) {
   const dot = document.createElement('span'); dot.className = 'dot'; dot.setAttribute('aria-hidden', 'true');
   const name = document.createElement('span'); name.className = 'tab-name';
   tab.append(dot, name);
-  tab.addEventListener('click', () => command('open', id));
+  // Selection only shows the project (its dashboard or its state page); it never starts it.
+  tab.addEventListener('click', () => command('select', id));
   tab.addEventListener('keydown', onTabKey);
   tab.addEventListener('contextmenu', (event) => { event.preventDefault(); openTabMenu(tab, { x: event.clientX, y: event.clientY }); });
   tab.addEventListener('dragstart', (event) => {
@@ -77,7 +78,7 @@ function tabElement(id) {
 function updateTab(tab, project) {
   const selected = project.id === state.active;
   const { kind, label } = project.status;
-  tab.dataset.state = project.state; tab.dataset.status = kind;
+  tab.dataset.state = project.state; tab.dataset.status = kind; tab.dataset.pending = project.pending ?? '';
   tab.setAttribute('aria-selected', String(selected));
   tab.setAttribute('aria-label', `${project.name}, ${label}`);
   tab.title = `${project.name}\n${project.root}\n${label}`;
@@ -112,10 +113,50 @@ function renderTabs() {
   overflow.classList.toggle('attention', waiting > 0);
   overflow.setAttribute('aria-label', waiting ? `${label}, ${waiting} need your input` : label);
   overflow.title = [label + ':', ...hiddenProjects.map((project) => `${project.name} — ${project.status.label}`)].join('\n');
+  placeActions(shown);
   if (focused && tabs.get(focused) && document.activeElement !== tabs.get(focused)) {
     if (shown.includes(focused)) tabs.get(focused).focus(); else if (hidden.length) overflow.focus();
   }
 }
+
+/** ⋯ on the active tab: same menu as right-click (Start/Stop, Restart, Logs, Repositories, Remove). */
+function placeActions(shown) {
+  const button = $('tab-actions');
+  const project = state.projects.find((item) => item.id === state.active);
+  const tab = project && shown.includes(project.id) ? tabs.get(project.id) : undefined;
+  button.hidden = !tab;
+  if (!tab) return;
+  const strip = $('tabstrip').getBoundingClientRect(), rect = tab.getBoundingClientRect();
+  button.style.left = `${Math.round(rect.right - strip.left - 26)}px`;
+  button.setAttribute('aria-label', `Actions for ${project.name}`);
+  const primary = project.running || project.state === 'starting' || project.state === 'ready' ? 'Stop' : 'Start';
+  button.title = `${project.name}: ${primary}, Restart, Logs, Repositories, Remove…`;
+}
+
+const STATUS_PAGE = {
+  stopped: (name) => [`${name} is stopped`, 'Its server and agents are not running. Selecting a tab never starts a project: start it here or from the tab menu (⋯). Other projects keep running.'],
+  starting: (name) => [`Starting ${name}…`, 'Starting the project server. Agents stay stopped until you start them in its dashboard.'],
+  stopping: (name) => [`Stopping ${name}…`, 'Stopping agents and saving state…'],
+  error: (name, project) => [`${name} is not running`, project.error || 'The project server stopped unexpectedly. Show logs for details, or start it again.'],
+};
+
+function renderStatus(project) {
+  const page = $('status');
+  page.hidden = !project || project.state === 'ready';
+  if (page.hidden) return;
+  const [title, text] = (STATUS_PAGE[project.state] ?? STATUS_PAGE.stopped)(project.name, project);
+  $('status-title').textContent = title;
+  $('status-text').textContent = text;
+  const start = $('start'), starting = project.state === 'starting' || project.pending === 'start' || project.pending === 'restart';
+  start.hidden = !(project.actions?.start || starting);
+  start.disabled = !project.actions?.start;
+  start.textContent = starting ? 'Starting…' : 'Start project';
+  start.setAttribute('aria-label', starting ? `Starting ${project.name}` : `Start ${project.name}`);
+  start.title = 'Start the project server. Agents stay stopped until you start them.';
+  $('status-logs').setAttribute('aria-label', `Show logs for ${project.name}`);
+}
+
+const SHORT_STATUS = { running: 'Running', stopped: 'Stopped', error: 'Error', attention: 'Needs your input' };
 
 function render(next) {
   state = next;
@@ -135,14 +176,28 @@ function render(next) {
   $('path').title = project?.root ?? '';
   if (project) { $('panel').setAttribute('aria-labelledby', `tab-${project.id}`); $('panel').removeAttribute('aria-label'); }
   else { $('panel').removeAttribute('aria-labelledby'); $('panel').setAttribute('aria-label', 'Your workspace'); }
-  $('empty').hidden = !!project; $('actions').hidden = !project;
-  $('status').hidden = !project || project.state === 'ready';
-  $('status').textContent = project ? (project.error || ({ starting: 'Opening project…', stopped: 'Project stopped. Select its tab to open it again.', stopping: 'Stopping agents and saving state…' }[project.state] ?? project.state)) : '';
+  $('empty').hidden = !!project;
+  $('state').hidden = !project;
+  if (project) {
+    $('state').dataset.status = project.status.kind;
+    $('state').textContent = SHORT_STATUS[project.status.kind] ?? project.status.label;
+    $('state').title = project.status.label;
+  }
+  renderStatus(project);
 }
 
 $('add').onclick = $('add-empty').onclick = () => command('add');
 $('overflow').onclick = () => command('overflow', undefined, { ...anchor($('overflow')), ids: overflowIds });
-for (const button of document.querySelectorAll('[data-command]')) button.onclick = () => command(button.dataset.command, state.active);
+$('tab-actions').onclick = () => { if (state.active) void command('tab-menu', state.active, anchor($('tab-actions'))); };
+// Explicit start of the shown (stopped) project. Disabled at once; the main process also
+// ignores a second request while one is pending.
+$('start').onclick = () => {
+  const id = state.active;
+  if (!id || $('start').disabled) return;
+  $('start').disabled = true;
+  void command('start', id);
+};
+$('status-logs').onclick = () => { if (state.active) void command('logs', state.active); };
 new ResizeObserver(() => renderTabs()).observe($('titlebar'));
 window.desktop.subscribe(render);
 command('list');

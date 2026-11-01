@@ -242,7 +242,7 @@ export class ProjectManager extends EventEmitter {
     clearInterval(instance.monitor); this.instances.delete(id);
     const project = this.projects.get(id)!;
     project.state = instance.stopping ? 'stopped' : 'error';
-    if (!instance.stopping) project.error = 'The external server stopped. Select the project to start it again.';
+    if (!instance.stopping) project.error = 'The external server stopped. Use Start to run the project from Desktop.';
     project.needsInput = false; this.emit('stopped', id); this.changed(); return false;
   }
   private spawn(id: string): Promise<Instance> {

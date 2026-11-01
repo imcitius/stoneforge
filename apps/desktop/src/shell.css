@@ -6,12 +6,12 @@ button{font:inherit;color:var(--text);background:transparent;border:1px solid va
    The left padding leaves room for the macOS traffic lights (hidden in full screen). */
 #titlebar{flex:none;height:var(--tabbar);display:flex;align-items:flex-end;padding:0 0 0 78px;background:var(--chrome);border-bottom:1px solid var(--border);-webkit-app-region:drag;user-select:none}
 body.fullscreen #titlebar{padding-left:8px}
-#tabstrip{display:flex;align-items:flex-end;flex:1;min-width:0;height:100%}
+#tabstrip{position:relative;display:flex;align-items:flex-end;flex:1;min-width:0;height:100%}
 #projects{display:flex;align-items:flex-end;min-width:0;height:100%}
 [role="tab"]{-webkit-app-region:no-drag;position:relative;flex:none;display:flex;align-items:center;gap:7px;width:var(--tab-width,200px);height:30px;padding:0 10px 0 12px;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;color:var(--muted);text-align:left;cursor:default}
 [role="tab"]:not([aria-selected="true"]):hover{background:rgba(148,163,184,.08);color:var(--text)}
 [role="tab"]:not([aria-selected="true"])+[role="tab"]:not([aria-selected="true"])::after{content:"";position:absolute;left:-1px;top:8px;bottom:8px;border-left:1px solid var(--border)}
-[role="tab"][aria-selected="true"]{height:31px;margin-bottom:-1px;background:var(--bg);border-color:var(--border);color:var(--text);font-weight:600;z-index:1}
+[role="tab"][aria-selected="true"]{padding-right:32px;height:31px;margin-bottom:-1px;background:var(--bg);border-color:var(--border);color:var(--text);font-weight:600;z-index:1}
 [role="tab"][aria-selected="true"]::before{content:"";position:absolute;left:10px;right:10px;top:-1px;height:2px;border-radius:0 0 2px 2px;background:var(--accent)}
 [role="tab"]:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
 .tab-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -32,19 +32,28 @@ body.fullscreen #titlebar{padding-left:8px}
 @media (prefers-reduced-motion:reduce){.dot,#overflow.attention::after{animation:none!important}}
 
 #overflow,#add{-webkit-app-region:no-drag;flex:none;position:relative;display:grid;place-items:center;width:28px;height:28px;margin:0 0 3px 4px;padding:0;border-color:transparent;color:var(--muted);font-size:15px;line-height:1}
+/* ⋯ project actions: overlays the right end of the active tab, but is not inside the tab
+   (a button cannot contain a button), so its clicks never reach the tab's select handler. */
+#tab-actions{-webkit-app-region:no-drag;position:absolute;bottom:4px;z-index:2;display:grid;place-items:center;width:22px;height:22px;padding:0;border-color:transparent;border-radius:5px;color:var(--muted);font-size:15px;line-height:1}
+#tab-actions[hidden]{display:none}#tab-actions:hover,#tab-actions[aria-expanded="true"]{color:var(--text);background:var(--surface)}
 #overflow[hidden]{display:none}#overflow:hover,#add:hover{color:var(--text)}
 #overflow.attention::after{content:"";position:absolute;top:1px;right:0;width:8px;height:8px;border-radius:50%}
 
-/* Project toolbar beneath the tabs (lifecycle controls are unchanged here). */
+/* Project toolbar beneath the tabs: name, state, path and build. Project commands live in the
+   per-tab menu (⋯ / right-click) and on the stopped-project page. */
 #toolbar{flex:none;height:var(--toolbar);display:flex;align-items:center;gap:12px;padding:0 12px 0 16px;border-bottom:1px solid var(--border);-webkit-app-region:drag;user-select:none}
 #toolbar button{-webkit-app-region:no-drag;padding:3px 10px;font-size:12px}
 #title{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;overflow:hidden}
 #name{flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#state{flex:none;padding:1px 7px;border:1px solid var(--border);border-radius:9px;font-size:11px;color:var(--muted);white-space:nowrap}#state[hidden]{display:none}
+#state[data-status="running"]{color:var(--ok)}#state[data-status="error"]{color:var(--error);border-color:var(--error)}#state[data-status="attention"]{color:var(--warn)}
 #path{min-width:0;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #add-progress{flex:0 1 auto;min-width:0;margin:0;font-size:12px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#actions{display:flex;gap:6px}#actions[hidden]{display:none}
 #build{-webkit-app-region:no-drag;flex:none;font-size:11px;color:var(--muted);white-space:nowrap}
 
 main{flex:1;min-height:0;position:relative;overflow:auto}
 #empty,#status{max-width:600px;padding:48px 32px;margin:6vh auto}h1{font-size:28px;line-height:1.25;letter-spacing:-.025em}p{font-size:14px;line-height:1.7;color:var(--muted)}.hint{font-size:12px;line-height:1.6}#empty button{background:var(--surface);margin:16px 0}
+#status h1{font-size:22px;overflow-wrap:anywhere}#status-text{white-space:pre-wrap;overflow-wrap:anywhere}#status-actions{display:flex;gap:8px;margin-top:16px}
+#start{background:var(--accent);border-color:var(--accent);color:var(--chrome);font-weight:600}#start:hover{background:#93c5fd}#start:disabled{background:var(--surface);border-color:var(--border);color:var(--muted)}
+#start[hidden],#status-logs[hidden]{display:none}
 #error{position:absolute;left:24px;right:24px;top:8px;padding:16px;border:1px solid var(--error);background:var(--bg);color:var(--error);z-index:2}

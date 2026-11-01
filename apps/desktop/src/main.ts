@@ -7,7 +7,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ProjectManager, type Instance, type WorkflowPreset } from './manager.js';
 import { showLogs } from './logs-window.js';
 import { loadPreferences, savePreferences, projectBounds, type Preferences } from './preferences.js';
-import { orderProjects, normalizeOrder, moveProject, projectStatus, tabShortcut, shortcutTarget } from './tabs.js';
+import { orderProjects, normalizeOrder, moveProject, projectStatus, tabShortcut, shortcutTarget, tabMenuModel, type LifecycleAction } from './tabs.js';
+import { ProjectLifecycle } from './lifecycle.js';
 import { AttentionMonitor } from './attention.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -24,7 +25,7 @@ let manager: ProjectManager;
 let attentionMonitor: AttentionMonitor;
 const attentionNotifications = new Set<Notification>();
 let window: BrowserWindow;
-let active: string | undefined;
+let lifecycle: ProjectLifecycle<Instance>;
 let quitting = false;
 let adding = false;
 let progress: string | undefined;
@@ -43,11 +44,14 @@ else {
 /** Projects in tab order (saved user order first, then registry order). */
 function orderedProjects() { return orderProjects(manager.list(), preferences.projectOrder); }
 function snapshot() {
-  return { projects: orderedProjects().map((project) => ({ ...project, status: projectStatus(project) })), active, progress, build,
+  return { projects: orderedProjects().map((project) => ({ ...project, status: projectStatus(project),
+    running: manager.instances.has(project.id), pending: lifecycle?.pendingAction(project.id), actions: lifecycle?.actions(project.id) })),
+    active: lifecycle?.active, progress, build,
     fullscreen: !!window && !window.isDestroyed() && window.isFullScreen() };
 }
 function update(): void {
   if (!window || window.isDestroyed()) return;
+  const active = lifecycle.active;
   const project = active ? manager.projects.get(active) : undefined;
   // The title bar shows tabs instead of a title; keep the window name for Mission Control and the Window menu.
   window.setTitle(project ? `${project.name} — Stoneforge Desktop` : 'Stoneforge Desktop');
@@ -56,7 +60,7 @@ function update(): void {
 function layout(): void {
   const [width, height] = window.getContentSize();
   for (const [id, { view }] of views) {
-    view.setVisible(id === active && manager.projects.get(id)?.state === 'ready');
+    view.setVisible(id === lifecycle.active && manager.projects.get(id)?.state === 'ready');
     view.setBounds(projectBounds(width, height));
   }
 }
@@ -78,20 +82,34 @@ async function showActionError(error: unknown): Promise<void> {
  */
 function selectProject(id: string, focusProject = false): void {
   if (focusProject) window.webContents.focus();
-  void openProject(id).then(() => {
-    if (focusProject && active === id) views.get(id)?.view.webContents.focus();
+  void lifecycle.select(id).then(() => {
+    if (focusProject && lifecycle.active === id) views.get(id)?.view.webContents.focus();
   }).catch(showActionError);
+}
+/** Explicit lifecycle command from the shell, a tab menu or the stopped-project page. */
+function runLifecycle(action: LifecycleAction, id: string): Promise<boolean> {
+  return lifecycle.run(action, id);
+}
+async function confirmLifecycle(action: Exclude<LifecycleAction, 'start'>, project: { name: string }): Promise<boolean> {
+  const text = {
+    stop: { message: `Stop ${project.name}?`, button: 'Stop', detail: 'Its server and running agents will be stopped. Other projects keep running. Project files and worktrees are preserved.' },
+    restart: { message: `Restart ${project.name}?`, button: 'Restart', detail: 'Its server and running agents will be stopped, then the server starts again. Agents stay stopped until you start them. Other projects keep running.' },
+    remove: { message: `Remove ${project.name} from Desktop?`, button: 'Remove', detail: 'Its server and running agents will be stopped and the project leaves the tab bar. Project files, data and worktrees stay in place; Add project registers it again.' },
+  }[action];
+  const answer = await dialog.showMessageBox(window, { type: 'question', message: text.message, detail: text.detail,
+    buttons: ['Cancel', text.button], defaultId: 0, cancelId: 0 });
+  return answer.response === 1;
 }
 /** ⌘1…⌘9 and ⌃Tab/⌃⇧Tab from the shell or any project dashboard (before the page sees them). */
 function handleShortcut(event: Electron.Event, input: Electron.Input, fromProjectView: boolean): void {
   const shortcut = tabShortcut(input);
   if (!shortcut) return;
   event.preventDefault();
-  const target = shortcutTarget(shortcut, orderedProjects().map((project) => project.id), active);
+  const target = shortcutTarget(shortcut, orderedProjects().map((project) => project.id), lifecycle.active);
   if (target) selectProject(target, fromProjectView);
 }
 function cycleProjects(kind: 'next' | 'previous'): void {
-  const target = shortcutTarget({ kind }, orderedProjects().map((project) => project.id), active);
+  const target = shortcutTarget({ kind }, orderedProjects().map((project) => project.id), lifecycle.active);
   if (target) selectProject(target);
 }
 type Point = { x: number; y: number };
@@ -109,16 +127,22 @@ function overflowMenu(ids: readonly string[]): MenuItemConstructorOptions[] {
   });
 }
 /**
- * Per-tab context menu (right/Control-click, or Shift+F10 on a focused tab). Currently tab
- * order only; project lifecycle commands remain in the toolbar and can be added here later.
+ * Per-tab menu (right/Control-click, Shift+F10 on a focused tab, or the ⋯ button on the active
+ * tab): Start/Stop by state, Restart, Logs, Repositories, tab order and Remove. Items act on
+ * that tab's project only and never change the selection.
  */
 function tabMenu(id: string): MenuItemConstructorOptions[] {
-  const order = orderedProjects().map((project) => project.id);
+  const project = manager.projects.get(id)!;
+  const order = orderedProjects().map((item) => item.id);
   const index = order.indexOf(id);
-  return [
-    { label: 'Move Tab Left', enabled: index > 0, click: () => setOrder(moveProject(order, id, -1)) },
-    { label: 'Move Tab Right', enabled: index >= 0 && index < order.length - 1, click: () => setOrder(moveProject(order, id, 1)) },
-  ];
+  const act = (command: string) => () => { void projectCommand(command, id).catch(showActionError); };
+  const clicks: Record<string, () => void> = {
+    start: act('start'), stop: act('stop'), restart: act('restart'), logs: act('logs'),
+    repositories: act('repositories'), remove: act('remove'),
+    'move-left': () => setOrder(moveProject(order, id, -1)), 'move-right': () => setOrder(moveProject(order, id, 1)),
+  };
+  return tabMenuModel({ state: project.state, running: manager.instances.has(id) }, lifecycle.pendingAction(id), index, order.length)
+    .map((entry) => 'id' in entry ? { id: `project-${entry.id}`, label: entry.label, enabled: entry.enabled, toolTip: entry.toolTip, click: clicks[entry.id] } : { type: 'separator' as const });
 }
 function dispose(id: string): void {
   const entry = views.get(id);
@@ -127,12 +151,8 @@ function dispose(id: string): void {
   window.contentView.removeChildView(entry.view);
   entry.view.webContents.close();
 }
-async function openProject(id: string): Promise<void> {
-  if (!manager.projects.has(id)) throw new Error('Unknown project');
-  const previous = active;
-  active = id; layout(); update();
-  try {
-  const instance = await manager.start(id);
+/** Creates (or reuses) the dashboard view of a running instance. Never starts a backend. */
+async function attachView(id: string, instance: Instance): Promise<void> {
   let entry = views.get(id);
   if (entry && entry.instance !== instance) { dispose(id); entry = undefined; }
   if (!entry) {
@@ -169,10 +189,55 @@ async function openProject(id: string): Promise<void> {
     await view.webContents.loadURL(instance.endpoint!);
   }
   layout(); update();
-  } catch (error) {
-    if (active === id && previous && manager.projects.get(previous)?.state === 'ready') active = previous;
-    layout(); update(); throw error;
+}
+/** Selects a project and starts it: Add project and explicit --project= launch arguments only. */
+async function openAndStart(id: string): Promise<void> {
+  await lifecycle.select(id);
+  await runLifecycle('start', id);
+}
+
+/**
+ * Project commands from the shell, the per-tab menu and the stopped-project page. `select` only
+ * shows the project; `start` is the only command that starts a stopped one.
+ */
+async function projectCommand(command: string, id: string): Promise<void> {
+  if (!manager.projects.has(id)) throw new Error('Unknown project');
+  if (command === 'select') { await lifecycle.select(id); return; }
+  if (command === 'start' || command === 'stop' || command === 'restart' || command === 'remove') { await runLifecycle(command, id); return; }
+  if (command === 'logs') { await showLogs(window, id, manager.projects.get(id)!.name, manager.logs.get(id)); return; }
+  if (command === 'repositories') {
+    // Never starts a stopped project: repository management needs its running server.
+    const instance = manager.instances.get(id);
+    if (!instance || manager.projects.get(id)?.state !== 'ready') throw new Error('Start the project to manage its repositories.');
+    const request = async (method: string, suffix = '', body?: unknown) => {
+      if (!await manager.isCurrent(id, instance)) throw new Error('Project server changed; reopen the project');
+      const response = await fetch(instance.endpoint + '/api/repositories' + suffix, { method,
+        headers: { ...manager.headers(instance), 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000), redirect: 'error' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(typeof result.error === 'string' ? result.error : 'Repository management requires the updated project server. Restart this project.');
+      return result;
+    };
+    const { repositories } = await request('GET') as { repositories: Array<{ id: string; path: string; targetBranch?: string; error?: string }> };
+    const answer = await dialog.showMessageBox(window, { message: 'Code repositories',
+      detail: repositories.length ? repositories.map(r => `${r.id} — ${r.path}\n${r.error ?? `Merge target: ${r.targetBranch ?? 'repository default'}`}`).join('\n\n') : 'This project has no code repositories. Add an existing Git checkout with at least one commit. The project folder itself does not need Git.',
+      buttons: ['Close', 'Add repository', ...repositories.map(r => `Manage ${r.id}`)], defaultId: 0, cancelId: 0 });
+    if (answer.response === 1) {
+      const folder = await dialog.showOpenDialog(window, { title: 'Choose a code repository', properties: ['openDirectory'] });
+      if (!folder.canceled && folder.filePaths[0]) {
+        const repoPath = folder.filePaths[0];
+        const repoId = basename(repoPath).toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/^[^a-z0-9]+/, '') || 'repository';
+        const created = await request('POST', '', { id: repoId, path: repoPath });
+        await dialog.showMessageBox(window, { message: `Repository ${created.repository.id} added`, detail: 'Use this repository when creating tasks. Its default branch is used for merges.', buttons: ['OK'] });
+      }
+    } else if (answer.response > 1) {
+      const repo = repositories[answer.response - 2];
+      const remove = await dialog.showMessageBox(window, { message: repo.id, detail: `${repo.path}\n\nRemoving registration preserves files. Repositories referenced by tasks or managed worktrees cannot be removed.`, buttons: ['Close', 'Remove registration'], cancelId: 0, defaultId: 0 });
+      if (remove.response === 1) await request('DELETE', '/' + encodeURIComponent(repo.id));
+    }
+    return;
   }
+  throw new Error('Unknown command');
 }
 
 async function boot(): Promise<void> {
@@ -182,6 +247,7 @@ async function boot(): Promise<void> {
     binDir: app.isPackaged ? join(root, 'runtime') : join(here, '../scripts/bin'),
   });
   await manager.load();
+  lifecycle = new ProjectLifecycle(manager, { confirm: confirmLifecycle, attach: attachView, changed: () => { update(); layout(); } });
   preferences = await loadPreferences(app.getPath('userData'));
   window = new BrowserWindow({
     width: 1440, height: 940, minWidth: 960, minHeight: 640,
@@ -238,7 +304,8 @@ async function boot(): Promise<void> {
       attentionNotifications.delete(notification);
       if (!manager.projects.has(notice.projectId)) return;
       window.show(); if (window.isMinimized()) window.restore(); window.focus();
-      void openProject(notice.projectId).catch(error => console.warn('[desktop] Could not open notification project:', error));
+      // Only shows the project (it is running: it has a waiting director); never starts one.
+      void lifecycle.select(notice.projectId).catch(error => console.warn('[desktop] Could not open notification project:', error));
     });
     notification.show();
   });
@@ -283,60 +350,19 @@ async function boot(): Promise<void> {
         }
         const project = workspace.initialized ? await manager.add(workspace.root) : await manager.initialize(workspace.root, preset);
         progress = `Opening ${project.name}…`; update();
-        await openProject(project.id);
+        // Adding a project is an explicit request to open it, so it starts (once) here.
+        await openAndStart(project.id);
       } finally {
         adding = false; progress = undefined; update();
       }
       return snapshot();
     }
     if (typeof id !== 'string' || !manager.projects.has(id)) throw new Error('Unknown project');
-    if (command === 'open') await openProject(id);
-    else if (command === 'tab-menu') {
+    if (command === 'tab-menu') {
       const point = popupPoint(options);
       if (!point) throw new Error('Invalid tab menu request');
       Menu.buildFromTemplate(tabMenu(id)).popup({ window, ...point });
-    }
-    else if (command === 'repositories') {
-      const instance = await manager.start(id);
-      const request = async (method: string, suffix = '', body?: unknown) => {
-        if (!await manager.isCurrent(id, instance)) throw new Error('Project server changed; reopen the project');
-        const response = await fetch(instance.endpoint + '/api/repositories' + suffix, { method,
-          headers: { ...manager.headers(instance), 'Content-Type': 'application/json' },
-          body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000), redirect: 'error' });
-        const result = await response.json();
-        if (!response.ok) throw new Error(typeof result.error === 'string' ? result.error : 'Repository management requires the updated project server. Restart this project.');
-        return result;
-      };
-      const { repositories } = await request('GET') as { repositories: Array<{ id: string; path: string; targetBranch?: string; error?: string }> };
-      const answer = await dialog.showMessageBox(window, { message: 'Code repositories',
-        detail: repositories.length ? repositories.map(r => `${r.id} — ${r.path}\n${r.error ?? `Merge target: ${r.targetBranch ?? 'repository default'}`}`).join('\n\n') : 'This project has no code repositories. Add an existing Git checkout with at least one commit. The project folder itself does not need Git.',
-        buttons: ['Close', 'Add repository', ...repositories.map(r => `Manage ${r.id}`)], defaultId: 0, cancelId: 0 });
-      if (answer.response === 1) {
-        const folder = await dialog.showOpenDialog(window, { title: 'Choose a code repository', properties: ['openDirectory'] });
-        if (!folder.canceled && folder.filePaths[0]) {
-          const repoPath = folder.filePaths[0];
-          const repoId = basename(repoPath).toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/^[^a-z0-9]+/, '') || 'repository';
-          const created = await request('POST', '', { id: repoId, path: repoPath });
-          await dialog.showMessageBox(window, { message: `Repository ${created.repository.id} added`, detail: 'Use this repository when creating tasks. Its default branch is used for merges.', buttons: ['OK'] });
-        }
-      } else if (answer.response > 1) {
-        const repo = repositories[answer.response - 2];
-        const remove = await dialog.showMessageBox(window, { message: repo.id, detail: `${repo.path}\n\nRemoving registration preserves files. Repositories referenced by tasks or managed worktrees cannot be removed.`, buttons: ['Close', 'Remove registration'], cancelId: 0, defaultId: 0 });
-        if (remove.response === 1) await request('DELETE', '/' + encodeURIComponent(repo.id));
-      }
-    }
-    else if (command === 'stop' || command === 'restart' || command === 'remove') {
-      const answer = await dialog.showMessageBox(window, { type: 'question',
-        message: `${command === 'remove' ? 'Remove' : command === 'restart' ? 'Restart' : 'Stop'} ${manager.projects.get(id)!.name}?`,
-        detail: 'Its running agents will be stopped. Project files and worktrees will be preserved.',
-        buttons: ['Cancel', 'Continue'], defaultId: 0, cancelId: 0 });
-      if (answer.response !== 1) return snapshot();
-      await manager.stop(id);
-      if (command === 'restart') await openProject(id);
-      if (command === 'remove') { await manager.remove(id); if (active === id) active = undefined; }
-    } else if (command === 'logs') {
-      await showLogs(window, id, manager.projects.get(id)!.name, manager.logs.get(id));
-    } else throw new Error('Unknown command');
+    } else await projectCommand(command, id);
     update(); return snapshot();
     } catch (error) {
       // A WebContentsView covers shell HTML, including its error banner. Native
@@ -369,5 +395,6 @@ async function boot(): Promise<void> {
   await window.loadURL(shellURL);
   // Explicit paths are useful for local launches and the packaged integration fixture.
   const paths = process.argv.filter((arg) => arg.startsWith('--project=')).map((arg) => arg.slice(10));
-  for (const path of paths) { const project = await manager.add(path); await openProject(project.id); }
+  // They are explicit requests to open those projects, so they start (as Add project does).
+  for (const path of paths) { const project = await manager.add(path); await openAndStart(project.id); }
 }

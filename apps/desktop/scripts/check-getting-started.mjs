@@ -97,7 +97,7 @@ async function activate(page) {
   const id = (await page.evaluate(async () => (await fetch('/api/desktop/identity')).json())).projectId;
   const project = (await projectsList()).find((p) => p.id === id);
   assert(project, `Unknown project ${id}`);
-  await shell.evaluate((id) => window.desktop.command('open', id), id);
+  await shell.evaluate((id) => window.desktop.command('select', id), id);
   await shell.waitForFunction((name) => document.getElementById('name').textContent === name, project.name);
 }
 async function expectTour({ page, origin }, stage) {
@@ -159,11 +159,15 @@ try {
   await quit();
   await launch();
   assert.deepEqual((await projectsList()).map((p) => p.state), ['stopped', 'stopped'], 'Relaunch does not start projects');
-  await shell.evaluate((id) => window.desktop.command('open', id), ids.atlas);
+  // Selecting a stopped project only shows it; Start is the explicit action.
+  await shell.evaluate((id) => window.desktop.command('select', id), ids.atlas);
+  await pause(1500);
+  assert.deepEqual((await projectsList()).map((p) => p.state), ['stopped', 'stopped'], 'Selecting does not start a project');
+  await shell.evaluate((id) => window.desktop.command('start', id), ids.atlas);
   await waitReady('Atlas');
   a = await projectPage(atlas, origins);
   await expectNoTour(a, 'atlas-after-app-relaunch');
-  await shell.evaluate((id) => window.desktop.command('open', id), ids.borealis);
+  await shell.evaluate((id) => window.desktop.command('start', id), ids.borealis);
   await waitReady('Borealis проект');
   b = await projectPage(borealis, origins);
   await expectNoTour(b, 'borealis-after-app-relaunch');

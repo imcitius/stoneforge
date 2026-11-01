@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { checkLogs } from './check-logs.mjs';
 import { skipNewProjectOnboarding, checkDirectorStartFailure } from './check-onboarding.mjs';
+import { recordPopups, chooseTabAction } from './tab-menu.mjs';
 import { mkdtemp, mkdir, writeFile, cp, rm, access, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join, dirname } from 'node:path';
@@ -44,7 +45,7 @@ try {
   const expectedBuild = JSON.parse(await readFile(join(resources, 'app/build-info.json'), 'utf8'));
   console.log('Packaged app:', bundle, JSON.stringify(expectedBuild));
   await page.waitForFunction(commit => document.getElementById('build').textContent.includes(commit), expectedBuild.commit.slice(0, 12));
-  // Sidebar identity shows the packaged (release or package.json) version.
+  // The project-toolbar build label shows the packaged (release or package.json) version.
   assert((await page.locator('#build').textContent()).startsWith(`v${expectedBuild.version} · `));
   assert((await page.locator('#build').getAttribute('title')).includes(expectedBuild.builtAt));
   const errors = [];
@@ -127,13 +128,15 @@ try {
   // Register repositories through the real Desktop command, then select one in task UI.
   const freshView = (await getViews()).find(v => !views.some(existing => existing.id === v.id));
   assert(freshView);
+  const restorePopup = await recordPopups(electron);
   for (const name of ['repo-a', 'repo-b']) {
     const repo = join(fresh, name); await mkdir(repo);
     const git = (...args) => execFileSync('git', args, { cwd: repo, stdio: 'pipe' });
     git('init', '-q', '-b', 'main'); git('config', 'user.name', 'Fixture'); git('config', 'user.email', 'fixture@example.com');
     await writeFile(join(repo, 'README'), name); git('add', '.'); git('commit', '-qm', 'initial');
     await electron.evaluate((_electron, repo) => { globalThis.__addPath = repo; globalThis.__addResponse = 1; }, repo);
-    await page.locator('[data-command="repositories"]').focus(); await page.keyboard.press('Enter');
+    // Repositories… from the active tab's ⋯ project menu.
+    await chooseTabAction(electron, page, 'Repositories…');
     for (let attempt = 0; attempt < 100; attempt++) {
       const data = await run(freshView.id, `(async () => (await fetch('/api/repositories')).json())()`);
       if (data.repositories.some(r => r.id === name)) break;
@@ -142,6 +145,7 @@ try {
   }
   const registered = await run(freshView.id, `(async () => (await fetch('/api/repositories')).json())()`);
   assert.equal(registered.repositories.length, 2);
+  await restorePopup();
   await run(freshView.id, `(async () => {
     await fetch('/api/daemon/stop', { method: 'POST' });
     const agents = await (await fetch('/api/agents')).json();

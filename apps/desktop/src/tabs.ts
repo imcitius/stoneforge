@@ -19,6 +19,57 @@ export function projectStatus(project: { state: ProjectState; needsInput?: boole
   }
 }
 
+export type LifecycleAction = 'start' | 'stop' | 'restart' | 'remove';
+export type ProjectActions = { start: boolean; stop: boolean; restart: boolean; repositories: boolean; remove: boolean; logs: boolean };
+
+/**
+ * Which explicit project commands apply now. `running` means Desktop holds a backend instance;
+ * `pending` is a lifecycle command still in progress for this project (including its
+ * confirmation), so repeated clicks cannot queue a second start, stop or restart.
+ * Selecting a project is never one of these: it only shows the project.
+ */
+export function projectActions(project: { state: ProjectState; running?: boolean }, pending?: LifecycleAction): ProjectActions {
+  const { state } = project, running = !!project.running, idle = !pending;
+  return {
+    start: idle && !running && (state === 'stopped' || state === 'error'),
+    // Stop during startup waits for the start to settle, then stops (manager.stop).
+    stop: idle && (state === 'starting' || state === 'ready' || (state === 'error' && running)),
+    restart: idle && running && (state === 'ready' || state === 'error'),
+    repositories: idle && state === 'ready',
+    remove: idle && state !== 'stopping',
+    logs: true,
+  };
+}
+
+export type MenuEntry = { type: 'separator' } |
+  { id: 'start' | 'stop' | 'restart' | 'logs' | 'repositories' | 'move-left' | 'move-right' | 'remove' | 'busy'; label: string; enabled: boolean; toolTip?: string };
+
+/**
+ * Per-tab menu (right-click, Shift+F10, or the ⋯ button on the active tab): Start or Stop by
+ * state, Restart when running, then Logs/Repositories, tab order, and Remove. Items needing a
+ * confirmation end with an ellipsis.
+ */
+export function tabMenuModel(project: { state: ProjectState; running?: boolean }, pending: LifecycleAction | undefined,
+  index: number, count: number): MenuEntry[] {
+  const can = projectActions(project, pending);
+  const busy = pending === 'start' || pending === 'restart' || project.state === 'starting' ? 'Starting…'
+    : pending === 'stop' || project.state === 'stopping' ? 'Stopping…' : pending === 'remove' ? 'Removing…' : undefined;
+  const entries: MenuEntry[] = [];
+  if (busy && !can.stop) entries.push({ id: 'busy', label: busy, enabled: false });
+  if (can.start || (!busy && !can.stop)) entries.push({ id: 'start', label: 'Start Project', enabled: can.start });
+  if (can.stop) entries.push({ id: 'stop', label: 'Stop Project…', enabled: true });
+  if (can.restart || project.state === 'ready') entries.push({ id: 'restart', label: 'Restart Project…', enabled: can.restart });
+  entries.push({ type: 'separator' },
+    { id: 'logs', label: 'Show Logs', enabled: can.logs },
+    { id: 'repositories', label: 'Repositories…', enabled: can.repositories, ...(can.repositories ? {} : { toolTip: 'Start the project to manage its repositories' }) },
+    { type: 'separator' },
+    { id: 'move-left', label: 'Move Tab Left', enabled: index > 0 },
+    { id: 'move-right', label: 'Move Tab Right', enabled: index >= 0 && index < count - 1 },
+    { type: 'separator' },
+    { id: 'remove', label: 'Remove Project…', enabled: can.remove });
+  return entries;
+}
+
 /**
  * Display order: ids from the saved order first, then every other project in registry
  * order. Unknown saved ids (removed projects) are ignored. Does not mutate its input.
