@@ -259,3 +259,20 @@ fix: **27/27**. An HTTP route test covers the 409 mapping.
   from the target under the same name.
 - `startWorkerOnTask` still records no `sessionHistory` entry (unchanged).
 
+## Follow-up el-4dcv06 (2026-11-01)
+
+The scope split from this task is delivered in `session-liveness.md`: hung and
+lingering worker/steward sessions are stopped by the daemon (a worker hang counts
+toward the no-progress counter above and can create a `trigger: 'hung-session'`
+hold that also unassigns the task), orphan resume prompts state the recorded end
+state instead of "server restart", and the Director watchdog no longer wakes for
+capacity/limit-only work or repeats an unchanged task set. The m-steward-2 note
+about `recordedBranchAvailable()` vs `resolveTaskWorkspace()` is fixed in the
+candidate check (an existing recorded worktree counts only on the recorded branch). Section (c) above still holds for rate-limit and crash paths;
+only a daemon-detected hang is new input to the counter. The history above is
+unchanged.
+
+Steward review (el-5qra) added the el-55qcdj requirement: rapid successive orphan
+resumes now back off (`orphanResumeBackoffMs`, see `session-liveness.md` §4) instead
+of burning `resumeCount`/`stewardRecoveryCount` within seconds. The caps above are
+unchanged.

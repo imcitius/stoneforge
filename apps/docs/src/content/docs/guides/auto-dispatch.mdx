@@ -58,6 +58,36 @@ The orphan recovery loop:
 
 This runs immediately on daemon startup and at the beginning of each poll cycle.
 
+Resumes of the same task in quick succession are spaced out (worker and merge
+steward). The next resume waits `orphanResumeBackoffMs * 2^n` (n = earlier resumes;
+default 1, 2, 4 min, at most 30 min) after the previous session of that agent on
+the task started. A session that already ran longer, for example one stopped as
+hung or interrupted by a restart, is resumed at once, and a manual wake lifts the
+delay. Nothing is counted while a resume waits; the attempt caps still apply.
+
+The resume prompt states what the daemon actually knows: the previous session
+ended before `sf task complete`/`sf task handoff` (or was stopped as hung), its
+recorded start/end time and termination reason when available, the task status,
+branch and head commit, the last handoff note and the resume attempt number. It
+no longer claims a server restart.
+
+### Session liveness (hung and lingering sessions)
+
+Each poll also checks running ephemeral-worker and steward sessions (directors
+and persistent workers are never stopped):
+
+- **Hung** — the agent has an assigned task (open, in progress or review) and the
+  session produced no provider output for `sessionIdleTimeoutMs` (default 30 min;
+  keep it longer than your longest silent command, e.g. the merge gate). The
+  daemon stops the session and records `metadata.orchestrator.lastHungSession`.
+  Orphan recovery resumes the task on the next cycle (counting `resumeCount`).
+  A worker hang also counts toward the no-progress guard below.
+- **Lingering** — the agent has no assigned task and the session has been idle for
+  `idleSessionWithoutTaskMs` (default 10 min), e.g. it finished its final turn
+  but stayed `running`. The session is ended so the slot is freed.
+
+Set either option to `0` to disable that check.
+
 ### 2. Inbox message routing
 
 **Purpose:** Deliver messages and spawn triage sessions.
@@ -140,7 +170,11 @@ When the count reaches `noProgressHandoffLimit` (default `3`), the daemon:
 The counter resets, and a held task resumes, after a Director/Human change:
 `sf task undefer <id>`, a description or title change, a dependency change, a new
 commit on the task branch, or an explicit assignment. Rate-limit pauses, session
-crashes and orphan resumes do not change the counter. The existing
+crashes and orphan resumes do not change the counter. A worker session stopped as
+**hung** is counted like a handoff (unchanged since the last baseline increments,
+any change resets). If that reaches the limit, the task is also unassigned and the
+hold records `trigger: 'hung-session'`; undefer then redispatches it normally on
+the same branch. The existing
 `resumeCount` / recovery steward logic is unchanged. Set
 `noProgressHandoffLimit: 0` to disable the guard.
 
@@ -285,11 +319,23 @@ dispatch rules; it never enables or resumes the worker itself.
 Recent human input delays forwarding. Attempts are spaced at least two minutes
 apart, including delivery failures.
 
+The director is **not** woken for tasks whose only obstacle is capacity or a
+confirmed provider limit: ready tasks while every eligible ephemeral worker is
+busy (or the pool is full), pending merges while every merge steward is busy, or
+work whose eligible executors are all provider-limited. The daemon dispatches
+those itself; their reset time is logged and listed under "No action needed"
+when a wake is sent for other work. Tasks with no eligible executor at all, parked
+executors, failed/conflicting merges and genuinely orphaned work still wake the
+director. A wake is delivered once per director session for a given set of
+actionable tasks and provider limits; it is repeated only when that set or the
+limits change.
+
 The watchdog respects disabled agents, stopped/suspended sessions, manual daemon
 sleep and the director's own provider limit. It does not start a stopped director,
 complete approvals, or remove genuine task dependencies. A running daemon and
 running director session are required. Terminal activity is the available idle
-signal; continuously redrawing or hung processes are not guaranteed to be detected.
+signal for directors; continuously redrawing or hung director processes are not
+guaranteed to be detected. Worker and steward sessions are covered by session liveness.
 
 ## Rate limit handling
 
@@ -358,6 +404,9 @@ The daemon's behavior can be tuned through configuration:
 | `noProgressHandoffLimit` | `3` | Consecutive no-progress handoffs before the task is deferred with a dispatch hold (`0` disables) |
 | `maxSessionDurationMs` | `0` (disabled) | Max worker session duration before termination |
 | `maxStewardSessionDurationMs` | `1800000` | Max steward session duration (30 min) |
+| `sessionIdleTimeoutMs` | `1800000` | No provider output for this long with an assigned task: worker/steward session is treated as hung, stopped and resumed via orphan recovery (`0` disables) |
+| `idleSessionWithoutTaskMs` | `600000` | Idle worker/steward session without any assigned task is ended (`0` disables) |
+| `orphanResumeBackoffMs` | `60000` | Base delay before resuming the same orphaned task again: `base * 2^n` after the previous session started, capped at 30 min (`0` disables) |
 | `directorInboxForwardingEnabled` | `true` | Auto-forward inbox messages to director's session |
 | `directorInboxIdleThresholdMs` | `120000` | Idle time before forwarding to director (2 min) |
 | `directorWatchdogEnabled` | `true` | Nudge idle running directors with outstanding work |

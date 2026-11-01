@@ -225,7 +225,9 @@ interface OrchestratorTaskMeta {
   resumeCount?: number;
   // No-progress handoff guard (dispatch daemon)
   noProgress?: { count: number; fingerprint?: { commit?: string; content: string }; evaluatedHandoffAt?: Timestamp };
-  dispatchHold?: { reason: string; heldAt: Timestamp; count: number; limit: number; directorId?: EntityId; notifiedAt?: Timestamp; notificationMessageId?: string; notificationError?: string };
+  dispatchHold?: { reason: string; heldAt: Timestamp; count: number; limit: number; directorId?: EntityId; notifiedAt?: Timestamp; notificationMessageId?: string; notificationError?: string; trigger?: 'handoff' | 'hung-session' };
+  // Session liveness: last session the daemon stopped as hung (no provider output)
+  lastHungSession?: { sessionId: string; providerSessionId?: string; agentId: EntityId; agentRole: 'worker' | 'steward'; lastActivityAt: Timestamp; stoppedAt: Timestamp; idleMs: number };
   reportedIssues?: readonly string[];
   // Handoff context
   handoffBranch?: string;

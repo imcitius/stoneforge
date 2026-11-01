@@ -56,6 +56,7 @@ export {
   type ProgressFingerprint,
   type NoProgressState,
   type DispatchHold,
+  type HungSessionRecord,
   type TaskSessionHistoryEntry,
   type SyncResultMeta,
   // Utilities

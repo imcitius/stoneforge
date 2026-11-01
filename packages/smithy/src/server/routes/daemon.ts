@@ -213,15 +213,28 @@ export function createDaemonRoutes(services: Services) {
         stewardTriggerPollEnabled?: boolean;
         workflowTaskPollEnabled?: boolean;
         directorInboxForwardingEnabled?: boolean;
+        sessionIdleTimeoutMs?: number;
+        idleSessionWithoutTaskMs?: number;
+        orphanResumeBackoffMs?: number;
       };
+
+      for (const key of ['sessionIdleTimeoutMs', 'idleSessionWithoutTaskMs', 'orphanResumeBackoffMs'] as const) {
+        const value = body[key];
+        if (value !== undefined && (typeof value !== 'number' || !Number.isFinite(value) || value < 0)) {
+          return c.json({ error: { code: 'INVALID_INPUT', message: `${key} must be a non-negative number of milliseconds` } }, 400);
+        }
+      }
 
       dispatchDaemon.updateConfig(body);
 
       // Persist config overrides that should survive server restarts
-      if (body.directorInboxForwardingEnabled !== undefined) {
-        saveDaemonConfigOverrides({
-          directorInboxForwardingEnabled: body.directorInboxForwardingEnabled,
-        });
+      const persisted: Parameters<typeof saveDaemonConfigOverrides>[0] = {};
+      if (body.directorInboxForwardingEnabled !== undefined) persisted.directorInboxForwardingEnabled = body.directorInboxForwardingEnabled;
+      if (body.sessionIdleTimeoutMs !== undefined) persisted.sessionIdleTimeoutMs = body.sessionIdleTimeoutMs;
+      if (body.idleSessionWithoutTaskMs !== undefined) persisted.idleSessionWithoutTaskMs = body.idleSessionWithoutTaskMs;
+      if (body.orphanResumeBackoffMs !== undefined) persisted.orphanResumeBackoffMs = body.orphanResumeBackoffMs;
+      if (Object.keys(persisted).length > 0) {
+        saveDaemonConfigOverrides(persisted);
       }
 
       return c.json({

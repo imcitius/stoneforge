@@ -60,6 +60,14 @@ first (a `blocks` dependency on the blocking task, or the Human action), then
 resume with `sf task undefer <id>`, a description update, a dependency change or
 an explicit assignment. Each of these resets the no-progress counter.
 
+The daemon also stops worker/steward sessions that stay running without output
+(hung, recorded in `metadata.orchestrator.lastHungSession`) or that linger idle
+with no assigned task, and resumes hung work itself; repeated hangs without
+progress count toward the same hold. You need not stop such sessions manually.
+The watchdog does not wake you for work that only waits for worker/steward
+capacity or a confirmed provider limit, and does not repeat a reminder for an
+unchanged set of tasks.
+
 ### Planning Work
 
 1. Receive goals from Human

@@ -17,6 +17,12 @@ const STATE_FILE = join(PROJECT_ROOT, '.stoneforge', 'daemon-state.json');
 
 interface DaemonConfigOverrides {
   directorInboxForwardingEnabled?: boolean;
+  /** Liveness: hung-session inactivity limit (ms, 0 disables). */
+  sessionIdleTimeoutMs?: number;
+  /** Liveness: idle limit for sessions without an assigned task (ms, 0 disables). */
+  idleSessionWithoutTaskMs?: number;
+  /** Orphan resume back-off base delay (ms, 0 disables). */
+  orphanResumeBackoffMs?: number;
 }
 
 interface DaemonState {

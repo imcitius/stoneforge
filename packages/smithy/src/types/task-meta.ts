@@ -133,6 +133,13 @@ export interface OrchestratorTaskMeta {
   readonly dispatchHold?: DispatchHold;
 
   /**
+   * Last session the dispatch daemon stopped because it stayed 'running'
+   * without provider output for longer than `sessionIdleTimeoutMs` (hung).
+   * Shown in the resume prompt; also prevents counting one hang twice.
+   */
+  readonly lastHungSession?: HungSessionRecord;
+
+  /**
    * Set of issue types that have been reported for this task.
    * Prevents duplicate messages/fix tasks for the same type of issue.
    * Format: "test_failure", "merge_conflict", etc.
@@ -244,6 +251,22 @@ export interface DispatchHold {
   readonly notifiedAt?: Timestamp;
   readonly notificationMessageId?: string;
   readonly notificationError?: string;
+  /** What triggered the hold. Absent (legacy) means 'handoff'. */
+  readonly trigger?: 'handoff' | 'hung-session';
+}
+
+/** A session stopped by the daemon's liveness check. */
+export interface HungSessionRecord {
+  /** Internal session ID that was stopped */
+  readonly sessionId: string;
+  readonly providerSessionId?: string;
+  readonly agentId: EntityId;
+  readonly agentRole: 'worker' | 'steward';
+  /** Last provider output/activity seen before the stop */
+  readonly lastActivityAt: Timestamp;
+  readonly stoppedAt: Timestamp;
+  /** Inactivity at the time of the stop */
+  readonly idleMs: number;
 }
 
 // ============================================================================

@@ -86,7 +86,7 @@ beforeEach(async () => {
 });
 afterEach(() => { db.close(); rmSync(root, { recursive: true, force: true }); rmSync(origin, { recursive: true, force: true }); });
 
-async function services(config: { noProgressHandoffLimit?: number } = {}) {
+async function services(config: { noProgressHandoffLimit?: number; orphanResumeBackoffMs?: number } = {}) {
   const registry = createAgentRegistry(api);
   const assignment = createTaskAssignmentService(api);
   const dispatch = createDispatchService(api, assignment, registry);
@@ -359,7 +359,9 @@ describe('(c) rate-limit and crash paths do not touch the counter', () => {
   });
 
   test('crash + orphan resume (no handoff) keeps the counter; resumeCount logic unchanged', async () => {
-    const s = await services();
+    // Counter semantics only: the session crashes right after it started, which the
+    // orphan resume back-off (el-4dcv06, covered in dispatch-liveness) would delay.
+    const s = await services({ orphanResumeBackoffMs: 0 });
     expect(await s.claim()).toBe(true); await s.handoff();
     expect(await s.claim()).toBe(true);
     const beforeCrash = metaOf(await current());
@@ -377,7 +379,9 @@ describe('(c) rate-limit and crash paths do not touch the counter', () => {
   });
 
   test('rapid exit with an explicit limit message rolls back resumeCount only; counter untouched', async () => {
-    const s = await services();
+    // Counter semantics only: the session crashes right after it started, which the
+    // orphan resume back-off (el-4dcv06, covered in dispatch-liveness) would delay.
+    const s = await services({ orphanResumeBackoffMs: 0 });
     expect(await s.claim()).toBe(true); await s.handoff();
     expect(await s.claim()).toBe(true);
     const beforeCrash = metaOf(await current());

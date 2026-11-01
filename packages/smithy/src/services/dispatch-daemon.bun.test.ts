@@ -375,9 +375,106 @@ describe('DispatchDaemon Integration', () => {
       expect((sessionManager.messageSession as ReturnType<typeof mock>).mock.calls[0][1].content).toContain(task.id);
       await poll();
       expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      // el-4dcv06: an unchanged task set (and unchanged limits) is not re-sent.
       now += 120_001;
       await poll();
+      now += 3_600_000;
+      await poll();
+      expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      // A changed set wakes again (after the idle/retry interval).
+      const second = await createTestTask('More planning');
+      await poll();
       expect(sessionManager.messageSession).toHaveBeenCalledTimes(2);
+      expect((sessionManager.messageSession as ReturnType<typeof mock>).mock.calls[1][1].content).toContain(second.id);
+    });
+
+    describe('el-4dcv06: capacity and provider limits do not wake the director', () => {
+      const calls = () => (sessionManager.messageSession as ReturnType<typeof mock>).mock.calls as Array<[string, { content: string }]>;
+      async function busy(worker: AgentEntity) {
+        const directorSession = active;
+        const original = sessionManager.getActiveSession;
+        sessionManager.getActiveSession = mock(id => id === director.id ? directorSession
+          : id === worker.id ? { ...directorSession!, id: `session-${worker.id}`, agentId: worker.id, agentRole: 'worker', status: 'running' } as unknown as SessionRecord
+          : (original as (id: EntityId) => SessionRecord | undefined)(id));
+      }
+
+      test('ready work while every worker is busy: no wake, quiet state logged once', async () => {
+        const writes: Array<[string, string, string, Record<string, unknown> | undefined]> = [];
+        daemon = new DispatchDaemonImpl(api, agentRegistry, sessionManager, dispatchService, worktreeManager, taskAssignment,
+          stewardScheduler, inboxService, { ensureTargetBranchExists: mockEnsureTargetBranchExists, workerAvailabilityPollEnabled: false,
+            orphanRecoveryEnabled: false, stewardTriggerPollEnabled: false, workflowTaskPollEnabled: false },
+          undefined, undefined, { write: (level: string, category: string, message: string, meta?: Record<string, unknown>) => { writes.push([level, category, message, meta]); } } as never);
+        const worker = await createTestWorker('busy-worker');
+        await busy(worker);
+        await createTestTask('Waits for a slot');
+        const pollIt = () => (daemon as unknown as { runPollCycle(): Promise<void> }).runPollCycle();
+        await pollIt();
+        now += 600_000;
+        await pollIt();
+        expect(sessionManager.messageSession).not.toHaveBeenCalled();
+        const quiet = writes.filter(([, , message]) => message.includes('Director watchdog quiet'));
+        expect(quiet).toHaveLength(1);
+        expect(JSON.stringify(quiet[0][3])).toContain('worker-capacity');
+      });
+
+      test('ready work while the only free worker is provider-limited: no wake until reset, then dispatchable', async () => {
+        const worker = await agentRegistry.registerWorker({ name: 'claude-worker', workerMode: 'ephemeral', provider: 'claude-code', createdBy: systemEntity, maxConcurrentTasks: 1 });
+        const task = await createTestTask('Waits for quota');
+        const reset = new Date(now + 3_600_000);
+        daemon.handleRateLimitDetected('claude', reset, 'claude-code');
+        expect(daemon.getRateLimitStatus(director).isPaused).toBe(false); // Codex director is not limited
+        await poll();
+        now += 600_000;
+        await poll();
+        expect(sessionManager.messageSession).not.toHaveBeenCalled();
+        expect(daemon.getRateLimitStatus(worker).soonestReset).toBe(reset.toISOString());
+        // After the reset the task would be dispatched; with dispatch disabled here
+        // it is genuinely stuck and the director is woken.
+        now = reset.getTime() + 1;
+        await poll();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+        expect(calls()[0][1].content).toContain(task.id);
+      });
+
+      test('pending merge while every merge steward is busy does not wake; with no steward at all it does', async () => {
+        const steward = await agentRegistry.registerSteward({ name: 'merge-steward', stewardFocus: 'merge', createdBy: systemEntity });
+        await busy(steward);
+        const task = await createTestTask('Awaiting merge');
+        await api.update(task.id, { status: TaskStatus.REVIEW, metadata: updateOrchestratorTaskMeta(undefined, { mergeStatus: 'pending', owningDirector: asDirectorId() }) });
+        await poll();
+        expect(sessionManager.messageSession).not.toHaveBeenCalled();
+        await api.update(steward.id, { metadata: { ...steward.metadata, agent: { ...steward.metadata.agent, disabled: true } } });
+        now += 120_001;
+        await poll();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      });
+
+      test('orphaned work of a limited executor waits; genuinely orphaned work still wakes and names the waiting task with its reset', async () => {
+        const limitedWorker = await agentRegistry.registerWorker({ name: 'limited-worker', workerMode: 'ephemeral', provider: 'claude-code', createdBy: systemEntity, maxConcurrentTasks: 1 });
+        const parkedWorker = await createTestWorker('parked-worker');
+        await api.update(parkedWorker.id, { metadata: { ...parkedWorker.metadata, agent: { ...parkedWorker.metadata.agent, disabled: true } } });
+        const waiting = await createTestTask('Interrupted by quota');
+        await api.update(waiting.id, { status: TaskStatus.IN_PROGRESS, assignee: limitedWorker.id });
+        const reset = new Date(now + 3_600_000);
+        daemon.handleRateLimitDetected('claude', reset, 'claude-code');
+        await poll();
+        expect(sessionManager.messageSession).not.toHaveBeenCalled();
+        const orphan = await createTestTask('Abandoned by a parked worker');
+        await api.update(orphan.id, { status: TaskStatus.IN_PROGRESS, assignee: parkedWorker.id });
+        await poll();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+        const content = calls()[0][1].content;
+        expect(content).toContain(`Actionable work remains: ${orphan.id}`);
+        expect(content).toContain(`Assigned tasks without a live executor: ${orphan.id}.`);
+        expect(content).toContain(`${waiting.id} (provider limit, resets ${reset.toISOString()})`);
+        // Unchanged: no repeat. A limit change is a change: wake again.
+        now += 600_000;
+        await poll();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+        daemon.handleRateLimitDetected('claude', new Date(now + 7_200_000), 'claude-code');
+        await poll();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(2);
+      });
     });
 
     test('wakes for pending merges without open tasks', async () => {

@@ -117,3 +117,32 @@ export function evaluateNoProgress(
     holdReleased,
   };
 }
+
+/**
+ * Counts a hung worker session (stopped by the daemon's liveness check) toward
+ * the same consecutive no-progress counter as handoffs.
+ *
+ * - Compared with the last baseline (dispatch, handoff evaluation or previous
+ *   hang): an unchanged fingerprint increments the count, any change resets it
+ *   to 0. No baseline (legacy) cannot prove a lack of progress and gives 0.
+ * - A leftover `dispatchHold` (lifted by undefer/status change) restarts the
+ *   count before this hang is counted.
+ * - `evaluatedHandoffAt` is preserved, so a later dispatch never re-counts a
+ *   handoff that was already evaluated. The caller counts each stopped session
+ *   once (keyed by `lastHungSession.sessionId`).
+ */
+export function evaluateHungSession(
+  meta: OrchestratorTaskMeta | undefined,
+  current: ProgressFingerprint,
+  limit: number
+): NoProgressEvaluation {
+  const previous = meta?.noProgress;
+  const holdReleased = meta?.dispatchHold !== undefined;
+  const base = holdReleased ? 0 : previous?.count ?? 0;
+  const count = sameFingerprint(previous?.fingerprint, current) ? base + 1 : 0;
+  return {
+    state: { count, fingerprint: current, evaluatedHandoffAt: previous?.evaluatedHandoffAt },
+    hold: limit > 0 && count >= limit,
+    holdReleased,
+  };
+}

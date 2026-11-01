@@ -68,17 +68,31 @@ import {
   type NoProgressState,
   type DispatchHold,
   type ProgressFingerprint,
+  type HungSessionRecord,
 } from '../types/task-meta.js';
 import {
   computeProgressFingerprint,
   evaluateNoProgress,
+  evaluateHungSession,
   sameFingerprint,
   DEFAULT_NO_PROGRESS_HANDOFF_LIMIT,
 } from './no-progress-guard.js';
 import type { OperationLogService } from './operation-log-service.js';
 import {
+  DEFAULT_SESSION_IDLE_TIMEOUT_MS,
+  DEFAULT_IDLE_SESSION_WITHOUT_TASK_MS,
+  DEFAULT_ORPHAN_RESUME_BACKOFF_MS,
+  orphanResumeWaitMs,
+  classifyIdleSession,
+  formatDuration,
+  buildInterruptedResumePrompt,
+  describeWatchdogWait,
+  watchdogSignature,
+  type WatchdogWait,
+} from './session-liveness.js';
+import {
   TaskBranchUnavailableError, recordedTaskWorkspace, resolveTaskWorkspace, taskHasWorkEvidence, type AttachBranch,
-  localBranchExists, remoteBranchCommit, readGitCommit,
+  localBranchExists, remoteBranchCommit, readGitCommit, sameBranchName,
 } from './task-workspace.js';
 
 const logger = createLogger('dispatch-daemon');
@@ -283,6 +297,36 @@ export interface DispatchDaemonConfig {
   readonly maxStewardSessionDurationMs?: number;
 
   /**
+   * Liveness: a running worker/steward session with an assigned task and no
+   * provider output/activity for this long is treated as hung. The daemon
+   * stops it, records metadata.orchestrator.lastHungSession, counts it toward
+   * the no-progress guard (workers) and lets orphan recovery resume it.
+   * Must exceed the longest silent command (e.g. the merge gate).
+   * Set to 0 to disable. Default: 1800000 (30 minutes).
+   */
+  readonly sessionIdleTimeoutMs?: number;
+
+  /**
+   * A running ephemeral-worker/steward session without any assigned task
+   * (OPEN/IN_PROGRESS/REVIEW) and no activity for this long is ended, e.g. a
+   * session that finished its final turn but stayed 'running'.
+   * Set to 0 to disable. Default: 600000 (10 minutes).
+   */
+  readonly idleSessionWithoutTaskMs?: number;
+
+  /**
+   * Back-off between automatic orphan resumes of the same task (worker
+   * `resumeCount` path and merge-steward `stewardRecoveryCount` path). The
+   * n-th resume (n = earlier resumes, from 0) waits base * 2^n (capped at
+   * 30 min) after the previous session of that agent on the task started.
+   * A session that already ran longer is resumed at once, so only quick
+   * successive session ends (e.g. a turn end every few seconds) are spaced
+   * out; the attempt caps still apply. Set to 0 to disable.
+   * Default: 60000 (1 min → 1, 2, 4 min).
+   */
+  readonly orphanResumeBackoffMs?: number;
+
+  /**
    * Callback fired when a session is started by the daemon.
    * Allows the server to attach event savers and save the initial prompt.
    */
@@ -360,6 +404,9 @@ interface NormalizedConfig {
   noProgressHandoffLimit: number;
   maxSessionDurationMs: number;
   maxStewardSessionDurationMs: number;
+  sessionIdleTimeoutMs: number;
+  idleSessionWithoutTaskMs: number;
+  orphanResumeBackoffMs: number;
   onSessionStarted?: OnSessionStartedCallback;
   projectRoot: string;
   directorInboxForwardingEnabled: boolean;
@@ -567,6 +614,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   private manualSleepUntil?: number;
   private dispatchAgents: AgentEntity[] = [];
   private readonly directorWakeAttempts = new Map<string, number>();
+  /** Signature of the last delivered watchdog wake per director session. */
+  private readonly directorWakeSignatures = new Map<string, string>();
+  /** Last logged "quiet" (capacity/limit only) state per director session. */
+  private readonly directorQuietSignatures = new Map<string, string>();
 
   /**
    * Tracks inbox item IDs that are currently being forwarded to persistent agents.
@@ -603,6 +654,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    * Keys are removed when the underlying condition clears, or expire after 5 minutes.
    */
   private readonly emittedWarnings = new Map<string, number>();
+  /** Orphan resume back-off: last logged deferral per task (agent:attempt:session). */
+  private readonly orphanBackoffLogged = new Map<string, string>();
 
   /** TTL for emitted warning deduplication keys (5 minutes). */
   private static readonly WARNING_DEDUP_TTL_MS = 5 * 60 * 1000;
@@ -1373,7 +1426,9 @@ export class DispatchDaemonImpl implements DispatchDaemon {
             this.operationLog?.write('error', 'recovery', `Failed to spawn recovery steward for worker ${worker.name}: ${errorMessage}`, { agentId: worker.id, taskId: taskAssignment.task.id });
           }
         } else {
-          // Normal recovery: re-spawn the worker, then increment resume count on success
+          // Normal recovery: re-spawn the worker, then increment resume count on success.
+          // Back off when the previous session ended quickly (el-55qcdj).
+          if (this.deferOrphanResume(taskAssignment.task, taskAssignment.orchestratorMeta, workerId, 'worker', resumeCount)) continue;
           try {
             const recovered = await this.recoverOrphanedTask(worker, taskAssignment.task, taskAssignment.orchestratorMeta);
             if (recovered) {
@@ -1462,6 +1517,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
           }
           continue;
         }
+
+        // Back off when the previous steward session ended quickly (el-55qcdj):
+        // a turn end every few seconds must not burn the cap within seconds.
+        if (this.deferOrphanResume(orphanedAssignment.task, orphanedAssignment.orchestratorMeta, stewardId, 'steward', stewardRecoveryCount)) continue;
 
         try {
           // Increment stewardRecoveryCount before recovering
@@ -2102,6 +2161,9 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       noProgressHandoffLimit: Math.max(0, config?.noProgressHandoffLimit ?? DEFAULT_NO_PROGRESS_HANDOFF_LIMIT),
       maxSessionDurationMs: config?.maxSessionDurationMs ?? 0,
       maxStewardSessionDurationMs: config?.maxStewardSessionDurationMs ?? 30 * 60 * 1000,
+      sessionIdleTimeoutMs: Math.max(0, config?.sessionIdleTimeoutMs ?? DEFAULT_SESSION_IDLE_TIMEOUT_MS),
+      idleSessionWithoutTaskMs: Math.max(0, config?.idleSessionWithoutTaskMs ?? DEFAULT_IDLE_SESSION_WITHOUT_TASK_MS),
+      orphanResumeBackoffMs: Math.max(0, config?.orphanResumeBackoffMs ?? DEFAULT_ORPHAN_RESUME_BACKOFF_MS),
       onSessionStarted: config?.onSessionStarted,
       projectRoot: config?.projectRoot ?? process.cwd(),
       directorInboxForwardingEnabled: config?.directorInboxForwardingEnabled ?? true,
@@ -2136,6 +2198,9 @@ export class DispatchDaemonImpl implements DispatchDaemon {
             this.rateLimitSleepTimer = undefined;
           }, sleepMs);
         }
+
+        // Hung/lingering sessions still occupy slots while dispatch is paused.
+        await this.reapIdleSessions();
 
         // Run non-dispatch polls only
         if (this.config.inboxPollEnabled) {
@@ -2175,6 +2240,9 @@ export class DispatchDaemonImpl implements DispatchDaemon {
 
       // Reap stale sessions before polling for availability
       await this.reapStaleSessions();
+      // Stop hung sessions (assigned task, no output) and finished sessions
+      // that linger without a task; orphan recovery resumes hung work next cycle.
+      await this.reapIdleSessions();
 
       // Run polls sequentially to avoid overwhelming the system.
       // Inbox runs first so triage spawns before task dispatch — idle agents
@@ -2250,12 +2318,22 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     return this.executableLimited(executable, provider) ? 'all_limited' : undefined;
   }
 
-  /** Periodic work reconciliation; stopped/suspended directors are never restarted. */
+  /**
+   * Periodic work reconciliation; stopped/suspended directors are never restarted.
+   *
+   * Tasks whose only obstacle is executor capacity (all eligible workers or
+   * merge stewards busy) or a confirmed provider limit of the eligible
+   * executors do not wake the Director; the daemon dispatches them itself when
+   * a slot frees or the limit resets. A wake for an unchanged set of actionable
+   * tasks with unchanged limits is delivered once per director session.
+   */
   private async pollDirectorWatchdog(): Promise<void> {
     const directors = this.dispatchAgents.filter(agent => getAgentMetadata(agent)?.agentRole === 'director');
     const sessionIds = new Set(directors.map(agent => this.sessionManager.getActiveSession(asEntityId(agent.id))?.id));
-    for (const id of this.directorWakeAttempts.keys()) {
-      if (!sessionIds.has(id)) this.directorWakeAttempts.delete(id);
+    for (const map of [this.directorWakeAttempts, this.directorWakeSignatures, this.directorQuietSignatures]) {
+      for (const id of map.keys()) {
+        if (!sessionIds.has(id)) map.delete(id);
+      }
     }
     if (!directors.length) return;
     const ready = await this.api.ready({ includeEphemeral: true });
@@ -2270,6 +2348,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const unfinished = await this.taskAssignment.listAssignments({
       taskStatus: [TaskStatus.OPEN, TaskStatus.IN_PROGRESS],
     });
+    const waits = new Map<string, WatchdogWait>();
     const orphaned: Task[] = [];
     for (const { task } of unfinished) {
       const assigned = task.assignee ?? getOrchestratorTaskMeta(task.metadata)?.assignedAgent;
@@ -2279,22 +2358,65 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       // Human-owned work and deliberately suspended sessions are not abandoned.
       if (!meta || !['worker', 'steward'].includes(meta.agentRole) || meta.sessionStatus === 'suspended') continue;
       orphaned.push(task);
+      // Orphan recovery skips executors whose provider is limited; it resumes
+      // them after the reset without Director action. Parked executors are not.
+      if (!isAgentDisabled(executor) && this.resolveExecutableWithFallback(executor) === 'all_limited') {
+        waits.set(task.id, { taskId: task.id, kind: 'provider-limit', resetsAt: this.getRateLimitStatus(executor).soonestReset });
+      }
     }
-    const candidates = [...ready.filter(task => !task.assignee), ...orphaned, ...reviews.map(entry => entry.task).filter(task => {
+    const unassignedReady = ready.filter(task => !task.assignee);
+    if (unassignedReady.length) {
+      const wait = await this.executorWait('worker');
+      if (wait) for (const task of unassignedReady) waits.set(task.id, { taskId: task.id, ...wait });
+    }
+    const reviewTasks = reviews.map(entry => entry.task).filter(task => {
       const assigned = task.assignee ?? getOrchestratorTaskMeta(task.metadata)?.assignedAgent;
       return !assigned || !this.sessionManager.getActiveSession(asEntityId(assigned));
-    })];
+    });
+    const pendingReviews = reviewTasks.filter(task => {
+      const meta = getOrchestratorTaskMeta(task.metadata);
+      return meta?.mergeStatus === 'pending' && !(task.assignee ?? meta?.assignedAgent);
+    });
+    if (pendingReviews.length) {
+      const wait = await this.executorWait('merge-steward');
+      if (wait) for (const task of pendingReviews) waits.set(task.id, { taskId: task.id, ...wait });
+    }
+    const candidates = [...unassignedReady, ...orphaned, ...reviewTasks];
     const owned = new Map<string, Task[]>();
     for (const task of candidates) {
       const owner = getOrchestratorTaskMeta(task.metadata)?.owningDirector ?? await this.resolveOwningDirector(task);
       if (!owner) continue;
-      owned.set(owner, [...(owned.get(owner) ?? []), task]);
+      const list = owned.get(owner) ?? [];
+      if (!list.some(existing => existing.id === task.id)) list.push(task);
+      owned.set(owner, list);
     }
+    const limitState = this.rateLimitTracker.getAllLimits().map(entry => `${entry.executable}@${entry.resetsAt.toISOString()}`);
+    if (this.manualSleepUntil && this.manualSleepUntil > Date.now()) limitState.push(`sleep@${new Date(this.manualSleepUntil).toISOString()}`);
     for (const director of directors) {
       const tasks = owned.get(director.id);
       if (!tasks?.length || this.resolveExecutableWithFallback(director) === 'all_limited') continue;
       const session = this.sessionManager.getActiveSession(asEntityId(director.id));
       if (!session || session.status !== 'running') continue;
+      const actionable = tasks.filter(task => !waits.has(task.id));
+      const waiting = tasks.map(task => waits.get(task.id)).filter((wait): wait is WatchdogWait => wait !== undefined);
+      if (!actionable.length) {
+        // Nothing for the Director to do: the daemon proceeds by itself.
+        this.directorWakeSignatures.delete(session.id);
+        const quiet = watchdogSignature(waiting.map(wait => `${wait.taskId}:${wait.kind}:${wait.resetsAt ?? ''}`), []);
+        if (this.directorQuietSignatures.get(session.id) !== quiet) {
+          this.directorQuietSignatures.set(session.id, quiet);
+          const summary = waiting.slice(0, 10).map(describeWatchdogWait).join(', ');
+          logger.info(`Director watchdog: not waking ${director.name}; tasks wait only for executor capacity or provider limits: ${summary}`);
+          this.operationLog?.write('info', 'dispatch', `Director watchdog quiet for ${director.name}: tasks wait only for executor capacity or provider limits`, {
+            agentId: director.id, sessionId: session.id, waiting: waiting.map(wait => ({ ...wait })),
+          });
+        }
+        continue;
+      }
+      this.directorQuietSignatures.delete(session.id);
+      const signature = watchdogSignature(actionable.map(task => task.id), limitState);
+      // The same actionable set with unchanged limits was already delivered.
+      if (this.directorWakeSignatures.get(session.id) === signature) continue;
       const now = Date.now();
       if (session.attention) continue; // A human decision cannot be supplied by the watchdog.
       const activity = new Date(session.lastActivityAt).getTime();
@@ -2304,22 +2426,69 @@ export class DispatchDaemonImpl implements DispatchDaemon {
           now - (this.directorWakeAttempts.get(session.id) ?? 0) < this.config.directorWatchdogIdleMs) continue;
       // Reserve before awaiting delivery, including failed deliveries, to avoid retry storms.
       this.directorWakeAttempts.set(session.id, now);
+      const orphanedHere = orphaned.filter(task => actionable.some(owned => owned.id === task.id)).map(task => task.id);
       const result = await this.sessionManager.messageSession(session.id, {
-        content: `[Orchestration watchdog] Actionable work remains: ${tasks.slice(0, 10).map(task => task.id).join(', ')}. ` +
+        content: `[Orchestration watchdog] Actionable work remains: ${actionable.slice(0, 10).map(task => task.id).join(', ')}. ` +
           'Check current task, inbox and merge state and continue the next authorized action. ' +
-          `Assigned tasks without a live executor: ${orphaned.filter(task => tasks.some(owned => owned.id === task.id)).map(task => task.id).join(', ') || 'none'}. ` +
+          `Assigned tasks without a live executor: ${orphanedHere.join(', ') || 'none'}. ` +
           'Inspect their last session outcome; do not keep waiting for a message from an exited worker. ' +
           'Respect explicit worker parking and project dispatch rules when deciding how to resume. ' +
+          (waiting.length
+            ? `No action needed (the daemon dispatches them when capacity frees or the limit resets): ${waiting.slice(0, 10).map(describeWatchdogWait).join(', ')}. `
+            : '') +
           'Provider limits are independent; do not infer a current limit from old session failures. ' +
           'Do not sleep or schedule retries yourself. The daemon will retry after confirmed limits expire. ' +
-          'If human input or another concrete blocker prevents progress, record it on the task.',
+          'If human input or another concrete blocker prevents progress, record it on the task. ' +
+          'This reminder is not repeated until the set of actionable tasks or the provider limits change.',
       });
       if (!result.success) logger.warn(`Director watchdog delivery failed for ${director.id}: ${result.error}`);
       else {
-        logger.info(`Woke idle director ${director.id}; tasks: ${tasks.map(task => task.id).join(', ')}`);
-        this.operationLog?.write('info', 'dispatch', `Woke idle director ${director.name}`, { agentId: director.id, sessionId: session.id, taskIds: tasks.map(task => task.id) });
+        this.directorWakeSignatures.set(session.id, signature);
+        logger.info(`Woke idle director ${director.id}; tasks: ${actionable.map(task => task.id).join(', ')}`);
+        this.operationLog?.write('info', 'dispatch', `Woke idle director ${director.name}`, { agentId: director.id, sessionId: session.id, taskIds: actionable.map(task => task.id) });
       }
     }
+  }
+
+  /**
+   * Why unassigned work for a role cannot start now, if the only reason is
+   * capacity or a confirmed provider limit. Undefined when an eligible,
+   * unlimited executor is free (the work is stuck for another reason) or when
+   * no eligible executor exists at all; both need the Director.
+   */
+  private async executorWait(kind: 'worker' | 'merge-steward'): Promise<Omit<WatchdogWait, 'taskId'> | undefined> {
+    const executors = this.dispatchAgents.filter(agent => {
+      const meta = getAgentMetadata(agent);
+      if (kind === 'worker') return meta?.agentRole === 'worker' && (meta as WorkerMetadata).workerMode === 'ephemeral';
+      return meta?.agentRole === 'steward' && (meta as StewardMetadata).stewardFocus === 'merge';
+    });
+    if (!executors.length) return undefined;
+    const freeLimited: AgentEntity[] = [];
+    let freeUnlimited = 0;
+    for (const agent of executors) {
+      const id = asEntityId(agent.id);
+      if (this.sessionManager.getActiveSession(id)) continue;
+      if (kind === 'worker') {
+        // Same availability rules as pollWorkerAvailability.
+        if (this.inboxService.getInbox(id, { status: InboxStatus.UNREAD, limit: 1 }).length > 0) continue;
+        const assigned = await this.taskAssignment.getAgentTasks(id, {
+          taskStatus: [TaskStatus.OPEN, TaskStatus.IN_PROGRESS, TaskStatus.REVIEW],
+        });
+        if (assigned.length) continue;
+        if (this.poolService) {
+          const check = await this.poolService.canSpawn({ role: 'worker', workerMode: 'ephemeral', agentId: id });
+          if (!check.canSpawn) continue;
+        }
+      }
+      if (this.resolveExecutableWithFallback(agent) === 'all_limited') freeLimited.push(agent);
+      else freeUnlimited++;
+    }
+    if (freeUnlimited > 0) return undefined;
+    if (freeLimited.length) {
+      const resets = freeLimited.map(agent => this.getRateLimitStatus(agent).soonestReset).filter((reset): reset is string => !!reset).sort();
+      return { kind: 'provider-limit', resetsAt: resets[0] };
+    }
+    return { kind: kind === 'worker' ? 'worker-capacity' : 'steward-capacity' };
   }
 
   /**
@@ -2380,6 +2549,196 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   }
 
   /**
+   * Liveness check for running worker/steward sessions (directors and
+   * persistent workers are human-facing and never stopped here).
+   *
+   * - With an assigned task (OPEN/IN_PROGRESS/REVIEW) and no provider
+   *   output/activity for `sessionIdleTimeoutMs`: hung. The session is stopped,
+   *   `lastHungSession` is recorded on the task, a worker hang is counted toward
+   *   the no-progress guard, and the existing orphan recovery resumes the task
+   *   on the next cycle (incrementing `resumeCount`).
+   * - Without any assigned task and idle for `idleSessionWithoutTaskMs`: the
+   *   session finished (or never had work) but stayed 'running'; it is ended.
+   * - Sessions waiting for an explicit human answer (`attention`) are skipped.
+   *
+   * @returns number of sessions stopped
+   */
+  async reapIdleSessions(): Promise<number> {
+    const { sessionIdleTimeoutMs, idleSessionWithoutTaskMs } = this.config;
+    if (sessionIdleTimeoutMs <= 0 && idleSessionWithoutTaskMs <= 0) return 0;
+    const enabled = [sessionIdleTimeoutMs, idleSessionWithoutTaskMs].filter((ms) => ms > 0);
+    const minThreshold = Math.min(...enabled);
+    let stopped = 0;
+    let running: SessionRecord[];
+    try {
+      running = this.sessionManager.listSessions({ status: 'running' });
+    } catch (error) {
+      logger.warn('Liveness check could not list sessions:', error);
+      return 0;
+    }
+    for (const session of running) {
+      try {
+        if (session.agentRole !== 'worker' && session.agentRole !== 'steward') continue;
+        if (session.agentRole === 'worker' && session.workerMode === 'persistent') continue;
+        if (session.attention) continue;
+        const now = Date.now();
+        const lastActivity = new Date(session.lastActivityAt).getTime();
+        const idleMs = now - lastActivity;
+        if (!Number.isFinite(idleMs) || idleMs < minThreshold) continue;
+        // Only the agent's current session; never a superseded record.
+        const active = this.sessionManager.getActiveSession(session.agentId);
+        if (!active || active.id !== session.id || active.status !== 'running') continue;
+        const tasks = await this.taskAssignment.getAgentTasks(session.agentId, {
+          taskStatus: [TaskStatus.OPEN, TaskStatus.IN_PROGRESS, TaskStatus.REVIEW],
+        });
+        const verdict = classifyIdleSession({
+          idleMs, hasAssignedTask: tasks.length > 0, sessionIdleTimeoutMs, idleSessionWithoutTaskMs,
+        });
+        if (verdict === 'active') continue;
+        const agent = await this.agentRegistry.getAgent(session.agentId);
+        const agentName = agent?.name ?? session.agentId;
+        if (verdict === 'idle-without-task') {
+          const reason = `Session idle for ${formatDuration(idleMs)} with no assigned task (finished or lingering session)`;
+          if (!(await this.stopIdleSession(session, reason))) continue;
+          stopped++;
+          logger.info(`Stopped ${session.agentRole} ${agentName} session ${session.id}: ${reason}`);
+          this.operationLog?.write('info', 'session', `Stopped idle ${session.agentRole} session without a task: ${agentName}`, {
+            agentId: session.agentId, sessionId: session.id, idleMs,
+          });
+          continue;
+        }
+        // Hung: prefer the task the session is working on for its role.
+        const role = session.agentRole as 'worker' | 'steward';
+        const assignment = tasks.find(({ task }) => task.status !== TaskStatus.REVIEW) ?? tasks[0];
+        const reason = `Session hung: no provider output for ${formatDuration(idleMs)} ` +
+          `(limit ${formatDuration(sessionIdleTimeoutMs)}) on task ${assignment.task.id}`;
+        if (!(await this.stopIdleSession(session, reason))) continue;
+        stopped++;
+        logger.warn(`Stopped ${role} ${agentName} session ${session.id}: ${reason}`);
+        this.operationLog?.write('warn', 'session', `Stopped hung ${role} session ${agentName} on task ${assignment.task.id}`, {
+          agentId: session.agentId, sessionId: session.id, taskId: assignment.task.id, idleMs,
+        });
+        this.emitWarningOnce(`hung-session:${session.id}`, {
+          type: 'warning',
+          title: 'Hung session stopped',
+          message: `${agentName} on ${assignment.task.id}: no provider output for ${formatDuration(idleMs)}. The task will be resumed by orphan recovery.`,
+        });
+        await this.recordHungSession(assignment.task.id, {
+          sessionId: session.id,
+          providerSessionId: session.providerSessionId,
+          agentId: session.agentId,
+          agentRole: role,
+          lastActivityAt: session.lastActivityAt,
+          stoppedAt: createTimestamp(),
+          idleMs,
+        });
+      } catch (error) {
+        logger.warn(`Liveness check failed for session ${session.id}:`, error);
+      }
+    }
+    return stopped;
+  }
+
+  /** Stops one internal session; false when it was already gone or could not be stopped. */
+  private async stopIdleSession(session: SessionRecord, reason: string): Promise<boolean> {
+    try {
+      await this.sessionManager.stopSession(session.id, { graceful: false, reason });
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes('not found')) logger.warn(`Failed to stop session ${session.id}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Records a stopped hung session on its task and, for worker tasks, counts
+   * it toward the no-progress guard. At the limit the task is held (DEFERRED,
+   * unassigned, one Director message) exactly like a no-progress handoff loop.
+   */
+  private async recordHungSession(taskId: ElementId, record: HungSessionRecord): Promise<void> {
+    const task = await this.api.get<Task>(taskId);
+    if (!task) return;
+    const meta = getOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined);
+    if (meta?.lastHungSession?.sessionId === record.sessionId) return; // counted already
+    const countable = record.agentRole === 'worker' &&
+      (task.status === TaskStatus.OPEN || task.status === TaskStatus.IN_PROGRESS);
+    let evaluation: ReturnType<typeof evaluateHungSession> | undefined;
+    if (countable) {
+      try {
+        const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
+        evaluation = evaluateHungSession(meta, await this.readProgressFingerprint(task, worktreeManager, meta), this.config.noProgressHandoffLimit);
+      } catch (error) {
+        logger.warn(`No-progress evaluation failed for hung task ${task.id}; recording the hang without counting it:`, error);
+      }
+    }
+    if (evaluation?.hold) {
+      const withRecord = { ...task, metadata: updateOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined, { lastHungSession: record }) } as Task;
+      await this.holdNoProgressTask(withRecord, meta, evaluation.state, this.config.noProgressHandoffLimit, {
+        trigger: 'hung-session',
+        reason: `Automatic dispatch stopped after ${evaluation.state.count} consecutive no-progress events ` +
+          `(limit ${this.config.noProgressHandoffLimit}), the last a hung session (no provider output for ${formatDuration(record.idleMs)}): ` +
+          'no new commit on the task branch and no title/description/dependency change.',
+      });
+      return;
+    }
+    await this.api.update<Task>(task.id, {
+      metadata: updateOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined, {
+        lastHungSession: record,
+        ...(evaluation ? { noProgress: evaluation.state, ...(evaluation.holdReleased ? { dispatchHold: undefined } : {}) } : {}),
+      }),
+    });
+    if (evaluation) {
+      logger.info(`Hung session on task ${task.id} counted toward the no-progress guard (count ${evaluation.state.count})`);
+    }
+  }
+
+  /** Builds the accurate resume prompt from the recorded end state of the previous session. */
+  private async buildResumePrompt(
+    role: 'worker' | 'steward',
+    agentId: EntityId,
+    task: Task,
+    taskMeta: OrchestratorTaskMeta | undefined,
+    worktreeManager: WorktreeManager,
+    previousSessionId: string,
+  ): Promise<string> {
+    let previous: { id?: string; startedAt?: string; endedAt?: string; terminationReason?: string } | undefined;
+    try {
+      const history = await this.sessionManager.getSessionHistory(agentId, 20);
+      const entry = history.find((item) => item.providerSessionId === previousSessionId || item.id === previousSessionId);
+      if (entry) previous = { id: entry.id, startedAt: entry.startedAt, endedAt: entry.endedAt, terminationReason: entry.terminationReason };
+    } catch { /* best effort */ }
+    if (!previous) {
+      const entry = [...(taskMeta?.sessionHistory ?? [])].reverse()
+        .find((item) => item.providerSessionId === previousSessionId || item.sessionId === previousSessionId);
+      if (entry) previous = { id: entry.sessionId, startedAt: entry.startedAt, endedAt: entry.endedAt };
+    }
+    const hungRecord = taskMeta?.lastHungSession;
+    const hung = hungRecord && (hungRecord.providerSessionId === previousSessionId || hungRecord.sessionId === previousSessionId ||
+      hungRecord.sessionId === previous?.id)
+      ? { stoppedAt: hungRecord.stoppedAt, idleMs: hungRecord.idleMs, lastActivityAt: hungRecord.lastActivityAt }
+      : undefined;
+    const branch = taskMeta?.branch ?? taskMeta?.handoffBranch;
+    const head = branch ? await readGitCommit(worktreeManager, `refs/heads/${branch}`) : undefined;
+    // Callers pass the metadata read before the attempt counter is incremented.
+    const previousAttempts = role === 'worker' ? taskMeta?.resumeCount ?? 0 : taskMeta?.stewardRecoveryCount ?? 0;
+    return buildInterruptedResumePrompt({
+      role,
+      taskId: task.id,
+      taskTitle: task.title,
+      taskStatus: task.status,
+      branch,
+      head,
+      mergeStatus: role === 'steward' ? taskMeta?.mergeStatus : undefined,
+      previousSession: previous,
+      hung,
+      lastHandoffNote: taskMeta?.handoffHistory?.[taskMeta.handoffHistory.length - 1]?.message,
+      attempt: previousAttempts + 1,
+      maxAttempts: role === 'worker' ? this.config.maxResumeAttemptsBeforeRecovery : 3,
+    });
+  }
+
+  /**
    * Recovers a single orphaned task by re-spawning a session for the worker.
    * Tries to resume the previous provider session first (preserves context),
    * falls back to a fresh spawn if no sessionId or resume fails.
@@ -2429,16 +2788,14 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const previousSessionId = taskMeta?.sessionId;
     if (previousSessionId) {
       try {
+        const resumePrompt = await this.buildResumePrompt('worker', workerId, task,
+          taskMeta ? { ...taskMeta, branch: resolved.branch } : taskMeta, worktreeManager, previousSessionId);
         const { session, events } = await this.sessionManager.resumeSession(workerId, {
           providerSessionId: previousSessionId,
           workingDirectory: worktreePath,
           worktree: worktreePath,
           checkReadyQueue: false,
-          resumePrompt: [
-            'Your previous session was interrupted by a server restart.',
-            `You are still assigned to task ${task.id}: "${task.title}".`,
-            'Please continue working on this task from where you left off.',
-          ].join('\n'),
+          resumePrompt,
         });
 
         // Attach event listeners IMMEDIATELY after session resume, before any awaits.
@@ -2626,6 +2983,43 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   }
 
   /**
+   * Orphan resume back-off (el-55qcdj). Returns true when the task must not be
+   * resumed yet because the agent's previous session on it started less than
+   * `orphanResumeBackoffMs * 2^previousAttempts` ago (capped). A manual wake
+   * after that start lifts the delay. Nothing is counted while deferred; one
+   * info/operation-log entry per task and attempt.
+   */
+  private deferOrphanResume(
+    task: Task,
+    taskMeta: import('../types/task-meta.js').OrchestratorTaskMeta | undefined,
+    agentId: EntityId,
+    role: 'worker' | 'steward',
+    previousAttempts: number
+  ): boolean {
+    const baseMs = this.config.orphanResumeBackoffMs;
+    if (baseMs <= 0) return false;
+    const entry = [...(taskMeta?.sessionHistory ?? [])].reverse().find((item) => item.agentId === agentId);
+    const lastSessionStartedAt = entry ? new Date(entry.startedAt).getTime() : undefined;
+    // A manual wake after that session is an explicit request to retry now
+    // (same rule as the resumeCount reset above).
+    const wokenSince = this.lastWakeAt !== undefined && lastSessionStartedAt !== undefined && lastSessionStartedAt < this.lastWakeAt;
+    const waitMs = wokenSince ? 0 : orphanResumeWaitMs({ now: Date.now(), lastSessionStartedAt, previousAttempts, baseMs });
+    if (waitMs <= 0) {
+      this.orphanBackoffLogged.delete(task.id);
+      return false;
+    }
+    const key = `${agentId}:${previousAttempts}:${entry?.sessionId ?? ''}`;
+    if (this.orphanBackoffLogged.get(task.id) !== key) {
+      this.orphanBackoffLogged.set(task.id, key);
+      const message = `Deferring orphan resume of task ${task.id} (${role}, ${previousAttempts} earlier resume(s)): ` +
+        `previous session started ${formatDuration(Date.now() - (lastSessionStartedAt ?? 0))} ago, next attempt in ${formatDuration(waitMs)}`;
+      logger.info(message);
+      this.operationLog?.write('info', 'recovery', message, { taskId: task.id, agentId, role, previousAttempts, waitMs });
+    }
+    return true;
+  }
+
+  /**
    * Extracts the start time of the most recent session from task metadata.
    * Used to determine whether a task's last activity predates a manual wake.
    */
@@ -2666,16 +3060,13 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const previousSessionId = taskMeta?.sessionId;
     if (previousSessionId) {
       try {
+        const resumePrompt = await this.buildResumePrompt('steward', stewardId, task, taskMeta, worktreeManager, previousSessionId);
         const { session, events } = await this.sessionManager.resumeSession(stewardId, {
           providerSessionId: previousSessionId,
           workingDirectory,
           worktree: worktreePath,
           checkReadyQueue: false,
-          resumePrompt: [
-            'Your previous session was interrupted by a server restart.',
-            `You are still assigned to review/merge task ${task.id}: "${task.title}".`,
-            'Please continue the merge review from where you left off.',
-          ].join('\n'),
+          resumePrompt,
         });
 
         // Attach event listeners IMMEDIATELY after session resume, before any awaits.
@@ -3041,7 +3432,16 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const { branch, worktree } = recordedTaskWorkspace(meta);
     if (!branch) return true;
     if (worktree) {
-      try { if (await worktreeManager.worktreeExists(worktree)) return true; } catch { /* fall through to branch checks */ }
+      try {
+        if (await worktreeManager.worktreeExists(worktree)) {
+          // Same rule as resolveTaskWorkspace: the recorded worktree is reused
+          // only when it is on the recorded branch. Otherwise resolution falls
+          // through to the branch checks below and would throw after selection.
+          let info: Awaited<ReturnType<WorktreeManager['getWorktree']>>;
+          try { info = await worktreeManager.getWorktree(worktree); } catch { info = undefined; }
+          if (!info?.branch || sameBranchName(info.branch, branch)) return true;
+        }
+      } catch { /* fall through to branch checks */ }
     }
     if (await localBranchExists(worktreeManager, branch)) return true;
     if (await remoteBranchCommit(worktreeManager, branch)) return true;
@@ -3117,13 +3517,15 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     meta: OrchestratorTaskMeta | undefined,
     state: NoProgressState,
     limit: number,
+    options?: { trigger: 'hung-session'; reason: string },
   ): Promise<void> {
     const branch = meta?.handoffBranch ?? meta?.branch;
     const directorId = meta?.owningDirector ?? await this.resolveOwningDirector(task);
-    const reason = `Automatic dispatch stopped after ${state.count} consecutive handoffs without progress ` +
+    const reason = options?.reason ?? `Automatic dispatch stopped after ${state.count} consecutive handoffs without progress ` +
       `(limit ${limit}): no new commit on ${branch ?? 'the task branch'} and no title/description/dependency ` +
       'change other than agent handoff notes.';
     const hold: DispatchHold = {
+      ...(options ? { trigger: options.trigger } : {}),
       reason,
       heldAt: createTimestamp(),
       count: state.count,
@@ -3134,9 +3536,15 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     };
     let held: Task;
     try {
+      // A hung-session hold also releases the assignment, so that a later
+      // undefer goes through normal dispatch (branch-preserving, hold reset).
       held = await this.api.update<Task>(task.id, {
         status: TaskStatus.DEFERRED,
-        metadata: updateOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined, { noProgress: state, dispatchHold: hold }),
+        ...(options?.trigger === 'hung-session' ? { assignee: undefined } : {}),
+        metadata: updateOrchestratorTaskMeta(task.metadata as Record<string, unknown> | undefined, {
+          noProgress: state, dispatchHold: hold,
+          ...(options?.trigger === 'hung-session' ? { assignedAgent: undefined } : {}),
+        }),
       }, { expectedUpdatedAt: task.updatedAt });
     } catch (error) {
       // Someone changed the task meanwhile; re-evaluate on the next poll.
@@ -3168,7 +3576,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       if (!hold.directorId) throw new Error('no owning director');
       if (!sender) throw new Error('no worker session to send from');
       const content = [
-        `Task ID: ${task.id} | Worker: ${sender.agentName} (${sender.agentId}) | Automatic dispatch stopped (no-progress handoff loop).`,
+        `Task ID: ${task.id} | Worker: ${sender.agentName} (${sender.agentId}) | Automatic dispatch stopped (${hold.trigger === 'hung-session' ? 'no-progress loop ending in a hung session' : 'no-progress handoff loop'}).`,
         `Title: ${task.title}`,
         hold.reason,
         `Branch: ${branch ?? '(none)'}${hold.fingerprint.commit ? ` at ${hold.fingerprint.commit.slice(0, 12)}` : ''}.`,
