@@ -1,0 +1,190 @@
+bun test v1.3.11 (af24e281)
+[sessions] Created persistent worker worktree: /var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-g4birq/repo on branch session/successor-20261031235927
+
+packages/smithy/src/api/orchestrator-assignment.bun.test.ts:
+(pass) R1: concurrent closed rejects assignment and preserves task/events [79.45ms]
+(pass) R2: concurrent closed rejects assignment and preserves task/events [65.88ms]
+(pass) R1: concurrent deferred rejects assignment and preserves task/events [67.57ms]
+(pass) R2: concurrent deferred rejects assignment and preserves task/events [64.10ms]
+(pass) R1: concurrent reassign rejects assignment and preserves task/events [64.70ms]
+(pass) R2: concurrent reassign rejects assignment and preserves task/events [69.56ms]
+(pass) R1: concurrent human rejects assignment and preserves task/events [72.72ms]
+(pass) R2: concurrent human rejects assignment and preserves task/events [75.10ms]
+(pass) R1: concurrent claim rejects assignment and preserves task/events [65.44ms]
+(pass) R2: concurrent claim rejects assignment and preserves task/events [65.75ms]
+(pass) W1: coherent assignment and preservation of subsequent closed [64.35ms]
+(pass) W1: coherent assignment and preservation of subsequent deferred [64.71ms]
+(pass) W1: coherent assignment and preservation of subsequent reassign [63.62ms]
+(pass) W1: coherent assignment and preservation of subsequent human [64.14ms]
+(pass) W1: coherent assignment and preservation of subsequent claim [65.47ms]
+(pass) failure after real SQL metadata mutations rolls back ownership, status, history and events [67.05ms]
+(pass) explicit reassignment with future schedule remains supported; markAsStarted=false [65.35ms]
+(pass) explicit reassignment with future schedule remains supported; markAsStarted=true [67.42ms]
+(pass) default branch/worktree generation and omitted session retain legacy explicit API behavior [64.74ms]
+(pass) real isolated CLI agent start: explicit reassignment [222.57ms]
+(pass) real isolated CLI agent start: CAS rejection after spawn [203.40ms]
+(pass) sdk real HTTP start: success [74.46ms]
+[sessions] Failed to start session: 122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element was modified by another process: el-6bc2. Expected updatedAt: 2026-10-31T23:59:27.622Z, actual: 2026-10-31T23:59:27.623Z
+    details: {
+  elementId: "el-6bc2",
+  expectedUpdatedAt: "2026-10-31T23:59:27.622Z",
+  actualUpdatedAt: "2026-10-31T23:59:27.623Z",
+},
+ httpStatus: 409,
+      cause: undefined,
+       code: "CONCURRENT_MODIFICATION"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/core/src/errors/error.ts:127:5)
+      at update (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/api/quarry-api.ts:1326:13)
+ {
+  assignment: "not-assigned",
+  sessionId: undefined,
+  worktree: {
+    outcome: "not-returned",
+    path: undefined,
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk real HTTP start: race [72.11ms]
+[sessions] Failed to start session: 122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element was modified by another process: el-13uo. Expected updatedAt: 2026-10-31T23:59:27.694Z, actual: 2026-10-31T23:59:27.695Z
+    details: {
+  elementId: "el-13uo",
+  expectedUpdatedAt: "2026-10-31T23:59:27.694Z",
+  actualUpdatedAt: "2026-10-31T23:59:27.695Z",
+},
+ httpStatus: 409,
+      cause: undefined,
+       code: "CONCURRENT_MODIFICATION"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/core/src/errors/error.ts:127:5)
+      at update (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/api/quarry-api.ts:1326:13)
+ {
+  assignment: "not-assigned",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-0Mw4jh/repo",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk real HTTP start: persistent-race [72.26ms]
+[sessions] Failed to start session: 172 |         sessionInitialPrompts: new Map(), sessionMessageService: { saveMessage() {} },
+173 |         sessionManager: { getActiveSession: () => undefined, startSession: async () => {
+174 |           ++starts;
+175 |           // Start runs only after the complete assignment is visible to another connection.
+176 |           expect((await saved()).assignee).toBe(successor); expect(meta(await saved()).assignedAgent).toBe(successor);
+177 |           if (scenario === 'spawn-failure') throw new Error('fixture: spawn failed');
+                                                            ^
+error: fixture: spawn failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/orchestrator-assignment.bun.test.ts:177:55)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "not-returned",
+    path: undefined,
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk real HTTP start: spawn-failure [70.70ms]
+(pass) app real HTTP start: success [70.60ms]
+[sessions] Failed to start session: 122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element was modified by another process: el-3v9n. Expected updatedAt: 2026-10-31T23:59:27.903Z, actual: 2026-10-31T23:59:27.904Z
+    details: {
+  elementId: "el-3v9n",
+  expectedUpdatedAt: "2026-10-31T23:59:27.903Z",
+  actualUpdatedAt: "2026-10-31T23:59:27.904Z",
+},
+ httpStatus: 409,
+      cause: undefined,
+       code: "CONCURRENT_MODIFICATION"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/core/src/errors/error.ts:127:5)
+      at update (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/api/quarry-api.ts:1326:13)
+ {
+  assignment: "not-assigned",
+  sessionId: undefined,
+  worktree: {
+    outcome: "not-returned",
+    path: undefined,
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app real HTTP start: race [66.63ms]
+[sessions] Failed to start session: 122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element was modified by another process: el-4qwg
+    details: {
+  elementId: "el-4qwg",
+  expectedUpdatedAt: "2026-10-31T23:59:27.970Z",
+},
+ httpStatus: 409,
+      cause: undefined,
+       code: "CONCURRENT_MODIFICATION"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/core/src/errors/error.ts:127:5)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/api/quarry-api.ts:1415:15)
+      at transaction (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/storage/src/bun-backend.ts:284:22)
+      at update (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/api/quarry-api.ts:1388:18)
+ {
+  assignment: "not-assigned",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-g4birq/repo",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app real HTTP start: persistent-race [67.25ms]
+[sessions] Failed to start session: 172 |         sessionInitialPrompts: new Map(), sessionMessageService: { saveMessage() {} },
+173 |         sessionManager: { getActiveSession: () => undefined, startSession: async () => {
+174 |           ++starts;
+175 |           // Start runs only after the complete assignment is visible to another connection.
+176 |           expect((await saved()).assignee).toBe(successor); expect(meta(await saved()).assignedAgent).toBe(successor);
+177 |           if (scenario === 'spawn-failure') throw new Error('fixture: spawn failed');
+                                                            ^
+error: fixture: spawn failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/orchestrator-assignment.bun.test.ts:177:55)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "not-returned",
+    path: undefined,
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app real HTTP start: spawn-failure [65.88ms]
+(pass) real unknown MR outcome survives CLI reopen and API reassignment; new owner cannot bypass recovery [183.55ms]
+
+ 30 pass
+ 0 fail
+ 189 expect() calls
+Ran 30 tests across 1 file. [2.56s]

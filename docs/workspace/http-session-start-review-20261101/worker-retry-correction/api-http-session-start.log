@@ -1,0 +1,1187 @@
+bun test v1.3.11 (af24e281)
+[session-manager] Starting session for agent el-21n mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-zsz mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-5lr mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Cleaned up event listeners for session http-persist
+[session-manager] Starting session for agent el-bsl mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-5m0 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-4d0 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-47s mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-bcl mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Cleaned up event listeners for session http-publish
+[session-manager] Starting session for agent el-54k mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-54k mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-3er mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-140 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-4nm mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-4nc mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-484 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-1kb mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-374 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-3p7 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-1in mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-315 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-19z mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-4n7 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-2na mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-XePDts/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235917
+[session-manager] Starting session for agent el-4v0 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-M7JmZN/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235918
+[session-manager] Starting session for agent el-39v mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-PclmKD/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235918
+[session-manager] Starting session for agent el-4qt mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Cleaned up event listeners for session http-persist
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-sZiYAr/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235918
+[session-manager] Starting session for agent el-1lr mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-zQ883V/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235918
+[session-manager] Starting session for agent el-35s mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-ZtxBeA/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235918
+[session-manager] Starting session for agent el-1eq mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-oBl150/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235918
+[session-manager] Starting session for agent el-3vz mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-cGYEL0/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235919
+[session-manager] Starting session for agent el-2el mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Cleaned up event listeners for session http-publish
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-xkkAwl/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235919
+[session-manager] Starting session for agent el-7q5 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-7q5 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-qAz51a/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235919
+[session-manager] Starting session for agent el-6bz mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-8EKhmH/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235919
+[session-manager] Starting session for agent el-6n8 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-0sx3KC/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235920
+[session-manager] Starting session for agent el-18q mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-WdoVWJ/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235920
+[session-manager] Starting session for agent el-ohu mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-hXHgOA/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235920
+[session-manager] Starting session for agent el-1pk mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-erFOoz/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235920
+[session-manager] Starting session for agent el-45n mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-Hd40YD/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235920
+[session-manager] Starting session for agent el-4n4 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-4HOmxj/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235921
+[session-manager] Starting session for agent el-40l mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-HtctiJ/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235921
+[session-manager] Starting session for agent el-123 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-CINXeq/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235921
+[session-manager] Starting session for agent el-own mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-D41vka/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235921
+[session-manager] Starting session for agent el-4t1 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-HW06zj/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235921
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-UxBYL7/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235921
+[session-manager] Starting session for agent el-1cm mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-hiy8As/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235922
+[session-manager] Starting session for agent el-5r1 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+
+packages/smithy/src/api/http-session-start.bun.test.ts:
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-PEqgaD/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk: spawn keeps exact ownership boundaries and reusable Git resources [218.89ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-Vv0NIK/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk: reused keeps exact ownership boundaries and reusable Git resources [227.16ms]
+[sessions] Failed to start session: 92 |   } as unknown as SpawnerService;
+93 |   const sessions = createSessionManager(spawner, api, registry);
+94 |   const persist = sessions.persistSession.bind(sessions);
+95 |   let persistenceCalls = 0;
+96 |   sessions.persistSession = async id => {
+97 |     if (++persistenceCalls === 1 && ['persist', 'terminate'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                             ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:97:89)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-7XlD4X/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk: persist keeps exact ownership boundaries and reusable Git resources [199.19ms]
+[sessions] Failed to start session: 660 |     } catch (error) {
+661 |       // The caller cannot clean up a handle it never received. This includes
+662 |       // persistence failures after publication, not only the publication CAS.
+663 |       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+664 |       catch (cleanupError) {
+665 |         throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+                    ^
+SessionStartupCleanupError: Error: fixture: persist failed; startup cleanup incomplete for http-terminate: Error: fixture: terminate failed
+  sessionId: "http-terminate",
+
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:665:15)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+
+92 |   } as unknown as SpawnerService;
+93 |   const sessions = createSessionManager(spawner, api, registry);
+94 |   const persist = sessions.persistSession.bind(sessions);
+95 |   let persistenceCalls = 0;
+96 |   sessions.persistSession = async id => {
+97 |     if (++persistenceCalls === 1 && ['persist', 'terminate'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                             ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:97:89)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+
+86 |       handles.set(id, true);
+87 |       return { session: { id, agentId, agentRole, provider: 'fixture', mode: 'headless', status: 'running',
+88 |         workingDirectory: prepared, createdAt: task.createdAt, lastActivityAt: task.createdAt, startedAt: task.createdAt }, events: new EventEmitter() } as SpawnResult;
+89 |     },
+90 |     getSession(id: string) { return { status: handles.get(id) ? 'running' : 'terminated' }; },
+91 |     async terminate(id: string) { stops++; if (stage === 'terminate') throw new Error('fixture: terminate failed'); handles.set(id, false); },
+                                                                                     ^
+error: fixture: terminate failed
+      at terminate (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:91:81)
+      at finishSessionStop (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:880:26)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:843:18)
+
+92 |   } as unknown as SpawnerService;
+93 |   const sessions = createSessionManager(spawner, api, registry);
+94 |   const persist = sessions.persistSession.bind(sessions);
+95 |   let persistenceCalls = 0;
+96 |   sessions.persistSession = async id => {
+97 |     if (++persistenceCalls === 1 && ['persist', 'terminate'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                             ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:97:89)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-session-cleanup-incomplete",
+  sessionId: "http-terminate",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-W3zvW8/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: terminate failed",
+}
+(pass) sdk: terminate keeps exact ownership boundaries and reusable Git resources [194.75ms]
+[sessions] Failed to start session:  97 |     if (++persistenceCalls === 1 && ['persist', 'terminate'].includes(stage)) throw new Error('fixture: persist failed');
+ 98 |     return persist(id);
+ 99 |   };
+100 |   const route = routes({ api, orchestratorApi: api, agentRegistry: registry, taskAssignmentService: assignment,
+101 |     sessionManager: sessions, sessionInitialPrompts: new Map(),
+102 |     sessionMessageService: { saveMessage() { if (stage === 'save') throw new Error('fixture: save failed'); } },
+                                                                                   ^
+error: fixture: save failed
+      at saveMessage (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:102:78)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:461:31)
+ {
+  assignment: "retained-session-started",
+  sessionId: "http-save",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-3roir6/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk: save keeps exact ownership boundaries and reusable Git resources [192.54ms]
+[sessions] Failed to start session: 105 |       prepared = result.worktree.path;
+106 |       writeFileSync(path.join(prepared, 'retained.txt'), 'successor or reusable data');
+107 |       if (stage === 'prepare') throw new Error('fixture: prepare failed after creating path');
+108 |       return result;
+109 |     } },
+110 |   } as unknown as Parameters<typeof sdkRoutes>[0], () => { notices++; if (stage === 'notify') throw new Error('fixture: notify failed'); });
+                                                                                                              ^
+error: fixture: notify failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:110:105)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:471:7)
+ {
+  assignment: "retained-session-started",
+  sessionId: "http-notify",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-m12AWM/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk: notify keeps exact ownership boundaries and reusable Git resources [212.45ms]
+(pass) sdk: success keeps exact ownership boundaries and reusable Git resources [190.71ms]
+[sessions] Failed to create worktree for persistent worker: warn: fixture: prepare failed after creating path
+      at createWorktree (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:107:42)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:317:48)
+
+(pass) sdk: preparation failure cannot report success or acquire assignment [197.18ms]
+[session-manager] Session http-publish: incomplete current-field cleanup; ownership not proven, history saved
+[sessions] Failed to start session: 122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element was modified by another process: el-bcl. Expected updatedAt: 2026-10-31T23:59:14.601Z, actual: 2026-10-31T23:59:14.770Z
+    details: {
+  elementId: "el-bcl",
+  expectedUpdatedAt: "2026-10-31T23:59:14.601Z",
+  actualUpdatedAt: "2026-10-31T23:59:14.770Z",
+},
+ httpStatus: 409,
+      cause: undefined,
+       code: "CONCURRENT_MODIFICATION"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/core/src/errors/error.ts:127:5)
+      at update (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/api/quarry-api.ts:1326:13)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-EfCNoM/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Cannot unassign task el-41j5: failed dispatch no longer owns this assignment.",
+}
+(pass) sdk: publication CAS failure cleans only the internal startup handle [250.15ms]
+[sessions] Failed to start session: 105 |       prepared = result.worktree.path;
+106 |       writeFileSync(path.join(prepared, 'retained.txt'), 'successor or reusable data');
+107 |       if (stage === 'prepare') throw new Error('fixture: prepare failed after creating path');
+108 |       return result;
+109 |     } },
+110 |   } as unknown as Parameters<typeof sdkRoutes>[0], () => { notices++; if (stage === 'notify') throw new Error('fixture: notify failed'); });
+                                                                                                              ^
+error: fixture: notify failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:110:105)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:471:7)
+ {
+  assignment: "retained-session-started",
+  sessionId: "http-notify",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-O3BqEi/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk: accepted and newer sessions survive notification failure [207.77ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-error",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-d5o0YN/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "StorageError: Database operation failed: fixture: release transaction failed",
+}
+(pass) sdk: release transaction failure rolls back task and events [188.90ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-V4PuxB/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-5llc. Expected updatedAt: 2026-10-31T23:59:15.359Z, actual: 2026-10-31T23:59:15.360Z",
+}
+(pass) sdk: cleanup R1 closed preserves winner task and every event [192.56ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-CnQAMu/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-3scw. Expected updatedAt: 2026-10-31T23:59:15.553Z, actual: 2026-10-31T23:59:15.554Z",
+}
+(pass) sdk: cleanup R1 deferred preserves winner task and every event [193.85ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-Qmj7Ge/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-4kcf. Expected updatedAt: 2026-10-31T23:59:15.745Z, actual: 2026-10-31T23:59:15.746Z",
+}
+(pass) sdk: cleanup R1 human preserves winner task and every event [191.67ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-Wkt2tp/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-1pkl. Expected updatedAt: 2026-10-31T23:59:15.939Z, actual: 2026-10-31T23:59:15.940Z",
+}
+(pass) sdk: cleanup R1 reassign preserves winner task and every event [194.56ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-ky7iri/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-35lr. Expected updatedAt: 2026-10-31T23:59:16.132Z, actual: 2026-10-31T23:59:16.133Z",
+}
+(pass) sdk: cleanup R1 claim preserves winner task and every event [192.58ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-pHecPC/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-3t1w",
+}
+(pass) sdk: cleanup R2 closed preserves winner task and every event [194.70ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-NOxACn/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-1wt1",
+}
+(pass) sdk: cleanup R2 deferred preserves winner task and every event [187.92ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-pqvAuf/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-byb1",
+}
+(pass) sdk: cleanup R2 human preserves winner task and every event [199.90ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-cqWkBB/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-3qyr",
+}
+(pass) sdk: cleanup R2 reassign preserves winner task and every event [191.77ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-uHDv41/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-648g",
+}
+(pass) sdk: cleanup R2 claim preserves winner task and every event [191.00ms]
+[sessions] Failed to start session: 122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element was modified by another process: el-587m. Expected updatedAt: 2026-10-31T23:59:17.174Z, actual: 2026-10-31T23:59:17.289Z
+    details: {
+  elementId: "el-587m",
+  expectedUpdatedAt: "2026-10-31T23:59:17.174Z",
+  actualUpdatedAt: "2026-10-31T23:59:17.289Z",
+},
+ httpStatus: 409,
+      cause: undefined,
+       code: "CONCURRENT_MODIFICATION"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/core/src/errors/error.ts:127:5)
+      at update (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/api/quarry-api.ts:1326:13)
+ {
+  assignment: "not-assigned",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-9AFUj5/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk: failed assignment never acquires a cleanup receipt or starts provider [191.43ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-error",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-bcrhd2/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: release failed",
+}
+(pass) sdk: cleanup error is diagnostic and does not mask startup failure [190.05ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-Z01rYE/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Cannot unassign task el-4vqy: failed dispatch no longer owns this assignment.",
+}
+(pass) sdk: successor between assignment return and startup failure is never adopted [191.54ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-XePDts/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app: spawn keeps exact ownership boundaries and reusable Git resources [195.93ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-M7JmZN/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app: reused keeps exact ownership boundaries and reusable Git resources [189.87ms]
+[sessions] Failed to start session: 92 |   } as unknown as SpawnerService;
+93 |   const sessions = createSessionManager(spawner, api, registry);
+94 |   const persist = sessions.persistSession.bind(sessions);
+95 |   let persistenceCalls = 0;
+96 |   sessions.persistSession = async id => {
+97 |     if (++persistenceCalls === 1 && ['persist', 'terminate'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                             ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:97:89)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-PclmKD/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app: persist keeps exact ownership boundaries and reusable Git resources [188.11ms]
+[sessions] Failed to start session: 660 |     } catch (error) {
+661 |       // The caller cannot clean up a handle it never received. This includes
+662 |       // persistence failures after publication, not only the publication CAS.
+663 |       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+664 |       catch (cleanupError) {
+665 |         throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+                    ^
+SessionStartupCleanupError: Error: fixture: persist failed; startup cleanup incomplete for http-terminate: Error: fixture: terminate failed
+  sessionId: "http-terminate",
+
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:665:15)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+
+92 |   } as unknown as SpawnerService;
+93 |   const sessions = createSessionManager(spawner, api, registry);
+94 |   const persist = sessions.persistSession.bind(sessions);
+95 |   let persistenceCalls = 0;
+96 |   sessions.persistSession = async id => {
+97 |     if (++persistenceCalls === 1 && ['persist', 'terminate'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                             ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:97:89)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+
+86 |       handles.set(id, true);
+87 |       return { session: { id, agentId, agentRole, provider: 'fixture', mode: 'headless', status: 'running',
+88 |         workingDirectory: prepared, createdAt: task.createdAt, lastActivityAt: task.createdAt, startedAt: task.createdAt }, events: new EventEmitter() } as SpawnResult;
+89 |     },
+90 |     getSession(id: string) { return { status: handles.get(id) ? 'running' : 'terminated' }; },
+91 |     async terminate(id: string) { stops++; if (stage === 'terminate') throw new Error('fixture: terminate failed'); handles.set(id, false); },
+                                                                                     ^
+error: fixture: terminate failed
+      at terminate (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:91:81)
+      at finishSessionStop (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:880:26)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:843:18)
+
+92 |   } as unknown as SpawnerService;
+93 |   const sessions = createSessionManager(spawner, api, registry);
+94 |   const persist = sessions.persistSession.bind(sessions);
+95 |   let persistenceCalls = 0;
+96 |   sessions.persistSession = async id => {
+97 |     if (++persistenceCalls === 1 && ['persist', 'terminate'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                             ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:97:89)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-session-cleanup-incomplete",
+  sessionId: "http-terminate",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-sZiYAr/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: terminate failed",
+}
+(pass) app: terminate keeps exact ownership boundaries and reusable Git resources [189.70ms]
+[sessions] Failed to start session:  97 |     if (++persistenceCalls === 1 && ['persist', 'terminate'].includes(stage)) throw new Error('fixture: persist failed');
+ 98 |     return persist(id);
+ 99 |   };
+100 |   const route = routes({ api, orchestratorApi: api, agentRegistry: registry, taskAssignmentService: assignment,
+101 |     sessionManager: sessions, sessionInitialPrompts: new Map(),
+102 |     sessionMessageService: { saveMessage() { if (stage === 'save') throw new Error('fixture: save failed'); } },
+                                                                                   ^
+error: fixture: save failed
+      at saveMessage (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:102:78)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:428:31)
+ {
+  assignment: "retained-session-started",
+  sessionId: "http-save",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-zQ883V/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app: save keeps exact ownership boundaries and reusable Git resources [189.03ms]
+[sessions] Failed to start session: 105 |       prepared = result.worktree.path;
+106 |       writeFileSync(path.join(prepared, 'retained.txt'), 'successor or reusable data');
+107 |       if (stage === 'prepare') throw new Error('fixture: prepare failed after creating path');
+108 |       return result;
+109 |     } },
+110 |   } as unknown as Parameters<typeof sdkRoutes>[0], () => { notices++; if (stage === 'notify') throw new Error('fixture: notify failed'); });
+                                                                                                              ^
+error: fixture: notify failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:110:105)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:438:7)
+ {
+  assignment: "retained-session-started",
+  sessionId: "http-notify",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-ZtxBeA/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app: notify keeps exact ownership boundaries and reusable Git resources [194.27ms]
+(pass) app: success keeps exact ownership boundaries and reusable Git resources [198.27ms]
+[sessions] Failed to create worktree for persistent worker: warn: fixture: prepare failed after creating path
+      at createWorktree (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:107:42)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:316:65)
+
+(pass) app: preparation failure cannot report success or acquire assignment [190.23ms]
+[session-manager] Session http-publish: incomplete current-field cleanup; ownership not proven, history saved
+[sessions] Failed to start session: 122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element was modified by another process: el-2el. Expected updatedAt: 2026-10-31T23:59:19.283Z, actual: 2026-10-31T23:59:19.397Z
+    details: {
+  elementId: "el-2el",
+  expectedUpdatedAt: "2026-10-31T23:59:19.283Z",
+  actualUpdatedAt: "2026-10-31T23:59:19.397Z",
+},
+ httpStatus: 409,
+      cause: undefined,
+       code: "CONCURRENT_MODIFICATION"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/core/src/errors/error.ts:127:5)
+      at update (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/api/quarry-api.ts:1326:13)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-cGYEL0/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Cannot unassign task el-39r5: failed dispatch no longer owns this assignment.",
+}
+(pass) app: publication CAS failure cleans only the internal startup handle [190.83ms]
+[sessions] Failed to start session: 105 |       prepared = result.worktree.path;
+106 |       writeFileSync(path.join(prepared, 'retained.txt'), 'successor or reusable data');
+107 |       if (stage === 'prepare') throw new Error('fixture: prepare failed after creating path');
+108 |       return result;
+109 |     } },
+110 |   } as unknown as Parameters<typeof sdkRoutes>[0], () => { notices++; if (stage === 'notify') throw new Error('fixture: notify failed'); });
+                                                                                                              ^
+error: fixture: notify failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:110:105)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:438:7)
+ {
+  assignment: "retained-session-started",
+  sessionId: "http-notify",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-xkkAwl/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app: accepted and newer sessions survive notification failure [192.95ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-error",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-qAz51a/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "StorageError: Database operation failed: fixture: release transaction failed",
+}
+(pass) app: release transaction failure rolls back task and events [191.79ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-8EKhmH/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-2jan. Expected updatedAt: 2026-10-31T23:59:19.972Z, actual: 2026-10-31T23:59:19.973Z",
+}
+(pass) app: cleanup R1 closed preserves winner task and every event [190.36ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-0sx3KC/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-lr1g. Expected updatedAt: 2026-10-31T23:59:20.159Z, actual: 2026-10-31T23:59:20.160Z",
+}
+(pass) app: cleanup R1 deferred preserves winner task and every event [187.26ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-WdoVWJ/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-1qpx. Expected updatedAt: 2026-10-31T23:59:20.350Z, actual: 2026-10-31T23:59:20.351Z",
+}
+(pass) app: cleanup R1 human preserves winner task and every event [190.33ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-hXHgOA/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-5cz5. Expected updatedAt: 2026-10-31T23:59:20.540Z, actual: 2026-10-31T23:59:20.541Z",
+}
+(pass) app: cleanup R1 reassign preserves winner task and every event [189.19ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-erFOoz/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-5tiy. Expected updatedAt: 2026-10-31T23:59:20.729Z, actual: 2026-10-31T23:59:20.730Z",
+}
+(pass) app: cleanup R1 claim preserves winner task and every event [190.87ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-Hd40YD/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-3xmq",
+}
+(pass) app: cleanup R2 closed preserves winner task and every event [190.39ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-4HOmxj/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-2y5n",
+}
+(pass) app: cleanup R2 deferred preserves winner task and every event [193.84ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-HtctiJ/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-2jlu",
+}
+(pass) app: cleanup R2 human preserves winner task and every event [188.01ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-CINXeq/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-5fkp",
+}
+(pass) app: cleanup R2 reassign preserves winner task and every event [188.04ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-D41vka/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Element was modified by another process: el-23ls",
+}
+(pass) app: cleanup R2 claim preserves winner task and every event [185.72ms]
+[sessions] Failed to start session: 122 |     message: string,
+123 |     code: ConflictErrorCode,
+124 |     details: ErrorDetails = {},
+125 |     cause?: Error
+126 |   ) {
+127 |     super(message, code, details, cause);
+          ^
+ConflictError: Element was modified by another process: el-3rj1. Expected updatedAt: 2026-10-31T23:59:21.749Z, actual: 2026-10-31T23:59:21.864Z
+    details: {
+  elementId: "el-3rj1",
+  expectedUpdatedAt: "2026-10-31T23:59:21.749Z",
+  actualUpdatedAt: "2026-10-31T23:59:21.864Z",
+},
+ httpStatus: 409,
+      cause: undefined,
+       code: "CONCURRENT_MODIFICATION"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/core/src/errors/error.ts:127:5)
+      at update (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/api/quarry-api.ts:1326:13)
+ {
+  assignment: "not-assigned",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-HW06zj/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app: failed assignment never acquires a cleanup receipt or starts provider [187.96ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-error",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-UxBYL7/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: release failed",
+}
+(pass) app: cleanup error is diagnostic and does not mask startup failure [182.47ms]
+[sessions] Failed to start session: 79 |   const handles = new Map<string, boolean>();
+80 |   const spawner = {
+81 |     async spawn(agentId: EntityId, agentRole: string) {
+82 |       starts++;
+83 |       await duringSpawn?.();
+84 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.bun.test.ts:84:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-conflict",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-hiy8As/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "ConflictError: Cannot unassign task el-5wy1: failed dispatch no longer owns this assignment.",
+}
+(pass) app: successor between assignment return and startup failure is never adopted [180.30ms]
+
+ 48 pass
+ 0 fail
+ 576 expect() calls
+Ran 48 tests across 1 file. [9.46s]

@@ -1,0 +1,847 @@
+
+> stoneforge@0.1.0 check:merge /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start
+> node scripts/check-merge.mjs
+
+[check:merge] Full logs and results.json: /var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB
+
+[check:merge] gate regression tests: node --test scripts/check-merge.test.mjs
+[check:merge] exit=0 duration=0.34s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/001.log
+
+[check:merge] workspace typecheck (uncached): pnpm typecheck --force
+[check:merge] exit=0 duration=23.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/002.log
+
+[check:merge] Desktop build: pnpm --filter @stoneforge/desktop build
+[check:merge] exit=0 duration=1.30s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/003.log
+
+[check:merge] packages/core/src/config/model-pricing.bun.test.ts: bun test ./packages/core/src/config/model-pricing.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/004.log
+
+[check:merge] packages/core/src/errors/codes.bun.test.ts: bun test ./packages/core/src/errors/codes.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/005.log
+
+[check:merge] packages/core/src/errors/documentation.bun.test.ts: bun test ./packages/core/src/errors/documentation.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/006.log
+
+[check:merge] packages/core/src/errors/error.bun.test.ts: bun test ./packages/core/src/errors/error.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/007.log
+
+[check:merge] packages/core/src/errors/factories.bun.test.ts: bun test ./packages/core/src/errors/factories.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/008.log
+
+[check:merge] packages/core/src/id/generator.bun.test.ts: bun test ./packages/core/src/id/generator.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/009.log
+
+[check:merge] packages/core/src/types/channel.bun.test.ts: bun test ./packages/core/src/types/channel.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/010.log
+
+[check:merge] packages/core/src/types/dependency.bun.test.ts: bun test ./packages/core/src/types/dependency.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/011.log
+
+[check:merge] packages/core/src/types/document.bun.test.ts: bun test ./packages/core/src/types/document.bun.test.ts
+[check:merge] exit=0 duration=0.03s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/012.log
+
+[check:merge] packages/core/src/types/element.bun.test.ts: bun test ./packages/core/src/types/element.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/013.log
+
+[check:merge] packages/core/src/types/entity.bun.test.ts: bun test ./packages/core/src/types/entity.bun.test.ts
+[check:merge] exit=0 duration=0.03s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/014.log
+
+[check:merge] packages/core/src/types/event.bun.test.ts: bun test ./packages/core/src/types/event.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/015.log
+
+[check:merge] packages/core/src/types/external-sync.bun.test.ts: bun test ./packages/core/src/types/external-sync.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/016.log
+
+[check:merge] packages/core/src/types/inbox.bun.test.ts: bun test ./packages/core/src/types/inbox.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/017.log
+
+[check:merge] packages/core/src/types/library.bun.test.ts: bun test ./packages/core/src/types/library.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/018.log
+
+[check:merge] packages/core/src/types/message.bun.test.ts: bun test ./packages/core/src/types/message.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/019.log
+
+[check:merge] packages/core/src/types/plan.bun.test.ts: bun test ./packages/core/src/types/plan.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/020.log
+
+[check:merge] packages/core/src/types/playbook-yaml.bun.test.ts: bun test ./packages/core/src/types/playbook-yaml.bun.test.ts
+[check:merge] exit=0 duration=1.21s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/021.log
+
+[check:merge] packages/core/src/types/playbook.bun.test.ts: bun test ./packages/core/src/types/playbook.bun.test.ts
+[check:merge] exit=0 duration=0.04s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/022.log
+
+[check:merge] packages/core/src/types/task.bun.test.ts: bun test ./packages/core/src/types/task.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/023.log
+
+[check:merge] packages/core/src/types/team.bun.test.ts: bun test ./packages/core/src/types/team.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/024.log
+
+[check:merge] packages/core/src/types/workflow-create.bun.test.ts: bun test ./packages/core/src/types/workflow-create.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/025.log
+
+[check:merge] packages/core/src/types/workflow.bun.test.ts: bun test ./packages/core/src/types/workflow.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/026.log
+
+[check:merge] packages/core/src/utils/mentions.bun.test.ts: bun test ./packages/core/src/utils/mentions.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/027.log
+
+[check:merge] packages/storage/src/errors.bun.test.ts: bun test ./packages/storage/src/errors.bun.test.ts
+[check:merge] exit=0 duration=0.04s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/028.log
+
+[check:merge] packages/storage/src/schema.bun.test.ts: bun test ./packages/storage/src/schema.bun.test.ts
+[check:merge] exit=0 duration=0.15s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/029.log
+
+[check:merge] packages/storage/src/types.bun.test.ts: bun test ./packages/storage/src/types.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/030.log
+
+[check:merge] packages/quarry/src/api/auto-blocked-status.bun.test.ts: bun test ./packages/quarry/src/api/auto-blocked-status.bun.test.ts
+[check:merge] exit=0 duration=0.09s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/031.log
+
+[check:merge] packages/quarry/src/api/channel-membership.integration.bun.test.ts: bun test ./packages/quarry/src/api/channel-membership.integration.bun.test.ts
+[check:merge] exit=0 duration=0.12s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/032.log
+
+[check:merge] packages/quarry/src/api/concurrent-update.integration.bun.test.ts: bun test ./packages/quarry/src/api/concurrent-update.integration.bun.test.ts
+[check:merge] exit=0 duration=0.10s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/033.log
+
+[check:merge] packages/quarry/src/api/document-version.integration.bun.test.ts: bun test ./packages/quarry/src/api/document-version.integration.bun.test.ts
+[check:merge] exit=0 duration=0.10s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/034.log
+
+[check:merge] packages/quarry/src/api/events.integration.bun.test.ts: bun test ./packages/quarry/src/api/events.integration.bun.test.ts
+[check:merge] exit=0 duration=0.51s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/035.log
+
+[check:merge] packages/quarry/src/api/export-events.bun.test.ts: bun test ./packages/quarry/src/api/export-events.bun.test.ts
+[check:merge] exit=0 duration=0.09s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/036.log
+
+[check:merge] packages/quarry/src/api/library-hydration.integration.bun.test.ts: bun test ./packages/quarry/src/api/library-hydration.integration.bun.test.ts
+[check:merge] exit=0 duration=0.09s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/037.log
+
+[check:merge] packages/quarry/src/api/library-multi-membership.integration.bun.test.ts: bun test ./packages/quarry/src/api/library-multi-membership.integration.bun.test.ts
+[check:merge] exit=0 duration=0.08s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/038.log
+
+[check:merge] packages/quarry/src/api/message-hydration.integration.bun.test.ts: bun test ./packages/quarry/src/api/message-hydration.integration.bun.test.ts
+[check:merge] exit=0 duration=0.10s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/039.log
+
+[check:merge] packages/quarry/src/api/message-integration.bun.test.ts: bun test ./packages/quarry/src/api/message-integration.bun.test.ts
+[check:merge] exit=0 duration=0.11s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/040.log
+
+[check:merge] packages/quarry/src/api/message-pagination.bun.test.ts: bun test ./packages/quarry/src/api/message-pagination.bun.test.ts
+[check:merge] exit=0 duration=0.09s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/041.log
+
+[check:merge] packages/quarry/src/api/plan-auto-complete.integration.bun.test.ts: bun test ./packages/quarry/src/api/plan-auto-complete.integration.bun.test.ts
+[check:merge] exit=0 duration=0.07s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/042.log
+
+[check:merge] packages/quarry/src/api/plan-bulk-operations.integration.bun.test.ts: bun test ./packages/quarry/src/api/plan-bulk-operations.integration.bun.test.ts
+[check:merge] exit=0 duration=0.14s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/043.log
+
+[check:merge] packages/quarry/src/api/plan-events.integration.bun.test.ts: bun test ./packages/quarry/src/api/plan-events.integration.bun.test.ts
+[check:merge] exit=0 duration=0.06s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/044.log
+
+[check:merge] packages/quarry/src/api/plan-task-linking.integration.bun.test.ts: bun test ./packages/quarry/src/api/plan-task-linking.integration.bun.test.ts
+[check:merge] exit=0 duration=0.13s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/045.log
+
+[check:merge] packages/quarry/src/api/quarry-api.bun.test.ts: bun test ./packages/quarry/src/api/quarry-api.bun.test.ts
+[check:merge] exit=0 duration=0.45s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/046.log
+
+[check:merge] packages/quarry/src/api/query-performance.bun.test.ts: bun test ./packages/quarry/src/api/query-performance.bun.test.ts
+[check:merge] exit=0 duration=6.78s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/047.log
+
+[check:merge] packages/quarry/src/api/ready-blocked.integration.bun.test.ts: bun test ./packages/quarry/src/api/ready-blocked.integration.bun.test.ts
+[check:merge] exit=0 duration=0.19s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/048.log
+
+[check:merge] packages/quarry/src/api/soft-identity.integration.bun.test.ts: bun test ./packages/quarry/src/api/soft-identity.integration.bun.test.ts
+[check:merge] exit=0 duration=0.10s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/049.log
+
+[check:merge] packages/quarry/src/api/task-gc.integration.bun.test.ts: bun test ./packages/quarry/src/api/task-gc.integration.bun.test.ts
+[check:merge] exit=0 duration=0.05s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/050.log
+
+[check:merge] packages/quarry/src/api/task-hydration.integration.bun.test.ts: bun test ./packages/quarry/src/api/task-hydration.integration.bun.test.ts
+[check:merge] exit=0 duration=0.08s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/051.log
+
+[check:merge] packages/quarry/src/api/team-membership.integration.bun.test.ts: bun test ./packages/quarry/src/api/team-membership.integration.bun.test.ts
+[check:merge] exit=0 duration=0.09s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/052.log
+
+[check:merge] packages/quarry/src/api/types.bun.test.ts: bun test ./packages/quarry/src/api/types.bun.test.ts
+[check:merge] exit=0 duration=0.04s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/053.log
+
+[check:merge] packages/quarry/src/api/update-concurrency.bun.test.ts: bun test ./packages/quarry/src/api/update-concurrency.bun.test.ts
+[check:merge] exit=0 duration=0.06s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/054.log
+
+[check:merge] packages/quarry/src/api/workflow-queries.integration.bun.test.ts: bun test ./packages/quarry/src/api/workflow-queries.integration.bun.test.ts
+[check:merge] exit=0 duration=0.17s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/055.log
+
+[check:merge] packages/quarry/src/cli/commands/admin.bun.test.ts: bun test ./packages/quarry/src/cli/commands/admin.bun.test.ts
+[check:merge] exit=0 duration=0.19s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/056.log
+
+[check:merge] packages/quarry/src/cli/commands/alias.bun.test.ts: bun test ./packages/quarry/src/cli/commands/alias.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/057.log
+
+[check:merge] packages/quarry/src/cli/commands/auto-link-helper.bun.test.ts: bun test ./packages/quarry/src/cli/commands/auto-link-helper.bun.test.ts
+[check:merge] exit=0 duration=0.09s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/058.log
+
+[check:merge] packages/quarry/src/cli/commands/completion.bun.test.ts: bun test ./packages/quarry/src/cli/commands/completion.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/059.log
+
+[check:merge] packages/quarry/src/cli/commands/config.bun.test.ts: bun test ./packages/quarry/src/cli/commands/config.bun.test.ts
+[check:merge] exit=0 duration=0.08s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/060.log
+
+[check:merge] packages/quarry/src/cli/commands/crud.bun.test.ts: bun test ./packages/quarry/src/cli/commands/crud.bun.test.ts
+[check:merge] exit=0 duration=0.38s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/061.log
+
+[check:merge] packages/quarry/src/cli/commands/dep.bun.test.ts: bun test ./packages/quarry/src/cli/commands/dep.bun.test.ts
+[check:merge] exit=0 duration=0.28s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/062.log
+
+[check:merge] packages/quarry/src/cli/commands/docs.bun.test.ts: bun test ./packages/quarry/src/cli/commands/docs.bun.test.ts
+[check:merge] exit=0 duration=0.18s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/063.log
+
+[check:merge] packages/quarry/src/cli/commands/document.bun.test.ts: bun test ./packages/quarry/src/cli/commands/document.bun.test.ts
+[check:merge] exit=0 duration=0.42s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/064.log
+
+[check:merge] packages/quarry/src/cli/commands/entity.bun.test.ts: bun test ./packages/quarry/src/cli/commands/entity.bun.test.ts
+[check:merge] exit=0 duration=0.45s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/065.log
+
+[check:merge] packages/quarry/src/cli/commands/external-sync-link-all.bun.test.ts: bun test ./packages/quarry/src/cli/commands/external-sync-link-all.bun.test.ts
+[check:merge] exit=0 duration=0.22s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/066.log
+
+[check:merge] packages/quarry/src/cli/commands/external-sync-unlink-all.bun.test.ts: bun test ./packages/quarry/src/cli/commands/external-sync-unlink-all.bun.test.ts
+[check:merge] exit=0 duration=0.13s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/067.log
+
+[check:merge] packages/quarry/src/cli/commands/history.bun.test.ts: bun test ./packages/quarry/src/cli/commands/history.bun.test.ts
+[check:merge] exit=0 duration=0.12s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/068.log
+
+[check:merge] packages/quarry/src/cli/commands/identity.bun.test.ts: bun test ./packages/quarry/src/cli/commands/identity.bun.test.ts
+[check:merge] exit=0 duration=0.08s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/069.log
+
+[check:merge] packages/quarry/src/cli/commands/inbox.bun.test.ts: bun test ./packages/quarry/src/cli/commands/inbox.bun.test.ts
+[check:merge] exit=0 duration=0.40s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/070.log
+
+[check:merge] packages/quarry/src/cli/commands/init.bun.test.ts: bun test ./packages/quarry/src/cli/commands/init.bun.test.ts
+[check:merge] exit=0 duration=0.45s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/071.log
+
+[check:merge] packages/quarry/src/cli/commands/library.bun.test.ts: bun test ./packages/quarry/src/cli/commands/library.bun.test.ts
+[check:merge] exit=0 duration=0.22s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/072.log
+
+[check:merge] packages/quarry/src/cli/commands/log.bun.test.ts: bun test ./packages/quarry/src/cli/commands/log.bun.test.ts
+[check:merge] exit=0 duration=0.14s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/073.log
+
+[check:merge] packages/quarry/src/cli/commands/message.bun.test.ts: bun test ./packages/quarry/src/cli/commands/message.bun.test.ts
+[check:merge] exit=0 duration=0.40s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/074.log
+
+[check:merge] packages/quarry/src/cli/commands/metrics-output.bun.test.ts: bun test ./packages/quarry/src/cli/commands/metrics-output.bun.test.ts
+[check:merge] exit=0 duration=8.48s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/075.log
+
+[check:merge] packages/quarry/src/cli/commands/metrics.bun.test.ts: bun test ./packages/quarry/src/cli/commands/metrics.bun.test.ts
+[check:merge] exit=0 duration=0.11s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/076.log
+
+[check:merge] packages/quarry/src/cli/commands/plan.bun.test.ts: bun test ./packages/quarry/src/cli/commands/plan.bun.test.ts
+[check:merge] exit=0 duration=0.51s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/077.log
+
+[check:merge] packages/quarry/src/cli/commands/playbook.bun.test.ts: bun test ./packages/quarry/src/cli/commands/playbook.bun.test.ts
+[check:merge] exit=0 duration=0.31s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/078.log
+
+[check:merge] packages/quarry/src/cli/commands/serve.bun.test.ts: bun test ./packages/quarry/src/cli/commands/serve.bun.test.ts
+[check:merge] exit=0 duration=0.05s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/079.log
+
+[check:merge] packages/quarry/src/cli/commands/stats.bun.test.ts: bun test ./packages/quarry/src/cli/commands/stats.bun.test.ts
+[check:merge] exit=0 duration=0.14s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/080.log
+
+[check:merge] packages/quarry/src/cli/commands/sync.bun.test.ts: bun test ./packages/quarry/src/cli/commands/sync.bun.test.ts
+[check:merge] exit=0 duration=0.27s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/081.log
+
+[check:merge] packages/quarry/src/cli/commands/task.bun.test.ts: bun test ./packages/quarry/src/cli/commands/task.bun.test.ts
+[check:merge] exit=0 duration=1.09s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/082.log
+
+[check:merge] packages/quarry/src/cli/commands/team.bun.test.ts: bun test ./packages/quarry/src/cli/commands/team.bun.test.ts
+[check:merge] exit=0 duration=0.32s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/083.log
+
+[check:merge] packages/quarry/src/cli/commands/workflow.bun.test.ts: bun test ./packages/quarry/src/cli/commands/workflow.bun.test.ts
+[check:merge] exit=0 duration=0.40s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/084.log
+
+[check:merge] packages/quarry/src/cli/completion.bun.test.ts: bun test ./packages/quarry/src/cli/completion.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/085.log
+
+[check:merge] packages/quarry/src/cli/errors-output.bun.test.ts: bun test ./packages/quarry/src/cli/errors-output.bun.test.ts
+[check:merge] exit=0 duration=0.08s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/086.log
+
+[check:merge] packages/quarry/src/cli/formatter.bun.test.ts: bun test ./packages/quarry/src/cli/formatter.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/087.log
+
+[check:merge] packages/quarry/src/cli/parser.bun.test.ts: bun test ./packages/quarry/src/cli/parser.bun.test.ts
+[check:merge] exit=0 duration=0.07s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/088.log
+
+[check:merge] packages/quarry/src/cli/piped-output.bun.test.ts: bun test ./packages/quarry/src/cli/piped-output.bun.test.ts
+[check:merge] exit=0 duration=14.06s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/089.log
+
+[check:merge] packages/quarry/src/cli/plugin-loader.bun.test.ts: bun test ./packages/quarry/src/cli/plugin-loader.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/090.log
+
+[check:merge] packages/quarry/src/cli/plugin-registry.bun.test.ts: bun test ./packages/quarry/src/cli/plugin-registry.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/091.log
+
+[check:merge] packages/quarry/src/cli/plugin-types.bun.test.ts: bun test ./packages/quarry/src/cli/plugin-types.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/092.log
+
+[check:merge] packages/quarry/src/cli/runner.bun.test.ts: bun test ./packages/quarry/src/cli/runner.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/093.log
+
+[check:merge] packages/quarry/src/cli/server-client.bun.test.ts: bun test ./packages/quarry/src/cli/server-client.bun.test.ts
+[check:merge] exit=0 duration=0.05s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/094.log
+
+[check:merge] packages/quarry/src/cli/types.bun.test.ts: bun test ./packages/quarry/src/cli/types.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/095.log
+
+[check:merge] packages/quarry/src/cli/utils/progress.bun.test.ts: bun test ./packages/quarry/src/cli/utils/progress.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/096.log
+
+[check:merge] packages/quarry/src/config/config.bun.test.ts: bun test ./packages/quarry/src/config/config.bun.test.ts
+[check:merge] exit=0 duration=0.05s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/097.log
+
+[check:merge] packages/quarry/src/config/file.bun.test.ts: bun test ./packages/quarry/src/config/file.bun.test.ts
+[check:merge] exit=0 duration=0.04s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/098.log
+
+[check:merge] packages/quarry/src/external-sync/adapters/document-sync-adapter.bun.test.ts: bun test ./packages/quarry/src/external-sync/adapters/document-sync-adapter.bun.test.ts
+[check:merge] exit=0 duration=0.04s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/099.log
+
+[check:merge] packages/quarry/src/external-sync/adapters/task-sync-adapter.bun.test.ts: bun test ./packages/quarry/src/external-sync/adapters/task-sync-adapter.bun.test.ts
+[check:merge] exit=0 duration=0.04s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/100.log
+
+[check:merge] packages/quarry/src/external-sync/auto-link.bun.test.ts: bun test ./packages/quarry/src/external-sync/auto-link.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/101.log
+
+[check:merge] packages/quarry/src/external-sync/conflict-resolver.bun.test.ts: bun test ./packages/quarry/src/external-sync/conflict-resolver.bun.test.ts
+[check:merge] exit=0 duration=0.04s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/102.log
+
+[check:merge] packages/quarry/src/external-sync/document-sync-integration.bun.test.ts: bun test ./packages/quarry/src/external-sync/document-sync-integration.bun.test.ts
+[check:merge] exit=0 duration=0.06s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/103.log
+
+[check:merge] packages/quarry/src/external-sync/provider-registry.bun.test.ts: bun test ./packages/quarry/src/external-sync/provider-registry.bun.test.ts
+[check:merge] exit=0 duration=1.36s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/104.log
+
+[check:merge] packages/quarry/src/external-sync/providers/folder/folder-document-adapter.bun.test.ts: bun test ./packages/quarry/src/external-sync/providers/folder/folder-document-adapter.bun.test.ts
+[check:merge] exit=0 duration=0.08s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/105.log
+
+[check:merge] packages/quarry/src/external-sync/providers/folder/folder-fs.bun.test.ts: bun test ./packages/quarry/src/external-sync/providers/folder/folder-fs.bun.test.ts
+[check:merge] exit=0 duration=0.06s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/106.log
+
+[check:merge] packages/quarry/src/external-sync/providers/github/github-api.bun.test.ts: bun test ./packages/quarry/src/external-sync/providers/github/github-api.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/107.log
+
+[check:merge] packages/quarry/src/external-sync/providers/github/github-task-adapter.bun.test.ts: bun test ./packages/quarry/src/external-sync/providers/github/github-task-adapter.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/108.log
+
+[check:merge] packages/quarry/src/external-sync/providers/linear/linear-api.bun.test.ts: bun test ./packages/quarry/src/external-sync/providers/linear/linear-api.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/109.log
+
+[check:merge] packages/quarry/src/external-sync/providers/linear/linear-provider.bun.test.ts: bun test ./packages/quarry/src/external-sync/providers/linear/linear-provider.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/110.log
+
+[check:merge] packages/quarry/src/external-sync/providers/linear/linear-task-adapter.bun.test.ts: bun test ./packages/quarry/src/external-sync/providers/linear/linear-task-adapter.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/111.log
+
+[check:merge] packages/quarry/src/external-sync/providers/notion/notion-api.bun.test.ts: bun test ./packages/quarry/src/external-sync/providers/notion/notion-api.bun.test.ts
+[check:merge] exit=0 duration=10.05s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/112.log
+
+[check:merge] packages/quarry/src/external-sync/providers/notion/notion-blocks.bun.test.ts: bun test ./packages/quarry/src/external-sync/providers/notion/notion-blocks.bun.test.ts
+[check:merge] exit=0 duration=0.04s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/113.log
+
+[check:merge] packages/quarry/src/external-sync/providers/notion/notion-document-adapter.bun.test.ts: bun test ./packages/quarry/src/external-sync/providers/notion/notion-document-adapter.bun.test.ts
+[check:merge] exit=0 duration=0.03s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/114.log
+
+[check:merge] packages/quarry/src/external-sync/sync-engine.bun.test.ts: bun test ./packages/quarry/src/external-sync/sync-engine.bun.test.ts
+[check:merge] exit=0 duration=0.06s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/115.log
+
+[check:merge] packages/quarry/src/http/sync-handlers.bun.test.ts: bun test ./packages/quarry/src/http/sync-handlers.bun.test.ts
+[check:merge] exit=0 duration=0.21s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/116.log
+
+[check:merge] packages/quarry/src/services/blocked-cache.bun.test.ts: bun test ./packages/quarry/src/services/blocked-cache.bun.test.ts
+[check:merge] exit=0 duration=0.20s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/117.log
+
+[check:merge] packages/quarry/src/services/dependency.bun.test.ts: bun test ./packages/quarry/src/services/dependency.bun.test.ts
+[check:merge] exit=0 duration=0.08s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/118.log
+
+[check:merge] packages/quarry/src/services/dependency.perf.bun.test.ts: bun test ./packages/quarry/src/services/dependency.perf.bun.test.ts
+[check:merge] exit=0 duration=0.39s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/119.log
+
+[check:merge] packages/quarry/src/services/embeddings/fusion.bun.test.ts: bun test ./packages/quarry/src/services/embeddings/fusion.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/120.log
+
+[check:merge] packages/quarry/src/services/embeddings/local-provider.bun.test.ts: bun test ./packages/quarry/src/services/embeddings/local-provider.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/121.log
+
+[check:merge] packages/quarry/src/services/embeddings/service.bun.test.ts: bun test ./packages/quarry/src/services/embeddings/service.bun.test.ts
+[check:merge] exit=0 duration=0.05s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/122.log
+
+[check:merge] packages/quarry/src/services/id-length-cache.bun.test.ts: bun test ./packages/quarry/src/services/id-length-cache.bun.test.ts
+[check:merge] exit=0 duration=0.53s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/123.log
+
+[check:merge] packages/quarry/src/services/inbox.bun.test.ts: bun test ./packages/quarry/src/services/inbox.bun.test.ts
+[check:merge] exit=0 duration=0.06s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/124.log
+
+[check:merge] packages/quarry/src/services/priority-service.bun.test.ts: bun test ./packages/quarry/src/services/priority-service.bun.test.ts
+[check:merge] exit=0 duration=0.08s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/125.log
+
+[check:merge] packages/quarry/src/services/search-utils.bun.test.ts: bun test ./packages/quarry/src/services/search-utils.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/126.log
+
+[check:merge] packages/quarry/src/sync/auto-export.bun.test.ts: bun test ./packages/quarry/src/sync/auto-export.bun.test.ts
+[check:merge] exit=0 duration=0.74s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/127.log
+
+[check:merge] packages/quarry/src/sync/service.bun.test.ts: bun test ./packages/quarry/src/sync/service.bun.test.ts
+[check:merge] exit=0 duration=0.21s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/128.log
+
+[check:merge] packages/quarry/src/sync/sync.bun.test.ts: bun test ./packages/quarry/src/sync/sync.bun.test.ts
+[check:merge] exit=0 duration=0.04s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/129.log
+
+[check:merge] packages/quarry/src/systems/identity.bun.test.ts: bun test ./packages/quarry/src/systems/identity.bun.test.ts
+[check:merge] exit=0 duration=0.05s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/130.log
+
+[check:merge] packages/smithy/src/api/agent-id-collision.bun.test.ts: bun test ./packages/smithy/src/api/agent-id-collision.bun.test.ts
+[check:merge] exit=0 duration=0.07s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/131.log
+
+[check:merge] packages/smithy/src/api/http-session-start.bun.test.ts: bun test ./packages/smithy/src/api/http-session-start.bun.test.ts
+[check:merge] exit=0 duration=9.52s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/132.log
+
+[check:merge] packages/smithy/src/api/http-session-start.concurrent.bun.test.ts: bun test ./packages/smithy/src/api/http-session-start.concurrent.bun.test.ts
+[check:merge] exit=0 duration=7.07s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/133.log
+
+[check:merge] packages/smithy/src/api/http-session-start.steward-probe.bun.test.ts: bun test ./packages/smithy/src/api/http-session-start.steward-probe.bun.test.ts
+[check:merge] exit=0 duration=5.33s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/134.log
+
+[check:merge] packages/smithy/src/api/orchestrator-api.integration.bun.test.ts: bun test ./packages/smithy/src/api/orchestrator-api.integration.bun.test.ts
+[check:merge] exit=0 duration=0.14s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/135.log
+
+[check:merge] packages/smithy/src/api/orchestrator-assignment.bun.test.ts: bun test ./packages/smithy/src/api/orchestrator-assignment.bun.test.ts
+[check:merge] exit=0 duration=3.05s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/136.log
+
+[check:merge] packages/smithy/src/cli/commands/agent-start-cleanup.bun.test.ts: bun test ./packages/smithy/src/cli/commands/agent-start-cleanup.bun.test.ts
+[check:merge] exit=0 duration=13.88s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/137.log
+
+[check:merge] packages/smithy/src/cli/commands/agent.bun.test.ts: bun test ./packages/smithy/src/cli/commands/agent.bun.test.ts
+[check:merge] exit=0 duration=0.10s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/138.log
+
+[check:merge] packages/smithy/src/cli/commands/daemon.bun.test.ts: bun test ./packages/smithy/src/cli/commands/daemon.bun.test.ts
+[check:merge] exit=0 duration=21.56s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/139.log
+
+[check:merge] packages/smithy/src/cli/commands/dispatch.bun.test.ts: bun test ./packages/smithy/src/cli/commands/dispatch.bun.test.ts
+[check:merge] exit=0 duration=0.06s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/140.log
+
+[check:merge] packages/smithy/src/cli/commands/merge.bun.test.ts: bun test ./packages/smithy/src/cli/commands/merge.bun.test.ts
+[check:merge] exit=0 duration=0.06s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/141.log
+
+[check:merge] packages/smithy/src/cli/commands/task-merge-status-arguments.bun.test.ts: bun test ./packages/smithy/src/cli/commands/task-merge-status-arguments.bun.test.ts
+[check:merge] exit=0 duration=3.80s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/142.log
+
+[check:merge] packages/smithy/src/cli/commands/task-merge-status.bun.test.ts: bun test ./packages/smithy/src/cli/commands/task-merge-status.bun.test.ts
+[check:merge] exit=0 duration=0.06s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/143.log
+
+[check:merge] packages/smithy/src/git/merge-arguments.bun.test.ts: bun test ./packages/smithy/src/git/merge-arguments.bun.test.ts
+[check:merge] exit=0 duration=9.04s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/144.log
+
+[check:merge] packages/smithy/src/git/merge.bun.test.ts: bun test ./packages/smithy/src/git/merge.bun.test.ts
+[check:merge] exit=0 duration=12.07s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/145.log
+
+[check:merge] packages/smithy/src/git/project-repositories.bun.test.ts: bun test ./packages/smithy/src/git/project-repositories.bun.test.ts
+[check:merge] exit=0 duration=2.69s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/146.log
+
+[check:merge] packages/smithy/src/git/target-delivery.bun.test.ts: bun test ./packages/smithy/src/git/target-delivery.bun.test.ts
+[check:merge] exit=0 duration=19.48s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/147.log
+
+[check:merge] packages/smithy/src/git/worktree-manager.bun.test.ts: bun test ./packages/smithy/src/git/worktree-manager.bun.test.ts
+[check:merge] exit=0 duration=9.32s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/148.log
+
+[check:merge] packages/smithy/src/prompts/index.bun.test.ts: bun test ./packages/smithy/src/prompts/index.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/149.log
+
+[check:merge] packages/smithy/src/providers/claude/env.bun.test.ts: bun test ./packages/smithy/src/providers/claude/env.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/150.log
+
+[check:merge] packages/smithy/src/providers/claude/headless.bun.test.ts: bun test ./packages/smithy/src/providers/claude/headless.bun.test.ts
+[check:merge] exit=0 duration=0.03s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/151.log
+
+[check:merge] packages/smithy/src/providers/claude/index.bun.test.ts: bun test ./packages/smithy/src/providers/claude/index.bun.test.ts
+[check:merge] exit=0 duration=0.07s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/152.log
+
+[check:merge] packages/smithy/src/providers/claude/interactive.bun.test.ts: bun test ./packages/smithy/src/providers/claude/interactive.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/153.log
+
+[check:merge] packages/smithy/src/providers/codex/compatibility.bun.test.ts: bun test ./packages/smithy/src/providers/codex/compatibility.bun.test.ts
+[check:merge] exit=0 duration=0.10s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/154.log
+
+[check:merge] packages/smithy/src/providers/codex/event-mapper.bun.test.ts: bun test ./packages/smithy/src/providers/codex/event-mapper.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/155.log
+
+[check:merge] packages/smithy/src/providers/codex/headless.bun.test.ts: bun test ./packages/smithy/src/providers/codex/headless.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/156.log
+
+[check:merge] packages/smithy/src/providers/codex/provider.bun.test.ts: bun test ./packages/smithy/src/providers/codex/provider.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/157.log
+
+[check:merge] packages/smithy/src/providers/codex/server-manager.bun.test.ts: bun test ./packages/smithy/src/providers/codex/server-manager.bun.test.ts
+[check:merge] exit=0 duration=0.02s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/158.log
+
+[check:merge] packages/smithy/src/providers/opencode/event-mapper.bun.test.ts: bun test ./packages/smithy/src/providers/opencode/event-mapper.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/159.log
+
+[check:merge] packages/smithy/src/providers/opencode/interactive.bun.test.ts: bun test ./packages/smithy/src/providers/opencode/interactive.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/160.log
+
+[check:merge] packages/smithy/src/providers/opencode/model.bun.test.ts: bun test ./packages/smithy/src/providers/opencode/model.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/161.log
+
+[check:merge] packages/smithy/src/providers/shell-quote.bun.test.ts: bun test ./packages/smithy/src/providers/shell-quote.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/162.log
+
+[check:merge] packages/smithy/src/runtime/handoff.bun.test.ts: bun test ./packages/smithy/src/runtime/handoff.bun.test.ts
+[check:merge] exit=0 duration=0.04s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/163.log
+
+[check:merge] packages/smithy/src/runtime/predecessor-query.bun.test.ts: bun test ./packages/smithy/src/runtime/predecessor-query.bun.test.ts
+[check:merge] exit=0 duration=0.77s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/164.log
+
+[check:merge] packages/smithy/src/runtime/project-node.bun.test.ts: bun test ./packages/smithy/src/runtime/project-node.bun.test.ts
+[check:merge] exit=0 duration=5.17s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/165.log
+
+[check:merge] packages/smithy/src/runtime/session-manager.bun.test.ts: bun test ./packages/smithy/src/runtime/session-manager.bun.test.ts
+[check:merge] exit=0 duration=6.03s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/166.log
+
+[check:merge] packages/smithy/src/runtime/spawner.bun.test.ts: bun test ./packages/smithy/src/runtime/spawner.bun.test.ts
+[check:merge] exit=0 duration=2.77s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/167.log
+
+[check:merge] packages/smithy/src/runtime/spawner.integration.bun.test.ts: bun test ./packages/smithy/src/runtime/spawner.integration.bun.test.ts
+[check:merge] exit=0 duration=0.09s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/168.log
+
+[check:merge] packages/smithy/src/server/routes/agents-workload.bun.test.ts: bun test ./packages/smithy/src/server/routes/agents-workload.bun.test.ts
+[check:merge] exit=0 duration=0.12s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/169.log
+
+[check:merge] packages/smithy/src/server/routes/assets.bun.test.ts: bun test ./packages/smithy/src/server/routes/assets.bun.test.ts
+[check:merge] exit=0 duration=0.03s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/170.log
+
+[check:merge] packages/smithy/src/server/server.bun.test.ts: bun test ./packages/smithy/src/server/server.bun.test.ts
+[check:merge] exit=0 duration=0.12s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/171.log
+
+[check:merge] packages/smithy/src/services/agent-registry.bun.test.ts: bun test ./packages/smithy/src/services/agent-registry.bun.test.ts
+[check:merge] exit=0 duration=0.17s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/172.log
+
+[check:merge] packages/smithy/src/services/demo-mode-service.bun.test.ts: bun test ./packages/smithy/src/services/demo-mode-service.bun.test.ts
+[check:merge] exit=0 duration=0.12s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/173.log
+
+[check:merge] packages/smithy/src/services/dispatch-claim.bun.test.ts: bun test ./packages/smithy/src/services/dispatch-claim.bun.test.ts
+[check:merge] exit=0 duration=6.60s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/174.log
+
+[check:merge] packages/smithy/src/services/dispatch-daemon.bun.test.ts: bun test ./packages/smithy/src/services/dispatch-daemon.bun.test.ts
+[check:merge] exit=0 duration=3.51s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/175.log
+
+[check:merge] packages/smithy/src/services/dispatch-service.bun.test.ts: bun test ./packages/smithy/src/services/dispatch-service.bun.test.ts
+[check:merge] exit=0 duration=0.09s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/176.log
+
+[check:merge] packages/smithy/src/services/metrics-service.bun.test.ts: bun test ./packages/smithy/src/services/metrics-service.bun.test.ts
+[check:merge] exit=0 duration=0.17s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/177.log
+
+[check:merge] packages/smithy/src/services/operation-log-service.bun.test.ts: bun test ./packages/smithy/src/services/operation-log-service.bun.test.ts
+[check:merge] exit=0 duration=0.11s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/178.log
+
+[check:merge] packages/smithy/src/services/plugin-executor.bun.test.ts: bun test ./packages/smithy/src/services/plugin-executor.bun.test.ts
+[check:merge] exit=0 duration=0.83s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/179.log
+
+[check:merge] packages/smithy/src/services/rate-limit-tracker.bun.test.ts: bun test ./packages/smithy/src/services/rate-limit-tracker.bun.test.ts
+[check:merge] exit=0 duration=0.08s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/180.log
+
+[check:merge] packages/smithy/src/services/role-definition-service.bun.test.ts: bun test ./packages/smithy/src/services/role-definition-service.bun.test.ts
+[check:merge] exit=0 duration=0.19s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/181.log
+
+[check:merge] packages/smithy/src/services/session-metrics.bun.test.ts: bun test ./packages/smithy/src/services/session-metrics.bun.test.ts
+[check:merge] exit=0 duration=0.12s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/182.log
+
+[check:merge] packages/smithy/src/services/settings-service.bun.test.ts: bun test ./packages/smithy/src/services/settings-service.bun.test.ts
+[check:merge] exit=0 duration=0.16s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/183.log
+
+[check:merge] packages/smithy/src/services/task-assignment-service.bun.test.ts: bun test ./packages/smithy/src/services/task-assignment-service.bun.test.ts
+[check:merge] exit=0 duration=0.14s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/184.log
+
+[check:merge] packages/smithy/src/services/task-completion-git.bun.test.ts: bun test ./packages/smithy/src/services/task-completion-git.bun.test.ts
+[check:merge] exit=0 duration=4.22s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/185.log
+
+[check:merge] packages/smithy/src/services/task-completion-protocol.bun.test.ts: bun test ./packages/smithy/src/services/task-completion-protocol.bun.test.ts
+[check:merge] exit=1 duration=7.30s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/186.log
+: admin [107.29ms]
+(pass) double call before claim has one winner and one MR effect [112.82ms]
+(pass) lost MR response persists unknown across service restart; explicit matching evidence recovers once [107.55ms]
+(pass) unknown MR reconciliation rejects insufficient evidence: sourceBranch [107.62ms]
+(pass) unknown MR reconciliation rejects insufficient evidence: targetBranch [108.53ms]
+(pass) unknown MR reconciliation rejects insufficient evidence: commitOid [108.68ms]
+(pass) unknown MR reconciliation rejects insufficient evidence: body [106.33ms]
+(pass) unknown MR reconciliation rejects insufficient evidence: provider [113.67ms]
+(pass) unknown MR reconciliation rejects insufficient evidence: state [104.87ms]
+(pass) unknown MR reconciliation rejects insufficient evidence: missing [107.42ms]
+(pass) unknown MR reconciliation rejects insufficient evidence: lookup-unavailable [108.51ms]
+(pass) closed at claimed fences subsequent effects/finalization and preserves winner [99.14ms]
+(pass) deferred at claimed fences subsequent effects/finalization and preserves winner [103.51ms]
+(pass) human at claimed fences subsequent effects/finalization and preserves winner [107.09ms]
+(pass) reassign at claimed fences subsequent effects/finalization and preserves winner [97.42ms]
+(pass) closed at push_started fences subsequent effects/finalization and preserves winner [99.89ms]
+(pass) deferred at push_started fences subsequent effects/finalization and preserves winner [104.37ms]
+(pass) human at push_started fences subsequent effects/finalization and preserves winner [99.77ms]
+(pass) reassign at push_started fences subsequent effects/finalization and preserves winner [102.39ms]
+(pass) closed at pushed fences subsequent effects/finalization and preserves winner [102.30ms]
+(pass) deferred at pushed fences subsequent effects/finalization and preserves winner [96.86ms]
+(pass) human at pushed fences subsequent effects/finalization and preserves winner [96.55ms]
+(pass) reassign at pushed fences subsequent effects/finalization and preserves winner [96.96ms]
+(pass) closed at mr_started fences subsequent effects/finalization and preserves winner [99.67ms]
+(pass) deferred at mr_started fences subsequent effects/finalization and preserves winner [97.08ms]
+(pass) human at mr_started fences subsequent effects/finalization and preserves winner [101.53ms]
+(pass) reassign at mr_started fences subsequent effects/finalization and preserves winner [103.99ms]
+(pass) closed at after-mr fences subsequent effects/finalization and preserves winner [111.04ms]
+(pass) deferred at after-mr fences subsequent effects/finalization and preserves winner [110.66ms]
+(pass) human at after-mr fences subsequent effects/finalization and preserves winner [110.33ms]
+(pass) reassign at after-mr fences subsequent effects/finalization and preserves winner [110.00ms]
+(pass) closed at receipt fences subsequent effects/finalization and preserves winner [112.32ms]
+(pass) deferred at receipt fences subsequent effects/finalization and preserves winner [116.00ms]
+(pass) human at receipt fences subsequent effects/finalization and preserves winner [112.13ms]
+(pass) reassign at receipt fences subsequent effects/finalization and preserves winner [106.06ms]
+(pass) durable receipt survives final-write failure and recovery does not create a second MR [105.57ms]
+(pass) process loss after mr_started is unknown and cannot trigger an automatic create [113.33ms]
+(pass) explicit reopen plus a fresh internal session permits new completion and archives prior operation [216.11ms]
+(pass) real reassignment after reopen retains unknown claim and full history, denying a second MR [191.16ms]
+(pass) branch with missing worktree rejects before claim even without MR [72.03ms]
+(pass) branch with undefined worktree rejects before claim even without MR [68.76ms]
+
+1 tests failed:
+(fail) identity rejection preserves everything: missing-history [65.51ms]
+
+ 68 pass
+ 1 fail
+ 370 expect() calls
+Ran 69 tests across 1 file. [7.30s]
+
+
+[check:merge] packages/smithy/src/services/task-handoff-ownership.bun.test.ts: bun test ./packages/smithy/src/services/task-handoff-ownership.bun.test.ts
+[check:merge] exit=0 duration=2.30s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/187.log
+
+[check:merge] packages/smithy/src/services/task-lifecycle-race-evidence.bun.test.ts: bun test ./packages/smithy/src/services/task-lifecycle-race-evidence.bun.test.ts
+[check:merge] exit=0 duration=5.75s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/188.log
+
+[check:merge] packages/smithy/src/services/task-session-retention.bun.test.ts: bun test ./packages/smithy/src/services/task-session-retention.bun.test.ts
+[check:merge] exit=0 duration=0.10s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/189.log
+
+[check:merge] packages/smithy/src/types/agent.bun.test.ts: bun test ./packages/smithy/src/types/agent.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/190.log
+
+[check:merge] packages/smithy/src/types/message-types.bun.test.ts: bun test ./packages/smithy/src/types/message-types.bun.test.ts
+[check:merge] exit=0 duration=0.04s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/191.log
+
+[check:merge] packages/smithy/src/types/role-definition.bun.test.ts: bun test ./packages/smithy/src/types/role-definition.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/192.log
+
+[check:merge] packages/smithy/src/types/task-meta.bun.test.ts: bun test ./packages/smithy/src/types/task-meta.bun.test.ts
+[check:merge] exit=0 duration=0.01s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/193.log
+
+[check:merge] packages/smithy/src/utils/rate-limit-parser.bun.test.ts: bun test ./packages/smithy/src/utils/rate-limit-parser.bun.test.ts
+[check:merge] exit=0 duration=0.03s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/194.log
+
+[check:merge] packages/smithy/src/utils/terminal-rate-limit.bun.test.ts: bun test ./packages/smithy/src/utils/terminal-rate-limit.bun.test.ts
+[check:merge] exit=0 duration=0.03s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/195.log
+
+[check:merge] Smithy Node/Vitest: pnpm --filter @stoneforge/smithy test:node
+[check:merge] exit=0 duration=2.45s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/196.log
+
+[check:merge] Desktop Node backend integration: pnpm --filter @stoneforge/desktop test
+[check:merge] exit=0 duration=5.15s
+[check:merge] log=/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/197.log
+
+[check:merge] 197 checks, 1 failed, duration=253.95s
+[check:merge] FAILED exit=1: packages/smithy/src/services/task-completion-protocol.bun.test.ts
+ ELIFECYCLE  Command failed with exit code 1.

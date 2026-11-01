@@ -39,6 +39,7 @@ export { cliPlugin } from './cli/plugin.js';
 // Re-export logger utility
 export { createLogger, getLogLevel } from './utils/logger.js';
 export type { Logger, LogLevel } from './utils/logger.js';
+export { tryAcquireHttpSessionStart } from './utils/http-session-start.js';
 
 // Re-export rate limit parser utility
 export { parseRateLimitResetTime } from './utils/rate-limit-parser.js';

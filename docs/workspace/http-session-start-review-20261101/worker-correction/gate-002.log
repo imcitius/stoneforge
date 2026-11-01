@@ -1,0 +1,98 @@
+
+> stoneforge@0.1.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start
+> turbo run typecheck "--force"
+
+• turbo 2.8.14
+• Packages in scope: @stoneforge/core, @stoneforge/desktop, @stoneforge/docs, @stoneforge/quarry, @stoneforge/quarry-server, @stoneforge/quarry-web, @stoneforge/shared-routes, @stoneforge/smithy, @stoneforge/smithy-next, @stoneforge/smithy-server, @stoneforge/smithy-web, @stoneforge/storage, @stoneforge/ui, @stoneforge/website
+• Running typecheck in 14 packages
+• Remote caching disabled, using shared worktree cache
+@stoneforge/ui:build: cache bypass, force executing 38ed5e89e02e798f
+@stoneforge/ui:typecheck: cache bypass, force executing 654507d184a2386d
+@stoneforge/core:build: cache bypass, force executing 874ca8616c244461
+@stoneforge/core:typecheck: cache bypass, force executing b2868f39cef7237b
+@stoneforge/core:typecheck: 
+@stoneforge/core:typecheck: > @stoneforge/core@1.25.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/core
+@stoneforge/core:typecheck: > tsc --noEmit
+@stoneforge/core:typecheck: 
+@stoneforge/ui:build: 
+@stoneforge/core:build: 
+@stoneforge/ui:build: > @stoneforge/ui@1.25.0 build /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/ui
+@stoneforge/ui:build: > tsc
+@stoneforge/ui:build: 
+@stoneforge/ui:typecheck: 
+@stoneforge/ui:typecheck: > @stoneforge/ui@1.25.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/ui
+@stoneforge/ui:typecheck: > tsc --noEmit
+@stoneforge/ui:typecheck: 
+@stoneforge/core:build: > @stoneforge/core@1.25.0 build /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/core
+@stoneforge/core:build: > tsc
+@stoneforge/core:build: 
+@stoneforge/storage:build: cache bypass, force executing 213831afb686941c
+@stoneforge/storage:typecheck: cache bypass, force executing 1eeeb44073b9cca8
+@stoneforge/storage:typecheck: 
+@stoneforge/storage:typecheck: > @stoneforge/storage@1.25.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/storage
+@stoneforge/storage:typecheck: > tsc --noEmit
+@stoneforge/storage:typecheck: 
+@stoneforge/storage:build: 
+@stoneforge/storage:build: > @stoneforge/storage@1.25.0 build /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/storage
+@stoneforge/storage:build: > tsc
+@stoneforge/storage:build: 
+@stoneforge/shared-routes:typecheck: cache bypass, force executing 454b1e7c984a91c4
+@stoneforge/shared-routes:build: cache bypass, force executing 89229c074c81b8e9
+@stoneforge/shared-routes:typecheck: 
+@stoneforge/shared-routes:typecheck: > @stoneforge/shared-routes@1.25.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/shared-routes
+@stoneforge/shared-routes:typecheck: > tsc --noEmit
+@stoneforge/shared-routes:typecheck: 
+@stoneforge/shared-routes:build: 
+@stoneforge/shared-routes:build: > @stoneforge/shared-routes@1.25.0 build /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/shared-routes
+@stoneforge/shared-routes:build: > tsc
+@stoneforge/shared-routes:build: 
+@stoneforge/quarry:typecheck: cache bypass, force executing 3e1cc52ac30a5b99
+@stoneforge/quarry:build: cache bypass, force executing a3088e634025bd56
+@stoneforge/quarry:build: 
+@stoneforge/quarry:build: > @stoneforge/quarry@1.25.0 build /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry
+@stoneforge/quarry:build: > tsc && chmod +x dist/bin/sf.js
+@stoneforge/quarry:build: 
+@stoneforge/quarry:typecheck: 
+@stoneforge/quarry:typecheck: > @stoneforge/quarry@1.25.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry
+@stoneforge/quarry:typecheck: > tsc --noEmit
+@stoneforge/quarry:typecheck: 
+@stoneforge/smithy:typecheck: cache bypass, force executing 1d8454a0f95686e9
+@stoneforge/smithy:build: cache bypass, force executing 21a39355fd11b41e
+@stoneforge/smithy-web:typecheck: cache bypass, force executing ac75444a689b83d0
+@stoneforge/quarry-server:typecheck: cache bypass, force executing 4fdcae4e3d15592b
+@stoneforge/quarry-web:typecheck: cache bypass, force executing 594f7b22a38afd14
+@stoneforge/smithy-web:typecheck: 
+@stoneforge/smithy-web:typecheck: > @stoneforge/smithy-web@1.25.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-web
+@stoneforge/smithy-web:typecheck: > tsc --noEmit
+@stoneforge/smithy-web:typecheck: 
+@stoneforge/quarry-web:typecheck: 
+@stoneforge/quarry-web:typecheck: > @stoneforge/quarry-web@1.25.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/quarry-web
+@stoneforge/quarry-web:typecheck: > tsc --noEmit
+@stoneforge/quarry-web:typecheck: 
+@stoneforge/quarry-server:typecheck: 
+@stoneforge/quarry-server:typecheck: > @stoneforge/quarry-server@1.25.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/quarry-server
+@stoneforge/quarry-server:typecheck: > tsc --noEmit
+@stoneforge/quarry-server:typecheck: 
+@stoneforge/smithy:build: 
+@stoneforge/smithy:typecheck: 
+@stoneforge/smithy:build: > @stoneforge/smithy@1.25.0 build /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy
+@stoneforge/smithy:build: > tsc && cp src/prompts/*.md dist/prompts/ && cp -r src/skills dist/skills && chmod +x dist/bin/sf.js
+@stoneforge/smithy:build: 
+@stoneforge/smithy:typecheck: > @stoneforge/smithy@1.25.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy
+@stoneforge/smithy:typecheck: > tsc --noEmit
+@stoneforge/smithy:typecheck: 
+@stoneforge/desktop:typecheck: cache bypass, force executing a2ce85992460a8b8
+@stoneforge/smithy-server:typecheck: cache bypass, force executing e05b18aaa33ec943
+@stoneforge/smithy-server:typecheck: 
+@stoneforge/smithy-server:typecheck: > @stoneforge/smithy-server@1.25.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server
+@stoneforge/smithy-server:typecheck: > tsc --noEmit
+@stoneforge/smithy-server:typecheck: 
+@stoneforge/desktop:typecheck: 
+@stoneforge/desktop:typecheck: > @stoneforge/desktop@0.1.0 typecheck /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/desktop
+@stoneforge/desktop:typecheck: > tsc --noEmit
+@stoneforge/desktop:typecheck: 
+
+ Tasks:    17 successful, 17 total
+Cached:    0 cached, 17 total
+  Time:    23.986s 
+

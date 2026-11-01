@@ -1389,6 +1389,181 @@ Only verification documentation changes after this gate. Independent review must
 name the exact final worker commit (or its subsequently synchronized replacement)
 before approved CLI local merge. No worker merge or installed/live changes.
 
+## HTTP session start conditional release — el-56khe, 2026-09-26
+
+Baseline `8c8cca9` includes the delivered explicit API CAS (el-2hrsm), automatic
+claim/internal-session cleanup and completion/history fixes. The former caller
+report's stranded HTTP assignment is historical baseline evidence, now addressed
+here; CLI caller ordering and the rest of session runtime are not rewritten.
+Approved local sync through the el-ptim CLI included delivered master `2bb427b`
+(Claude cleanup retry), without conflicts. CLI source manifest and all299 hashes
+matched; no pending worker branch was copied. Implementation commit: `1fe94ea`.
+
+Both actual `sessions.ts` HTTP start routes capture task ID, owner, session identity
+and version exclusively from the committed assignment return. A rejected assignment
+has no receipt and cannot release anything. A startup rejection releases through
+TaskAssignmentService's existing failed-dispatch CAS; no administrative fallback,
+retry or reread/adoption of a newer owner is allowed. The release preserves task
+status, generated branch, outer/extension metadata, completion claims/history and
+session/handoff history. Human, terminal, deferred and successor/version changes
+win at both the first read and the actual update transaction.
+
+Worktree preparation is distinct from an accepted SessionManager return. The route
+never stops sessions by agent ID or tries to recover a handle it did not receive.
+SessionManager retains its existing exact-internal-session startup cleanup contract.
+After start returns, event-saver/prompt persistence/client-notification errors still
+return HTTP500, but do not unassign or stop the accepted session (or a newer one).
+The response identifies the accepted internal session when known. Persistent
+worktree preparation errors now fail explicitly in both routes; the app route no
+longer silently continues in a different directory after preparation failure.
+
+No destructive worktree cleanup is attempted: there is no exclusive deletion lease,
+and a precheck cannot prove that a reusable path has not been acquired by a successor.
+Errors report `cleanup.assignment` (`not-assigned`, `released`, `retained-conflict`,
+`retained-error`, `retained-session-started`) and `cleanup.worktree` with retained
+path/reason when returned, or `not-returned` when no path was delivered. The latter
+is **not** proof that preparation created no resources. Cleanup errors accompany,
+never replace, the original HTTP error. Logs include the same diagnostics. These
+outcomes do not promise removal of all orphan resources or successful provider
+termination: a failed internal stop remains logged by SessionManager and resources
+can remain for later explicit recovery. No resource GC or entire runtime redesign.
+
+Evidence uses both real HTTP route factories, two connections to temporary on-disk
+SQLite, local Git worktrees, real OrchestratorAPI/TaskAssignmentService/SessionManager,
+and inert SpawnerService-boundary provider handles. No live process/provider, agent,
+session, daemon, installed app or maintenance operation was used as a test object.
+The tests do not claim an actual SDK/provider transport termination was exercised.
+
+- New initial desired-safety baseline: **4pass/34fail**,210 assertions,
+  `/tmp/el-56khe-baseline.log`. Six direct spawn/persistence/termination-error cases
+  demonstrate retained assignment. Other failures also include missing diagnostics
+  and cleanup-race hooks that the old route never reached; not34 distinct defects.
+- First correction:38/38,454 assertions, `/tmp/el-56khe-focused.log`.
+- Expanded test intermediate:70pass/2fail across new+API suites,
+  `/tmp/el-56khe-focused-2.log`. The two publication-race expectations incorrectly
+  forbade the existing runtime's own ended-history append. Assertions now preserve
+  successor current fields and require the legitimate terminated own history entry;
+  production runtime was unchanged. Subsequent46/46,540 assertions in
+  `/tmp/el-56khe-focused-3.log` retains that evidence.
+- Final focused command: `bun test packages/smithy/src/api/http-session-start.bun.test.ts packages/smithy/src/api/orchestrator-assignment.bun.test.ts packages/smithy/src/services/task-assignment-service.bun.test.ts packages/smithy/src/services/dispatch-claim.bun.test.ts packages/smithy/src/services/task-completion-protocol.bun.test.ts`:
+  **212/212,1359 assertions,exit0,36.79s**, `/tmp/el-56khe-focused-final.log`.
+  New route suite48 tests covers spawn, preparation, publication, persistence,
+  termination and notification errors; rollback after real release SQL; R1/R2
+  closed/deferred/Human/successor/completion-claim races; assignment CAS rejection;
+  successful start; returned reusable Git paths; accepted plus newer sessions;
+  full task/event preservation and retained files/registered Git worktrees.
+- `pnpm install --frozen-lockfile`:exit0,lock unchanged,
+  `/tmp/el-56khe-install.log`; package typecheck exit0 before final integration.
+- Required integrated `pnpm check:merge`: result appended below.
+
+Separate root build/lint/test, browser/packaged GUI, cross-platform and live-provider
+checks are not claimed. The required gate runs its declared uncached source/runtime
+checks. Independent steward review must name the exact final commit and establish
+acceptance before approved CLI local delivery; worker verification is not approval.
+Installed Desktop and completed maintenance are unchanged.
+
+First required gate on `1fe94ea`: **191/191,exit0,317.12s**;
+`/tmp/el-56khe-gate.log`, exact commands/results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dLG3kY/results.json`.
+During this run master advanced to delivered non-merge steward claim `4c29bb0`.
+Approved sync and final integrated verification follow; this first result is retained.
+
+### el-56khe final integrated worker verification
+
+Approved CLI sync with delivered steward claim `4c29bb0` produced `8cb6db3`.
+Only additive lifecycle-report text conflicted; both sections were preserved.
+HTTP implementation/tests were unchanged. Required integrated **pnpm check:merge:
+191/191,exit0,317.67s**, `/tmp/el-56khe-gate-integrated.log`; exact per-step results:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-DEYYoI/results.json`.
+Five focused suites inside this gate: **237/237,1557 assertions** (HTTP48/API30/
+claim53/assignment37/completion69). Includes uncached workspace typecheck, Desktop
+source build, Smithy Node/Vitest and Desktop Node integration. First gate191/191
+and original baseline/intermediate fixture failures remain above.
+
+After this gate, approved CLI sync included delivered documentation-only master
+`24df339` (el-39znb). `git diff --exit-code 8cb6db3 HEAD -- packages apps scripts
+package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json` passed: tested code,
+tests, manifests and gate configuration are identical. No additional runtime gate
+was run for that documentation-only addition; ancestry and diff checks passed.
+Only this verification report changes afterward. Independent steward must review
+this exact final source/documentation commit before approved CLI local delivery.
+No worker merge approval, installed-app update or live-session maintenance is claimed.
+
+### el-56khe independent rejection and corrected publication boundary
+
+The preceding worker result is historical, not acceptance. Independent steward
+review of `6937489e99cae471ab61678dfa3bf32989ca0d72` requested changes despite
+191/191 gate (316.92s) and focused237/237. Its real SQLite/Git/HTTP/SessionManager
+probe configured public `setOperationLog()` to throw after publication/persistence:
+both routes returned500 and released assignment while their own provider handle
+remained live. Original probe **0pass/2fail**, `/tmp/el-56khe-steward-probe.log`;
+control disabling only release **2pass/0fail**,
+`/tmp/el-56khe-steward-probe-control.log`. Original source/review are retained at
+`/tmp/el-56khe-steward-probe.bun.test.ts` and `/tmp/el-56khe-steward-review.md`.
+Worker reproduced **0pass/2fail** before this correction in
+`/tmp/el-56khe-revision-baseline.log`. Default server constructors do not configure
+this optional log; no live incidence claim is made. Director explicitly included
+this narrow runtime/HTTP boundary in el-56khe.
+
+Current start contract supersedes the earlier assumption that every rejected start
+proves successful cleanup. Once publication and persistence finish, optional
+`operationLog.write` failure emits an explicit stderr diagnostic including the
+accepted internal session ID and the error, and returns the normal accepted receipt.
+HTTP201 is accurate: the session was accepted and remains running. Only this
+optional post-acceptance log is non-fatal; publication, persistence and notification
+failures retain their existing rejection behavior. After this log, public receipt
+construction only copies internal fields; there are no other awaited operations.
+Listener installation now lies inside the exact-session startup rollback boundary.
+
+If startup rollback rejects (provider termination or persistence/observability),
+`SessionStartupCleanupError` carries the original error, rollback error and this
+attempt's internal session ID. Both HTTP routes return500 with
+`cleanup.assignment=retained-session-cleanup-incomplete`, exact `cleanup.sessionId`
+and cleanup error. They do not release or rediscover a session by agent identity.
+Even if the handle has exited, an unknown cleanup/persistence result conservatively
+retains assignment. A still-pending rollback does not reach HTTP assignment release;
+no new timeout/cancellation or automatic retry is introduced. Successful exact
+rollback still permits receipt-bound conditional assignment release. All prior
+CAS/version, Human/terminal/successor, completion/history and worktree protections
+remain. Worktrees intentionally remain retained without exclusive deletion proof;
+this change promises neither removal of all orphans nor live SDK termination.
+Resume, other runtime callers, provider transport and general logger design are
+outside this narrow correction.
+
+Permanent adaptation of the steward probe lives in
+`packages/smithy/src/api/http-session-start.steward-probe.bun.test.ts`:
+16 tests across both real routes with temporary SQLite/local Git and real
+SessionManager, mocked provider handles. They verify repeated accepted starts with
+failing optional logging and persisted current identity, listener and publication
+failure cleanup, persistence rollback success, termination failure, unknown rollback
+persistence, repeated exact cleanup rejection, and actual successor SessionManager
+starts during successful/failed rollback. Successor task/event snapshots and Git
+resources survive. Existing HTTP48 suite now requires retention on failed termination
+instead of incorrectly treating rejection as proof of completed rollback.
+
+Verification so far: frozen install exit0 (lock unchanged); package typecheck exit0;
+intermediate HTTP62/62 (772 assertions); final new probe16 plus SessionManager85
+**101/101,375 assertions,exit0**, `/tmp/el-56khe-revision-runtime.log`.
+Required final gate outcome and exact-final independent review follow separately.
+No installed app, live agent/session/daemon/provider or maintenance operation.
+
+### el-56khe corrected-boundary final worker gate
+
+Source `9a689169101ec97d8aa7d96328edc7fc8bc4fbfd`, base/master24df339:
+**pnpm check:merge192/192,exit0,304.48s**, single required run after correction.
+Log `/tmp/el-56khe-revision-gate.log`; exact commands/results/per-step logs:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-rKGCc3/results.json`.
+Seven relevant suites in that gate: HTTP48 + new steward probe16 + explicit API30
++ SessionManager85 + dispatch53 + assignment37 + completion69 = **338/338,1930
+assertions**. Smithy Node349/349 and Desktop Node6/6 passed, as did uncached workspace
+typecheck and Desktop source build. Frozen install/package typecheck/diff/target
+ancestry also passed. No gate or threshold modification; earlier failed probe/control
+and previous gate results are retained. Only this verification text changes after
+the passing source. Separate root build/lint/test, public docs build, browser/packaged
+GUI, cross-platform and live-provider tests were not run. No installed/live changes.
+Exact-final independent steward approval and approved CLI local delivery remain
+required; this worker result is not a merge verdict.
+
 ### el-4bwuz integrated gate failure and handoff
 
 Approved CLI sync with delivered `4c29bb0` produced `cdc223c`; only additive
@@ -1493,6 +1668,112 @@ identity, without global Git config changes. No implementation/test failures aft
 correction. Final documentation commit must receive exact-final independent review
 before approved standalone CLI local delivery.
 
+## el-56khe independent re-review — 2026-11-01, changes required
+
+Safe sync of worker correction5cd4805 with local masterbdd07d4 produced
+`a51bbb21800d64d237e4ced9d780673341b81223`. The approved operational CLI's build-info
+and four supplied hashes matched. Only independent appended documentation sections
+conflicted; both were preserved, with no reviewer production changes.
+
+The former accepted-start operation-log defect is corrected. Recreated independent
+real SQLite/Git/HTTP/SessionManager probes pass4/4 (66 assertions), checking both
+routes, retained exact task/events after optional logging failure and no assignment
+release while rollback is still pending. Original September /tmp evidence files
+were absent; historical0/2 failure/control2/2 records above and in el-4aqnn remain.
+Fresh portable probes and full logs are retained under
+`docs/workspace/http-session-start-review-20261101/`.
+
+**CHANGES REQUIRED:** the criterion "уже принятая/новая сессия не жертва cleanup"
+still fails for overlapping starts. A assigns and awaits spawn; B passes the early
+active-session precheck and commits its assignment; A publishes/persists and returns
+HTTP201 before B calls the real SessionManager; B rejects with "already has an
+active session" and its HTTP catch releases the matching task receipt. A's exact
+session/handle remains running, but task.assignee is undefined. Publication changes
+the agent rather than the task, so receipt-version CAS alone cannot fence this.
+Normal-lifecycle probe **0pass/2fail,exit1**; no-release-only control **2pass/0fail,
+exit0**. Both have24 assertions and use only isolated temporary SQLite/local Git
+and inert provider handles. The scheduling hook adds no synthetic startup failure.
+
+Required correction: make overlapping-start rejection distinct from positively
+cleaned own-start failure, using an attempt-bound outcome/reservation boundary.
+Do not adopt a current session/owner or parse error strings to decide cleanup.
+Preserve positive release, incomplete rollback retention, error diagnostics,
+Human/terminal/successor CAS, histories and intentional worktree retention. Add
+both already-starting and already-accepted overlap schedules for both routes.
+Full reproduction and gate/environment evidence are in the accompanying README.
+No merge approval, installed-app update, live-session/provider or daemon changes.
+
+Final re-review gate: **195 checks, 0 failed, duration=361.53s; exit0**,
+repository-pinned Node22.23.3. Relevant345/345,1956 assertions; Smithy Node352/352;
+Desktop Node17/17. Original ambient Node26 gate193/195,exit1,294.95s retained
+(native ABI127/147 mismatch, tracked el-127xg; one fresh pinned run authorized).
+Independent pinned probes4pass/2fail and no-release control2/2 still block approval.
+No source/lock/gate changes; exact results and logs in the review evidence directory.
+
+## el-56khe overlapping HTTP start correction — 2026-11-01
+
+The independent CHANGES REQUIRED verdict above remains historical evidence. After
+approved CLI hash verification, safe sync with delivered master `f1d707a` produced
+`a476aac`; no pending branch was copied. The steward's portable overlap probe was
+copied into `packages/smithy/src/api/http-session-start.concurrent.bun.test.ts`.
+On that unmodified source, the accepted-session schedule again failed **0/2**
+(24 assertions); the no-release-only attribution control passed **2/2**. Fresh
+logs are retained in `docs/workspace/http-session-start-review-20261101/worker-correction/`.
+This control does not constitute a complete baseline checkout.
+
+Chosen invariant: within one SessionManager, at most one HTTP start attempt for
+an agent can enter the initial precheck, worktree preparation, assignment, spawn,
+publication, notification and failure cleanup interval. A shared WeakMap keyed by
+manager and agent acquires synchronously before the first await. Both route
+factories use it, including multiple factories sharing the same manager. A
+contender receives **409 SESSION_START_IN_PROGRESS** before acquiring any receipt
+or resource. The owning request releases admission in finally, after any awaited
+rollback/conditional assignment release. A later request then observes the normal
+active-session check (**409 SESSION_EXISTS**) or can retry a failed start. Other
+agents and independent managers are not serialized. This is an in-process HTTP
+admission rule, not a cross-process lock or a redesign of CLI/daemon/resume runtime.
+No successor lookup, owner adoption or exception-text matching is used for cleanup.
+
+The earlier assignment receipt/CAS, optional accepted-start logging diagnostics,
+exact-session incomplete-rollback retention, Human/terminal/successor preservation,
+completion claims/history and intentional worktree retention are unchanged.
+Worktrees are still retained because exclusive deletion ownership is unproven;
+there is no claim that all orphan resources or live provider handles are removed.
+
+The permanent adaptation keeps the independent published/pending rollback controls
+(4 tests) and adds both starting/accepted schedules for SDK/app and mixed factory
+pairs (8), pending provider rollback and conditional-release admission/retry (4),
+early preparation/accepted notification failures (2), and unrelated-agent progress
+(2). Real temporary SQLite, local Git, API/HTTP/SessionManager and inert provider
+handles are used; no live workspace sessions, daemon or provider calls. The
+accepted schedule retains the original timing hook, which is now unreachable for
+the rejected contender. Whole task/event snapshots and registered worktree contents
+remain unchanged by rejected attempts. Initial corrected result **20/20**,346
+assertions; the final relevant and required-gate results follow below.
+
+Final worker acceptance on source **ec28964836689f656595b4039965d5b203f2b6f4**:
+- One required `pnpm check:merge` with pinned **Node v22.23.3**: **197/197,
+  exit0,247.31s**, no retries. Full gate log/results and relevant per-step logs in
+  `docs/workspace/http-session-start-review-20261101/worker-correction/`;
+  original full log directory is
+  `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-wVdRoI`.
+- Eight focused suites separately and again inside gate: **365/365,2302 assertions**
+  (HTTP48+overlap20+publication16+API30+SessionManager92+dispatch53+assignment37+
+  completion69). Prior independent publication/pending controls remain4/4.
+- Gate uncached typecheck, Desktop source build, Smithy Node/Vitest **352/352** and
+  Desktop Node **17/17** pass. Frozen install with pnpm8.15.5 exit0, lock unchanged.
+- Original steward evidence26 SHA256 entries verified unchanged. Baseline0/2 and
+  no-release control2/2 remain historical failures/controls, not erased by this run.
+- `git diff --check`, delivered masterf1d707a ancestry and no post-gate source/config
+  diff pass. Only verification documentation/evidence is added after ec28964.
+  Both author and committer use command-local Ilya Rubinchik <ilya@r-4k.com>.
+
+Separate root build/lint/test, public docs build, browser/packaged GUI, cross-platform
+and live-provider checks were not run. Existing skips are not passing coverage.
+No installed app change, live-session/provider/daemon test or maintenance operation.
+Independent exact-final steward approval and approved CLI local delivery remain
+required; worker verification/completion is not merge approval.
+
 
 ## el-4bwuz continuation after blocker delivery — 2026-11-01
 
@@ -1543,3 +1824,324 @@ runs were omitted; the required gate ran its declared checks. Historical failed
 acceptance and isolated non-reproduction remain preserved. Independent steward
 review of the exact final commit and approved CLI local merge are still required;
 worker completion is not merge approval or an installed-app update.
+
+
+## Independent steward final re-review el-56khe — 2026-11-01
+
+Reviewed commit: `cce7fd0c2f766923462f45ed87b17f73c3ea9166`; local target:
+`1b43de2bf9c5c9716750e5a56c619530196732c4`. Steward el-3jso.
+Approved operational CLI build d58bd815, dirty=false, and all four Director-pinned
+hashes matched. Safe sync imported only delivered el-4bwuz Spawner changes and
+reports. Both additive lifecycle-report conflicts were concatenated without loss.
+No reviewer production or substantive conflict-resolution changes. Worker HTTP
+source hashes, lockfile and gate script match the reviewed worker evidence.
+
+Acceptance criteria checked individually:
+1. Both actual HTTP factories capture the returned atomic assignment receipt
+   (agent, session identity and updatedAt) and use failed-dispatch conditional
+   release only for their failed attempt. Assignment rejection has no receipt.
+   No current-owner/session lookup is adopted during cleanup. Existing unassign
+   guards and transactional expectedUpdatedAt preserve Human, terminal, deferred,
+   successor and completion decisions, status, branch, histories and claims.
+2. Real two-connection temporary SQLite, local Git/worktrees, API/HTTP and
+   SessionManager tests cover successful201, failed spawn/publication/listener/
+   persistence, notification/prompt save, release failure/transaction rollback,
+   R1/R2 races and whole task/event/resource preservation. Preparation failure
+   returns an error rather than a false successful start.
+3. Accepted sessions survive optional operation-log failure. Only that optional
+   post-publication write is non-fatal, with an exact-session stderr diagnostic.
+   Publication/persistence/listener errors still fail startup; failed or unknown
+   rollback carries SessionStartupCleanupError with internal identity and both
+   errors, retaining assignment. Pending rollback is awaited before release.
+   Notification failure after acceptance retains the session and returns500.
+4. New shared per-SessionManager/per-agent synchronous admission begins before
+   the first await/precheck and ends in finally after notification and awaited
+   cleanup. Same/mixed route factories reject contenders409 without acquiring
+   assignment or resources. Pending spawn, accepted overlap, pending rollback/
+   release, early exit, later retry and unrelated-agent progress are covered.
+   The preserved old overlap probe was independently reloaded into a scratch
+   test importing this exact source: only the expected contender response changes
+   to409 and A is explicitly unblocked because B no longer reaches assignment.
+   Original accepted-session/identity/handle/assignment/resource assertions remain.
+   Both overlap cases plus original publication/pending controls pass6/6,
+   88 assertions, exit0; earlier controls remain4/4. No worktree test/source edits.
+5. Worktrees remain registered/on disk, including reused and successor-accessible
+   resources. Diagnostics honestly report retained/not-returned; no deletion lease
+   is inferred, and no universal orphan removal or provider termination is promised.
+6. Existing el-4aqnn, Directory and docs/task-lifecycle-race-investigation.md
+   document the chosen invariant, behavior and limits. All26 historical-review
+   and27 worker-correction evidence SHA256 entries verified. Previous publication
+   and overlap CHANGES REQUIRED results, negative controls and ambient-Node failed
+   gate are preserved, not replaced by current passing evidence. No new shared
+   document/library registration is needed.
+7. Scope stays within HTTP admission, assignment release and narrow accepted-start
+   outcome; however the sequential retry after incomplete rollback is still unsafe
+   (blocking finding below). CLI/daemon/resume and cross-process starts are not serialized by this
+   in-process HTTP guard. Existing natural terminated/persisted SessionManager
+   shortcut and provider cleanup limits remain outside this change, already
+   recorded in preceding lifecycle reviews; no new unrelated defect discovered.
+
+Independent commands/results:
+- Pinned PATH="$PWD/apps/desktop/node_modules/node/bin:$PATH"; node -v v22.23.3.
+  Runtime log: /tmp/el-56khe-final-steward-runtime.log.
+- pnpm8.15.5 install --frozen-lockfile: exit0; lock unchanged.
+  Log: /tmp/el-56khe-final-steward-install.log.
+- Scratch original-probe adaptation: bun test <scratch>/probe.bun.test.ts using
+  checkEnvironment() from scripts/check-merge.mjs and pinned PATH.6/6,exit0.
+  Path recorded in /tmp/el-56khe-final-independent-path.txt; log:
+  /tmp/el-56khe-final-independent-probe.log. Only imports and contender-response/
+  unblock scheduling adapted; production source unchanged.
+- One required pnpm check:merge: **197/197, exit0,255.99s**, pinned Node22.23.3.
+  Eight focused suites **365/365,2302 assertions**; Smithy Node/Vitest365/365,
+  Desktop Node17/17, uncached typecheck17/17 and Desktop source build pass.
+  Full log /tmp/el-56khe-final-steward-gate.log; per-command results
+  /var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Nm4A9d/results.json.
+
+Separate root build/lint/test, public-docs build, browser/packaged GUI,
+cross-platform and live-provider tests omitted; existing skips are not passing
+coverage. Tests use temporary SQLite/Git and inert provider/SDK mocks. Installed
+application, live sessions, daemon and maintenance were not changed or used as
+fixtures. No native rebuild, global Node/config change, gate weakening or retry.
+
+
+### Blocking finding: sequential retry after incomplete startup rollback
+
+Verdict: **CHANGES REQUIRED**, despite the passing standard gate.
+Unmet criterion: "уже принятая/новая сессия не жертва cleanup" and the explicit
+Director requirement "If startup rollback itself fails or its completion is
+unknown, do not release as though no owned session remains."
+
+Both real HTTP factories reproduce through normal public lifecycle:
+1. A assigns the task, spawns its handle and publishes its internal identity to
+   SQLite. The subsequent persistSession fault triggers startup rollback.
+2. Provider termination throws. A returns500 with retained-session-cleanup-incomplete,
+   and its task remains assigned. The exact A handle is still live; the persisted
+   agent remains currentSessionId=A, sessionStatus=running. SessionManager's stop
+   path has already marked local state terminated and removed its active mapping.
+3. The HTTP finally releases admission. A sequential retry B for the same agent
+   and task passes the precheck, commits another assignment receipt and attempts
+   spawn. The provider rejects B's spawn before returning any new handle.
+4. B's catch sees an ordinary startup error and releases its matching receipt.
+   Result: task.assignee is undefined while A's exact handle remains live and
+   its published registry identity/status remain A/running. The worktree survives.
+
+The scratch probe uses two temporary SQLite connections, real API/HTTP/Git/
+SessionManager, public persistence fault injection and inert provider handles.
+It does not mutate private session state, synthesize startSession exceptions,
+look up/adopt a successor, or access live workspace/provider data. Both routes
+fail **0/2,exit1,28 assertions**, only on final assignee preservation after proving
+A's live/published state and retained resources. The no-release-only control,
+installed after A's first response, passes **2/2,exit0,28 assertions**. It attributes
+the loss to B's cleanup, not a whole baseline checkout or a proposed fix.
+
+Relevant paths at reviewed source: both routes' cleanup and finally
+(SDK sessions.ts489-504; app sessions.ts456-471), and SessionManager
+finishSessionStop termination-before-await ordering (session-manager.ts860-880).
+The initial incomplete-start detection works; its protection does not survive
+another HTTP attempt. This is distinct from the fixed overlapping-request race.
+
+Required next step: preserve attempt-bound incomplete-cleanup knowledge across
+HTTP retries, or safely reject new admission until the exact unresolved attempt
+is resolved, without rediscovering/adopting a current agent session. Keep the
+positive completed-rollback retry, no-task-mutation rejection, overlap guard,
+original errors, successor/CAS/history and retained-resource guarantees. Obtain
+Director guidance on the narrow contract if needed; no broad runtime redesign.
+Add this both-route regression, then relevant checks, pinned final gate and a new
+independent exact-commit review. No merge approval or local delivery performed.
+
+Director notified in el-4miqg. Existing publication/overlap blockers are corrected
+and their historical failures remain preserved. The new blocker is introduced by
+HTTP conditional release across the unresolved prior attempt, not an unrelated
+pre-existing test failure. Gate checks all pass; the additional probe blocks merge.
+
+
+## el-56khe worker correction — incomplete startup protection across retries (2026-11-01)
+
+Continues independent CHANGES REQUIRED on `2dcba6861d3fdf4b6940710b0964def0dae38dc3`.
+The previous gate197/197, publication/overlap passes and new retry0/2/control2/2
+remain historical evidence, not approval. Current branch already contains delivered
+master `1b43de2`; no pending branch is copied and no target checkout is edited.
+
+The exact steward retry probe was copied into the API test directory (only its
+relative API import repaired) before production edits. Under pinned Node22.23.3
+PATH and the gate's sanitized checkEnvironment(), baseline again failed0/2,
+28assertions; no-release-only control passed2/2,28assertions. Logs and portable
+source are preserved in `docs/workspace/http-session-start-review-20261101/worker-retry-correction/`.
+
+Chosen invariant: a manager/agent HTTP admission may be reopened only when its
+attempt exits without an incomplete-cleanup receipt. SessionStartupCleanupError
+keeps the reservation, holding only that attempt's exact internal session ID.
+Both HTTP factories return409 SESSION_START_CLEANUP_INCOMPLETE with that ID on
+later requests, before any agent/session precheck, task assignment, preparation,
+spawn, notification or cleanup. No successor identity is looked up/adopted; no
+message matching, task-version refresh, local terminated-status check or missing
+active mapping substitutes for a cleanup receipt. The original500 and primary/
+cleanup diagnostics remain. Successful starts, early returns and completed startup
+rollback still release admission and preserve existing successful retry behavior.
+
+Conservative availability limit: retained admission lasts for that SessionManager
+instance's lifetime, including after a separately requested exact-session stop.
+This HTTP boundary has no cleanup-completion notification and adds no timeout,
+reset endpoint, automatic retry or recovery mechanism. Recreating route factories
+with the same manager does not unlock it. Process restart/replacement is not a
+proof of provider termination and is not recommended here as automatic recovery;
+external cleanup/recovery must be established separately. CLI/daemon/resume,
+multiple managers/processes and crash recovery remain outside this in-process
+HTTP invariant. No broad runtime/provider redesign is included.
+
+Worktrees remain intentionally retained: neither an unassigned task nor a failed
+session start proves exclusive deletion ownership. Reusable/successor data stays
+on disk and registered in Git; universal orphan deletion is not promised. Existing
+conditional assignment CAS, Human/terminal/successor decisions, completion claims,
+status/branch/history and accepted-session logging behavior remain unchanged.
+
+The real SQLite(two connections)/local Git/API/HTTP/SessionManager concurrent suite
+now has30 cases (previous20 plus10). Added coverage: both factories, repeated same/
+mixed-factory retries after failed termination or unknown rollback persistence,
+no precheck lookup, full task/events/registry/resources preservation, live successor
+protection, unrelated-agent progress, taskless incomplete startup followed by an
+assignment request, and explicit conservative retention after a later exact stop.
+Only provider handles and timing/fault boundaries are isolated fixtures; no inert
+startSession throw mock is used for these regressions. Existing completed-rollback
+retry, overlap, publication and R1/R2 coverage is retained.
+
+Verification so far: pnpm install --frozen-lockfile exit0 (lock unchanged);
+eight relevant suites375/375,2550assertions, each in a fresh sanitized subprocess:
+HTTP48, concurrent30, publication16, API assignment30, SessionManager92, dispatch53,
+assignment service37, completion69. One final pinned-runtime pnpm check:merge follows. Independent exact-final steward review remains required;
+this worker record is not merge approval. No installed-app/live-session/daemon or
+maintenance operations occurred. Separate root build/lint/test, public docs/browser/
+packaged GUI, cross-platform and live-provider runs are omitted; gate commands
+and results will be recorded, and skips are not passing coverage.
+
+
+### Final worker verification of retry correction
+
+Source commit **ecb6ce9d4508e66f7691c3c762b5a61ebdd1a640** (author and committer
+both command-scoped Ilya Rubinchik <ilya@r-4k.com>), already pushed on the assigned
+branch. Local master remains1b43de2 and is an ancestor; no sync/delivery needed
+or attempted in this worker session. Final documentation/evidence commit follows;
+production/tests/gate/manifests/lock remain byte-identical to tested source.
+
+One required `pnpm check:merge`: **197/197, exit0,245.49s**, explicit pinned
+**Node v22.23.3** first on PATH. It includes uncached17/17 workspace typecheck,
+Desktop source build, all isolated declared Bun checks, focused375/375,
+Smithy Node/Vitest365/365 and Desktop Node17/17. Eight focused suites also passed
+separately375/375,2550assertions. No retry, gate change or native rebuild.
+
+Evidence directory `docs/workspace/http-session-start-review-20261101/worker-retry-correction/`
+contains baseline0/2 and no-release-control2/2 logs/source, all eight focused logs,
+reproduction runner, runtime/install logs, full gate log/results and `gate-logs.tar.gz`
+with all197 per-command logs. `source-sha256.txt` binds tested code/gate/lock;
+`SHA256SUMS` binds captured evidence. Original gate location:
+`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-P8Z98W`.
+All75 historical evidence hashes verified unchanged. No prior failure/control or
+completion/history record is overwritten. Source diff whitespace check passes;
+raw captured log whitespace remains intentionally verbatim.
+
+This is worker verification, **not independent merge approval**. Complete through
+the normal task lifecycle for a new exact-final steward review and approved CLI
+local delivery. The explicit manager-lifetime admission retention limitation above
+remains; no automatic recovery, universal orphan deletion or cross-process fencing
+is claimed. No installed application, live provider/session/daemon or maintenance
+changes. Omitted checks remain as listed above.
+
+
+## Independent final steward re-review el-56khe — 2026-11-01
+
+Reviewed commit **3e6d534cf4983f4fc366dae15a4e747f4758bdb7**, local target
+**1b43de2bf9c5c9716750e5a56c619530196732c4**. Approved installed operational CLI
+build d58bd815/dirty=false and all four prescribed SHA256 hashes matched. Exact
+command-scoped Human author/committer identity was used for `task sync el-56khe`;
+exit0, refs/heads/master already included, HEAD unchanged. Reviewed task description,
+caller report el-2hrsm, full production/test diff and affected existing code.
+No steward production, test, conflict-resolution or repository edits.
+
+Acceptance evidence:
+1. Both HTTP factories capture only the committed assignment return (task ID,
+   agent, internal identity and updatedAt). Failed assignment has no cleanup
+   authority. Existing failed-dispatch CAS rejects changed versions/owners and
+   Human/terminal/deferred decisions; no reread/adoption or admin fallback.
+2. Real two-connection temporary SQLite/local Git/HTTP/API/SessionManager tests
+   cover stranded-assignment baseline, success, preparation/spawn/publication/
+   persistence/listener/notification errors, transaction rollback and cleanup
+   diagnostics. R1/R2 preserve complete winning task/event snapshots, completion
+   claims/history and status/branch. Reusable and successor Git data are retained.
+3. Accepted/publication logging is a narrow non-fatal optional write with visible
+   diagnostic. Post-return prompt/notification errors remain HTTP500 and retain
+   accepted sessions and assignment. Unsuccessful/unknown rollback returns the
+   exact attempt-bound SessionStartupCleanupError; pending rollback is awaited.
+4. Shared manager/agent admission precedes every await/precheck and covers all
+   effects and cleanup. Concurrent same/mixed factories reject409 without effects.
+   Incomplete rollback retains admission and its own internal session ID across
+   sequential retries/factory recreation; it never looks up/adopts a successor.
+   Completed rollback still permits successful retry; unrelated agents progress.
+5. Prior independent retry failure is corrected: portable steward probe rerun
+   against current production passes **8/8,118 assertions,exit0** (both routes:
+   publication, pending rollback, overlap and sequential incomplete retry).
+   Adaptations only relocate imports and expect new409 incomplete-cleanup response
+   instead of baseline500. No no-release stub or production modification in this
+   passing run. First scratch invocation failed before tests because its node_modules
+   link pointed at root (storage package unavailable); preserved setup log, then
+   corrected link to Smithy dependencies. This was not a source failure/gate retry.
+6. Historical original failures, attribution controls and failed ambient gate
+   remain intact. All **94** committed review-evidence hashes verified across four
+   manifests. Existing el-4aqnn, Directory and repository lifecycle report describe
+   the final invariant and intentional retention. No new shared document/library
+   entry is required. No pending branches, dependency or gate changes introduced.
+
+Independent verification on Node **v22.23.3**, pnpm8.15.5:
+- `pnpm install --frozen-lockfile`: exit0, lock unchanged.
+- `pnpm check:merge`: **196/197, exit1,253.95s**. Uncached typecheck17/17,
+  Desktop build, HTTP94/94, Smithy Node365/365, Desktop Node17/17 pass.
+  Eight relevant suites: **374pass/1fail,2546 assertions**, not375 passes.
+- Only failure: task-completion-protocol.bun.test.ts:38 beforeEach inserting
+  savedDoc via api.create: UNIQUE elements.id / ALREADY_EXISTS, case
+  `identity rejection preserves everything: missing-history` (68pass/1fail).
+  Failure occurs before the completion/HTTP behavior. Fixture, core, Quarry,
+  storage and completion source are byte-identical to target master.
+- One bounded isolated `bun test packages/smithy/src/services/task-completion-protocol.bun.test.ts`
+  with gate checkEnvironment() and pinned PATH: **69/69,374 assertions,exit0**.
+  This is non-reproduction, not replacement of the failed gate. No full retry.
+  No exact colliding IDs/root cause/frequency was captured.
+- Scratch `bun test <scratch>/probe.bun.test.ts` via checkEnvironment():8/8.
+  Source diff whitespace, unchanged source since worker gate, clean starting
+  worktree and master ancestry checks pass. No source change during checks.
+
+Original gate results: /var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/results.json.
+Durable complete197-step logs archive, results, failure, one isolated diagnostic,
+probe source/log/setup failure and install/runtime logs are in
+`docs/workspace/http-session-start-review-20261101/steward-rereview-gate/`.
+To replay portable probe, copy independent-probe.bun.test.ts.txt into Smithy src/api
+and run Bun in a fresh sanitized checkEnvironment() with pinned Node PATH;
+remove the scratch copy afterward. No live routing/provider fixtures allowed.
+
+Limitations: retained admission lasts the SessionManager lifetime even after an
+explicit exact-session stop succeeds; no reset/recovery protocol was added.
+Manager replacement/restart is not proof of provider cleanup. In-process HTTP
+admission does not fence CLI/daemon/resume, other managers/processes or crash
+recovery. Worktree retention deliberately does not promise removal of orphans.
+Provider handles are inert test fixtures, not actual provider transports.
+Separate root build/lint/test, public-docs build, browser/packaged GUI,
+cross-platform and live-provider checks omitted; existing skips are not passes.
+Installed application, live sessions/daemon and maintenance were not changed.
+
+Adjacent source-only observation sent to Director via message el-4wqyv (command
+addressed assigned Director el-9qzi): unchanged Spawner.spawnHeadless waitForInit
+rejection after obtaining a handle marks terminated without invoking provider
+termination; interactive post-handle catch is analogous. Potential unpublished
+resource retention, medium severity; not a fresh runtime reproduction or a new
+published-session failure. Requested triage/reuse or creation of a scoped follow-up,
+without expanding this HTTP task. Existing lower-runtime limitations remain.
+
+Verdict: HTTP criteria satisfied; **DELIVERY HELD — mandatory gate failed**.
+No new HTTP source defect asserted, no merge approval and no --force/status bypass.
+Director notified of the unrelated fixture failure in el-4tcd9; existing el-1w48v
+tracks similar fixture generation collisions, and should be extended/reused if
+appropriate (not assumed identical root cause). Next: obtain delivered fixture
+correction or Director-scoped investigation, sync local master with approved CLI,
+run pinned required gate and independent exact-final review. Do not copy pending
+branches or repeatedly rerun until green. Normal review rejection preserves the
+branch/evidence; task handoff is unavailable for review-status tasks by its current
+ownership contract. No production edits or installed/live operations by steward.
+

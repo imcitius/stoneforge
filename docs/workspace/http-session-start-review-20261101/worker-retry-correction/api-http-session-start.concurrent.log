@@ -1,0 +1,885 @@
+bun test v1.3.11 (af24e281)
+[session-manager] Starting session for agent el-3s3 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-3om mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Cleaned up event listeners for session http-persist
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-CuYPfk/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235906
+[session-manager] Starting session for agent el-1ed mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-42NRVN/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235906
+[session-manager] Starting session for agent el-478 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Cleaned up event listeners for session http-persist
+[session-manager] Starting session for agent el-xkw mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-5us mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-4ws mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-11i mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-14f mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Cleaned up event listeners for session http-persist
+[session-manager] Starting session for agent el-14f mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-4q6 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-4q6 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-3qn mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-sm9 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-2eu mode: headless provider: claude-code model: default executablePath: default prompt length: 12348
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-PKuaVw/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235908
+[session-manager] Starting session for agent el-411 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-KtbQSf/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235909
+[session-manager] Starting session for agent el-18r mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-LsQKYX/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235909
+[session-manager] Starting session for agent el-3za mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-wAcPX6/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235909
+[session-manager] Starting session for agent el-2rt mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-TxQAXY/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235909
+[session-manager] Starting session for agent el-3r9 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Cleaned up event listeners for session http-persist
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-TxQAXY/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235909
+[session-manager] Starting session for agent el-3r9 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-HXOcwm/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235910
+[session-manager] Starting session for agent el-3x3 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-HXOcwm/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235910
+[session-manager] Starting session for agent el-3x3 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-FGPfl1/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235910
+[session-manager] Starting session for agent el-436 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-YzgLHN/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235910
+[session-manager] Starting session for agent el-62i mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-4vx mode: headless provider: claude-code model: default executablePath: default prompt length: 12348
+[session-manager] Starting session for agent el-4g9 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-3ul mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Cleaned up event listeners for session http-rollback-persist
+[session-manager] Starting session for agent el-5eq mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-5eq mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-eo4 mode: headless provider: claude-code model: default executablePath: default prompt length: 12348
+[session-manager] Starting session for agent el-5xt mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Cleaned up event listeners for session http-terminate
+[session-manager] Starting session for agent el-153 mode: headless provider: claude-code model: default executablePath: default prompt length: 9035
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-AbhRVl/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235911
+[session-manager] Starting session for agent el-4v0 mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-HdUyOm/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235912
+[session-manager] Starting session for agent el-hql mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Cleaned up event listeners for session http-rollback-persist
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-WnJ91r/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235912
+[session-manager] Starting session for agent el-4dx mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Starting session for agent el-4dx mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-27s mode: headless provider: claude-code model: default executablePath: default prompt length: 12348
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-99P7lF/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235912
+[session-manager] Starting session for agent el-2ne mode: headless provider: claude-code model: default executablePath: default prompt length: 9254
+[session-manager] Cleaned up event listeners for session http-terminate
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-Hkmx6A/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031235912
+[session-manager] Starting session for agent el-51r mode: headless provider: claude-code model: default executablePath: default prompt length: 9035
+
+packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:
+(pass) sdk: independent published-session log rejection keeps exact assignment and events [224.66ms]
+[sessions] Failed to start session: 85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-W7mdZU/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk: independent pending rollback retains assignment until exact termination settles [233.08ms]
+(pass) app: independent published-session log rejection keeps exact assignment and events [192.83ms]
+[sessions] Failed to start session: 85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-42NRVN/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app: independent pending rollback retains assignment until exact termination settles [220.85ms]
+(pass) sdk/sdk: overlapping HTTP starts preserve the starting session [195.87ms]
+(pass) sdk/sdk: overlapping HTTP starts preserve the accepted session [195.25ms]
+(pass) sdk/app: overlapping HTTP starts preserve the starting session [192.50ms]
+(pass) sdk/app: overlapping HTTP starts preserve the accepted session [188.02ms]
+[sessions] Failed to start session: 85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-i0XPus/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk: admission stays reserved through pending persist cleanup, then permits retry [343.29ms]
+[sessions] Failed to start session: 70 |   const handles = new Map<string, boolean>();
+71 |   const spawner = {
+72 |     async spawn(agentId: EntityId, agentRole: string) {
+73 |       const sequence = ++starts;
+74 |       await duringSpawn?.();
+75 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:75:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-AvoKGi/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk: admission stays reserved through pending release cleanup, then permits retry [297.31ms]
+[sessions] Failed to create worktree for persistent worker: warn: fixture: prepare failed after creating path
+      at createWorktree (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:102:42)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:317:48)
+
+[sessions] Failed to start session: 102 |       if (stage === 'prepare') throw new Error('fixture: prepare failed after creating path');
+103 |       return result;
+104 |     } },
+105 |   } as unknown as Parameters<typeof sdkRoutes>[0];
+106 |   const makeRoute = (factory: typeof sdkRoutes) => factory(services, () => {
+107 |     notices++; if (stage === 'notify') throw new Error('fixture: notify failed');
+                                                       ^
+error: fixture: notify failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:107:50)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:471:7)
+ {
+  assignment: "retained-session-started",
+  sessionId: "http-notify",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-i32IXe/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk: early preparation return and notification error both relinquish admission [295.69ms]
+(pass) sdk: an unrelated agent can start while another agent is waiting [182.16ms]
+(pass) app/sdk: overlapping HTTP starts preserve the starting session [208.51ms]
+(pass) app/sdk: overlapping HTTP starts preserve the accepted session [199.43ms]
+(pass) app/app: overlapping HTTP starts preserve the starting session [198.10ms]
+(pass) app/app: overlapping HTTP starts preserve the accepted session [197.16ms]
+[sessions] Failed to start session: 85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-TxQAXY/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app: admission stays reserved through pending persist cleanup, then permits retry [301.62ms]
+[sessions] Failed to start session: 70 |   const handles = new Map<string, boolean>();
+71 |   const spawner = {
+72 |     async spawn(agentId: EntityId, agentRole: string) {
+73 |       const sequence = ++starts;
+74 |       await duringSpawn?.();
+75 |       if (['spawn', 'reused'].includes(stage)) throw new Error('fixture: spawn failed');
+                                                              ^
+error: fixture: spawn failed
+      at spawn (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:75:58)
+      at async startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:643:39)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-HXOcwm/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app: admission stays reserved through pending release cleanup, then permits retry [307.78ms]
+[sessions] Failed to create worktree for persistent worker: warn: fixture: prepare failed after creating path
+      at createWorktree (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:102:42)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:316:65)
+
+[sessions] Failed to start session: 102 |       if (stage === 'prepare') throw new Error('fixture: prepare failed after creating path');
+103 |       return result;
+104 |     } },
+105 |   } as unknown as Parameters<typeof sdkRoutes>[0];
+106 |   const makeRoute = (factory: typeof sdkRoutes) => factory(services, () => {
+107 |     notices++; if (stage === 'notify') throw new Error('fixture: notify failed');
+                                                       ^
+error: fixture: notify failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:107:50)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:438:7)
+ {
+  assignment: "retained-session-started",
+  sessionId: "http-notify",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-FGPfl1/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app: early preparation return and notification error both relinquish admission [308.79ms]
+(pass) app: an unrelated agent can start while another agent is waiting [186.96ms]
+[sessions] Failed to start session: 660 |     } catch (error) {
+661 |       // The caller cannot clean up a handle it never received. This includes
+662 |       // persistence failures after publication, not only the publication CAS.
+663 |       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+664 |       catch (cleanupError) {
+665 |         throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+                    ^
+SessionStartupCleanupError: Error: fixture: persist failed; startup cleanup incomplete for http-terminate: Error: fixture: terminate failed
+  sessionId: "http-terminate",
+
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:665:15)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+
+79 |       if (stage === 'listeners') emitter.on = () => { throw new Error('fixture: listener installation failed'); };
+80 |       return { session: { id, agentId, agentRole, provider: 'fixture', mode: 'headless', status: 'running',
+81 |         workingDirectory: prepared, createdAt: task.createdAt, lastActivityAt: task.createdAt, startedAt: task.createdAt }, events: emitter } as SpawnResult;
+82 |     },
+83 |     getSession(id: string) { return { status: handles.get(id) ? 'running' : 'terminated' }; },
+84 |     async terminate(id: string) { stops++; await duringStop?.(); if (stage === 'terminate') throw new Error('fixture: terminate failed'); handles.set(id, false); },
+                                                                                                           ^
+error: fixture: terminate failed
+      at terminate (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:84:103)
+      at async finishSessionStop (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:880:26)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:843:18)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-session-cleanup-incomplete",
+  sessionId: "http-terminate",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-3ozT1H/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: terminate failed",
+}
+(pass) sdk: repeated retry after incomplete terminate preserves the exact attempt without new effects [209.34ms]
+[sessions] Failed to start session: 660 |     } catch (error) {
+661 |       // The caller cannot clean up a handle it never received. This includes
+662 |       // persistence failures after publication, not only the publication CAS.
+663 |       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+664 |       catch (cleanupError) {
+665 |         throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+                    ^
+SessionStartupCleanupError: Error: fixture: persist failed; startup cleanup incomplete for http-rollback-persist: Error: fixture: rollback persistence outcome unknown
+  sessionId: "http-rollback-persist",
+
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:665:15)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+91 |     if (stage === 'rollback-persist') throw new Error('fixture: rollback persistence outcome unknown');
+                                                     ^
+error: fixture: rollback persistence outcome unknown
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:91:49)
+      at finishSessionStop (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:893:16)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:843:18)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-session-cleanup-incomplete",
+  sessionId: "http-rollback-persist",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-K2SGnZ/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: rollback persistence outcome unknown",
+}
+(pass) sdk: repeated retry after incomplete rollback-persist preserves the exact attempt without new effects [207.22ms]
+[sessions] Failed to start session: 660 |     } catch (error) {
+661 |       // The caller cannot clean up a handle it never received. This includes
+662 |       // persistence failures after publication, not only the publication CAS.
+663 |       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+664 |       catch (cleanupError) {
+665 |         throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+                    ^
+SessionStartupCleanupError: Error: fixture: persist failed; startup cleanup incomplete for http-terminate: Error: fixture: terminate failed
+  sessionId: "http-terminate",
+
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:665:15)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+
+79 |       if (stage === 'listeners') emitter.on = () => { throw new Error('fixture: listener installation failed'); };
+80 |       return { session: { id, agentId, agentRole, provider: 'fixture', mode: 'headless', status: 'running',
+81 |         workingDirectory: prepared, createdAt: task.createdAt, lastActivityAt: task.createdAt, startedAt: task.createdAt }, events: emitter } as SpawnResult;
+82 |     },
+83 |     getSession(id: string) { return { status: handles.get(id) ? 'running' : 'terminated' }; },
+84 |     async terminate(id: string) { stops++; await duringStop?.(); if (stage === 'terminate') throw new Error('fixture: terminate failed'); handles.set(id, false); },
+                                                                                                           ^
+error: fixture: terminate failed
+      at terminate (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:84:103)
+      at async finishSessionStop (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:880:26)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:843:18)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-session-cleanup-incomplete",
+  sessionId: "http-terminate",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-wi1v8F/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: terminate failed",
+}
+(pass) sdk: incomplete admission preserves a later successor task/session and unrelated starts still work [196.10ms]
+[sessions] Failed to start session: 660 |     } catch (error) {
+661 |       // The caller cannot clean up a handle it never received. This includes
+662 |       // persistence failures after publication, not only the publication CAS.
+663 |       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+664 |       catch (cleanupError) {
+665 |         throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+                    ^
+SessionStartupCleanupError: Error: fixture: persist failed; startup cleanup incomplete for http-terminate: Error: fixture: terminate failed
+  sessionId: "http-terminate",
+
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:665:15)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+
+79 |       if (stage === 'listeners') emitter.on = () => { throw new Error('fixture: listener installation failed'); };
+80 |       return { session: { id, agentId, agentRole, provider: 'fixture', mode: 'headless', status: 'running',
+81 |         workingDirectory: prepared, createdAt: task.createdAt, lastActivityAt: task.createdAt, startedAt: task.createdAt }, events: emitter } as SpawnResult;
+82 |     },
+83 |     getSession(id: string) { return { status: handles.get(id) ? 'running' : 'terminated' }; },
+84 |     async terminate(id: string) { stops++; await duringStop?.(); if (stage === 'terminate') throw new Error('fixture: terminate failed'); handles.set(id, false); },
+                                                                                                           ^
+error: fixture: terminate failed
+      at terminate (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:84:103)
+      at async finishSessionStop (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:880:26)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:843:18)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-session-cleanup-incomplete",
+  sessionId: "http-terminate",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-xDZkW9/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: terminate failed",
+}
+(pass) sdk: later exact-session stop does not implicitly reset retained HTTP admission [188.42ms]
+[sessions] Failed to start session: 660 |     } catch (error) {
+661 |       // The caller cannot clean up a handle it never received. This includes
+662 |       // persistence failures after publication, not only the publication CAS.
+663 |       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+664 |       catch (cleanupError) {
+665 |         throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+                    ^
+SessionStartupCleanupError: Error: fixture: persist failed; startup cleanup incomplete for http-terminate: Error: fixture: terminate failed
+  sessionId: "http-terminate",
+
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:665:15)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+
+79 |       if (stage === 'listeners') emitter.on = () => { throw new Error('fixture: listener installation failed'); };
+80 |       return { session: { id, agentId, agentRole, provider: 'fixture', mode: 'headless', status: 'running',
+81 |         workingDirectory: prepared, createdAt: task.createdAt, lastActivityAt: task.createdAt, startedAt: task.createdAt }, events: emitter } as SpawnResult;
+82 |     },
+83 |     getSession(id: string) { return { status: handles.get(id) ? 'running' : 'terminated' }; },
+84 |     async terminate(id: string) { stops++; await duringStop?.(); if (stage === 'terminate') throw new Error('fixture: terminate failed'); handles.set(id, false); },
+                                                                                                           ^
+error: fixture: terminate failed
+      at terminate (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:84:103)
+      at async finishSessionStop (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:880:26)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:843:18)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:440:56)
+ {
+  assignment: "retained-session-cleanup-incomplete",
+  sessionId: "http-terminate",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-22eTlp/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: terminate failed",
+}
+(pass) sdk: taskless incomplete attempt also fences a later request carrying a task [176.78ms]
+[sessions] Failed to start session: 660 |     } catch (error) {
+661 |       // The caller cannot clean up a handle it never received. This includes
+662 |       // persistence failures after publication, not only the publication CAS.
+663 |       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+664 |       catch (cleanupError) {
+665 |         throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+                    ^
+SessionStartupCleanupError: Error: fixture: persist failed; startup cleanup incomplete for http-terminate: Error: fixture: terminate failed
+  sessionId: "http-terminate",
+
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:665:15)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+
+79 |       if (stage === 'listeners') emitter.on = () => { throw new Error('fixture: listener installation failed'); };
+80 |       return { session: { id, agentId, agentRole, provider: 'fixture', mode: 'headless', status: 'running',
+81 |         workingDirectory: prepared, createdAt: task.createdAt, lastActivityAt: task.createdAt, startedAt: task.createdAt }, events: emitter } as SpawnResult;
+82 |     },
+83 |     getSession(id: string) { return { status: handles.get(id) ? 'running' : 'terminated' }; },
+84 |     async terminate(id: string) { stops++; await duringStop?.(); if (stage === 'terminate') throw new Error('fixture: terminate failed'); handles.set(id, false); },
+                                                                                                           ^
+error: fixture: terminate failed
+      at terminate (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:84:103)
+      at async finishSessionStop (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:880:26)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:843:18)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-session-cleanup-incomplete",
+  sessionId: "http-terminate",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-AbhRVl/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: terminate failed",
+}
+(pass) app: repeated retry after incomplete terminate preserves the exact attempt without new effects [213.24ms]
+[sessions] Failed to start session: 660 |     } catch (error) {
+661 |       // The caller cannot clean up a handle it never received. This includes
+662 |       // persistence failures after publication, not only the publication CAS.
+663 |       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+664 |       catch (cleanupError) {
+665 |         throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+                    ^
+SessionStartupCleanupError: Error: fixture: persist failed; startup cleanup incomplete for http-rollback-persist: Error: fixture: rollback persistence outcome unknown
+  sessionId: "http-rollback-persist",
+
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:665:15)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+91 |     if (stage === 'rollback-persist') throw new Error('fixture: rollback persistence outcome unknown');
+                                                     ^
+error: fixture: rollback persistence outcome unknown
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:91:49)
+      at finishSessionStop (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:893:16)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:843:18)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-session-cleanup-incomplete",
+  sessionId: "http-rollback-persist",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-HdUyOm/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: rollback persistence outcome unknown",
+}
+(pass) app: repeated retry after incomplete rollback-persist preserves the exact attempt without new effects [217.95ms]
+[sessions] Failed to start session: 660 |     } catch (error) {
+661 |       // The caller cannot clean up a handle it never received. This includes
+662 |       // persistence failures after publication, not only the publication CAS.
+663 |       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+664 |       catch (cleanupError) {
+665 |         throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+                    ^
+SessionStartupCleanupError: Error: fixture: persist failed; startup cleanup incomplete for http-terminate: Error: fixture: terminate failed
+  sessionId: "http-terminate",
+
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:665:15)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+
+79 |       if (stage === 'listeners') emitter.on = () => { throw new Error('fixture: listener installation failed'); };
+80 |       return { session: { id, agentId, agentRole, provider: 'fixture', mode: 'headless', status: 'running',
+81 |         workingDirectory: prepared, createdAt: task.createdAt, lastActivityAt: task.createdAt, startedAt: task.createdAt }, events: emitter } as SpawnResult;
+82 |     },
+83 |     getSession(id: string) { return { status: handles.get(id) ? 'running' : 'terminated' }; },
+84 |     async terminate(id: string) { stops++; await duringStop?.(); if (stage === 'terminate') throw new Error('fixture: terminate failed'); handles.set(id, false); },
+                                                                                                           ^
+error: fixture: terminate failed
+      at terminate (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:84:103)
+      at async finishSessionStop (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:880:26)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:843:18)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-session-cleanup-incomplete",
+  sessionId: "http-terminate",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-WnJ91r/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: terminate failed",
+}
+(pass) app: incomplete admission preserves a later successor task/session and unrelated starts still work [198.49ms]
+[sessions] Failed to start session: 660 |     } catch (error) {
+661 |       // The caller cannot clean up a handle it never received. This includes
+662 |       // persistence failures after publication, not only the publication CAS.
+663 |       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+664 |       catch (cleanupError) {
+665 |         throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+                    ^
+SessionStartupCleanupError: Error: fixture: persist failed; startup cleanup incomplete for http-terminate: Error: fixture: terminate failed
+  sessionId: "http-terminate",
+
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:665:15)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+
+79 |       if (stage === 'listeners') emitter.on = () => { throw new Error('fixture: listener installation failed'); };
+80 |       return { session: { id, agentId, agentRole, provider: 'fixture', mode: 'headless', status: 'running',
+81 |         workingDirectory: prepared, createdAt: task.createdAt, lastActivityAt: task.createdAt, startedAt: task.createdAt }, events: emitter } as SpawnResult;
+82 |     },
+83 |     getSession(id: string) { return { status: handles.get(id) ? 'running' : 'terminated' }; },
+84 |     async terminate(id: string) { stops++; await duringStop?.(); if (stage === 'terminate') throw new Error('fixture: terminate failed'); handles.set(id, false); },
+                                                                                                           ^
+error: fixture: terminate failed
+      at terminate (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:84:103)
+      at async finishSessionStop (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:880:26)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:843:18)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-session-cleanup-incomplete",
+  sessionId: "http-terminate",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-99P7lF/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: terminate failed",
+}
+(pass) app: later exact-session stop does not implicitly reset retained HTTP admission [185.41ms]
+[sessions] Failed to start session: 660 |     } catch (error) {
+661 |       // The caller cannot clean up a handle it never received. This includes
+662 |       // persistence failures after publication, not only the publication CAS.
+663 |       try { await this.stopSession(sessionState.id, { graceful: false, reason: 'Session startup failed' }); }
+664 |       catch (cleanupError) {
+665 |         throw new SessionStartupCleanupError(sessionState.id, error, cleanupError);
+                    ^
+SessionStartupCleanupError: Error: fixture: persist failed; startup cleanup incomplete for http-terminate: Error: fixture: terminate failed
+  sessionId: "http-terminate",
+
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:665:15)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+
+79 |       if (stage === 'listeners') emitter.on = () => { throw new Error('fixture: listener installation failed'); };
+80 |       return { session: { id, agentId, agentRole, provider: 'fixture', mode: 'headless', status: 'running',
+81 |         workingDirectory: prepared, createdAt: task.createdAt, lastActivityAt: task.createdAt, startedAt: task.createdAt }, events: emitter } as SpawnResult;
+82 |     },
+83 |     getSession(id: string) { return { status: handles.get(id) ? 'running' : 'terminated' }; },
+84 |     async terminate(id: string) { stops++; await duringStop?.(); if (stage === 'terminate') throw new Error('fixture: terminate failed'); handles.set(id, false); },
+                                                                                                           ^
+error: fixture: terminate failed
+      at terminate (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:84:103)
+      at async finishSessionStop (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:880:26)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:843:18)
+
+85 |   } as unknown as SpawnerService;
+86 |   const sessions = createSessionManager(spawner, api, registry);
+87 |   const persist = sessions.persistSession.bind(sessions);
+88 |   let persistenceCalls = 0;
+89 |   sessions.persistSession = async id => {
+90 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/api/http-session-start.concurrent.bun.test.ts:90:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:407:56)
+ {
+  assignment: "retained-session-cleanup-incomplete",
+  sessionId: "http-terminate",
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-Hkmx6A/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+  error: "Error: fixture: terminate failed",
+}
+(pass) app: taskless incomplete attempt also fences a later request carrying a task [204.26ms]
+
+ 30 pass
+ 0 fail
+ 594 expect() calls
+Ran 30 tests across 1 file. [6.79s]

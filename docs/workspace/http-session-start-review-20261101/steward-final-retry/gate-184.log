@@ -1,0 +1,45 @@
+bun test v1.3.11 (af24e281)
+
+packages/smithy/src/services/task-assignment-service.bun.test.ts:
+(pass) TaskAssignmentService > AssignmentStatusValues > contains all expected assignment status values [8.78ms]
+(pass) TaskAssignmentService > assignToAgent > assigns a task to an agent with auto-generated branch and worktree [5.48ms]
+(pass) TaskAssignmentService > assignToAgent > assigns a task with custom branch and worktree [3.13ms]
+(pass) TaskAssignmentService > assignToAgent > assigns and marks task as started when markAsStarted is true [3.54ms]
+(pass) TaskAssignmentService > assignToAgent > throws error when task does not exist [2.49ms]
+(pass) TaskAssignmentService > assignToAgent > throws error when agent does not exist [2.52ms]
+(pass) TaskAssignmentService > unassignTask > unassigns a task from its agent [3.58ms]
+(pass) TaskAssignmentService > unassignTask > throws error when task does not exist [2.38ms]
+(pass) TaskAssignmentService > startTask > marks a task as started [2.86ms]
+(pass) TaskAssignmentService > startTask > starts task without session ID [3.21ms]
+(pass) TaskAssignmentService > startTask > throws error when task does not exist [2.16ms]
+(pass) TaskAssignmentService > completeTask > marks a task as completed with REVIEW status [4.08ms]
+(pass) TaskAssignmentService > completeTask > clears assignee when task is completed [3.45ms]
+(pass) TaskAssignmentService > completeTask > throws error when task does not exist [3.30ms]
+(pass) TaskAssignmentService > completeTask > throws error when task is already CLOSED [3.78ms]
+(pass) TaskAssignmentService > completeTask > throws error when task is already in REVIEW [4.13ms]
+(pass) TaskAssignmentService > handoffTask > hands off a task with message and preserves branch/worktree [4.83ms]
+(pass) TaskAssignmentService > handoffTask > builds handoff history across multiple handoffs [5.04ms]
+(pass) TaskAssignmentService > handoffTask > throws error when task does not exist [3.35ms]
+(pass) TaskAssignmentService > handoffTask > hands off active assigned work and clears mergeStatus [3.74ms]
+(pass) TaskAssignmentService > getAgentTasks > returns all tasks assigned to an agent [3.98ms]
+(pass) TaskAssignmentService > getAgentTasks > returns empty array when agent has no tasks [2.55ms]
+(pass) TaskAssignmentService > getAgentWorkload > returns correct workload summary [4.16ms]
+(pass) TaskAssignmentService > agentHasCapacity > returns true when agent has capacity [3.03ms]
+(pass) TaskAssignmentService > agentHasCapacity > returns false when agent is at capacity [2.95ms]
+(pass) TaskAssignmentService > agentHasCapacity > returns false when agent does not exist [2.59ms]
+(pass) TaskAssignmentService > getUnassignedTasks > returns tasks without an agent assigned [3.02ms]
+(pass) TaskAssignmentService > getTasksByAssignmentStatus > returns tasks by assignment status [4.49ms]
+(pass) TaskAssignmentService > listAssignments > lists all task assignments [2.89ms]
+(pass) TaskAssignmentService > listAssignments > filters by agent ID [3.47ms]
+(pass) TaskAssignmentService > listAssignments > filters by merge status [3.52ms]
+(pass) TaskAssignmentService > listAssignments > filters by multiple assignment statuses [3.06ms]
+(pass) TaskAssignmentService > getTasksAwaitingMerge > returns completed tasks awaiting merge [4.39ms]
+(pass) Branch and Worktree Generation Integration > generateBranchName creates expected format [0.02ms]
+(pass) Branch and Worktree Generation Integration > generateWorktreePath creates expected format
+(pass) Branch and Worktree Generation Integration > createSlugFromTitle handles special characters [0.04ms]
+(pass) Branch and Worktree Generation Integration > createSlugFromTitle limits length [0.07ms]
+
+ 37 pass
+ 0 fail
+ 96 expect() calls
+Ran 37 tests across 1 file. [188.00ms]

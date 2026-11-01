@@ -1,0 +1,116 @@
+
+> @stoneforge/desktop@0.1.0 test /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/desktop
+> node --test tests/*.test.mjs
+
+TAP version 13
+# Subtest: all projects signal once; response clears badges and replacement instances rearm notification
+ok 1 - all projects signal once; response clears badges and replacement instances rearm notification
+  ---
+  duration_ms: 2.3145
+  type: 'test'
+  ...
+# Subtest: in-flight responses cannot notify after stop or instance replacement
+ok 2 - in-flight responses cannot notify after stop or instance replacement
+  ---
+  duration_ms: 1.826208
+  type: 'test'
+  ...
+# Subtest: workers, stopped sessions and fresh signals cannot send immediate notifications
+ok 3 - workers, stopped sessions and fresh signals cannot send immediate notifications
+  ---
+  duration_ms: 0.329458
+  type: 'test'
+  ...
+# Subtest: stop prevents a notification from an already pending request
+ok 4 - stop prevents a notification from an already pending request
+  ---
+  duration_ms: 1.497709
+  type: 'test'
+  ...
+# Subtest: a second request stays pending during cooldown and notifies once when it expires
+ok 5 - a second request stays pending during cooldown and notifies once when it expires
+  ---
+  duration_ms: 0.343917
+  type: 'test'
+  ...
+# Subtest: adopts an existing standalone process only for its database, then stops it gracefully
+ok 6 - adopts an existing standalone process only for its database, then stops it gracefully
+  ---
+  duration_ms: 4602.098333
+  type: 'test'
+  ...
+# Subtest: initialize new and partial workspaces with bundled CLI; preserve files and existing configuration
+ok 7 - initialize new and partial workspaces with bundled CLI; preserve files and existing configuration
+  ---
+  duration_ms: 344.599875
+  type: 'test'
+  ...
+# Subtest: Finder and non-UTF-8 environments give terminal helpers a UTF-8 character locale
+ok 8 - Finder and non-UTF-8 environments give terminal helpers a UTF-8 character locale
+  ---
+  duration_ms: 19.901834
+  type: 'test'
+  ...
+# Subtest: Logs fit small and offset work areas including native window chrome
+ok 9 - Logs fit small and offset work areas including native window chrome
+  ---
+  duration_ms: 0.6145
+  type: 'test'
+  ...
+# Subtest: Logs retain the last 10,000 characters and escape untrusted text and names
+ok 10 - Logs retain the last 10,000 characters and escape untrusted text and names
+  ---
+  duration_ms: 0.217334
+  type: 'test'
+  ...
+# Subtest: three real backends isolate identical agent IDs, credentials and events; restart changes identity
+ok 11 - three real backends isolate identical agent IDs, credentials and events; restart changes identity
+  ---
+  duration_ms: 4581.996167
+  type: 'test'
+  ...
+# Subtest: Sidebar preference defaults to visible and survives reload
+ok 12 - Sidebar preference defaults to visible and survives reload
+  ---
+  duration_ms: 16.904375
+  type: 'test'
+  ...
+# Subtest: Project view fills the width released by a collapsed sidebar
+ok 13 - Project view fills the width released by a collapsed sidebar
+  ---
+  duration_ms: 0.134042
+  type: 'test'
+  ...
+# Subtest: non-Git Desktop project registers two repositories; real CLI uses shared project data and merges only the bound repository after restart
+ok 14 - non-Git Desktop project registers two repositories; real CLI uses shared project data and merges only the bound repository after restart
+  ---
+  duration_ms: 4071.213541
+  type: 'test'
+  ...
+# Subtest: macOS workaround preserves socket calls and suppresses only the reported native error
+ok 15 - macOS workaround preserves socket calls and suppresses only the reported native error
+  ---
+  duration_ms: 0.82775
+  type: 'test'
+  ...
+# Subtest: other platforms and runtimes without setTypeOfService are unchanged
+ok 16 - other platforms and runtimes without setTypeOfService are unchanged
+  ---
+  duration_ms: 0.782958
+  type: 'test'
+  ...
+# Subtest: Electron fetch survives injected macOS EINVAL on fresh and reused HTTP sockets
+ok 17 - Electron fetch survives injected macOS EINVAL on fresh and reused HTTP sockets
+  ---
+  duration_ms: 440.109042
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4658.823875

@@ -1,0 +1,322 @@
+bun test v1.3.11 (af24e281)
+
+packages/smithy/src/runtime/session-manager.bun.test.ts:
+[session-manager] Starting session for agent el-test002 mode: interactive provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > forwards interactive UI session limits to the workspace handler and session observers [1.34ms]
+[session-manager] Starting session for agent el-test002 mode: interactive provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test002, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > director attention reaches the API record, deduplicates redraws and clears on human input [3.84ms]
+[session-manager] Starting session for agent el-test002 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test002, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > HTTP attention rejects mismatched/stale sessions and successful human HTTP input clears it [68.13ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > worker prompts never create director attention [0.31ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > startSession > starts a new session for an agent [0.10ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: claude-sonnet-4 executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > startSession > keeps spawn-specific provider/model in history after agent settings change [0.27ms]
+(pass) SessionManager > startSession > throws error for non-existent agent [0.10ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > startSession > throws error if agent already has active session [0.05ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 11
+(pass) SessionManager > startSession > applies start options correctly [0.09ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > startSession > updates agent session status in registry [0.07ms]
+(pass) SessionManager > resumeSession > resumes a session with provider session ID [0.33ms]
+(pass) SessionManager > resumeSession > throws error for non-existent agent [0.04ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > resumeSession > throws error if agent already has active session [0.10ms]
+(pass) SessionManager > resumeSession > performs UWP check when enabled and callback provided [0.17ms]
+(pass) SessionManager > resumeSession > UWP check returns empty result when no tasks assigned [0.08ms]
+(pass) SessionManager > resumeSession > skips UWP check when checkReadyQueue is false [0.06ms]
+(pass) SessionManager > resumeSession > skips UWP check when no callback provided [0.04ms]
+(pass) SessionManager > resumeSession > UWP check defaults to enabled when not specified [0.07ms]
+(pass) SessionManager > resumeSession > preserves resume prompt when UWP task found [0.09ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > stopSession > preserves the resume ID discovered during graceful shutdown in session history [0.31ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > stopSession > stops a running session [0.17ms]
+(pass) SessionManager > stopSession > throws error for non-existent session [0.05ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > stopSession > records termination reason [0.13ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > stopSession > updates agent session status to idle [0.10ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > stopSession > clears active session for agent [0.09ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session session-mock-1
+(pass) SessionManager > suspendSession > suspends a running session [0.17ms]
+(pass) SessionManager > suspendSession > throws error for non-existent session
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session session-mock-1
+(pass) SessionManager > suspendSession > records suspension reason [0.12ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session session-mock-1
+(pass) SessionManager > suspendSession > updates agent session status to suspended [0.11ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session session-mock-1
+(pass) SessionManager > suspendSession > preserves provider session ID for resumption [0.02ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > getSession > returns session by ID
+(pass) SessionManager > getSession > returns undefined for non-existent session
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > getActiveSession > returns active session for agent [0.18ms]
+(pass) SessionManager > getActiveSession > returns undefined when no active session
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > getActiveSession > returns undefined after session stopped [0.10ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session session-mock-1
+(pass) SessionManager > getActiveSession > returns undefined after session suspended [0.07ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-test002 mode: interactive provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > listSessions > returns all sessions when no filter [0.29ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-test002 mode: interactive provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > listSessions > filters by agentId
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-test002 mode: interactive provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > listSessions > filters by role [0.19ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-test002 mode: interactive provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > listSessions > filters by status [0.13ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-test002 mode: interactive provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+[session-manager] Cleaned up event listeners for session session-mock-2
+(pass) SessionManager > listSessions > filters by multiple statuses [0.14ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-test002 mode: interactive provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > listSessions > filters by resumable [0.14ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session session-mock-1
+(pass) SessionManager > getMostRecentResumableSession > returns most recent session with provider session ID [12.95ms]
+(pass) SessionManager > getMostRecentResumableSession > returns undefined when no sessions exist
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > getSessionHistory > returns session history for agent [0.25ms]
+(pass) SessionManager > getSessionHistory > returns empty array for agent with no history [0.08ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-2, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-2
+[session-manager] Session session-mock-2 already in status: terminated
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-3, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-3
+[session-manager] Session session-mock-3 already in status: terminated
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-4, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-4
+[session-manager] Session session-mock-4 already in status: terminated
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-5, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-5
+[session-manager] Session session-mock-5 already in status: terminated
+(pass) SessionManager > getSessionHistory > limits number of entries returned [30.48ms]
+[session-manager] Starting session for agent el-test002 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > messageSession > delayed delivery preserves newer session state: request [0.62ms]
+[session-manager] Starting session for agent el-test002 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > messageSession > delayed delivery preserves newer session state: clear [0.28ms]
+[session-manager] Starting session for agent el-test002 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test002, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > messageSession > delayed delivery preserves newer session state: stop [0.26ms]
+(pass) SessionManager > messageSession > returns error for non-existent session [0.05ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > messageSession > returns error when no content provided [0.16ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > messageSession > returns error when agent has no channel [0.04ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > messageSession > succeeds when agent has channel [0.21ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > getEventEmitter > returns event emitter for active session [0.32ms]
+(pass) SessionManager > getEventEmitter > returns undefined for non-existent session [0.05ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > persistSession > persists session state to agent metadata [0.14ms]
+(pass) SessionManager > persistSession > does nothing for non-existent session [0.02ms]
+(pass) SessionManager > loadSessionState > does nothing for non-existent agent [0.15ms]
+(pass) SessionManager > loadSessionState > loads suspended session state [0.11ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > event forwarding > forwards events from spawner to session emitter [0.05ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > event forwarding > forwards error events
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Cleaning up running session session-mock-1 for agent el-test001
+[session-manager] Cleared active session mapping for agent el-test001
+(pass) SessionManager > event forwarding > updates session status on exit event [11.61ms]
+(pass) SessionManager > getApi > returns the API instance [0.10ms]
+(pass) SessionManager > getSessionHistoryByRole > returns empty array when no sessions exist for role [0.08ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > getSessionHistoryByRole > returns session history for a specific role [0.50ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+[session-manager] Starting session for agent el-test003 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-2, agent el-test003, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-2
+[session-manager] Session session-mock-2 already in status: terminated
+(pass) SessionManager > getSessionHistoryByRole > aggregates history from multiple agents with same role [0.21ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+[session-manager] Starting session for agent el-test002 mode: interactive provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-2, agent el-test002, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-2
+[session-manager] Session session-mock-2 already in status: terminated
+(pass) SessionManager > getSessionHistoryByRole > does not include sessions from other roles [0.14ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-2, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-2
+[session-manager] Session session-mock-2 already in status: terminated
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-3, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-3
+[session-manager] Session session-mock-3 already in status: terminated
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-4, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-4
+[session-manager] Session session-mock-4 already in status: terminated
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-5, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-5
+[session-manager] Session session-mock-5 already in status: terminated
+(pass) SessionManager > getSessionHistoryByRole > respects limit parameter [28.77ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > getSessionHistoryByRole > includes agent name in history entries [0.62ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+[session-manager] Starting session for agent el-test003 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-2, agent el-test003, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-2
+[session-manager] Session session-mock-2 already in status: terminated
+(pass) SessionManager > getSessionHistoryByRole > sorts history by most recent first [21.70ms]
+(pass) SessionManager > getPreviousSession > returns undefined when no sessions exist for role [1.25ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > getPreviousSession > returns undefined when only running sessions exist [0.20ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > getPreviousSession > returns terminated session [0.25ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session session-mock-1
+(pass) SessionManager > getPreviousSession > returns suspended session [0.10ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+[session-manager] Starting session for agent el-test003 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session session-mock-2
+(pass) SessionManager > getPreviousSession > returns most recent ended session when multiple exist [21.30ms]
+[session-manager] Starting session for agent el-test002 mode: interactive provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test002, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-2, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-2
+[session-manager] Session session-mock-2 already in status: terminated
+(pass) SessionManager > getPreviousSession > returns correct role in previous session [0.39ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session session-mock-1
+(pass) SessionManager > getPreviousSession > includes provider session ID for resumption [0.17ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > persistSession with history > persists session history to agent metadata [0.12ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=1, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Cleaning up starting session session-mock-1 for agent el-test001
+[session-manager] Cleared active session mapping for agent el-test001
+(pass) SessionManager > session leak prevention > onExit cleans up sessions in starting status [51.85ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Cleaning up terminating session session-mock-1 for agent el-test001
+[session-manager] Cleared active session mapping for agent el-test001
+(pass) SessionManager > session leak prevention > onExit cleans up sessions in terminating status [52.83ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session session-mock-1, agent el-test001, code=0, signal=null
+[session-manager] Cleaned up event listeners for session session-mock-1
+[session-manager] Session session-mock-1 already in status: terminated
+(pass) SessionManager > session leak prevention > onExit does not modify already-terminated sessions [52.49ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session session-mock-1
+(pass) SessionManager > session leak prevention > onExit does not modify already-suspended sessions [52.05ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > session leak prevention > listSessions excludes sessions with dead PIDs [0.45ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > session leak prevention > listSessions cleans up starting sessions with dead PIDs [0.09ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > session leak prevention > listSessions cleans up headless sessions when spawner no longer tracks them [0.10ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > session leak prevention > getActiveSession cleans up headless sessions when spawner no longer tracks them [0.06ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > session leak prevention > listSessions cleans up headless sessions when spawner shows terminated [0.07ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager > session leak prevention > scheduleTerminatedSessionCleanup removes session without persisted flag [5501.71ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: claude-preview prompt length: 0
+(pass) SessionManager executable path tracking > passes executablePathOverride as claudePath to spawner for rate limit attribution [0.23ms]
+[session-manager] Starting session for agent el-test002 mode: headless provider: claude-code model: default executablePath: /custom/claude-binary prompt length: 0
+(pass) SessionManager executable path tracking > passes agent metadata executablePath as claudePath to spawner when no override [0.40ms]
+[session-manager] Starting session for agent el-test001 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+(pass) SessionManager executable path tracking > does not set claudePath when no executable path override or metadata path [0.12ms]
+
+ 92 pass
+ 0 fail
+ 183 expect() calls
+Ran 92 tests across 1 file. [6.08s]

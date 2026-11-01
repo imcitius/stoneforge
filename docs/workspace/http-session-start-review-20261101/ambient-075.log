@@ -1,0 +1,143 @@
+bun test v1.3.11 (af24e281)
+
+packages/quarry/src/cli/commands/metrics-output.bun.test.ts:
+48 | 
+49 | function run(...args: string[]) {
+50 |   const result = spawnSync('node', [join(repository, 'packages/quarry/dist/bin/sf.js'),
+51 |     'metrics', '--db', database, ...args], { cwd: workspace, env, encoding: 'utf8', timeout: 15_000 });
+52 |   expect(result.error).toBeUndefined();
+53 |   expect(result.status).toBe(0);
+                             ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:53:25)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:60:20)
+(fail) real CLI provider: measured zero stays zero [144.71ms]
+48 | 
+49 | function run(...args: string[]) {
+50 |   const result = spawnSync('node', [join(repository, 'packages/quarry/dist/bin/sf.js'),
+51 |     'metrics', '--db', database, ...args], { cwd: workspace, env, encoding: 'utf8', timeout: 15_000 });
+52 |   expect(result.error).toBeUndefined();
+53 |   expect(result.status).toBe(0);
+                             ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:53:25)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:67:22)
+(fail) real CLI provider: unavailable never renders as measured zero [100.28ms]
+48 | 
+49 | function run(...args: string[]) {
+50 |   const result = spawnSync('node', [join(repository, 'packages/quarry/dist/bin/sf.js'),
+51 |     'metrics', '--db', database, ...args], { cwd: workspace, env, encoding: 'utf8', timeout: 15_000 });
+52 |   expect(result.error).toBeUndefined();
+53 |   expect(result.status).toBe(0);
+                             ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:53:25)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:67:22)
+(fail) real CLI provider: unknown never renders as measured zero [95.36ms]
+48 | 
+49 | function run(...args: string[]) {
+50 |   const result = spawnSync('node', [join(repository, 'packages/quarry/dist/bin/sf.js'),
+51 |     'metrics', '--db', database, ...args], { cwd: workspace, env, encoding: 'utf8', timeout: 15_000 });
+52 |   expect(result.error).toBeUndefined();
+53 |   expect(result.status).toBe(0);
+                             ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:53:25)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:79:20)
+(fail) real CLI provider: partial subtotal honors provider filter and historical numbers [91.97ms]
+48 | 
+49 | function run(...args: string[]) {
+50 |   const result = spawnSync('node', [join(repository, 'packages/quarry/dist/bin/sf.js'),
+51 |     'metrics', '--db', database, ...args], { cwd: workspace, env, encoding: 'utf8', timeout: 15_000 });
+52 |   expect(result.error).toBeUndefined();
+53 |   expect(result.status).toBe(0);
+                             ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:53:25)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:60:20)
+(fail) real CLI model: measured zero stays zero [95.45ms]
+48 | 
+49 | function run(...args: string[]) {
+50 |   const result = spawnSync('node', [join(repository, 'packages/quarry/dist/bin/sf.js'),
+51 |     'metrics', '--db', database, ...args], { cwd: workspace, env, encoding: 'utf8', timeout: 15_000 });
+52 |   expect(result.error).toBeUndefined();
+53 |   expect(result.status).toBe(0);
+                             ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:53:25)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:67:22)
+(fail) real CLI model: unavailable never renders as measured zero [93.39ms]
+48 | 
+49 | function run(...args: string[]) {
+50 |   const result = spawnSync('node', [join(repository, 'packages/quarry/dist/bin/sf.js'),
+51 |     'metrics', '--db', database, ...args], { cwd: workspace, env, encoding: 'utf8', timeout: 15_000 });
+52 |   expect(result.error).toBeUndefined();
+53 |   expect(result.status).toBe(0);
+                             ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:53:25)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:67:22)
+(fail) real CLI model: unknown never renders as measured zero [92.77ms]
+48 | 
+49 | function run(...args: string[]) {
+50 |   const result = spawnSync('node', [join(repository, 'packages/quarry/dist/bin/sf.js'),
+51 |     'metrics', '--db', database, ...args], { cwd: workspace, env, encoding: 'utf8', timeout: 15_000 });
+52 |   expect(result.error).toBeUndefined();
+53 |   expect(result.status).toBe(0);
+                             ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:53:25)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:79:20)
+(fail) real CLI model: partial subtotal honors provider filter and historical numbers [93.08ms]
+48 | 
+49 | function run(...args: string[]) {
+50 |   const result = spawnSync('node', [join(repository, 'packages/quarry/dist/bin/sf.js'),
+51 |     'metrics', '--db', database, ...args], { cwd: workspace, env, encoding: 'utf8', timeout: 15_000 });
+52 |   expect(result.error).toBeUndefined();
+53 |   expect(result.status).toBe(0);
+                             ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at run (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:53:25)
+      at <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/quarry/src/cli/commands/metrics-output.bun.test.ts:95:18)
+(fail) observed usage without model pricing is not free; date filtering and empty coverage [92.59ms]
+
+ 0 pass
+ 9 fail
+ 18 expect() calls
+Ran 9 tests across 1 file. [8.10s]

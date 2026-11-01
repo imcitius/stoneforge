@@ -1,0 +1,23 @@
+/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js:121
+        throw e;
+        ^
+
+Error: The module '/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/node_modules/.pnpm/better-sqlite3@11.10.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 127. This version of Node.js requires
+NODE_MODULE_VERSION 147. Please try re-compiling or re-installing
+the module (for instance, using `npm rebuild` or `npm install`).
+    at Object..node (node:internal/modules/cjs/loader:2101:18)
+    at Module.load (node:internal/modules/cjs/loader:1656:32)
+    at Module._load (node:internal/modules/cjs/loader:1448:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.require (node:internal/modules/cjs/loader:1679:12)
+    at require (node:internal/modules/helpers:196:16)
+    at bindings (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js:112:48)
+    at new Database (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/node_modules/.pnpm/better-sqlite3@11.10.0/node_modules/better-sqlite3/lib/database.js:48:64)
+    at [eval]:1:147
+    at runScriptInThisContext (node:internal/vm:219:10) {
+  code: 'ERR_DLOPEN_FAILED'
+}
+
+Node.js v26.8.2

@@ -1,0 +1,4 @@
+
+> @stoneforge/desktop@0.1.0 build /Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/desktop
+> tsc && cp src/preload.cjs src/logs-preload.cjs src/shell.html src/shell.css src/shell.js dist/ && node scripts/build-info.mjs
+

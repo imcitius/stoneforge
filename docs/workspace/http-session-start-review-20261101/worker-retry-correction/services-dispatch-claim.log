@@ -1,0 +1,158 @@
+bun test v1.3.11 (af24e281)
+[session-manager] Starting session for agent el-1uwa mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-35m3 mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-4b56 mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-2c5x mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-1hu7 mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-5yd5 mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-4tjf mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-79j0 mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Starting session for agent el-3m0s mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Cleaned up event listeners for session internal-2
+[session-manager] Starting session for agent el-2rkd mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Starting session for agent el-ysfo mode: headless provider: claude-code model: default executablePath: default prompt length: 578
+[session-manager] Starting session for agent el-51cp mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Starting session for agent el-2gm9 mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-31fm mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-zq39 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-zq39 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-lr5p mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Exit event received for session internal-1, agent el-lr5p, code=0, signal=null
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Cleaning up running session internal-1 for agent el-lr5p
+[session-manager] Cleared active session mapping for agent el-lr5p
+[session-manager] Starting session for agent el-lr5p mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-3yev mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-65bh mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-9vhx mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-4nsu mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-2dwc mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-2dwc mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-2
+[session-manager] Starting session for agent el-5mql mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-4g0s mode: headless provider: claude-code model: default executablePath: default prompt length: 12537
+[session-manager] Starting session for agent el-6805 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-438z mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-4p8y mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-17ez mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Cleaned up event listeners for session internal-1
+[session-manager] Starting session for agent el-1k8o mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-21ab mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-4m5f mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-2kqu mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-15r9 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-1xvg mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-686z mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-5f0q mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-jxky mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-1p82 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-4ghe mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-4bw8 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-1ph8 mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-paoe mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+[session-manager] Starting session for agent el-1qxn mode: headless provider: claude-code model: default executablePath: default prompt length: 0
+
+packages/smithy/src/services/dispatch-claim.bun.test.ts:
+[dispatch-daemon] Skipping stale/failed dispatch for task el-48bd: Cannot claim task el-48bd: ready/unassigned candidate changed.
+(pass) daemon rejects closed between candidate read and claim; no notification [209.67ms]
+[dispatch-daemon] Skipping stale/failed dispatch for task el-3c45: Cannot claim task el-3c45: ready/unassigned candidate changed.
+(pass) daemon rejects deferred between candidate read and claim; no notification [181.45ms]
+[dispatch-daemon] Skipping stale/failed dispatch for task el-5ee9: Cannot claim task el-5ee9: ready/unassigned candidate changed.
+(pass) daemon rejects human between candidate read and claim; no notification [185.85ms]
+[dispatch-daemon] Skipping stale/failed dispatch for task el-3scj: Cannot claim task el-3scj: ready/unassigned candidate changed.
+(pass) daemon rejects worker between candidate read and claim; no notification [182.25ms]
+[dispatch-daemon] Skipping stale/failed dispatch for task el-67k2: Task is no longer ready and unassigned: el-67k2
+(pass) daemon rejects draft between candidate read and claim; no notification [183.73ms]
+[dispatch-daemon] Skipping stale/failed dispatch for task el-5mzd: Cannot claim task el-5mzd: ready/unassigned candidate changed.
+(pass) daemon rejects blocked-parent between candidate read and claim; no notification [182.91ms]
+[dispatch-daemon] Skipping stale/failed dispatch for task el-551z: Cannot claim task el-551z: ready/unassigned candidate changed.
+(pass) daemon rejects future between candidate read and claim; no notification [188.46ms]
+[dispatch-daemon] Skipping stale/failed dispatch for task el-2nd4: Task is no longer ready and unassigned: el-2nd4
+(pass) two SQLite connections and simultaneous daemon claimants: exactly one claim and notification [221.71ms]
+(pass) automatic success uses a real Git worktree and records the internal/provider pair [189.54ms]
+(pass) explicit start-worker retains deliberate reassignment [182.83ms]
+(pass) provider startup failure leaves candidate and notifications unchanged [194.00ms]
+(pass) notification failure conditionally releases only own assignment (successor=false) [184.50ms]
+(pass) notification failure conditionally releases only own assignment (successor=true) [183.95ms]
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+(pass) old stop preserves successor internal identity with reused provider ID [84.03ms]
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+(pass) old exit preserves successor internal identity with reused provider ID [86.50ms]
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+(pass) old resume preserves successor internal identity with reused provider ID [81.08ms]
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+(pass) legacy/unproven identity undefined: stop known process, preserve registry and neighboring history [82.15ms]
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+(pass) legacy/unproven identity ambiguous-other: stop known process, preserve registry and neighboring history [83.64ms]
+(pass) same-session positive cleanup publishes idle and retains unique identity/history [83.78ms]
+[session-manager] Session internal-2: incomplete current-field cleanup; ownership not proven, history saved
+(pass) two managers publishing for one agent: CAS loser terminates only its own process [101.48ms]
+(pass) claim rejects authoritative blocked parent even before writer publishes blocked_cache [84.49ms]
+(pass) startup persistence error terminates the exact newly published process [84.83ms]
+(pass) parent DRAFT after Quarry update snapshot is rejected inside the write transaction [85.82ms]
+(pass) due and unassigned candidate remains eligible for automatic claim [183.76ms]
+(pass) repeated stop retries failed persistence for its own session [85.62ms]
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+(pass) concurrent stops share persistence failure and retry only own cleanup after successor starts [86.90ms]
+[session-manager] Session internal-1: incomplete current-field cleanup; ownership not proven, history saved
+(pass) concurrent stops share termination failure and retry only own cleanup after successor starts [82.23ms]
+(pass) concurrent successful stops await one termination and one persisted history entry [84.15ms]
+(pass) non-merge steward rejects closed at candidate; preserves task/events/resources [85.23ms]
+(pass) non-merge steward rejects deferred at candidate; preserves task/events/resources [84.36ms]
+(pass) non-merge steward rejects human at candidate; preserves task/events/resources [82.52ms]
+(pass) non-merge steward rejects successor at candidate; preserves task/events/resources [85.97ms]
+(pass) non-merge steward rejects draft at candidate; preserves task/events/resources [92.35ms]
+(pass) non-merge steward rejects blocked-parent at candidate; preserves task/events/resources [87.01ms]
+(pass) non-merge steward rejects future at candidate; preserves task/events/resources [83.33ms]
+(pass) non-merge steward rejects closed at transaction; preserves task/events/resources [82.39ms]
+(pass) non-merge steward rejects deferred at transaction; preserves task/events/resources [85.78ms]
+(pass) non-merge steward rejects human at transaction; preserves task/events/resources [91.77ms]
+(pass) non-merge steward rejects successor at transaction; preserves task/events/resources [88.33ms]
+(pass) non-merge steward rejects draft at transaction; preserves task/events/resources [87.36ms]
+(pass) non-merge steward rejects blocked-parent at transaction; preserves task/events/resources [85.75ms]
+(pass) non-merge steward rejects future at transaction; preserves task/events/resources [85.27ms]
+(pass) two non-merge steward polls on separate SQLite connections produce one winner [104.13ms]
+(pass) non-merge steward matches docs, selects priority and accepts due/in-progress tasks [88.09ms]
+(pass) non-merge steward matches steward-docs, selects priority and accepts due/in-progress tasks [85.06ms]
+(pass) non-merge steward matches workflow, selects priority and accepts due/in-progress tasks [86.31ms]
+(pass) non-merge steward skips focus [85.62ms]
+(pass) non-merge steward skips disabled [80.75ms]
+(pass) non-merge steward skips busy [84.87ms]
+(pass) non-merge steward notification failure uses its receipt (successor=false) [86.28ms]
+[dispatch-daemon] Failed to release steward dispatch el-49eu: ConflictError: Cannot unassign task el-49eu: failed dispatch no longer owns this assignment.
+    details: {
+  taskId: "el-49eu",
+},
+ httpStatus: 409,
+      cause: undefined,
+       code: "CONCURRENT_MODIFICATION"
+
+      at new ConflictError (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/core/src/errors/error.ts:127:5)
+      at unassignTask (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/services/task-assignment-service.ts:493:13)
+
+(pass) non-merge steward notification failure uses its receipt (successor=true) [85.22ms]
+(pass) non-merge steward channel preparation failure cannot release a successor [83.50ms]
+(pass) non-merge steward explicit dispatch retains intentional Human reassignment [85.59ms]
+
+ 53 pass
+ 0 fail
+ 320 expect() calls
+Ran 53 tests across 1 file. [6.12s]

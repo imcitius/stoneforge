@@ -1,0 +1,62 @@
+bun test v1.3.11 (af24e281)
+
+../../../../../../../../../private/tmp/el-56khe-steward-probe.bun.test.ts:
+[session-manager] Starting session for agent el-4f2t mode: headless provider: claude-code model: default executablePath: default prompt length: 9255
+(pass) sdk: independent published-session log rejection keeps exact assignment and events [331.89ms]
+[session-manager] Starting session for agent el-xa3d mode: headless provider: claude-code model: default executablePath: default prompt length: 9255
+[session-manager] Cleaned up event listeners for session http-persist
+[sessions] Failed to start session: 81 |   } as unknown as SpawnerService;
+82 |   const sessions = createSessionManager(spawner, api, registry);
+83 |   const persist = sessions.persistSession.bind(sessions);
+84 |   let persistenceCalls = 0;
+85 |   sessions.persistSession = async id => {
+86 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/private/tmp/el-56khe-steward-probe.bun.test.ts:86:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/server/routes/sessions.ts:428:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-iLAkmp/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) sdk: independent pending rollback retains assignment until exact termination settles [299.02ms]
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-aqHstu/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031231948
+[session-manager] Starting session for agent el-37as mode: headless provider: claude-code model: default executablePath: default prompt length: 9255
+(pass) app: independent published-session log rejection keeps exact assignment and events [248.97ms]
+[sessions] Created persistent worker worktree: /private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-k2xhso/repo/.stoneforge/worktrees/http-prepared on branch session/successor-20261031231949
+[session-manager] Starting session for agent el-699s mode: headless provider: claude-code model: default executablePath: default prompt length: 9255
+[session-manager] Cleaned up event listeners for session http-persist
+[sessions] Failed to start session: 81 |   } as unknown as SpawnerService;
+82 |   const sessions = createSessionManager(spawner, api, registry);
+83 |   const persist = sessions.persistSession.bind(sessions);
+84 |   let persistenceCalls = 0;
+85 |   sessions.persistSession = async id => {
+86 |     if (++persistenceCalls === 1 && ['persist', 'terminate', 'rollback-persist'].includes(stage)) throw new Error('fixture: persist failed');
+                                                                                                                 ^
+error: fixture: persist failed
+      at <anonymous> (/private/tmp/el-56khe-steward-probe.bun.test.ts:86:109)
+      at startSessionOwned (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:659:18)
+      at async startSession (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/packages/smithy/src/runtime/session-manager.ts:577:29)
+      at async <anonymous> (/Users/citius/Desktop/Work/Stoneforge/.stoneforge/.worktrees/core/e-worker-2-http-assignment-session-start/apps/smithy-server/src/routes/sessions.ts:395:56)
+ {
+  assignment: "released",
+  sessionId: undefined,
+  worktree: {
+    outcome: "retained",
+    path: "/private/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/sf-api-assignment-k2xhso/repo/.stoneforge/worktrees/http-prepared",
+    reason: "Exclusive deletion ownership is not proven",
+  },
+}
+(pass) app: independent pending rollback retains assignment until exact termination settles [288.36ms]
+
+ 4 pass
+ 0 fail
+ 66 expect() calls
+Ran 4 tests across 1 file. [1327.00ms]
