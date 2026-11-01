@@ -126,7 +126,7 @@ export async function checkLogs(electron, page, resources, temp) {
       observations.push({ nativeScreenshot: 'logs-native-desktop.png' });
     } catch (error) { observations.push({ nativeScreenshotBlocked: String(error) }); }
     // Repeated commands focus the same viewer, rather than stacking windows.
-    await page.evaluate(() => { void window.desktop.command('logs', document.querySelector('nav [aria-current="page"]').dataset.project); });
+    await page.evaluate(() => { void window.desktop.command('logs', document.querySelector('[role="tab"][aria-selected="true"]').dataset.project); });
     assert.equal(await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 2);
     await close(viewer, 'button');
 
@@ -162,7 +162,7 @@ export async function checkLogs(electron, page, resources, temp) {
     const replacement = electron.waitForEvent('window');
     const previousClosed = previous.waitForEvent('close');
     await page.evaluate(async () => {
-      const atlas = [...document.querySelectorAll('nav button')].find(button => button.textContent.includes('Atlas'));
+      const atlas = [...document.querySelectorAll('[role="tab"]')].find(button => button.textContent.includes('Atlas'));
       await window.desktop.command('open', atlas.dataset.project);
       void window.desktop.command('logs', atlas.dataset.project);
     });
@@ -173,7 +173,7 @@ export async function checkLogs(electron, page, resources, temp) {
     assert.equal(await atlasLogs.locator('h1').textContent(), 'Atlas — Logs');
     assert.equal(await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 2);
     await close(atlasLogs, 'button');
-    await page.locator('nav button').filter({ hasText: 'Cedar' }).click();
+    await page.locator('[role="tab"]').filter({ hasText: 'Cedar' }).click();
     observations.push({ projectSwitchReplacesViewer: true });
     assert.deepEqual(errors, []);
     console.log('Packaged Logs: 600px work area, text safety, scrolling, Close/Escape/native close, focus, reopening, child above project: passed');

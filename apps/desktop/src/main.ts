@@ -1,5 +1,5 @@
 import './socket-workaround.js';
-import { app, BrowserWindow, WebContentsView, session, ipcMain, dialog, Menu, Notification } from 'electron';
+import { app, BrowserWindow, WebContentsView, session, ipcMain, dialog, Menu, Notification, type MenuItemConstructorOptions } from 'electron';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ProjectManager, type Instance, type WorkflowPreset } from './manager.js';
 import { showLogs } from './logs-window.js';
 import { loadPreferences, savePreferences, projectBounds, type Preferences } from './preferences.js';
+import { orderProjects, normalizeOrder, moveProject, projectStatus, tabShortcut, shortcutTarget } from './tabs.js';
 import { AttentionMonitor } from './attention.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -27,7 +28,7 @@ let active: string | undefined;
 let quitting = false;
 let adding = false;
 let progress: string | undefined;
-let preferences: Preferences = { sidebarCollapsed: false };
+let preferences: Preferences = { projectOrder: [] };
 const views = new Map<string, { view: WebContentsView; instance: Instance }>();
 const shellURL = pathToFileURL(join(here, 'shell.html')).href;
 
@@ -39,25 +40,85 @@ else {
   });
 }
 
-function snapshot() { return { projects: manager.list(), active, progress, build, sidebarCollapsed: preferences.sidebarCollapsed }; }
+/** Projects in tab order (saved user order first, then registry order). */
+function orderedProjects() { return orderProjects(manager.list(), preferences.projectOrder); }
+function snapshot() {
+  return { projects: orderedProjects().map((project) => ({ ...project, status: projectStatus(project) })), active, progress, build,
+    fullscreen: !!window && !window.isDestroyed() && window.isFullScreen() };
+}
 function update(): void {
-  if (window && !window.isDestroyed()) window.webContents.send('desktop:state', snapshot());
+  if (!window || window.isDestroyed()) return;
+  const project = active ? manager.projects.get(active) : undefined;
+  // The title bar shows tabs instead of a title; keep the window name for Mission Control and the Window menu.
+  window.setTitle(project ? `${project.name} — Stoneforge Desktop` : 'Stoneforge Desktop');
+  window.webContents.send('desktop:state', snapshot());
 }
 function layout(): void {
   const [width, height] = window.getContentSize();
   for (const [id, { view }] of views) {
     view.setVisible(id === active && manager.projects.get(id)?.state === 'ready');
-    view.setBounds(projectBounds(width, height, preferences.sidebarCollapsed));
+    view.setBounds(projectBounds(width, height));
   }
 }
-/** Shell-only layout change: project views are moved, never reloaded, started or stopped. */
-function setSidebar(collapsed: boolean): void {
-  const menuItem = Menu.getApplicationMenu()?.getMenuItemById('toggle-sidebar');
-  if (menuItem) menuItem.checked = !collapsed;
-  if (preferences.sidebarCollapsed === collapsed) return;
-  preferences = { ...preferences, sidebarCollapsed: collapsed };
-  layout(); update();
+/** Tab order change: shell-only, project views are never reloaded, started or stopped. */
+function setOrder(order: string[]): void {
+  if (order.join('\n') === orderedProjects().map((project) => project.id).join('\n')) return;
+  preferences = { ...preferences, projectOrder: order };
+  update();
   savePreferences(app.getPath('userData'), preferences).catch((error) => console.error('Could not save preferences:', error));
+}
+async function showActionError(error: unknown): Promise<void> {
+  await dialog.showMessageBox(window, { type: 'error', message: 'Could not complete project action',
+    detail: error instanceof Error ? error.message : String(error), buttons: ['OK'] });
+}
+/**
+ * Select a tab from a shortcut or native menu. Switching only moves the dashboard. When the
+ * shortcut came from a project view, keyboard focus follows to the newly shown project; the
+ * shell holds it meanwhile so a hidden dashboard never keeps receiving keystrokes.
+ */
+function selectProject(id: string, focusProject = false): void {
+  if (focusProject) window.webContents.focus();
+  void openProject(id).then(() => {
+    if (focusProject && active === id) views.get(id)?.view.webContents.focus();
+  }).catch(showActionError);
+}
+/** ⌘1…⌘9 and ⌃Tab/⌃⇧Tab from the shell or any project dashboard (before the page sees them). */
+function handleShortcut(event: Electron.Event, input: Electron.Input, fromProjectView: boolean): void {
+  const shortcut = tabShortcut(input);
+  if (!shortcut) return;
+  event.preventDefault();
+  const target = shortcutTarget(shortcut, orderedProjects().map((project) => project.id), active);
+  if (target) selectProject(target, fromProjectView);
+}
+function cycleProjects(kind: 'next' | 'previous'): void {
+  const target = shortcutTarget({ kind }, orderedProjects().map((project) => project.id), active);
+  if (target) selectProject(target);
+}
+type Point = { x: number; y: number };
+function popupPoint(options: unknown): Point | undefined {
+  const { x, y } = (options ?? {}) as Partial<Point>;
+  if (typeof x !== 'number' || typeof y !== 'number' || !Number.isFinite(x) || !Number.isFinite(y)) return undefined;
+  return { x: Math.max(0, Math.round(x)), y: Math.max(0, Math.round(y)) };
+}
+/** » menu: the projects whose tabs do not fit, with their status, in tab order. */
+function overflowMenu(ids: readonly string[]): MenuItemConstructorOptions[] {
+  return orderedProjects().filter((project) => ids.includes(project.id)).map((project) => {
+    const status = projectStatus(project);
+    return { label: `${status.symbol}  ${project.name} — ${status.kind === 'error' ? 'Error' : status.label}`,
+      toolTip: `${project.root}\n${status.label}`, click: () => selectProject(project.id) };
+  });
+}
+/**
+ * Per-tab context menu (right/Control-click, or Shift+F10 on a focused tab). Currently tab
+ * order only; project lifecycle commands remain in the toolbar and can be added here later.
+ */
+function tabMenu(id: string): MenuItemConstructorOptions[] {
+  const order = orderedProjects().map((project) => project.id);
+  const index = order.indexOf(id);
+  return [
+    { label: 'Move Tab Left', enabled: index > 0, click: () => setOrder(moveProject(order, id, -1)) },
+    { label: 'Move Tab Right', enabled: index >= 0 && index < order.length - 1, click: () => setOrder(moveProject(order, id, 1)) },
+  ];
 }
 function dispose(id: string): void {
   const entry = views.get(id);
@@ -97,6 +158,7 @@ async function openProject(id: string): Promise<void> {
       backgroundThrottling: false,
     } });
     view.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    view.webContents.on('before-input-event', (event, input) => handleShortcut(event, input, true));
     view.webContents.on('will-navigate', (event, url) => {
       if (new URL(url).origin !== instance.endpoint) event.preventDefault();
     });
@@ -124,11 +186,16 @@ async function boot(): Promise<void> {
   window = new BrowserWindow({
     width: 1440, height: 940, minWidth: 960, minHeight: 640,
     title: 'Stoneforge Desktop', backgroundColor: '#0f172a',
+    // The shell's tab strip is the title bar; traffic lights are centred in its 38px height.
+    titleBarStyle: 'hidden', trafficLightPosition: { x: 13, y: 12 },
     webPreferences: { preload: join(here, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', (event) => event.preventDefault());
+  window.webContents.on('before-input-event', (event, input) => handleShortcut(event, input, false));
   window.on('resize', layout);
+  window.on('enter-full-screen', update);
+  window.on('leave-full-screen', update);
   window.on('close', (event) => { if (!quitting) { event.preventDefault(); window.hide(); } });
   app.on('activate', () => window.show());
   app.on('before-quit', (event) => {
@@ -176,14 +243,22 @@ async function boot(): Promise<void> {
     notification.show();
   });
   attentionMonitor.start();
-  ipcMain.handle('desktop:command', async (event, command: unknown, id?: unknown) => {
+  ipcMain.handle('desktop:command', async (event, command: unknown, id?: unknown, options?: unknown) => {
     if (event.sender !== window.webContents || event.senderFrame?.url !== shellURL) throw new Error('Untrusted sender');
     if (typeof command !== 'string') throw new Error('Invalid command');
     try {
     if (command === 'list') return snapshot();
-    if (command === 'sidebar') {
-      if (id !== 'collapsed' && id !== 'expanded') throw new Error('Invalid sidebar state');
-      setSidebar(id === 'collapsed'); return snapshot();
+    if (command === 'reorder') {
+      const order = normalizeOrder((options as { order?: unknown } | undefined)?.order, orderedProjects().map((project) => project.id));
+      if (!order) throw new Error('Invalid project order');
+      setOrder(order); return snapshot();
+    }
+    if (command === 'overflow') {
+      const point = popupPoint(options), ids = (options as { ids?: unknown } | undefined)?.ids;
+      if (!point || !Array.isArray(ids) || !ids.every((item) => typeof item === 'string')) throw new Error('Invalid overflow menu request');
+      const items = overflowMenu(ids);
+      if (items.length) Menu.buildFromTemplate(items).popup({ window, ...point });
+      return snapshot();
     }
     if (command === 'add') {
       if (adding) return snapshot();
@@ -216,6 +291,11 @@ async function boot(): Promise<void> {
     }
     if (typeof id !== 'string' || !manager.projects.has(id)) throw new Error('Unknown project');
     if (command === 'open') await openProject(id);
+    else if (command === 'tab-menu') {
+      const point = popupPoint(options);
+      if (!point) throw new Error('Invalid tab menu request');
+      Menu.buildFromTemplate(tabMenu(id)).popup({ window, ...point });
+    }
     else if (command === 'repositories') {
       const instance = await manager.start(id);
       const request = async (method: string, suffix = '', body?: unknown) => {
@@ -273,14 +353,18 @@ async function boot(): Promise<void> {
     { label: 'Stoneforge', submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'hide' }, { role: 'quit' }] },
     { role: 'editMenu' },
     { label: 'View', submenu: [
-      // ⌃⌘S is the macOS sidebar convention; the menu accelerator also works while a project view has focus.
-      { id: 'toggle-sidebar', label: 'Project Sidebar', type: 'checkbox', checked: !preferences.sidebarCollapsed,
-        accelerator: 'Control+Command+S', click: () => setSidebar(!preferences.sidebarCollapsed) },
-      { type: 'separator' }, { role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' },
+      { role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' },
       { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' },
       { type: 'separator' }, { role: 'togglefullscreen' },
     ] },
-    { role: 'windowMenu' },
+    { role: 'window', submenu: [
+      { role: 'minimize' }, { role: 'zoom' }, { type: 'separator' },
+      // Shown for discoverability; the keys are handled by before-input-event in every view
+      // (including focused terminals), so the menu does not register them a second time.
+      { id: 'next-project', label: 'Select Next Project', accelerator: 'Control+Tab', registerAccelerator: false, click: () => cycleProjects('next') },
+      { id: 'previous-project', label: 'Select Previous Project', accelerator: 'Control+Shift+Tab', registerAccelerator: false, click: () => cycleProjects('previous') },
+      { type: 'separator' }, { role: 'front' },
+    ] },
   ]));
   await window.loadURL(shellURL);
   // Explicit paths are useful for local launches and the packaged integration fixture.

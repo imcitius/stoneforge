@@ -39,7 +39,7 @@ try {
   await writeFile(fake, '#!/bin/sh\nif [ "$1" = "--version" ]; then echo "fixture"; exit 0; fi\nwhile [ ! -f "'+temp+'/release" ]; do sleep 0.1; done\nsf agent await-input > "'+temp+'/signal.log" 2>&1 || exit 42\nprintf "Какой вариант выбрать?\\n"\nIFS= read -r answer\nprintf "%s\\n" "$answer" > "'+temp+'/answer.log"\nwhile :; do sleep 1; done\n', {mode:0o755});
   electron=await _electron.launch({executablePath:join(bundle,'Contents/MacOS/Stoneforge Desktop'),args:names.map(name=>'--project='+join(temp,name)),env:{...env,PATH:'/usr/bin:/bin:/usr/sbin:/sbin',STONEFORGE_DESKTOP_TEST_DATA:join(temp,'app-data')},timeout:30_000});
   const page=await electron.firstWindow();
-  await until(async()=>JSON.stringify(await page.locator('nav span').allTextContents())===JSON.stringify(['ready','ready']),'two ready projects');
+  await until(async()=>JSON.stringify(await page.locator('[role="tab"]').evaluateAll(tabs=>tabs.map(tab=>tab.dataset.state)))===JSON.stringify(['ready','ready']),'two ready projects');
   const run=(id,script)=>electron.evaluate(async({webContents},{id,script})=>webContents.fromId(id).executeJavaScript(script),{id,script});
   let views;
   await until(async()=>{
@@ -48,8 +48,8 @@ try {
   },'project renderers');
   const identities=await Promise.all(views.map(v=>run(v.id,"fetch('/api/desktop/identity').then(r=>r.json())")));
   const index=identities.findIndex(i=>i.root===join(temp,names[0]) || i.workspaceRoot===join(temp,names[0]));
-  // Match against the sidebar's stable project ID if the identity omits root.
-  const projectId=await page.locator('nav button').filter({hasText:names[0]}).getAttribute('data-project');
+  // Match against the tab's stable project ID if the identity omits root.
+  const projectId=await page.locator('[role="tab"]').filter({hasText:names[0]}).getAttribute('data-project');
   const view=views[index>=0?index:identities.findIndex(i=>i.projectId===projectId)];
   assert(view,'Waiting project renderer');
   await electron.evaluate(({Notification})=>{
@@ -73,17 +73,17 @@ try {
     const started=await fetch('/api/agents/'+agent.id+'/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({interactive:true,initialPrompt:'Fixture question'})});
     if(!started.ok) throw new Error(await started.text());
   })()`);
-  await page.locator('nav button').filter({hasText:names[1]}).click();
+  await page.locator('[role="tab"]').filter({hasText:names[1]}).click();
   await electron.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].hide());
   await writeFile(join(temp,'release'),'go');
   await until(async()=>run(view.id,"fetch('/api/sessions?role=director&status=running').then(r=>r.json()).then(b=>b.sessions.some(s=>s.attention))"),'real CLI attention signal');
   evidence.signal=await readFile(join(temp,'signal.log'),'utf8');
   assert.match(evidence.signal,/Waiting for human input/);
-  await until(async()=>await page.locator('nav button').filter({hasText:names[0]}).locator('span').textContent()==='Needs your input','sidebar badge');
+  await until(async()=>await page.locator('[role="tab"]').filter({hasText:names[0]}).getAttribute('data-status')==='attention','tab attention badge');
   await until(async()=>electron.evaluate(()=>globalThis.__attentionNotices.length===1),'native notification emitted');
   await until(async()=>electron.evaluate(async({Notification})=>(await Notification.getHistory()).some(n=>n.title==='Нужен ваш ответ — Ожидает ответа')),'macOS delivered history');
   evidence.history=await electron.evaluate(async({Notification})=>(await Notification.getHistory()).filter(n=>n.title==='Нужен ваш ответ — Ожидает ответа').map(n=>({id:n.id,title:n.title,body:n.body})));
-  evidence.checks.push('Bundled sf command, authenticated backend, inactive project, hidden window, sidebar badge, native macOS delivery');
+  evidence.checks.push('Bundled sf command, authenticated backend, inactive project, hidden window, tab attention badge, native macOS delivery');
   await pause(6500);
   assert.equal(await electron.evaluate(()=>globalThis.__attentionNotices.length),1,'Repeated polling must not duplicate');
   await electron.evaluate(()=>globalThis.__attentionNotices[0].emit('click'));
@@ -92,10 +92,10 @@ try {
   evidence.checks.push('Deduplication and simulated notification click callback restore/select correct project');
   await run(view.id,"window.__attention.ws.send(JSON.stringify({type:'input',input:'Первый вариант\\r'}))");
   await until(async()=>run(view.id,"fetch('/api/sessions?role=director&status=running').then(r=>r.json()).then(b=>b.sessions.length===1&&!b.sessions[0].attention)"),'human WS input clears attention');
-  await until(async()=>await page.locator('nav button').filter({hasText:names[0]}).locator('span').textContent()==='ready','badge cleared');
+  await until(async()=>await page.locator('[role="tab"]').filter({hasText:names[0]}).getAttribute('data-status')==='running','badge cleared');
   assert.match(await readFile(join(temp,'answer.log'),'utf8'),/Первый вариант/);
   assert.deepEqual(await run(view.id,'window.__attention.errors'),[]);
-  evidence.checks.push('Real PTY human reply clears session attention and sidebar badge');
+  evidence.checks.push('Real PTY human reply clears session attention and tab badge');
   console.log(JSON.stringify(evidence,null,2));
 } finally {
   if(electron) {

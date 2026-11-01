@@ -93,7 +93,7 @@ Desktop discovers its project backend; do not assume a fixed port identifies it.
 Build/verify a separate artifact using the README at the revision being built.
 Source commits, merges and build outputs do not update the installed
 `~/Applications/Stoneforge Desktop Preview.app`. Determine its version/commit from
-its sidebar footer or About panel, not checkout HEAD. Installation is a separate,
+its project-toolbar build label (older builds: sidebar footer) or About panel, not checkout HEAD. Installation is a separate,
 explicitly coordinated step after arranging session shutdown. Do not copy over the
 running application or restart sessions as part of ordinary implementation/testing.
 

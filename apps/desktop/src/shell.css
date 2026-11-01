@@ -1,7 +1,50 @@
-:root{color-scheme:dark;--bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#f1f5f9;--muted:#94a3b8;--accent:#60a5fa;--error:#fca5a5;font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:var(--bg)}
-*{box-sizing:border-box}body{margin:0;display:flex;height:100vh}button{font:inherit;color:var(--text);background:transparent;border:1px solid var(--border);border-radius:6px;padding:8px 12px;cursor:pointer}button:hover{background:var(--surface)}button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}button:disabled{opacity:.5;cursor:wait}aside{width:240px;flex-shrink:0;padding:24px 16px 16px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:24px}header{display:flex;flex-direction:column;gap:12px}header strong{font-size:20px}header span{font-size:11px;letter-spacing:.12em;color:var(--muted)}nav{overflow:auto;flex:1;display:flex;flex-direction:column;gap:8px}nav button{text-align:left;padding:12px;display:flex;flex-direction:column;gap:6px;border-color:transparent}nav button[aria-current="page"]{background:var(--surface);border-color:var(--border)}nav strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}nav span,footer,.hint{color:var(--muted);font-size:12px;line-height:1.6}main{flex:1;min-width:0;position:relative}#toolbar{height:64px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding:0 24px;gap:16px}#title{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}#path{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#actions{display:flex;gap:8px}#actions[hidden]{display:none}#empty,#status{max-width:600px;padding:64px 32px;margin:10vh auto}h1{font-size:28px;line-height:1.25;letter-spacing:-.025em}p{font-size:14px;line-height:1.7;color:var(--muted)}#empty button{background:var(--surface);margin:16px 0}#error{position:absolute;left:24px;right:24px;top:72px;padding:16px;border:1px solid var(--error);background:var(--bg);color:var(--error);z-index:2}
+:root{color-scheme:dark;--bg:#0f172a;--chrome:#0b1120;--surface:#1e293b;--border:#334155;--text:#f1f5f9;--muted:#94a3b8;--accent:#60a5fa;--error:#fca5a5;--ok:#4ade80;--warn:#fbbf24;--tabbar:38px;--toolbar:38px;font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:var(--bg)}
+*{box-sizing:border-box}body{margin:0;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+button{font:inherit;color:var(--text);background:transparent;border:1px solid var(--border);border-radius:6px;padding:8px 12px;cursor:pointer}button:hover{background:var(--surface)}button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}button:disabled{opacity:.5;cursor:wait}
 
-#add{width:100%}#add-progress{font-size:12px;line-height:1.5;margin:12px 0 0;overflow-wrap:anywhere}
-#sidebar[hidden]{display:none}#sidebar-toggle{flex:none;display:flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;color:var(--muted)}#sidebar-toggle:hover,#sidebar-toggle[aria-expanded="false"]{color:var(--text)}
+/* Title bar: the window is dragged by its empty areas; tabs and buttons are not drag regions.
+   The left padding leaves room for the macOS traffic lights (hidden in full screen). */
+#titlebar{flex:none;height:var(--tabbar);display:flex;align-items:flex-end;padding:0 0 0 78px;background:var(--chrome);border-bottom:1px solid var(--border);-webkit-app-region:drag;user-select:none}
+body.fullscreen #titlebar{padding-left:8px}
+#tabstrip{display:flex;align-items:flex-end;flex:1;min-width:0;height:100%}
+#projects{display:flex;align-items:flex-end;min-width:0;height:100%}
+[role="tab"]{-webkit-app-region:no-drag;position:relative;flex:none;display:flex;align-items:center;gap:7px;width:var(--tab-width,200px);height:30px;padding:0 10px 0 12px;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;color:var(--muted);text-align:left;cursor:default}
+[role="tab"]:not([aria-selected="true"]):hover{background:rgba(148,163,184,.08);color:var(--text)}
+[role="tab"]:not([aria-selected="true"])+[role="tab"]:not([aria-selected="true"])::after{content:"";position:absolute;left:-1px;top:8px;bottom:8px;border-left:1px solid var(--border)}
+[role="tab"][aria-selected="true"]{height:31px;margin-bottom:-1px;background:var(--bg);border-color:var(--border);color:var(--text);font-weight:600;z-index:1}
+[role="tab"][aria-selected="true"]::before{content:"";position:absolute;left:10px;right:10px;top:-1px;height:2px;border-radius:0 0 2px 2px;background:var(--accent)}
+[role="tab"]:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+.tab-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[role="tab"][data-status="attention"] .tab-name{color:var(--warn)}
+[role="tab"].dragging{opacity:.45}
+[role="tab"].drop-before{box-shadow:inset 2px 0 0 var(--accent)}[role="tab"].drop-after{box-shadow:inset -2px 0 0 var(--accent)}
 
-nav .needs-input{color:#fbbf24;font-weight:600}
+/* Status dots: running ●, stopped ○, starting/stopping ◌ (animated), error ✕, needs input ! */
+.dot{flex:none;display:grid;place-items:center;width:8px;height:8px;border-radius:50%;font-size:10px;font-weight:800;line-height:1}
+[data-status="running"] .dot{background:var(--ok)}
+[data-status="stopped"] .dot{border:1.5px solid var(--muted)}
+[data-status="busy"] .dot{width:9px;height:9px;border:1.5px dashed var(--accent);animation:spin 1.4s linear infinite}
+[data-status="error"] .dot{width:10px;height:10px;border-radius:0;color:var(--error)}[data-status="error"] .dot::before{content:"✕"}
+[data-status="attention"] .dot,#overflow.attention::after{width:14px;height:14px;background:var(--warn);color:var(--chrome);animation:attention 1.8s ease-out infinite}
+[data-status="attention"] .dot::before{content:"!"}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes attention{0%{box-shadow:0 0 0 0 rgba(251,191,36,.55)}70%,100%{box-shadow:0 0 0 6px rgba(251,191,36,0)}}
+@media (prefers-reduced-motion:reduce){.dot,#overflow.attention::after{animation:none!important}}
+
+#overflow,#add{-webkit-app-region:no-drag;flex:none;position:relative;display:grid;place-items:center;width:28px;height:28px;margin:0 0 3px 4px;padding:0;border-color:transparent;color:var(--muted);font-size:15px;line-height:1}
+#overflow[hidden]{display:none}#overflow:hover,#add:hover{color:var(--text)}
+#overflow.attention::after{content:"";position:absolute;top:1px;right:0;width:8px;height:8px;border-radius:50%}
+
+/* Project toolbar beneath the tabs (lifecycle controls are unchanged here). */
+#toolbar{flex:none;height:var(--toolbar);display:flex;align-items:center;gap:12px;padding:0 12px 0 16px;border-bottom:1px solid var(--border);-webkit-app-region:drag;user-select:none}
+#toolbar button{-webkit-app-region:no-drag;padding:3px 10px;font-size:12px}
+#title{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;overflow:hidden}
+#name{flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#path{min-width:0;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#add-progress{flex:0 1 auto;min-width:0;margin:0;font-size:12px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#actions{display:flex;gap:6px}#actions[hidden]{display:none}
+#build{-webkit-app-region:no-drag;flex:none;font-size:11px;color:var(--muted);white-space:nowrap}
+
+main{flex:1;min-height:0;position:relative;overflow:auto}
+#empty,#status{max-width:600px;padding:48px 32px;margin:6vh auto}h1{font-size:28px;line-height:1.25;letter-spacing:-.025em}p{font-size:14px;line-height:1.7;color:var(--muted)}.hint{font-size:12px;line-height:1.6}#empty button{background:var(--surface);margin:16px 0}
+#error{position:absolute;left:24px;right:24px;top:8px;padding:16px;border:1px solid var(--error);background:var(--bg);color:var(--error);z-index:2}

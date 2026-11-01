@@ -57,8 +57,8 @@ async function projectId(name) {
   throw new Error(`Project ${name} not registered`);
 }
 async function waitReady(name) {
-  await shell.waitForFunction((name) => [...document.querySelectorAll('nav button')]
-    .some((el) => el.textContent.includes(name) && el.textContent.includes('ready')), name, { timeout: 60_000 });
+  await shell.waitForFunction((name) => [...document.querySelectorAll('[role="tab"]')]
+    .some((el) => el.textContent.includes(name) && el.dataset.state === 'ready'), name, { timeout: 60_000 });
 }
 /** The project dashboard page whose backend serves `root`, excluding stale origins. */
 async function projectPage(root, exclude = []) {

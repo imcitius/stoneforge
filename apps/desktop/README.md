@@ -43,7 +43,7 @@ PATH="$PWD/apps/desktop/node_modules/node/bin:$PATH" pnpm --filter @stoneforge/s
 pnpm --filter @stoneforge/desktop dev
 ```
 
-The sidebar footer shows the bundled version and commit hash. Hover for the full
+The right end of the project toolbar shows the bundled version and commit hash. Hover for the full
 commit, branch and build time; the macOS About panel shows the same identity.
 A `(modified)` suffix means the build included uncommitted source changes.
 This metadata is baked into the application, independent of subsequent source edits.
@@ -56,18 +56,35 @@ This metadata is baked into the application, independent of subsequent source ed
 2. Choose **Add project** and select a project folder. If it has no database,
    Desktop offers initialization with the bundled CLI. Choose Review, Auto, or
    Approve; existing configuration and exported data are reused when present.
-   Cancel leaves the folder unchanged. Setup progress appears in the sidebar,
+   Cancel leaves the folder unchanged. Setup progress appears in the project toolbar,
    and failures use a native dialog visible above an open project.
-3. Select projects in the sidebar. Start agents using the existing dashboard.
-   Opening a project does not resume directors or start its dispatch daemon.
-4. **Stop**, **Restart**, **Logs**, and **Remove** apply to the selected project.
-   Remove only removes registration; project files remain.
-5. The sidebar toggle at the left of the top bar (or **View → Project Sidebar**,
-   ⌃⌘S, also while a project dashboard has focus) hides the project list and gives
-   its width to the project. It only moves the dashboard: projects, agents and
-   terminal sessions keep running and nothing is reloaded. The choice is stored in
+3. Projects are tabs in the window's title bar, right of the macOS window buttons;
+   the project dashboard uses the full window width beneath the tab bar and toolbar.
+   Each tab shows the project name (truncated with an ellipsis) and a status dot:
+   ● running, ○ stopped, ◌ starting/stopping (animated unless Reduce Motion is on),
+   ✕ error, and an amber **!** badge when a director needs your input. The tooltip
+   shows the full name, path and status; the active tab is highlighted. **＋** at the
+   end of the tabs opens Add project. Tabs that do not fit move to the **»** menu,
+   which lists the remaining projects with their status (it shows a badge when one
+   of them needs input); the active project always keeps a visible tab.
+   Select a tab with the mouse, ⌘1…⌘8 (⌘9 = last project) or ⌃Tab / ⌃⇧Tab — the
+   shortcuts also work while a project dashboard or terminal has focus, and focus
+   follows to the newly shown project. In the tab list ← → move focus, Home/End jump,
+   Enter/Space select (role `tablist`/`tab` with `aria-selected`). Selecting a tab
+   only moves the dashboard: projects, agents and terminal sessions keep running and
+   nothing is reloaded. Selecting a stopped project starts it, as before.
+   Start agents using the existing dashboard. Opening a project does not resume
+   directors or start its dispatch daemon.
+   Empty title-bar space drags the window; tabs and buttons do not.
+4. **Stop**, **Restart**, **Logs**, **Repositories** and **Remove** in the toolbar apply
+   to the selected project. Remove only removes registration; project files remain.
+5. Drag a tab to reorder, or right-click / Control-click a tab (Shift+F10 when it has
+   keyboard focus) for **Move Tab Left/Right**. The order is stored in
    `preferences.json` in the application userData directory, never in a project;
-   the sidebar is visible by default and when that file is missing or invalid.
+   without that file, or when it is invalid, tabs follow registration order. New
+   projects are added at the end. (The former project sidebar and its
+   View → Project Sidebar / ⌃⌘S toggle were replaced by the tabs; a stored
+   `sidebarCollapsed` value is ignored.)
    Getting Started (the dashboard tour) shows once per project. Skip, Esc and
    finishing are stored in that project's workspace settings, so they survive project
    restarts and app relaunches even though each backend start uses a new local port.
@@ -197,7 +214,7 @@ pnpm --filter @stoneforge/desktop test
 bun test packages/smithy/src/server/server.bun.test.ts packages/quarry/src/cli/commands/serve.bun.test.ts
 node apps/desktop/scripts/check-app.mjs
 node apps/desktop/scripts/check-launch-services.mjs
-node apps/desktop/scripts/check-sidebar.mjs
+node apps/desktop/scripts/check-tabs.mjs
 node apps/desktop/scripts/check-getting-started.mjs
 node apps/desktop/scripts/check-attention.mjs
 ```
@@ -210,13 +227,20 @@ scrolling, long lines, empty logs, Close/Esc/native close, focus, reopening, and
 the child window above an open project. It retains viewer PNGs and
 `logs-observations.json`; `logs-native-desktop.png` captures native z-order when
 macOS screen capture permission is available. The work-area override is test-side;
-it does not change the host display configuration. `check-sidebar.mjs` launches the packaged app with fresh userData in a 1024 × 700
-window and three temporary projects. It toggles the sidebar by mouse, Enter/Space and
-the View menu item (also with a project view focused), across resizes, project switches,
-loading and stopped states, and requires the shell layout and every native project view
-bound to agree. It checks accessible name/`aria-expanded`, Tab order, unchanged project
-views and backend identities, and persistence over two relaunches. Screenshots and
-`sidebar-observations.json` stay in its printed fixture directory.
+it does not change the host display configuration. `check-tabs.mjs` launches the packaged app with fresh userData,
+a 1024 × 700 window and ten registered temporary projects (Unicode and long names; only
+the projects it selects get a backend). It requires the shell layout and every native
+project view to agree (full width below the 76px tab bar + toolbar), checks drag/no-drag
+title-bar regions and the traffic-light position, tab status, accessible names,
+tooltips and truncation, overflow into the » menu (native menu items recorded, not
+tracked) with the active tab kept visible, ⌘1…⌘9 and ⌃Tab/⌃⇧Tab delivered as native key
+events to the shell and to focused project views (exactly one switch each, focus follows),
+tablist arrow/Home/End/Enter/Tab keyboard behaviour, the per-tab menu and Shift+F10,
+drag-to-reorder and its persistence in userData only, resizes 1440/960/1280/1024 px, a
+stopped project, unchanged view markers and backend identities (no reloads), and the
+order after a relaunch that starts no project. Screenshots (shell page; plus a native
+window capture when Screen Recording permission is available; the status gallery PNG is
+a synthetic shell state) and `tabs-observations.json` stay in its printed fixture directory.
 `check-getting-started.mjs` opens two temporary projects with fresh userData and checks
 that each gets its first Getting Started tour, that Skip/Escape are remembered after a
 Desktop project Restart (new backend port/origin) and a full app relaunch, that one

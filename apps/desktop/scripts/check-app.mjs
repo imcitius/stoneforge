@@ -47,13 +47,14 @@ try {
   assert((await page.locator('#build').getAttribute('title')).includes(expectedBuild.builtAt));
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.locator('nav button').filter({ hasText: 'Cedar' }).waitFor({ timeout: 30_000 });
+  await page.locator('[role="tab"]').filter({ hasText: 'Cedar' }).waitFor({ timeout: 30_000 });
+  const tabStates = () => page.locator('[role="tab"]').evaluateAll((tabs) => tabs.map((tab) => tab.dataset.state));
   for (let i = 0; i < 80; i++) {
-    const states = await page.locator('nav span').allTextContents();
+    const states = await tabStates();
     if (states.length === 3 && states.every((s) => s === 'ready')) break;
     await pause(250);
   }
-  assert.deepEqual(await page.locator('nav span').allTextContents(), ['ready', 'ready', 'ready']);
+  assert.deepEqual(await tabStates(), ['ready', 'ready', 'ready']);
   const getViews = () => electron.evaluate(({ webContents }) => webContents.getAllWebContents()
     .filter((wc) => wc.getURL().startsWith('http://127.0.0.1:')).map((wc) => ({ id: wc.id, url: wc.getURL() })));
   let views = [];
@@ -74,7 +75,7 @@ try {
   }
   assert.equal(new Set(identities.map((i) => i.projectId)).size, 3);
   for (const name of ['Atlas', 'Borealis', 'Cedar', 'Atlas', 'Cedar']) {
-    await page.locator('nav button').filter({ hasText: name }).click();
+    await page.locator('[role="tab"]').filter({ hasText: name }).click();
     await pause(150);
     assert.equal(await page.locator('#name').textContent(), name);
   }
@@ -102,16 +103,16 @@ try {
   await page.locator('#add').click();
   await page.waitForFunction(() => !document.getElementById('add').disabled);
   await assert.rejects(access(join(fresh, '.stoneforge')), 'Cancel must not initialize');
-  assert.equal(await page.locator('nav button').count(), 3);
+  assert.equal(await page.locator('[role="tab"]').count(), 3);
   await electron.evaluate(() => { globalThis.__addResponse = 1; });
   await page.locator('#add').focus(); await page.keyboard.press('Enter');
-  await page.waitForFunction(() => [...document.querySelectorAll('nav button')].some((el) => el.textContent.includes('Fresh проект') && el.textContent.includes('ready')), { timeout: 30_000 });
-  assert.equal(await page.locator('nav button').count(), 4);
+  await page.waitForFunction(() => [...document.querySelectorAll('[role="tab"]')].some((el) => el.textContent.includes('Fresh проект') && el.dataset.state === 'ready'), { timeout: 30_000 });
+  assert.equal(await page.locator('[role="tab"]').count(), 4);
   await access(join(fresh, '.stoneforge/stoneforge.db'));
   await page.waitForFunction(() => !document.getElementById('add').disabled);
   await page.locator('#add').click();
   await page.waitForFunction(() => !document.getElementById('add').disabled);
-  assert.equal(await page.locator('nav button').count(), 4, 'Re-add must deduplicate');
+  assert.equal(await page.locator('[role="tab"]').count(), 4, 'Re-add must deduplicate');
   await electron.evaluate(() => { globalThis.__addPath += '/missing'; });
   await page.locator('#add').click();
   await page.waitForFunction(() => !document.getElementById('add').disabled);
@@ -183,16 +184,16 @@ try {
   assert.equal(detected?.pid, externalFixture.pid);
   await electron.evaluate((_electron, path) => { globalThis.__addPath = path; }, outside);
   await page.locator('#add').click();
-  await page.waitForFunction(() => [...document.querySelectorAll('nav button')].some((el) => el.textContent.includes('External') && el.textContent.includes('ready')));
+  await page.waitForFunction(() => [...document.querySelectorAll('[role="tab"]')].some((el) => el.textContent.includes('External') && el.dataset.state === 'ready'));
   for (const name of ['Atlas', 'External', 'Cedar', 'External']) {
-    await page.locator('nav button').filter({ hasText: name }).click();
+    await page.locator('[role="tab"]').filter({ hasText: name }).click();
     await page.waitForFunction((expected) => document.getElementById('name').textContent === expected, name);
   }
   assert.equal((await findExternalServer(outside)).pid, externalFixture.pid, 'Switching must reuse the same external process');
   // Simulate the external terminal closing. Desktop must invalidate its view.
   externalFixture.kill('SIGTERM');
-  await page.waitForFunction(() => [...document.querySelectorAll('nav button')].some((el) => el.textContent.includes('External') && el.textContent.includes('error')), { timeout: 15_000 });
-  await page.locator('nav button').filter({ hasText: 'Atlas' }).click();
+  await page.waitForFunction(() => [...document.querySelectorAll('[role="tab"]')].some((el) => el.textContent.includes('External') && el.dataset.state === 'error'), { timeout: 15_000 });
+  await page.locator('[role="tab"]').filter({ hasText: 'Atlas' }).click();
   assert.equal(await page.locator('#name').textContent(), 'Atlas');
   console.log('Packaged adoption: external PID reused, project switching, external exit invalidation: passed');
 
@@ -242,7 +243,7 @@ try {
         }
         if (/DESKTOP\s*READY/.test(plain)) done.add(index);
       }
-      if (attempt % 10 === 0) await page.locator('nav button').nth(attempt % 3).click();
+      if (attempt % 10 === 0) await page.locator('[role="tab"]').nth(attempt % 3).click();
     }
     assert.equal(done.size, providerNames.length, 'Every selected interactive provider must answer');
     for (let index = 0; index < providerNames.length; index++) {
