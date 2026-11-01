@@ -8,6 +8,14 @@ Codex and Claude Code must already be installed and authenticated on the Mac.
 This is the first implementation slice of [the desktop plan](../../docs/plans/desktop-workspaces.md),
 not the completed daily-use release. See [verification and remaining work](../../docs/plans/desktop-spike.md).
 
+`imcitius/stoneforge` is now the main repository (upstream `stoneforge-ai/stoneforge`
+is no longer maintained). Its releases are these macOS Desktop builds, created from
+`v*` Git tags by a dedicated workflow. Nothing in `.github/workflows` publishes npm
+packages: the upstream changesets `publish.yml`, which also created `v<version>`
+GitHub releases, was removed so it cannot collide with Desktop tags. CI runs on
+push/PR to `master`; the docs/website Cloudflare deploys are manual-only because
+they target upstream hosting and secrets.
+
 ## Build and run
 
 From the repository root, on macOS arm64:

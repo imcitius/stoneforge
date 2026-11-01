@@ -27,6 +27,13 @@
   <a href="https://discord.gg/NBCaUUv8Vm"><img src="https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
 </p>
 
+> **Repository status.** [`imcitius/stoneforge`](https://github.com/imcitius/stoneforge)
+> is now the main repository; the upstream `stoneforge-ai/stoneforge` project is no
+> longer maintained. This repository does not publish `@stoneforge/*` npm packages or
+> deploy the upstream websites: the npm packages referenced below are the last upstream
+> publications. Releases are macOS Desktop builds from `v*` Git tags (see
+> [apps/desktop/README.md](apps/desktop/README.md)).
+
 ---
 
 ## Before You Start
@@ -331,7 +338,7 @@ The documentation site is built with Astro and lives in `apps/docs/`. For the mo
 
 ```bash
 # Clone the repo
-git clone https://github.com/stoneforge-ai/stoneforge
+git clone https://github.com/imcitius/stoneforge
 cd stoneforge
 
 # Init Stoneforge (make sure you've globally installed stoneforge NPM package)
@@ -353,7 +360,7 @@ Then go to the Documents page and open the Documentation library. Use the Docume
 
 ```bash
 # Clone the repository
-git clone https://github.com/stoneforge-ai/stoneforge.git
+git clone https://github.com/imcitius/stoneforge.git
 cd stoneforge
 
 # Install dependencies (uses pnpm)

@@ -1,5 +1,17 @@
 name: CI
 
+# Runs on push and pull_request to master (imcitius/stoneforge is the main
+# repository). Nothing in this workflow publishes packages or creates tags or
+# releases. The upstream npm publish workflow (publish.yml) was removed; macOS
+# Desktop releases are built from v* tags by a separate workflow.
+#
+# Known failure (pre-existing, not hidden): "Test packages/smithy" runs
+# `bun test src`, which also loads Smithy's Vitest *.test.ts files under Bun and
+# shares one Bun process across files. Locally (Bun 1.3.11, Node 22.23.3) it
+# exits 1: 2118 pass, 21 skip, 56 fail, 1 error. The repository acceptance gate
+# is `pnpm check:merge` (docs/merge-checks.md), which runs each *.bun.test.ts in
+# its own process plus Vitest under Node; it is documented for macOS arm64.
+
 on:
   push:
     branches: [main, master]
@@ -19,10 +31,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # Same Node as the Desktop runtime pin and the check:merge gate.
+          node-version: 22.23.3
           cache: pnpm
 
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
 
       - run: pnpm install --frozen-lockfile
 

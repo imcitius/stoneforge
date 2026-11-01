@@ -19,7 +19,7 @@ If you're contributing on behalf of an employer, ask us for the Corporate CLA so
 ## Development Setup
 
 ```bash
-git clone https://github.com/stoneforge-ai/stoneforge.git
+git clone https://github.com/imcitius/stoneforge.git
 cd stoneforge
 pnpm install
 npx turbo run typecheck
@@ -56,7 +56,9 @@ npx turbo run typecheck
 
 1. Create a feature branch from `master`
 2. Make your changes
-3. Add a changeset if your change affects published packages: `pnpm changeset`
+3. Changesets (`pnpm changeset`) are optional: this repository (`imcitius/stoneforge`, now the
+   main repository) does not publish npm packages. Releases are macOS Desktop builds from `v*`
+   tags; see `apps/desktop/README.md`.
 4. Ensure typecheck and tests pass
 5. Submit a pull request
 

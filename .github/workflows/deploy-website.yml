@@ -1,16 +1,16 @@
 name: Deploy Website
 
+# Manual only. This fork (imcitius/stoneforge) is the main repository; the
+# upstream stoneforge-ai/stoneforge project is no longer maintained.
+# This workflow deploys to the upstream Cloudflare Pages project
+# "stoneforge-ai" (stoneforge.ai) and needs CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID secrets that the fork does not have. The automatic
+# push-to-master and pull_request preview triggers were removed so that master
+# pushes and PRs do not try to deploy to upstream hosting. The site sources in
+# apps/website/ are kept. Run it manually only after configuring hosting and
+# secrets that this repository owns.
+
 on:
-  push:
-    branches: [master]
-    paths:
-      - 'apps/website/**'
-      - '.github/workflows/deploy-website.yml'
-  pull_request:
-    branches: [master]
-    paths:
-      - 'apps/website/**'
-      - '.github/workflows/deploy-website.yml'
   workflow_dispatch:
 
 concurrency:
@@ -19,8 +19,6 @@ concurrency:
 
 permissions:
   contents: read
-  deployments: write
-  pull-requests: write
 
 jobs:
   deploy:
@@ -28,6 +26,16 @@ jobs:
     name: Build & Deploy
 
     steps:
+      - name: Require Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not configured for this repository; refusing to deploy."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
@@ -45,46 +53,9 @@ jobs:
         run: pnpm turbo run build --filter=@stoneforge/website
 
       - name: Deploy to Cloudflare Pages
-        id: deploy
         working-directory: apps/website
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          DEPLOY_OUTPUT=$(pnpm exec wrangler pages deploy dist --project-name=stoneforge-ai --branch=${{ github.event_name == 'push' && 'master' || github.head_ref }} 2>&1)
-          echo "$DEPLOY_OUTPUT"
-          DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -oE 'https://[^ ]+\.pages\.dev')
-          echo "deployment-url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
-
-      - name: Comment preview URL on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const url = '${{ steps.deploy.outputs.deployment-url }}';
-            if (!url) return;
-            const body = `### Cloudflare Pages Preview\n\nDeployed to: ${url}`;
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            const existing = comments.find(c =>
-              c.user.login === 'github-actions[bot]' &&
-              c.body.includes('Cloudflare Pages Preview')
-            );
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body,
-              });
-            }
+          DEPLOY_BRANCH: ${{ github.ref_name }}
+        run: pnpm exec wrangler pages deploy dist --project-name=stoneforge-ai --branch="$DEPLOY_BRANCH"
