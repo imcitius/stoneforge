@@ -413,3 +413,116 @@ calls at each size, with growing row materialization and DISTINCT/sort B-trees.
 The separate PluginExecutor failure was a **5000ms Bun test deadline**, while the
 actual command's internal default is **300000ms**. Their common cause is unproven.
 No production, measurement contract, threshold, timeout, skip or gate changes.
+
+## List estimator stabilization — el-55qcdj, 2026-11-01
+
+Recurrence: el-apzlc required gate on 9c9943a failed only
+`Scaling Performance > should maintain list performance as dataset grows`,
+ratio **3.0972706470908773** `<3` (loadavg ~15, 194/195, exit 1; evidence
+`docs/workspace/git-identity-evidence/gate-9c9943a/logs.tar.gz`, step 047).
+Together with el-39znb's three failures (3.17 / 3.56 / 3.17) this is now
+reproducible under host contention, not an unexplained one-off. Director triage
+asked for an assertion that stays sensitive to real regressions but is robust
+to host load, explicitly **not** a raised threshold. The gate rerun policy for
+load-sensitive timing failures (el-241 / el-1bx) is separate and unchanged.
+
+### Diagnosis
+
+The el-2z6 list estimator was the median, over six independent samples, of
+**mean** per-query time (one 256-query interval / 256). Mean time includes
+everything contention adds: preemption, migration to efficiency cores, slower
+GC helper threads. Contention does not scale uniformly with result size: the
+historical failed gates show medians such as `.200684 / .424850 / .636896` ms
+(50 / 100 / 150 rows), i.e. per-row cost at 100 rows already 6% above 50 rows.
+A linear cost model `a + b·n` with `a ≥ 0` cannot exceed 150/50 = 3, so ratios
+above 3 are measured superlinearity introduced by the host, not by Quarry.
+
+On this host (macOS arm64, 6 P + 6 E cores, Bun 1.3.11, Node 22.23.3) the
+unchanged test at natural load ~14–16 returned **3.181992, 2.621828, 2.710506,
+2.468992, 3.049682** — 2 of 5 processes exit 1 (`/tmp/el-55qcdj/baseline/`).
+
+### Estimator experiment (same schedule, identical data)
+
+A temporary script (`/tmp/el-55qcdj/exp/exp.ts`, not in the repository) ran
+the exact list schedule (warmup, six balanced orders, fresh DBs, 256 queries)
+but timed every query, then computed several estimators on the same data.
+Endpoint ratios (150 / 50), all runs:
+
+| Condition | Runs | Median of sample means (el-2z6) | Median of sample minima | Min of all queries | Median of sample p10 | Median of sample medians |
+|---|---:|---|---|---|---|---|
+| Natural load 11–12 | 10 | 2.547–2.827 | 2.804–2.889 | 2.774–2.851 | 2.753–2.847 | 2.686–2.821 |
+| +10 busy loops, load 14–36 | 8 | 2.415–**3.011** | 2.798–2.844 | 2.746–2.831 | 2.748–2.808 | 2.659–**3.312** |
+| Wall-clock N+1 regression (16 queries), load 41 | 1 | 9.040 | 25.850 | 15.093 | 27.346 | 12.566 |
+
+Console output only; the values above are a complete transcription. Minimum-
+based estimators are both tighter and unaffected by load; mean/median-based
+ones drift above 3. The interference-free ratio is ≈2.82: the true list cost has
+little fixed overhead (sort/DISTINCT B-trees and per-row JSON materialization
+dominate), so the `<3` contract keeps only ~6% headroom even without load. The
+wall-clock N+1 regression (re-list all tasks per returned task, real API, no
+counting clock) is rejected by every estimator, the minimum-based ones most
+strongly.
+
+### Change (test only)
+
+- `measureListSample` times each of the 256 queries separately and returns one
+  duration per query. Seeding, the per-DB untimed preparation query and the
+  result-count check are unchanged.
+- New sample estimator `minimumPerQuery`: each independent sample is reduced
+  to its fastest query. Contention only *adds* time to a query, while a real
+  superlinear regression adds work to *every* query, including the fastest.
+- `measureScaling` takes the estimator explicitly. Sizes 50 / 100 / 150, fixed
+  warmup, six balanced fresh-DB samples, median across samples, endpoint ratio
+  and `<3` are unchanged. Create scaling keeps `meanPerOperation` (its `<4`
+  margin is ~4×; no change without evidence).
+- Both quadratic controls use the same estimator as their wall-clock test
+  (list controls: `minimumPerQuery` over one counted query per sample). Results
+  are unchanged: list linear 2.960784 passes, N+1 8.766244 is rejected; create
+  1 / 9.181818.
+- `[scaling]` JSON adds `estimator`, per-sample `estimates`, and diagnostic
+  mean-based `meanMedians` / `meanRatio` (the el-2z6 statistic on the same
+  data). All per-query durations, including warmup, are still logged, rounded
+  to 1 ns (~60 KB per run). No retry, sleep, forced GC, skip, adaptive repeat
+  or threshold change.
+
+Limits: the minimum deliberately excludes GC pauses and scheduler stalls from
+the scaling ratio; it is not a tail-latency or throughput check (absolute
+latency thresholds elsewhere in the file are unchanged). If contention is so
+heavy that no query in a sample runs undisturbed, that sample's minimum rises;
+the median across six samples tolerates two such samples per size. Validated
+on one macOS arm64 host only; other hosts may have a different intrinsic ratio.
+If an uncontended ratio ≥3 appears, it is a real cost-shape change: report it,
+do not relax `<3`.
+
+### Validation (predeclared, no retries)
+
+| Run set | Load (1 min) | Result | List ratio (`minimumPerQuery`) | Mean-based ratio, same data |
+|---|---|---|---|---|
+| Full file ×5, natural load | 21–28 | 5/5 exit 0, 35/35 each | 2.770–2.833 | 2.599–2.782 |
+| List test ×10, +10 busy loops | 24–46 | 10/10 exit 0 | 2.781–2.858 | 1.906–**3.558** (2/10 >3) |
+
+Under the busy-loop stress, mean per-query time at 150 rows rose to 1.0–2.8 ms
+(vs ~0.44 ms uncontended), while the minimum-based medians stayed 0.150–0.156 /
+0.285–0.296 / 0.423–0.441 ms. Standalone `tsc --noEmit` over the test file with
+the Quarry tsconfig returned 0 (package `typecheck` excludes `*.bun.test.ts`).
+Raw logs: `/tmp/el-55qcdj/{baseline,after,stress}/`; durable copies and the
+experiment script are archived in
+`workspace/quarry-list-scaling-el-55qcdj/evidence.tar.gz` (SHA-256 of every
+uncompressed file in the adjacent `MANIFEST.txt`).
+
+### Required gate
+
+Commit **8160f904d2b7c83506e8346dd7cac4dd3758da0f** (test file SHA-256
+`cda29a5363bc08e661026732677c1bf870204c02da10405a661eae6c03dc1d26`), Node
+v22.23.3, Bun 1.3.11, pnpm 8.15.5, run in the foreground of the assigned
+worktree: `pnpm install --frozen-lockfile` exit 0, then `pnpm check:merge`
+exit **0** — **194 checks, 0 failed, 621.52 s**. Load average before
+40.90 / 35.06 / 25.22, after 32.13 / 32.12 / 28.82 (other agents' gates were
+running). Performance step 047: 35 pass / 0 fail, 9.25 s; list
+`minimumPerQuery` medians 0.157854 / 0.295771 / 0.442208 ms, ratio
+**2.801377** (mean-based on the same data 2.621690); create 0.991376; controls
+1 / 9.181818 / 2.960784 / 8.766244 as expected. This is one gate, not a retry.
+`results.json`, step 047 log and console are in the evidence archive
+(`gate-8160f90/`); the original temporary directory was
+`$TMPDIR/stoneforge-merge-check-sxdwSj`. The documentation commit that follows
+changes only `docs/`. Independent steward review is still required.

@@ -202,13 +202,16 @@ async function measureListSample(
     // Prepare this database's query path; global warmup below uses other DBs.
     expect((await list(freshApi, size)).length).toBe(size);
     let count = 0;
-    const start = clock();
+    // Time every query separately: one duration per query (see minimumPerQuery).
+    const durations: number[] = [];
     for (let query = 0; query < queries; query++) {
-      count += (await list(freshApi, size)).length;
+      const start = clock();
+      const tasks = await list(freshApi, size);
+      durations.push(clock() - start);
+      count += tasks.length;
     }
-    const duration = clock() - start;
     expect(count).toBe(size * queries);
-    return { durations: [duration], operations: queries };
+    return { durations, operations: queries };
   });
 }
 
@@ -218,10 +221,28 @@ function median(values: number[]): number {
   return (sorted[Math.floor(middle)] + sorted[Math.ceil(middle) - 1]) / 2;
 }
 
+/** Reduces one independent sample to a per-operation cost. */
+type SampleEstimator = (sample: ScalingSample) => number;
+/** Sample estimator: summed duration divided by operations (mean per operation). */
+const meanPerOperation: SampleEstimator = ({ durations, operations }) =>
+  durations.reduce((sum, duration) => sum + duration, 0) / operations;
+/**
+ * Sample estimator: fastest single query in the sample (one duration per query).
+ * Host contention (preemption, slower-core scheduling, runtime helper threads
+ * competing for CPU) only adds time to an individual query, so the minimum of
+ * 256 queries estimates the uncontended cost of the same deterministic work.
+ * A real superlinear regression adds work to every query, including the fastest.
+ */
+const minimumPerQuery: SampleEstimator = ({ durations, operations }) => {
+  expect(durations.length).toBe(operations);
+  return Math.min(...durations);
+};
+
 async function measureScaling(
   name: string,
   sizes: number[],
   sample: (size: number) => Promise<ScalingSample>,
+  estimate: SampleEstimator,
   unit = 'ms'
 ): Promise<number> {
   // Fixed warmup, never calibrated from measured ratios or pass/fail.
@@ -233,15 +254,20 @@ async function measureScaling(
   }
   const totals = samples.map((group) => group.map(({ durations }) =>
     durations.reduce((sum, duration) => sum + duration, 0)));
-  const medians = samples.map((group, index) => median(
-    group.map(({ operations }, i) => totals[index][i] / operations)
-  ));
+  const estimates = samples.map((group) => group.map(estimate));
+  // Median across the six independent samples of each size.
+  const medians = estimates.map(median);
   const ratio = medians[medians.length - 1] / medians[0];
-  // Log every raw duration, including warmup and outliers, before asserting.
+  // Diagnostic only: the mean-per-operation medians and their endpoint ratio.
+  const meanMedians = samples.map((group) => median(group.map(meanPerOperation)));
+  // Log every raw duration (rounded to 1 ns), including warmup and outliers,
+  // before asserting. The returned ratio itself is not rounded.
   console.log('[scaling]', JSON.stringify({
-    name, unit, sizes, orders: SCALING_ORDERS, warmup, samples, totals, medians, ratio,
+    name, unit, estimator: estimate.name, sizes, orders: SCALING_ORDERS, warmup, samples,
+    totals, estimates, medians, ratio, meanMedians,
+    meanRatio: meanMedians[meanMedians.length - 1] / meanMedians[0],
     loadavg: loadavg(),
-  }));
+  }, (_key, value) => (typeof value === 'number' ? Number(value.toFixed(6)) : value)));
   return ratio;
 }
 
@@ -250,7 +276,8 @@ function assertCreateScaling(ratio: number): void {
 }
 
 function assertListScaling(ratio: number): void {
-  // 150 / 50 = 3: the existing contract requires strictly sublinear total time.
+  // 150 / 50 = 3: the existing contract requires strictly sublinear query time.
+  // Wall-clock ratios use minimumPerQuery medians (el-55qcdj); never raise this.
   expect(ratio).toBeLessThan(LIST_SIZES[2] / LIST_SIZES[0]);
 }
 
@@ -681,11 +708,13 @@ describe('Query API Performance', () => {
 
   describe('Scaling Performance', () => {
     it('should maintain consistent per-item performance as dataset grows', async () => {
-      assertCreateScaling(await measureScaling('create', CREATE_SIZES, measureCreateSample));
+      assertCreateScaling(await measureScaling('create', CREATE_SIZES, measureCreateSample,
+        meanPerOperation));
     }, 30_000);
 
     it('should maintain list performance as dataset grows', async () => {
-      assertListScaling(await measureScaling('list', LIST_SIZES, measureListSample));
+      assertListScaling(await measureScaling('list', LIST_SIZES, measureListSample,
+        minimumPerQuery));
     }, 30_000);
 
     it('should reject quadratic create work with the same sampling and assertion', async () => {
@@ -711,9 +740,11 @@ describe('Query API Performance', () => {
         return tasks;
       };
       const linear = await measureScaling('create-linear-control', CREATE_SIZES,
-        (size) => measureCreateSample(size, countedCreate(false), clock, 1), 'row-visits');
+        (size) => measureCreateSample(size, countedCreate(false), clock, 1), meanPerOperation,
+        'row-visits');
       const quadratic = await measureScaling('create-quadratic-control', CREATE_SIZES,
-        (size) => measureCreateSample(size, countedCreate(true), clock, 1), 'row-visits');
+        (size) => measureCreateSample(size, countedCreate(true), clock, 1), meanPerOperation,
+        'row-visits');
       assertCreateScaling(linear);
       expect(() => assertCreateScaling(quadratic)).toThrow();
     }, 30_000);
@@ -739,9 +770,11 @@ describe('Query API Performance', () => {
         return tasks;
       };
       const linear = await measureScaling('list-linear-control', LIST_SIZES,
-        (size) => measureListSample(size, countedList(false), clock, 1), 'row-visits');
+        (size) => measureListSample(size, countedList(false), clock, 1), minimumPerQuery,
+        'row-visits');
       const quadratic = await measureScaling('list-quadratic-control', LIST_SIZES,
-        (size) => measureListSample(size, countedList(true), clock, 1), 'row-visits');
+        (size) => measureListSample(size, countedList(true), clock, 1), minimumPerQuery,
+        'row-visits');
       assertListScaling(linear);
       expect(() => assertListScaling(quadratic)).toThrow();
     }, 30_000);
