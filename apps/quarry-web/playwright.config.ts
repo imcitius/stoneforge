@@ -1,14 +1,15 @@
 import { defineConfig, devices } from '@playwright/test';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { TEST_API_PORT, TEST_WEB_PORT } from './tests/e2e-ports';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '../..');
 const testDbPath = resolve(projectRoot, '.stoneforge-test/stoneforge.db');
 
-// Use dedicated test ports to avoid conflicts with development servers
-const testApiPort = 3459;
-const testWebPort = 5176;
+// Dedicated test ports (see tests/e2e-ports.ts) avoid conflicts with development servers
+const testApiPort = TEST_API_PORT;
+const testWebPort = TEST_WEB_PORT;
 
 export default defineConfig({
   testDir: './tests',
@@ -31,7 +32,9 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `STONEFORGE_DB_PATH=${testDbPath} PORT=${testApiPort} bun run src/index.ts`,
+      // Auto-export is disabled so the e2e server does not write
+      // apps/quarry-server/.stoneforge/sync/*.jsonl (its export dir is cwd-relative).
+      command: `STONEFORGE_DB_PATH=${testDbPath} STONEFORGE_SYNC_AUTO_EXPORT=false PORT=${testApiPort} bun run src/index.ts`,
       cwd: resolve(__dirname, '../quarry-server'),
       port: testApiPort,
       reuseExistingServer: !process.env.CI,

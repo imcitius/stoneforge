@@ -132,10 +132,6 @@ holds only the conclusions.
   - `/Users/home/...` in `.stoneforge/sync/elements.jsonl` — upstream sync export
     (upstream author's own workspace data, last touched upstream 2026-04-23).
     It is generated data; editing it by hand would bypass QuarryAPI.
-  - `/Users/home/code/toolco/elemental` in `apps/quarry-web/tests/websocket.spec.ts`
-    (two test steps, upstream 2026-02-13). Changing it is a test-code change and
-    is out of scope for documentation hygiene; it should become a repo-relative
-    path in a separate code task (el-86f7e8).
 - Stewards reject changes that add raw evidence files or machine-local paths and
   ask for a summary instead.
 

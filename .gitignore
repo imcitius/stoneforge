@@ -21,6 +21,9 @@ bun.lockb
 # Stoneforge test workspace (created by Playwright tests)
 .stoneforge-test/
 .elemental-test/
+# Workspace data the e2e quarry-server writes relative to its cwd
+# (sync exports, playbooks); auto-export is disabled in playwright.config.ts
+/apps/quarry-server/.stoneforge/
 
 # Local development files
 prompt.md
