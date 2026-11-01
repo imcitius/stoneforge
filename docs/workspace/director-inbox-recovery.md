@@ -47,7 +47,7 @@ test string in the clipboard; the corrected run completed successfully.
 
 - Required `pnpm check:merge`, pinned Node 22.23.3: **192/192 passed**, 243.76s.
   Evidence: `/tmp/stoneforge-inbox-gate.log`; full logs in
-  `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-LxlLi7`.
+  `$TMPDIR/stoneforge-merge-check-LxlLi7`.
 - Final daemon regression suite: **160 passed, 2 existing skips, 0 failures**,
   including delivery to replacement, failed delivery/retry, unrelated-name
   exclusion, opt-out/typing/quota/disabled guards, missing session and concurrent

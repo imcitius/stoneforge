@@ -1,2 +1,0 @@
-{"command": ["apps/desktop/node_modules/node/bin/node", "--input-type=module", "-e", "import { createStorage, initializeSchema } from './packages/storage/dist/index.js'; const storage = createStorage({path: ':memory:'}); initializeSchema(storage); storage.close(); console.log(process.version, 'SQLite in-memory OK');"], "exit": 0}
-v22.23.3 SQLite in-memory OK

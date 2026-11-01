@@ -96,13 +96,11 @@ claim can remain durable but unrecoverable through this API; audit discovery doe
 not authorize editing metadata, adopting the claim or retrying external creation.
 Finalized replay and external MR evidence rules are separate candidate behavior.
 
-Probe source is preserved in `task-session-retention-candidate.test.ts.txt` beside
-this report; log `/tmp/el-2y8n3-candidate.log`. To reproduce without checking out
-another branch, extract the named `task-completion.ts` with `git show`, place it
-as `packages/smithy/.retention-candidate.ts`, redirect its `../` imports to `./src/`
-and its sibling service imports to `./src/services/`. Copy the preserved fixture
-to `packages/smithy/.retention-probe.test.ts`, run `bun test` on that exact file,
-and remove both temporary files. Type-only imports are erased by Bun. This is a
+Probe log: `/tmp/el-2y8n3-candidate.log`. The ad-hoc probe fixture was removed
+from the repository before publication (el-ju3fwi). Method: extract the named
+`task-completion.ts` with `git show`, place it as a temporary module next to the
+baseline sources with its imports redirected, run a temporary `bun test` fixture
+covering the cases above, then remove both temporary files. This is a
 candidate-on-baseline boundary probe, not the full candidate integration gate,
 a merge verdict, provider test, or an installed-app behavior claim.
 
@@ -144,7 +142,7 @@ approved CLI local delivery after acceptance. Worker does not self-merge.
 
 First baseline gate: **186/186, exit 0, 224.34s** on f30b41a plus the six new
 retention cases/comment. `/tmp/el-2y8n3-gate.log`; exact step results:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-JhTLp4/results.json`.
+`$TMPDIR/stoneforge-merge-check-JhTLp4/results.json`.
 During this run local master delivered el-20qt0 as `3420c56198517a39d1219a2c1acfd0099d526429`.
 The completion module's SHA-256 equals the earlier probe module
 `d28c1d13831ec741f593108bce4d2886f6ff66a3587317ff9a7036b1d51a0aa5`.
@@ -172,7 +170,7 @@ its declared typecheck/build/runtime suites. Existing skips are not coverage.
 
 Final integrated **`pnpm check:merge`: 187/187, exit 0, 228.24s**.
 `/tmp/el-2y8n3-integrated-gate.log`; exact commands/results/per-step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-LzHsWR/results.json`.
+`$TMPDIR/stoneforge-merge-check-LzHsWR/results.json`.
 Includes uncached workspace typecheck, Desktop build, all discovered Bun suites
 (including retention 12, handoff 26, completion protocol 69), Smithy Node/Vitest,
 Desktop Node and gate regressions. No check/threshold was changed or failure

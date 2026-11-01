@@ -78,6 +78,11 @@ git commit -m "feat: Add user authentication endpoint with JWT tokens"
 git push origin <branch>
 ```
 
+**Keep raw evidence out of the repository**:
+
+- Do not commit raw test/gate logs, results JSON, console captures, evidence archives, or ad-hoc probe scripts/patches. Keep them in `/tmp` (or attach them to workspace documents) and summarize in the repo: commit, commands, key numbers and conclusion.
+- Do not commit machine-local absolute paths (`/Users/<name>/...`, `/home/<name>/...`, `/private/tmp/...`, `/var/folders/...`). Use repo-relative paths or placeholders such as `<workspace>` or `<repo>`.
+
 ### Discovering Additional Work
 
 If you find work outside your task scope:

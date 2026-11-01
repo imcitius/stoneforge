@@ -60,7 +60,7 @@ local delivery remain required; worker verification is not a merge verdict.
 ## Integration
 
 Pre-sync gate: **187/187, exit 0, 236.68s**, `/tmp/el-e86r8-gate.log`,
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-ptzEfg/results.json`.
+`$TMPDIR/stoneforge-merge-check-ptzEfg/results.json`.
 Local master advanced to retention delivery `75b818a`; approved CLI sync was
 conflict-free (`7beb139`). The delivered retention test previously characterized
 silent success. It now asserts INVALID_INPUT and performs its unchanged JSONL
@@ -75,7 +75,7 @@ record these results. Five focused files (four above plus
 823 assertions**, `/tmp/el-e86r8-integrated-focused.log`.
 Final **`pnpm check:merge`: 188/188, exit 0, 225.87s**;
 `/tmp/el-e86r8-integrated-gate.log`, exact commands/results/per-step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-PSX88u/results.json`.
+`$TMPDIR/stoneforge-merge-check-PSX88u/results.json`.
 Includes uncached workspace typecheck, Desktop build, **8,796 Bun pass / 0 fail /
 29 existing skips**, Smithy Node/Vitest, Desktop Node and gate regression checks.
 `git diff --check` and local target ancestry pass. No gate/threshold changes.

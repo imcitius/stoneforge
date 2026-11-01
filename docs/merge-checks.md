@@ -107,6 +107,38 @@ independent review evidence are recorded in
 `docs/workspace/merge-acceptance-2026-09-26.md` and workspace document el-241.
 The standalone local merge command does not run the gate; execute it explicitly.
 
+## Evidence hygiene
+
+The repository is published. Verification evidence stays outside Git; the repo
+holds only the conclusions.
+
+- Do **not** commit raw gate logs (`*.log`), runner `results.json`/gate JSON,
+  console captures, evidence archives (`*.tar.gz`), ad-hoc probe scripts or
+  patches, or evidence directories under `docs/`.
+- Do **not** commit machine-local paths: home directories (`/Users/<name>/…`,
+  `/home/<name>/…`), `$TMPDIR` expansions (`/var/folders/…`, `/private/tmp/…`),
+  or personal artifact/backup directories. Use repo-relative paths or
+  placeholders such as `<workspace>`, `<repo>`, `$TMPDIR/stoneforge-merge-check-…`
+  or `~/Applications/…`.
+- Keep raw evidence in `/tmp` (or another local directory) or attach it to the
+  workspace through `sf` documents/messages. In the repo, write a concise summary:
+  what was measured, the exact commit, commands, key numbers (for example
+  `194/194, exit 0, 254.58s`), a few quoted lines when needed, and the conclusion.
+- Before committing documentation, check the tree:
+  `git grep -nE "/Users/|/private/tmp/|/var/folders/"` must not report new hits,
+  and `git ls-files docs | grep -E '\.(log|tar|gz|tgz|zip)$'` must be empty. Known
+  remaining hits, all inherited from upstream and intentionally left:
+  - `/Users/you/my-project` in `apps/docs` — generic documentation example.
+  - `/Users/home/...` in `.stoneforge/sync/elements.jsonl` — upstream sync export
+    (upstream author's own workspace data, last touched upstream 2026-04-23).
+    It is generated data; editing it by hand would bypass QuarryAPI.
+  - `/Users/home/code/toolco/elemental` in `apps/quarry-web/tests/websocket.spec.ts`
+    (two test steps, upstream 2026-02-13). Changing it is a test-code change and
+    is out of scope for documentation hygiene; it should become a repo-relative
+    path in a separate code task (el-86f7e8).
+- Stewards reject changes that add raw evidence files or machine-local paths and
+  ask for a summary instead.
+
 ## Recorded validation — 2026-09-26, task el-5xd
 
 Tested code commit: `502a86ed65b733f51c254fb9dd3aa3d8546e0408`, based on local
@@ -161,7 +193,7 @@ Local evidence retained for independent review:
 - Initial full run: `/tmp/el-5xd-check-merge-first.log`.
 - Clean command output: `/tmp/el-5xd-check-merge-clean.log`.
 - Full clean per-step logs and `results.json` (all commands, exit codes and
-  durations): `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-L6eAuQ/`.
+  durations): `$TMPDIR/stoneforge-merge-check-L6eAuQ/`.
 
 Observed duration fits the current steward default of five minutes on this host;
 this is not a guarantee for slower machines. The steward must rerun the final
@@ -174,7 +206,7 @@ task **el-1r6**; `repositories.json` was not edited.
 
 The resumed worker used the independently approved
 `/tmp/stoneforge-el-ptim-151b314/sf task sync el-5xd` with
-`STONEFORGE_ROOT=/Users/citius/Desktop/Work/Stoneforge`. No installed app or session
+`STONEFORGE_ROOT=<workspace>`. No installed app or session
 was changed. The first sync included local master `e32f709` (el-2kc and el-ptim),
 producing `6a01bc56f43562392a948a48c025761a889f1c10`. A second sync included the
 newly merged el-52s fixture fix, local master `0f0a7ad4c767d9ac85ce0fb3408f031ee2f9bf91`,
@@ -217,9 +249,9 @@ Evidence:
 
 - `/tmp/el-5xd-resume-install.log` (install).
 - `/tmp/el-5xd-resume-gate.log` (first post-sync pass).
-- `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-LHUCOB/results.json` (all first-run commands, exits, durations and per-step log paths).
+- `$TMPDIR/stoneforge-merge-check-LHUCOB/results.json` (all first-run commands, exits, durations and per-step log paths).
 - `/tmp/el-5xd-final-gate.log` (final failed gate).
-- `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-m98nM3/results.json` (all final commands, exits, durations and per-step log paths); `046.log` is the complete failure.
+- `$TMPDIR/stoneforge-merge-check-m98nM3/results.json` (all final commands, exits, durations and per-step log paths); `046.log` is the complete failure.
 
 The command correctly propagated a real failed check through the final process
 exit despite subsequent successful checks. Implementation approval of the gate
@@ -233,7 +265,7 @@ remains el-1r6; repositories.json and AGENTS.md were not edited by this task.
 
 After independently approved el-2z6 was delivered, the approved standalone
 `/tmp/stoneforge-el-ptim-151b314/sf task sync el-5xd` with
-`STONEFORGE_ROOT=/Users/citius/Desktop/Work/Stoneforge` returned **0** and included
+`STONEFORGE_ROOT=<workspace>` returned **0** and included
 local master **`00847ad3dca80b601aa7f9009708319df5f119bf`**. The tested revision is
 **`0ed8c8e80e0cae0d0918b0bb01df15d99a152c65`**. All 299 artifact manifest entries
 matched their hashes. The target now includes el-52s, el-2z6, Desktop Logs and
@@ -271,7 +303,7 @@ cross-platform performance. Its method and limits remain in
 Evidence: `/tmp/el-5xd-integrated-install.log` and `.json`,
 `/tmp/el-5xd-integrated-gate.log` and `.json`; all 176 exact commands, exit codes,
 durations and full per-step logs are in
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-pqv08E/results.json`.
+`$TMPDIR/stoneforge-merge-check-pqv08E/results.json`.
 The current target remained 00847ad at completion. This is worker validation;
 the steward must independently review and run the gate on the final proposed
 merge revision before approved local delivery. Activation remains separate el-1r6.
@@ -296,11 +328,11 @@ GET /api/repositories и installed sf repo list сразу показывают 
 endpoint/project/instance identity прежние, restart не нужен. Это настройка и её
 видимость в текущем сервере; standalone task merge --local сам gate не запускает.
 
-Полный отчёт/санитизированные snapshots/patches находятся в core
-`docs/workspace/merge-acceptance-2026-09-26.{md,json}`,
-`docs/workspace/core-merge-gate.patch`, `docs/workspace/root-agents-storage.patch`.
+Полный отчёт находится в core `docs/workspace/merge-acceptance-2026-09-26.md`
+(санитизированные snapshots и patch-файлы удалены из репозитория перед
+публикацией, el-ju3fwi; суть изменений приведена в отчёте).
 Логи: `/tmp/el-1r6-evidence/{install.log,gate.log,gate.json}`; все команды/exits/
-длительности — `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Z9wDEd/results.json`.
+длительности — `$TMPDIR/stoneforge-merge-check-Z9wDEd/results.json`.
 Это worker acceptance/activation; независимое ревью steward текущего commit и
 общих изменений обязательно до закрытия el-1r6 и local delivery. Приложение и
 сессии не заменялись/не перезапускались; installed dispatch ещё требует ancestry check.
@@ -329,7 +361,7 @@ Evidence: `/tmp/el-127xg-install.log`, `/tmp/el-127xg-tests.log`,
 `/tmp/el-127xg-ambient.json`, `/tmp/el-127xg-gate.{log,json}`. The gate log starts
 with the separately recorded `node -v` and all preflight tool/runtime details.
 All exact step commands/exits/timings and full logs are retained at
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-oMTYAE/results.json`.
+`$TMPDIR/stoneforge-merge-check-oMTYAE/results.json`.
 
 Only documentation changed after the tested implementation. Author and committer
 use the approved command-scoped Ilya Rubinchik identity. Independent exact-final

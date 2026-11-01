@@ -121,7 +121,7 @@ inside that gate total 139 pass / 473 assertions: ownership/CLI 26, Quarry CAS 2
 assignment service 37, spawner 74. No check was omitted or retried to obtain green.
 
 Exact commands, exits, durations and all step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-G8YXrz/results.json`.
+`$TMPDIR/stoneforge-merge-check-G8YXrz/results.json`.
 `git diff --check` also passed. Existing skips are not passing coverage. Only
 reference/evidence documentation changed after this gate; production/test files
 remain the tested versions. Independent steward approval and local merge have
@@ -195,7 +195,7 @@ remain required after worker completion; this report is not merge approval.
 
 First required gate on implementation `0ad1165`: **189/189, exit0, 300.05s**.
 Log `/tmp/el-2pujj-gate.log`; exact per-step commands and results:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-o2pHvy/results.json`.
+`$TMPDIR/stoneforge-merge-check-o2pHvy/results.json`.
 Public docs build: `pnpm --filter @stoneforge/docs build`, exit0, 38 pages,
 `/tmp/el-2pujj-docs-build.log`. During verification local master advanced only by
 el-1npax's ExportOptions.outputPath comment to `a98c67e`. Approved el-ptim CLI
@@ -205,7 +205,7 @@ and diff checks pass. Integrated required gate result follows below.
 
 Integrated gate on `e3dc521`: **187/189, exit1, 319.94s**. This is a failed
 required check, not green acceptance. Results:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dMwYdr/results.json`,
+`$TMPDIR/stoneforge-merge-check-dMwYdr/results.json`,
 log `/tmp/el-2pujj-integrated-gate.log`. Unchanged Quarry query-performance list
 scaling measured medians 0.200684/0.424850/0.636896ms, ratio3.173624 against `<3`;
 unchanged PluginExecutor simple-command test timed out after5000ms. Both files
@@ -226,7 +226,7 @@ implementation/tests are unchanged. A full gate on this new integration follows.
 
 Final integrated required gate on `f61392a`: **189/189, exit0, 360.79s**.
 Log `/tmp/el-2pujj-final-gate.log`; exact per-step commands/results:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-pPFkcm/results.json`.
+`$TMPDIR/stoneforge-merge-check-pPFkcm/results.json`.
 Includes uncached typecheck17/17, handoff/retention/completion/dispatch regressions,
 mock Spawner and delivered termination tests, Smithy Node/Vitest and Desktop
 source build/Node tests. No check, threshold or implementation was changed to

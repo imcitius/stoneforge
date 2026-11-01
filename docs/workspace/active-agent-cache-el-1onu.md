@@ -84,7 +84,7 @@ On the integrated source:
   Log: `/tmp/el-1onu/unit-integrated.log`.
 
 Initial gate: `/tmp/el-1onu/gate.log`; per-step commands/exits:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-koGcHN/results.json`.
+`$TMPDIR/stoneforge-merge-check-koGcHN/results.json`.
 
 Final explicit `pnpm check:merge` on integrated source `fe8eb7b`: **exit 0,
 180/180 steps, 332.99s**. Uncached typecheck 17/17 (0 cached), Bun 8,536
@@ -94,7 +94,7 @@ bypass or retry-until-green; the second full run validates the new local target.
 
 Final gate log `/tmp/el-1onu/gate-final.log`, exit `gate-final.exit`;
 exact commands/exits/durations and per-step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dvNFAA/results.json`.
+`$TMPDIR/stoneforge-merge-check-dvNFAA/results.json`.
 The final documentation commit does not change tested implementation or tests.
 Shared reference el-1fqa and Directory el-1s1 were reread before appending this
 result, preserving concurrent entries. No new shared document or channel.

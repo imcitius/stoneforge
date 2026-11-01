@@ -1,7 +1,7 @@
 # Element ID generator contract — el-4rgbi0
 
 Director decision 2026-11-01 (production ID contract), based on el-45m5h research
-(evidence carried unchanged in `docs/workspace/id-base36-bias-el-45m5h/`, original
+(write-up in `docs/workspace/id-base36-bias-el-45m5h/README.md`, original
 commit `cb11f7a`, cherry-picked with `-x`; steward review in shared reference
 el-3uxnw). Implementation: `packages/core/src/id/generator.ts`.
 

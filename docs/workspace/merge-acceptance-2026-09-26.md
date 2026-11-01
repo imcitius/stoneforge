@@ -12,7 +12,7 @@ All seven blocking tasks were closed and their delivery commits were in master:
 el-1ch, el-2kc, el-2z6, el-3514, el-52s, el-5xd and el-ptim. Installed dispatch
 had created this worktree at old origin/master `bb5f967`. After checking all
 299 manifest hashes of the independently approved el-ptim artifact, the worker ran
-`STONEFORGE_ROOT=/Users/citius/Desktop/Work/Stoneforge /tmp/stoneforge-el-ptim-151b314/sf task sync el-1r6`.
+`STONEFORGE_ROOT=<workspace> /tmp/stoneforge-el-ptim-151b314/sf task sync el-1r6`.
 It exited 0 and made HEAD exactly equal to local master `3722db9`, without switching
 branches. No source/gate implementation, threshold, dependency or exclusion changed.
 
@@ -38,9 +38,10 @@ tests. This run did not retry failures or weaken checks. Historical failures in
 `docs/merge-checks.md` / workspace how-to el-1bx remain historical evidence.
 
 Full logs: `/tmp/el-1r6-evidence/gate.log`, `install.log`, `gate.json` and
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Z9wDEd/results.json`
-(all exact commands, exit codes, durations and per-step logs). The adjacent
-`merge-acceptance-2026-09-26.json` preserves sanitized snapshots and evidence hashes.
+`$TMPDIR/stoneforge-merge-check-Z9wDEd/results.json`
+(all exact commands, exit codes, durations and per-step logs). These were local
+evidence only. The sanitized snapshot/evidence-hash JSON that originally sat beside
+this report was removed from the repository before publication (el-ju3fwi).
 
 ## Activation and shared instructions
 
@@ -50,7 +51,13 @@ The authorized fallback acquired the registry's exclusive `.lock`, reread its
 contents, changed only core's `testCommand`, and atomically renamed the result.
 It preserved id/path/targetBranch/gitCommonDir, all other data and file permissions.
 No repository was removed/re-registered and no SQLite writes were made directly.
-`core-merge-gate.patch` records the complete registry diff.
+The complete registry diff was a single line in the `core` entry of
+`<workspace>/.stoneforge/repositories.json`:
+
+```diff
+-      "testCommand": "pnpm typecheck",
++      "testCommand": "pnpm check:merge",
+```
 
 Both authenticated `GET /api/repositories` on the current Desktop backend and
 installed `sf repo list` immediately returned `pnpm check:merge`. Connection
@@ -64,8 +71,11 @@ The permitted root AGENTS correction changes only Dual Storage Model and gotcha 
 SQLite serves current reads/writes; JSONL export uses `writeFile` and can lag.
 No complete recovery from an arbitrary export is promised. This matches repository
 AGENTS, `sync/service.ts:123-124,180-181` and spec el-68f. Full before/after files
-are in `/tmp/el-1r6-evidence/root-AGENTS.{before,after}.md`; the exact reviewable
-change is `root-agents-storage.patch`. Root has no wrapper Git and needs no commit.
+were kept in `/tmp/el-1r6-evidence/`. The change replaced the "SQLite is the
+cache / JSONL is append-only source of truth" bullets and gotcha 5 with the
+current wording ("SQLite serves current reads/writes …", "Exports can lag
+SQLite …"). The reviewable patch file was removed from the repository before
+publication (el-ju3fwi). Root has no wrapper Git and needs no commit.
 
 Shared `.stoneforge/prompts/steward-merge.md` is byte-identical to
 `docs/workspace/steward-merge.md`; neither was changed. Its explicit local-delivery

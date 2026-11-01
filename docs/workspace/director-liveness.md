@@ -38,7 +38,7 @@ bounded retry/recovery-steward path.
   wrappers and terminal transcript replay; updated source had no blocking findings.
 
 Final gate evidence is in
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-271LUn/results.json`.
+`$TMPDIR/stoneforge-merge-check-271LUn/results.json`.
 The initial diagnostic gate is retained at the sibling `stoneforge-merge-check-3GPdj8`
 folder: 190/192 passed. Both CLI failures used system Node 26.8.2 (ABI 147) with
 SQLite built for Node 22 (ABI 127). A separate in-memory storage probe reproduced
@@ -135,7 +135,7 @@ Verification of the weekly-limit increment:
 
 - Required `pnpm check:merge`, pinned Node 22.23.3 and pnpm 8.15.5: **192/192
   passed**, exit 0, 236.47s. Summary: `/tmp/stoneforge-weekly-gate.log`; detailed
-  logs/results: `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-EGn789`.
+  logs/results: `$TMPDIR/stoneforge-merge-check-EGn789`.
 - `pnpm --filter @stoneforge/desktop package:mac`: exit 0, including bundled
   SQLite, portable links, actual PTY spawn/output/exit and code signature checks.
   Candidate: `apps/desktop/dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.app`,
@@ -149,7 +149,7 @@ Verification of the weekly-limit increment:
 - Packaged `check-app.mjs`: passed using temporary fixtures, including UI, Logs,
   onboarding, authenticated transports, repository selection and external backend
   adoption. Evidence: `/tmp/stoneforge-weekly-app.log`, fixture
-  `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-electron-zRRjiQ`.
+  `$TMPDIR/stoneforge-electron-zRRjiQ`.
 - Packaged `check-launch-services.mjs`: passed, including Unicode workspace path
   and backend cleanup after parent exit. Evidence: `/tmp/stoneforge-weekly-launch.log`.
   These checks did not launch paid provider sessions or restart live workspaces.
@@ -174,7 +174,7 @@ external backend adoption. This is not a claim that the intermittent focus
 failure was fixed.
 
 Verified backup and evidence:
-`/Users/citius/Desktop/Work/Stoneforge-backups/weekly-limit-20261007T205346Z`.
+`<backups-dir>/weekly-limit-20261007T205346Z`.
 The backup contains the old app, userData, both project state directories excluding
 unchanged `.worktrees`, and independently verified SQLite snapshots. Volatile
 `*-shm` files were excluded from hash comparisons. Installation verified all 9034
@@ -225,7 +225,7 @@ preserved; no new Git identity is invented.
 
 Required `pnpm check:merge` on the wrapped-quota correction passed **192/192**,
 exit 0, 240.85s using pinned Node 22.23.3 / pnpm 8.15.5. Full results:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-ltZzoV`;
+`$TMPDIR/stoneforge-merge-check-ltZzoV`;
 summary `/tmp/stoneforge-terminal-retry-gate.log`. An isolated replay against the
 saved previous detector additionally confirmed a wrong `13:08Z` fallback from
 `12:08Z`, rather than the stated `13:30Z`, and suppression of a changed reset.
@@ -236,7 +236,7 @@ The packaged UI and LaunchServices checks passed on the first attempt for this
 candidate. Final installed build: `2026-10-11T12:20:42.264Z`, base `d9869bc`, modified.
 All 9034 installed file/link entries were verified against the candidate. Existing
 socket workaround bytes were preserved. Backup/evidence directory:
-`/Users/citius/Desktop/Work/Stoneforge-backups/terminal-retry-20261011T122247Z`.
+`<backups-dir>/terminal-retry-20261011T122247Z`.
 Both database backups pass integrity checks; code worktrees were outside the
 installation mutation scope and excluded from the state-directory backup.
 

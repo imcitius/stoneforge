@@ -88,7 +88,7 @@ Bun 1.3.11, Node 22.23.3, macOS arm64:
 
 Gate logs: `/tmp/el-3num-evidence/check-merge.log`, `gate-summary.json`; exact
 commands, per-step exits/times and full logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-xBKQ7N/results.json`.
+`$TMPDIR/stoneforge-merge-check-xBKQ7N/results.json`.
 
 Separate macOS arm64 artifact: `/tmp/stoneforge-el-3num-139b95a/sf`, created with
 `pnpm --filter @stoneforge/smithy deploy --prod /tmp/stoneforge-el-3num-139b95a`

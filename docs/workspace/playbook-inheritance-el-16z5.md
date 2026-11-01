@@ -26,7 +26,7 @@ be interpreted as disproving the historical failure or proving this was its caus
 - Original gate: `6392b438c2e5418e50235df55e25c27841e89a64`, 179/180 successful
   checks, failed `playbook.bun.test.ts:618` (`allows valid inheritance chain
   during creation`). `/tmp/el-33hc-gate.log`; full failing step:
-  `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Cvgd8R/076.log`.
+  `$TMPDIR/stoneforge-merge-check-Cvgd8R/076.log`.
 - Assigned worktree initially pointed to `bb5f967`. Its assigned branch was
   fast-forwarded to local master `e7c00526cc23e312e4def0bea8e259b77359e80f` without
   switching branches or editing the main checkout. Both original playbook source
@@ -80,7 +80,7 @@ metrics CLI suite and had 180 steps. This does not certify that branch's final
 integration.
 
 Console: `/tmp/el-16z5-gate.log`. Exact commands, exits, timings and full per-step
-logs: `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-boamYl/`
+logs: `$TMPDIR/stoneforge-merge-check-boamYl/`
 (`results.json` included). `git diff --check` passed.
 
 The historical attribution remains unresolved. Independent review should assess

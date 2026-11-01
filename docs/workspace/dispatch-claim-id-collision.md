@@ -10,8 +10,8 @@ task/events/resources`. Stack: `beforeEach` line 42,
 `api.create(createTask({ title: 'claim', createdBy: creator }))` →
 `ConflictError ALREADY_EXISTS` / `SQLiteError: UNIQUE constraint failed:
 elements.id` (`SQLITE_CONSTRAINT_PRIMARYKEY`). Copies of the original log,
-step log and `results.json` are in
-`dispatch-claim-id-collision-evidence/original-gate/`. That failure stands; this
+step log and `results.json` were kept as local evidence and are not retained in
+the repository. That failure stands; this
 change does not reinterpret it as green.
 
 ## Mechanism (historical, at `bdd07d4`, before el-4rgbi0)
@@ -39,8 +39,8 @@ The leading base36 digit is biased (2^256 ≈ 36^49.5): 200k random digests gave
 Σp² = 0.134 for the first character, so two random four-character IDs collide
 with probability ≈ 2.87e-6 (4.8× the uniform 5.95e-7). For five pre-existing
 IDs that is ≈ 1.4e-5 per `beforeEach`, ≈ 0.08% per file run
-(`firstchar.{ts,log}`; the script imports the generator from the el-1w48v
-worktree path). The bias is a production ID-contract question tracked in
+(measured with an ad-hoc Monte Carlo script against the el-1w48v generator;
+the script and its log are not retained in the repository). The bias is a production ID-contract question tracked in
 el-45m5h; it was not changed here.
 
 ## Post-el-4rgbi0 semantics
@@ -82,6 +82,10 @@ failed (`resolved` = 0) on integrated source. The short seed is now derived from
 the low-order digits and the configured length.
 
 ## Verification (macOS arm64, Node 22.23.3, pnpm 8.15.5, Bun 1.3.11)
+
+The Evidence column names local log/results files from the run. They were
+removed from the repository before publication (el-ju3fwi); the table keeps the
+results.
 
 | Command / state | Result | Evidence |
 | --- | --- | --- |

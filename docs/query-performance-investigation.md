@@ -329,12 +329,11 @@ exit 1), already tracked as **el-52s**: stale fixture expected
 Its separate fix is not on this base. This sequence is **not an acceptance pass**
 and was not retried. The final integrated gate remains el-1r6 after el-2kc.
 
-Durable machine-readable evidence is in
-[`query-performance-validation.json`](query-performance-validation.json): every
-command, exit code, elapsed time, before/after load, the complete failed-step
-output, and all raw `[scaling]` records (including warmup, per-batch durations,
-all six samples, controls and outliers). It records the tested source SHA-256.
-Full local stdout/stderr is retained at:
+The raw machine-readable results file (every command, exit code, elapsed time,
+before/after load, failed-step output and raw `[scaling]` samples; tested source
+SHA-256 `184239ba6568a265a9c4dbc0c0c13ffc02965691d42486fd09277359278cf1d5`) was
+removed from the repository before publication; the key numbers are in the table
+above. Full local stdout/stderr was retained outside the repository at:
 
 - `/tmp/el-2z6-postchange-focused/{000..002}.log` and `results.json`;
 - `/tmp/el-2z6-postchange-full/{000..170}.log` and `results.json`
@@ -356,7 +355,7 @@ was approved in workspace record el-47ni. That review ran three focused processe
 
 After el-2kc and el-ptim closed, the approved separate CLI
 `/tmp/stoneforge-el-ptim-151b314/sf task sync el-2z6`, with
-`STONEFORGE_ROOT=/Users/citius/Desktop/Work/Stoneforge`, merged local master
+`STONEFORGE_ROOT=<workspace>`, merged local master
 `0f0a7ad4c767d9ac85ce0fb3408f031ee2f9bf91` into the assigned branch as
 `71ffb7c405666f7019a44052d9583a39594b6304`. All 299 artifact manifest entries
 matched their SHA-256. The three task files were identical to the approved
@@ -365,8 +364,8 @@ implementation before appending this evidence. No measurement changes were made.
 `pnpm install --frozen-lockfile` returned 0. One predeclared full sequence used
 the same isolated per-file recipe above, now with 173 steps because the target
 added two Smithy Bun files. It returned **0**, taking **164.439 s** summed child
-wall time. Every command/exit/duration and all raw scaling samples are appended
-under `syncedValidation` in `query-performance-validation.json`. Full output is
+wall time. Every command/exit/duration and all raw scaling samples were recorded in a
+results file that is no longer kept in the repository. Full output is
 in `/tmp/el-2z6-synced-full/{000..172}.log` and `results.json`; install output is
 `/tmp/el-2z6-synced-install.log`. Exact runner command:
 `python3 /tmp/el-2z6-postchange-runs.py full /tmp/el-2z6-synced-full`.
@@ -418,8 +417,8 @@ No production, measurement contract, threshold, timeout, skip or gate changes.
 
 Recurrence: el-apzlc required gate on 9c9943a failed only
 `Scaling Performance > should maintain list performance as dataset grows`,
-ratio **3.0972706470908773** `<3` (loadavg ~15, 194/195, exit 1; evidence
-`docs/workspace/git-identity-evidence/gate-9c9943a/logs.tar.gz`, step 047).
+ratio **3.0972706470908773** `<3` (loadavg ~15, 194/195, exit 1; gate step 047 of
+el-apzlc, raw logs not committed).
 Together with el-39znb's three failures (3.17 / 3.56 / 3.17) this is now
 reproducible under host contention, not an unexplained one-off. Director triage
 asked for an assertion that stays sensitive to real regressions but is robust
@@ -505,10 +504,9 @@ Under the busy-loop stress, mean per-query time at 150 rows rose to 1.0–2.8 ms
 (vs ~0.44 ms uncontended), while the minimum-based medians stayed 0.150–0.156 /
 0.285–0.296 / 0.423–0.441 ms. Standalone `tsc --noEmit` over the test file with
 the Quarry tsconfig returned 0 (package `typecheck` excludes `*.bun.test.ts`).
-Raw logs: `/tmp/el-55qcdj/{baseline,after,stress}/`; durable copies and the
-experiment script are archived in
-`workspace/quarry-list-scaling-el-55qcdj/evidence.tar.gz` (SHA-256 of every
-uncompressed file in the adjacent `MANIFEST.txt`).
+Raw logs and the experiment script were kept outside the repository
+(`/tmp/el-55qcdj/{baseline,after,stress}/`, not retained); this section and the
+tables above are the durable summary.
 
 ### Required gate
 
@@ -522,7 +520,7 @@ running). Performance step 047: 35 pass / 0 fail, 9.25 s; list
 `minimumPerQuery` medians 0.157854 / 0.295771 / 0.442208 ms, ratio
 **2.801377** (mean-based on the same data 2.621690); create 0.991376; controls
 1 / 9.181818 / 2.960784 / 8.766244 as expected. This is one gate, not a retry.
-`results.json`, step 047 log and console are in the evidence archive
-(`gate-8160f90/`); the original temporary directory was
-`$TMPDIR/stoneforge-merge-check-sxdwSj`. The documentation commit that follows
+Raw `results.json`, the step 047 log and console output were not committed
+(original temporary directory `$TMPDIR/stoneforge-merge-check-sxdwSj`); the
+numbers above are transcribed from them. The documentation commit that follows
 changes only `docs/`. Independent steward review is still required.

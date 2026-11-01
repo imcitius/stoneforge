@@ -1,9 +1,11 @@
 # Смещение старшей base36-цифры в generateId — el-45m5h
 
 Оценка (без изменения production-кода). Обнаружено при el-1w48v.
-Скрипты: `analyze.ts` (точный расчёт в BigInt + Monte Carlo через
-production `toBase36`/`truncateHash`). Лог: `analyze.log`
-(`bun analyze.ts 1000000`, bun 1.3.11, exit 0); `callers.ts` → `callers.log` (AST-скан вызовов).
+Методика: точный расчёт в BigInt + Monte Carlo (10^6 digest) через production
+`toBase36`/`truncateHash` на base `1b43de2` (bun 1.3.11, exit 0) и AST-скан
+вызовов фабрик ID. Ad-hoc скрипты и их логи удалены из репозитория перед
+публикацией (el-ju3fwi); ключевые числа приведены ниже, формулы — в
+`packages/core/src/id/generator-distribution.bun.test.ts`.
 
 ## Механизм
 
@@ -60,7 +62,7 @@ el-1w48v (2.87e-6, ×4.8, 200k выборок) занижена: точное з
 Смещение лишь ≈ в 5 раз учащает retry/запросы `get(id)` и `length_increase`.
 
 **Пути без конфигурации** (длина по умолчанию 4, без проверки коллизий).
-AST-скан `callers.ts` → `callers.log`: 37 вызовов фабрик `@stoneforge/core` без
+AST-скан вызовов: 37 вызовов фабрик `@stoneforge/core` без
 `IdGeneratorConfig` (32 с конфигурацией). Без учёта ложного срабатывания
 (`apps/smithy-next` SettingsOverlay — локальная UI-функция) и тестового
 `smithy/src/testing/test-context.ts` остаётся 35 production-вызовов, например:
@@ -154,8 +156,9 @@ qualifications:
 - The `calculateIdLength` thresholds are unchanged, but their "~1%" comment is
   corrected.
 
-See `../id-generator-contract.md`. `analyze.ts` still runs as written: the
-exported `toBase36` and `truncateHash` are unchanged, so it describes the
-**previous** production method. Re-run on el-4rgbi0:
-`bun docs/workspace/id-base36-bias-el-45m5h/analyze.ts 200000`, exit 0, with
-empirical results consistent with the exact values.
+See `../id-generator-contract.md`. The analysis script still ran on el-4rgbi0
+(exported `toBase36` and `truncateHash` are unchanged, so it describes the
+**previous** production method): 200000 samples, exit 0, empirical results
+consistent with the exact values. The script and logs are no longer kept in the
+repository; the exact leading-digit counts are reproduced by the negative control
+in `packages/core/src/id/generator-distribution.bun.test.ts`.

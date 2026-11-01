@@ -48,12 +48,12 @@ evidence of a common mechanism. Later 88/88 isolated and 189/189 final passes in
 el-2pujj do not explain either failure. el-1mo5c's unchanged-source full retry
 P1jcfh remains diagnostic only and does not replace its failed acceptance.
 
-`gate-recurrence-evidence/historical-logs.tar.gz` contains gzip copies of every
-original step log and results.json for all three failed gates, plus original
-outer logs. The manifest records source path, original mtime, byte count and
-SHA-256 of **uncompressed** bytes. Historical summary retains every raw list
-sample; the archive also retains full create/control samples. Do not discard the
-failed results when extracting or comparing evidence.
+During the investigation a local archive held gzip copies of every original step
+log and results.json for all three failed gates, plus original outer logs, with a
+manifest of source path, original mtime, byte count and SHA-256 of
+**uncompressed** bytes, and a summary of every raw list sample. Those archives
+and manifests were removed from the repository before publication (el-ju3fwi);
+the key numbers are quoted in this report. The failed results stand.
 
 ## Runtime, load and concurrency attribution limits
 
@@ -75,8 +75,8 @@ Recorded loadavg at failed list aggregation:
 Available filesystem timestamps and step durations indicate overlapping gates:
 dMwYdr's Quarry window overlaps 0mGim9; its later plugin window overlaps SPA3m4.
 g8qBfX's Quarry window overlaps LVCg2k. GPBE9u's Quarry window overlaps g8qBfX and
-eBPSmr. Exact approximate UTC windows and derivation are in
-`historical-concurrency.json`. This is an **mtime-based inference**, not sampled
+eBPSmr. Exact approximate UTC windows and derivation were
+recorded in a local evidence file (not retained in the repository). This is an **mtime-based inference**, not sampled
 process/scheduler telemetry or proof of CPU competition at each instant. No
 historical per-sample CPU, I/O wait, GC, runqueue or child lifecycle trace exists.
 Load and concurrent gates are plausible contributors, **not established causes**.
@@ -89,7 +89,8 @@ lifecycle observations from a failing sample.
 
 ## Predeclared isolated matrix and results
 
-PLAN.md was written and sent to Director (message el-2dpft) before any investigation test. It fixes
+The plan (reproduced in the appendix) was written and sent to Director (message
+el-2dpft) before any investigation test. It fixes
 two unchanged full-suite processes plus one temporary instrumented full-suite
 process per suite (**3/5 allowed processes each**), sequentially, followed by
 one required full gate. There were no artificial-load experiments, added sleeps,
@@ -106,12 +107,12 @@ of the historical simple echo timeout.
 | Quarry instrumented | 35/35, exit0 | 8.422 | 2.774971 |
 | Plugin instrumented | 53/53, exit0 | .551 | — |
 
-`run-diagnostics.py` records UTC endpoints, command/exits, wall duration, child
+The ad-hoc diagnostics runner (not retained in the repository) recorded UTC endpoints, command/exits, wall duration, child
 resource deltas, before/after load and read-only process snapshots (executable
 names without argv/environment). It removes shared-project routing variables from
 children, matching gate isolation. Temporary copies use actual production code
 and local temporary test fixtures; originals are never overwritten. Generated
-copies and every output are archived in `diagnostics.tar.gz`; the copies were
+copies and every output were archived locally; the copies were
 removed before gate discovery. Runner syntax validation passed via py_compile;
 all generated probes actually executed successfully. Instrumentation changes
 costs, so its ratios are separate observations, not an acceptance replacement.
@@ -181,9 +182,9 @@ loosening `<3` or claim that the present query is asymptotically quadratic.
 The single full `pnpm check:merge` on **8ed49d4ec494c06d0f70a1d850eb390761f33cf4**
 passed **190/190, exit0, 306.53s runner / 307.181s wall**, 20:30:48–20:35:55 UTC.
 Its production/tests equal base8c8cca9. Quarry35/35 and PluginExecutor53/53 passed;
-list ratio **2.749983208**. Full per-step logs/results and outer-run metadata are
-archived in `gate-recurrence-evidence/final-gate.tar.gz`; original directory is
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-ChYxpS/`.
+list ratio **2.749983208**. Full per-step logs/results and outer-run metadata were
+archived locally (not retained in the repository); original directory was
+`$TMPDIR/stoneforge-merge-check-ChYxpS/`.
 Only research documentation/evidence changed after that tested source state.
 All573 historical archived files were rehashed successfully. `git diff --check`
 passed. No additional isolated/full run was made; no historical failure is erased. Separate root
@@ -194,3 +195,25 @@ build, isolated Bun, Smithy Vitest and Desktop Node checks.
 Independent steward review of the exact final research commit is required before
 approved CLI local delivery. This is worker research, not independent approval.
 Installed app, daemon, live sessions/tasks/providers and maintenance were untouched.
+
+## Appendix: predeclared plan (el-39znb, sent as el-2dpft)
+
+Before any investigation test process: base and local master both
+8c8cca96b7da052293e21ad945c9925d53a85419; approved ff-only sync was a no-op.
+
+Run sequentially, without stopping other work or generating competing load:
+1. Two unchanged full Quarry query-performance suite processes.
+2. Two unchanged full PluginExecutor suite processes.
+3. One temporary instrumented copy of each full suite (3 processes per suite total).
+   Quarry: wall/CPU/resource deltas and SQL counts/rows/elapsed, query plans outside
+   measurement. Plugin: real spawn return/event/data/exit/close timeline and timer
+   progress; keep actual echo command, existing assertions and timeout unchanged.
+4. Remove temporary copies. One required full pnpm check:merge on final source.
+
+Record commands, exits, UTC start/end, wall, child resource usage, load averages,
+read-only process snapshots, runtime versions, source hashes, raw output. Do not
+interpret process CPU or load as proof of scheduler or I/O cause. Instrumentation
+perturbs timings; compare separately. No retry based on outcomes; additional runs
+require a concrete new hypothesis approved by Director. No production, threshold,
+timeout, retries, skips, gate configuration or live state changes. Passing research
+is not a fix. Independent exact-final steward review remains required.

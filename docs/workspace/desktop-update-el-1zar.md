@@ -12,7 +12,7 @@ A separately rebuilt app is a different candidate, even at the same source commi
 
 ## Current candidate identity and source
 
-- Artifact directory: `/Users/citius/Desktop/Work/Stoneforge-artifacts/el-1zar-5f53cef`.
+- Artifact directory: `<artifacts-dir>/el-1zar-5f53cef`.
 - Exact app: `Stoneforge Desktop.app` inside that directory, relocated before all
   runtime checks; outside managed worktrees and preserved after task cleanup.
 - Clean build source: `5f53cef6e9ff262d641ba11918dfe44a8f88e3f4`.
@@ -28,7 +28,7 @@ A separately rebuilt app is a different candidate, even at the same source commi
   All entries were reverified after the complete runtime sample.
 
 The approved `/tmp/stoneforge-el-ptim-151b314/sf task sync el-1zar` with shared
-`STONEFORGE_ROOT=/Users/citius/Desktop/Work/Stoneforge` merged local master into
+`STONEFORGE_ROOT=<workspace>` merged local master into
 only the assigned branch, without conflicts. All 299 approved CLI hashes and
 BUILD_INFO SHA-256 were reverified. `evidence/source-preflight.json` records clean
 source, target and ancestry of el-2kc/el-ptim/el-3514, Logs el-31ag, harness el-4d52,
@@ -106,9 +106,9 @@ Recheck the exact app from a checkout with the scripts, or use standalone copies
 under the artifact's `evidence/tools/` (GUI copies still need repository dependencies):
 
 ```sh
-DESKTOP_APP='/Users/citius/Desktop/Work/Stoneforge-artifacts/el-1zar-5f53cef/Stoneforge Desktop.app'
+DESKTOP_APP='<artifacts-dir>/el-1zar-5f53cef/Stoneforge Desktop.app'
 node apps/desktop/scripts/bundle-manifest.mjs verify "$DESKTOP_APP" \
-  /Users/citius/Desktop/Work/Stoneforge-artifacts/el-1zar-5f53cef/BUNDLE_MANIFEST.json
+  <artifacts-dir>/el-1zar-5f53cef/BUNDLE_MANIFEST.json
 DESKTOP_APP="$DESKTOP_APP" "$DESKTOP_APP/Contents/Resources/runtime/node" \
   apps/desktop/scripts/check-safeguards.mjs
 ```
@@ -116,7 +116,7 @@ DESKTOP_APP="$DESKTOP_APP" "$DESKTOP_APP/Contents/Resources/runtime/node" \
 ## Historical candidate and failures — retained, not superseded as evidence
 
 The previous clean d121628 app is frozen at
-`/Users/citius/Desktop/Work/Stoneforge-artifacts/el-1zar-d121628` with its original
+`<artifacts-dir>/el-1zar-d121628` with its original
 `VERIFICATION.md`, `HANDOFF.json`, all logs/scripts and 10,543-entry manifest SHA-256
 `be78ee5cf176e0f81ac813306cb75213ad3f09848e28a467d6717d8c6908cd18`.
 It passed gate 180/180 (388.07s), package/native PTY, bundled checks 15/15, CLI matrix

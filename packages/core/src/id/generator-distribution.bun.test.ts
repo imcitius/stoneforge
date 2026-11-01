@@ -197,7 +197,7 @@ describe('exact distribution (uniform SHA-256 model)', () => {
 
   test('negative control: old leading-digit method is ~5.05x uniform for L=3..8', () => {
     // Exact prefix counts for the previous truncateHash(toBase36(D), L): see
-    // docs/workspace/id-base36-bias-el-45m5h/analyze.ts for the derivation.
+    // docs/workspace/id-base36-bias-el-45m5h/README.md for the derivation.
     for (let L = MIN_HASH_LENGTH; L <= MAX_HASH_LENGTH; L++) {
       let A = 0n;
       for (let n = L; n <= 49; n++) A += pow36(n - L);

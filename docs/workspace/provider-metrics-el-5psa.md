@@ -149,7 +149,7 @@ installation, live provider calls, full browser suites, or standalone root lint/
 
 Full worker logs: `/tmp/el-5psa/{install-final,gate}.log`, gate exit and summary
 in `gate.exit` / `gate-summary.json`. Exact commands, exits, durations and step
-logs: `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-97kkIT/results.json`.
+logs: `$TMPDIR/stoneforge-merge-check-97kkIT/results.json`.
 Subsequent commit changes only this validation report; production/test source
 remains the tested revision. Task branch is pushed; independent final-commit
 steward review and approved CLI local delivery are still required.
@@ -247,7 +247,7 @@ title spans appearing simultaneously in the isolated fixture; full-app reproduct
 and root cause remain unconfirmed. Their markup was not changed by this task.
 
 Gate logs `/tmp/el-33hc-gate.log`; commands/exits/durations and individual logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Cvgd8R/results.json`
+`$TMPDIR/stoneforge-merge-check-Cvgd8R/results.json`
 (failure: `076.log`). Diagnostics:
 `/tmp/el-33hc-playbook-original.log` and
 `/tmp/el-33hc-playbook-diagnostic-{0..4}.log`.
@@ -286,7 +286,7 @@ but attribution of that original failure remains unresolved (see el-43jm).
 
 Logs: `/tmp/el-33hc-resume-{install,gate,browser,unit}.log`. Exact gate
 commands, exits, durations and per-step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-c8mGBn/results.json`.
+`$TMPDIR/stoneforge-merge-check-c8mGBn/results.json`.
 Node 22.23.3, pnpm 8.15.5, Bun 1.3.11, macOS arm64. Subsequent changes only
 record these results in documentation. Shared el-1fqa and Directory updates
 preserve other contributors' entries, including el-2ohr.
@@ -352,7 +352,7 @@ or acceptance of the pending el-33hc task.
 
 Required `pnpm check:merge`: **exit 0, 179/179 steps, 159.05s**, one full run.
 Exact commands/exits/durations and step logs are retained at
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-StD1t3/results.json`.
+`$TMPDIR/stoneforge-merge-check-StD1t3/results.json`.
 This gate includes uncached workspace typecheck, the Desktop source build,
 isolated Bun files, Smithy Vitest and Desktop Node integration; it does not
 include the separately executed browser tests. Tested implementation/test tree
@@ -454,7 +454,7 @@ implicitly part of this gate.
 
 Full log `/tmp/el-10qu/gate.log`, exit `/tmp/el-10qu/gate.exit`;
 exact commands, exits, durations and per-step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-52FK0P/results.json`.
+`$TMPDIR/stoneforge-merge-check-52FK0P/results.json`.
 `git diff --check` and local target ancestry pass; source target remains
 `dad94699d5cad27a7104d236c8df23e0c1eb14c2`. The following commit changes only
 this report. Shared document el-1fqa and Directory el-1s1 were reread before

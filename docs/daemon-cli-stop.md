@@ -74,7 +74,7 @@ coverage. No gate configuration changes, filtering or reruns were used.
 
 Full gate log: `/tmp/el-prlpi-gate.log`. Exact per-step commands/exits/durations
 and logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-MaBK84/results.json`.
+`$TMPDIR/stoneforge-merge-check-MaBK84/results.json`.
 `git diff --check` passed; local master `70b37ba` remained an ancestor of HEAD.
 The subsequent report commit changes only this evidence document.
 

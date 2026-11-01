@@ -186,7 +186,7 @@ not a general lifecycle refactor. This is source evidence, not installation evid
   tests 5 passed. New evidence suite: 50/50, 344 assertions; existing assignment
   37/37 and handoff ownership/CLI 26/26 passed. No gate retries or omitted steps.
   Exact commands/exits/durations and per-step logs:
-  `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-zePClv/results.json`.
+  `$TMPDIR/stoneforge-merge-check-zePClv/results.json`.
 - Node 22.23.3, pnpm 8.15.5, Bun 1.3.11, macOS arm64. `git diff --check`
   and local master ancestry pass; HEAD and master were both 5cf51a1 before the
   research commit. No production files differ. Only documentation changed after
@@ -265,7 +265,7 @@ The converted evidence suite remains 50 tests (331 assertions); assignment 37,
 handoff ownership/CLI 26 and Quarry CAS 2 also pass in the gate. No gate retries,
 skipped steps, threshold changes or configuration edits. `git diff --check` passed.
 Exact commands/exits/durations and per-step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-yaJkik/results.json`.
+`$TMPDIR/stoneforge-merge-check-yaJkik/results.json`.
 Only evidence documentation changed after the gate; production/tests are the tested
 versions. Independent approval/local delivery remain pending task lifecycle review.
 
@@ -317,7 +317,7 @@ Worker required gate on production/test commit `d714841`: **pnpm check:merge exi
 185/185 steps, 224.54s**, one run. Includes uncached workspace typecheck, Desktop
 source build, Smithy Node/Vitest, Desktop Node integration and the new Git suite
 19/19. Exact commands/exits/durations and per-step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-VRcL9Z/results.json`.
+`$TMPDIR/stoneforge-merge-check-VRcL9Z/results.json`.
 `git diff --check` passed. Only this evidence note changes after the gate; production
 and tests remain the tested versions. Independent steward acceptance is pending.
 
@@ -380,7 +380,7 @@ Smithy Node/Vitest 325, Desktop Node 6 and gate tests 5 pass. Lifecycle matrix i
 --check` passes. After this run only verification documentation changed.
 
 Exact commands, exits and step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-hpL0d0/results.json`.
+`$TMPDIR/stoneforge-merge-check-hpL0d0/results.json`.
 Worker logs: `/tmp/el-j14no-{install,typecheck,focused,daemon,gate}.log`.
 Separate root build/lint/test, Quarry Node, browser/packaged GUI, real providers
 and cross-platform tests were not run. Existing skips do not count as coverage.
@@ -432,12 +432,13 @@ Actual verification of the partial implementation:
 
 ### Confirmed contract gaps and proposed narrow design
 
-Two deterministic reject/preserve probes are preserved as
-`docs/workspace/dispatch-claim-contract-probes.patch`. They assert the desired
-safe behavior, **not unsafe behavior as a passing norm**. Apply this patch in an
-isolated worktree, run the lifecycle evidence file with `bun test <file> -t SCOPE:`,
-then reverse the patch. It appends to the existing real temporary two-connection
-SQLite fixture. Session startup/termination use only an isolated spawner mock,
+Two deterministic reject/preserve probes (`SCOPE:` tests appended to the
+lifecycle evidence file in an isolated worktree, run with
+`bun test <file> -t SCOPE:`) asserted the desired safe behavior, **not unsafe
+behavior as a passing norm**. The probe patch was removed from the repository
+before publication (el-ju3fwi); the parent-DRAFT case is now a permanent
+regression in `packages/smithy/src/services/dispatch-claim.bun.test.ts`. The
+probes appended to the existing real temporary two-connection SQLite fixture. Session startup/termination use only an isolated spawner mock,
 with the real SessionManager and registry; there is no real provider invocation.
 
 1. **Parent-plan eligibility is not protected by the task timestamp.** Associate
@@ -751,7 +752,7 @@ identity and expecting REVIEW rather than the obsolete CLOSED assertion.
 
 Pre-integration `pnpm check:merge` passed **186/186**, exit 0, **381.84s**;
 logs `/tmp/el-20qt0-final-gate.log`,
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-btk0at/results.json`.
+`$TMPDIR/stoneforge-merge-check-btk0at/results.json`.
 An earlier in-progress-source gate also passed 186/186 (277.27s), but is not final
 acceptance. Both results are retained. Local master advanced during verification
 to `f30b41ad841d1cea6ca5d274403baba950a85a0d` (conditional unassign); approved
@@ -777,7 +778,7 @@ passed in that gate (**200 focused tests**). `git diff --check` passed; worktree
 was clean before this documentation-only verification addition.
 
 Exact commands, exit codes and per-step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-sGhU4A/results.json`.
+`$TMPDIR/stoneforge-merge-check-sGhU4A/results.json`.
 Worker summary log: `/tmp/el-20qt0-integrated-gate.log`. Earlier results above are
 retained, not substituted for final integrated validation. Separate root build/
 lint/test, Quarry Node, browser/packaged GUI, real provider and cross-platform
@@ -877,7 +878,7 @@ is **24/24**; existing skip cases remain, no gate/threshold changes.
 
 Logs: `/tmp/el-1q2vv-integrated-focused.log`, `/tmp/el-1q2vv-gate-integrated.log`.
 Every command/exit/duration and log is recorded in
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-5wSjK1/results.json`.
+`$TMPDIR/stoneforge-merge-check-5wSjK1/results.json`.
 `git diff --check` passes and local master is an ancestor. Only documentation is
 changed after this gate. Previous gate runs (186/186 at 235.38s and 214.59s),
 original safety failures and fixture failures are preserved above, not erased.
@@ -943,7 +944,7 @@ browser sql.js, cross-platform and real-provider tests are omitted.
 
 Final retry-correction gate: **pnpm check:merge188/188, exit0,239.48s**.
 Log `/tmp/el-1q2vv-retry-gate-final.log`; exact commands/exits and per-step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-06UZVT/results.json`.
+`$TMPDIR/stoneforge-merge-check-06UZVT/results.json`.
 All final production/test edits were present; only this result documentation was
 added afterward. This supersedes neither the historical rejection nor omitted
 live-provider coverage. Independent exact-commit review remains required.
@@ -964,7 +965,7 @@ and independent acceptance records retain their original scope and revisions.
 
 The first full `pnpm check:merge` on integrated `c4a8eb2` passed **188/188,
 exit0,238.23s**; results at
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-HEkiPi/results.json`.
+`$TMPDIR/stoneforge-merge-check-HEkiPi/results.json`.
 During verification el-1q2vv was independently accepted and delivered as local
 master `90b3ad8`. Approved CLI sync produced `5ee8034`; only the additive report
 conflict needed resolution, retaining both reports. Statements above referring
@@ -984,7 +985,7 @@ exit0,10.50s**, log `/tmp/el-1c5so-integrated-runtime.log`.
 Final integrated `pnpm check:merge`: **189/189,exit0,265.29s** on source `5ee8034`,
 including Spawner Vitest15/15 and all declared runtime/Node checks. Full log
 `/tmp/el-1c5so-gate-integrated.log`; exact commands/results:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-YYVnWC/results.json`.
+`$TMPDIR/stoneforge-merge-check-YYVnWC/results.json`.
 Local master ancestry and diff checks pass. Only report text changed after this
 gate. Original failures and pre-sync result are retained. Independent steward
 review of the final commit and approved CLI local merge remain required; this
@@ -1047,7 +1048,7 @@ merge remain required; this worker report is not merge approval.
 
 First required gate on source `e3511ad`: **188/189, exit1, 450.35s**;
 `/tmp/el-hkutb-gate.log`, exact results
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-g8qBfX/results.json`.
+`$TMPDIR/stoneforge-merge-check-g8qBfX/results.json`.
 Only unchanged Quarry list scaling failed: ratio3.559304857848077 against `<3`.
 The test/implementation were not edited by this task; the previously documented
 failure class remains unresolved, without a causal attribution to host load.
@@ -1059,7 +1060,7 @@ approved CLI's manifest and all299 hashes were verified before integrating it.
 Approved CLI sync with delivered handoff `beac945` succeeded without conflicts as
 `8fa6a5b`. Integrated required **pnpm check:merge189/189, exit0, 256.13s**:
 `/tmp/el-hkutb-integrated-gate.log`, exact results
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-bYbZs8/results.json`.
+`$TMPDIR/stoneforge-merge-check-bYbZs8/results.json`.
 Quarry scaling35/35 passed unchanged; this does not establish the original cause.
 ## Claude SDK cleanup retry — el-1mo5c, 2026-09-26
 
@@ -1126,7 +1127,7 @@ are required after worker completion; worker does not claim either.
 
 First required `pnpm check:merge`: **189/189, exit0,315.77s**, including Smithy
 Vitest349/349. Log `/tmp/el-1mo5c-gate.log`; exact per-step results:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-LVCg2k/results.json`.
+`$TMPDIR/stoneforge-merge-check-LVCg2k/results.json`.
 Local master advanced to delivered handoff fix beac945 during verification; approved
 CLI sync and integration verification follow, preserving the first gate evidence.
 
@@ -1136,7 +1137,7 @@ Integrated gate **188/189, exit1,324.95s**: unchanged Quarry list scaling failed
 medians0.233444/0.452705/0.740195ms, ratio3.170760 against `<3`. This is a failed
 gate, not green acceptance. All other steps passed. Log
 `/tmp/el-1mo5c-gate-integrated.log`; exact results
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-GPBE9u/results.json`.
+`$TMPDIR/stoneforge-merge-check-GPBE9u/results.json`.
 Quarry API and performance test match first passing baseline3c22b53. Earlier
 progress updates sampled the current log tail and missed this earlier failure;
 the completed result corrects those updates. No causal attribution to host load.
@@ -1159,7 +1160,7 @@ the worker implementation does not authorize merge or claim the gate issue resol
 
 Additional full diagnostic on unchanged fd7cb1e: **189/189,exit0,238.73s**,
 `/tmp/el-1mo5c-gate-final.log`; exact results
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-P1jcfh/results.json`.
+`$TMPDIR/stoneforge-merge-check-P1jcfh/results.json`.
 Per Director instruction this is diagnostic only; it does not replace the failed
 integrated acceptance188/189, prove a root cause, or authorize merge. No more
 worker gates were run. During this diagnostic local master advanced separately
@@ -1253,7 +1254,7 @@ remain required. No installed application or maintenance changes are authorized.
 
 Source `2cf14d611bb8d134bb813342f73c4d1fc5b7f4d2` passed the first full
 `pnpm check:merge`: **190/190, exit0,430.99s**; logs `/tmp/el-2hrsm-gate.log`,
-exact step results `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-SPA3m4/results.json`.
+exact step results `$TMPDIR/stoneforge-merge-check-SPA3m4/results.json`.
 The gate includes the final30/30 assignment tests (189 assertions) and compatibility
 suites. Local master advanced to delivered Spawner fix `3c22b53` during that run.
 Approved safe sync preserves both implementations; only an additive report conflict
@@ -1265,7 +1266,7 @@ below; the earlier result remains evidence for its original source.
 Integrated source `d95fcae` includes delivered local master `3c22b53`. Final
 `pnpm check:merge`: **190/190, exit0,258.81s**, log
 `/tmp/el-2hrsm-gate-integrated.log`; exact commands and step results:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-X6o7Pl/results.json`.
+`$TMPDIR/stoneforge-merge-check-X6o7Pl/results.json`.
 The gate includes uncached workspace typecheck, all declared isolated Bun suites,
 Smithy Node/Vitest340/340 (including the delivered Spawner tests), Desktop build
 and Node integration. The five focused suites inside the final gate total
@@ -1369,7 +1370,7 @@ required; worker completion is not merge approval.
 
 `pnpm check:merge` on source `c9dd48d` passed **190/190,exit0,304.94s**.
 Log `/tmp/el-4bwuz-gate.log`; exact per-step results
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-p3oWjX/results.json`.
+`$TMPDIR/stoneforge-merge-check-p3oWjX/results.json`.
 During this run local master advanced to delivered non-merge-steward claim
 `4c29bb0`; subsequent approved sync and integrated acceptance are recorded below.
 ### el-hkutb final integrated worker verification
@@ -1379,7 +1380,7 @@ Only the appended lifecycle report conflicted; both reports were preserved. Code
 merged without conflict, and the non-merge steward implementation is unchanged.
 Final **pnpm check:merge190/190, exit0, 289.34s**:
 `/tmp/el-hkutb-final-gate.log`; exact per-step commands/results:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Yvaz3t/results.json`.
+`$TMPDIR/stoneforge-merge-check-Yvaz3t/results.json`.
 The gate includes the new explicit API assignment coverage, delivered handoff,
 completion/claim/cleanup/Spawner regressions, uncached workspace typecheck,
 Desktop source build, Smithy Node/Vitest and Desktop Node tests. Earlier failed
@@ -1464,7 +1465,7 @@ Installed Desktop and completed maintenance are unchanged.
 
 First required gate on `1fe94ea`: **191/191,exit0,317.12s**;
 `/tmp/el-56khe-gate.log`, exact commands/results:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-dLG3kY/results.json`.
+`$TMPDIR/stoneforge-merge-check-dLG3kY/results.json`.
 During this run master advanced to delivered non-merge steward claim `4c29bb0`.
 Approved sync and final integrated verification follow; this first result is retained.
 
@@ -1474,7 +1475,7 @@ Approved CLI sync with delivered steward claim `4c29bb0` produced `8cb6db3`.
 Only additive lifecycle-report text conflicted; both sections were preserved.
 HTTP implementation/tests were unchanged. Required integrated **pnpm check:merge:
 191/191,exit0,317.67s**, `/tmp/el-56khe-gate-integrated.log`; exact per-step results:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-DEYYoI/results.json`.
+`$TMPDIR/stoneforge-merge-check-DEYYoI/results.json`.
 Five focused suites inside this gate: **237/237,1557 assertions** (HTTP48/API30/
 claim53/assignment37/completion69). Includes uncached workspace typecheck, Desktop
 source build, Smithy Node/Vitest and Desktop Node integration. First gate191/191
@@ -1552,7 +1553,7 @@ No installed app, live agent/session/daemon/provider or maintenance operation.
 Source `9a689169101ec97d8aa7d96328edc7fc8bc4fbfd`, base/master24df339:
 **pnpm check:merge192/192,exit0,304.48s**, single required run after correction.
 Log `/tmp/el-56khe-revision-gate.log`; exact commands/results/per-step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-rKGCc3/results.json`.
+`$TMPDIR/stoneforge-merge-check-rKGCc3/results.json`.
 Seven relevant suites in that gate: HTTP48 + new steward probe16 + explicit API30
 + SessionManager85 + dispatch53 + assignment37 + completion69 = **338/338,1930
 assertions**. Smithy Node349/349 and Desktop Node6/6 passed, as did uncached workspace
@@ -1570,7 +1571,7 @@ Approved CLI sync with delivered `4c29bb0` produced `cdc223c`; only additive
 lifecycle-report conflict resolution was needed, preserving both reports.
 **Required integrated `pnpm check:merge`:189/190,exit1,313.94s — FAILED**.
 Log `/tmp/el-4bwuz-gate-integrated.log`; exact results:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-uVtHnx/results.json`.
+`$TMPDIR/stoneforge-merge-check-uVtHnx/results.json`.
 Failing step131 is `packages/smithy/src/api/orchestrator-api.integration.bun.test.ts`:
 `getDirector returns the director` fails during beforeEach registerWorker ->
 createAgentChannel -> QuarryAPI.create with `UNIQUE constraint failed: elements.id`
@@ -1653,7 +1654,7 @@ Final worker verification on source `43d0115`, local target `24df339`:
   `/tmp/el-420pr-final-cli.log`.
 - Required **pnpm check:merge191/191,exit0,318.46s**, one run,
   `/tmp/el-420pr-gate.log`; exact commands/results and per-step logs:
-  `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-8ab1Ct/results.json`.
+  `$TMPDIR/stoneforge-merge-check-8ab1Ct/results.json`.
 - Relevant suites inside that gate: CLI21 + explicit API30 + SessionManager85 +
   dispatch-claim53 + completion69 = **258/258,1174 assertions**; Smithy Node/Vitest
   **349/349**, Desktop Node **6/6**. Workspace uncached typecheck and Desktop source
@@ -1680,8 +1681,8 @@ real SQLite/Git/HTTP/SessionManager probes pass4/4 (66 assertions), checking bot
 routes, retained exact task/events after optional logging failure and no assignment
 release while rollback is still pending. Original September /tmp evidence files
 were absent; historical0/2 failure/control2/2 records above and in el-4aqnn remain.
-Fresh portable probes and full logs are retained under
-`docs/workspace/http-session-start-review-20261101/`.
+Raw probe logs were not kept in the repository; key numbers are summarized in
+`docs/workspace/http-session-start-review-20261101/README.md`.
 
 **CHANGES REQUIRED:** the criterion "уже принятая/новая сессия не жертва cleanup"
 still fails for overlapping starts. A assigns and awaits spawn; B passes the early
@@ -1717,8 +1718,9 @@ approved CLI hash verification, safe sync with delivered master `f1d707a` produc
 `a476aac`; no pending branch was copied. The steward's portable overlap probe was
 copied into `packages/smithy/src/api/http-session-start.concurrent.bun.test.ts`.
 On that unmodified source, the accepted-session schedule again failed **0/2**
-(24 assertions); the no-release-only attribution control passed **2/2**. Fresh
-logs are retained in `docs/workspace/http-session-start-review-20261101/worker-correction/`.
+(24 assertions); the no-release-only attribution control passed **2/2**. Raw
+logs were not kept in the repository; see the summary in
+`docs/workspace/http-session-start-review-20261101/README.md`.
 This control does not constitute a complete baseline checkout.
 
 Chosen invariant: within one SessionManager, at most one HTTP start attempt for
@@ -1753,10 +1755,9 @@ assertions; the final relevant and required-gate results follow below.
 
 Final worker acceptance on source **ec28964836689f656595b4039965d5b203f2b6f4**:
 - One required `pnpm check:merge` with pinned **Node v22.23.3**: **197/197,
-  exit0,247.31s**, no retries. Full gate log/results and relevant per-step logs in
-  `docs/workspace/http-session-start-review-20261101/worker-correction/`;
-  original full log directory is
-  `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-wVdRoI`.
+  exit0,247.31s**, no retries. Raw gate log/results were not committed
+  (original temporary directory `$TMPDIR/stoneforge-merge-check-wVdRoI`);
+  summary in `docs/workspace/http-session-start-review-20261101/README.md`.
 - Eight focused suites separately and again inside gate: **365/365,2302 assertions**
   (HTTP48+overlap20+publication16+API30+SessionManager92+dispatch53+assignment37+
   completion69). Prior independent publication/pending controls remain4/4.
@@ -1810,7 +1811,7 @@ One authorized integrated `pnpm check:merge` on ae335530: **194/194, exit0,
 250.22s**, with Node v22.23.3 recorded in
 `/tmp/el-4bwuz-20261101-runtime.log`. Full log:
 `/tmp/el-4bwuz-20261101-gate.log`; exact commands, timings and per-step logs:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-j11T99/results.json`.
+`$TMPDIR/stoneforge-merge-check-j11T99/results.json`.
 Includes uncached typecheck17/17, collision7/7, original API27/27,
 Claude17/17, Spawner77/77, SessionManager92/92, dispatch-claim53/53,
 Smithy Node365/365 (including focused37), Desktop build and Node17/17.
@@ -1895,7 +1896,7 @@ Independent commands/results:
   Eight focused suites **365/365,2302 assertions**; Smithy Node/Vitest365/365,
   Desktop Node17/17, uncached typecheck17/17 and Desktop source build pass.
   Full log /tmp/el-56khe-final-steward-gate.log; per-command results
-  /var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Nm4A9d/results.json.
+  $TMPDIR/stoneforge-merge-check-Nm4A9d/results.json.
 
 Separate root build/lint/test, public-docs build, browser/packaged GUI,
 cross-platform and live-provider tests omitted; existing skips are not passing
@@ -1965,8 +1966,8 @@ master `1b43de2`; no pending branch is copied and no target checkout is edited.
 The exact steward retry probe was copied into the API test directory (only its
 relative API import repaired) before production edits. Under pinned Node22.23.3
 PATH and the gate's sanitized checkEnvironment(), baseline again failed0/2,
-28assertions; no-release-only control passed2/2,28assertions. Logs and portable
-source are preserved in `docs/workspace/http-session-start-review-20261101/worker-retry-correction/`.
+28assertions; no-release-only control passed2/2,28assertions. Raw logs and the
+probe source were not kept in the repository; see `docs/workspace/http-session-start-review-20261101/README.md`.
 
 Chosen invariant: a manager/agent HTTP admission may be reopened only when its
 attempt exits without an incomplete-cleanup receipt. SessionStartupCleanupError
@@ -2029,12 +2030,10 @@ Desktop source build, all isolated declared Bun checks, focused375/375,
 Smithy Node/Vitest365/365 and Desktop Node17/17. Eight focused suites also passed
 separately375/375,2550assertions. No retry, gate change or native rebuild.
 
-Evidence directory `docs/workspace/http-session-start-review-20261101/worker-retry-correction/`
-contains baseline0/2 and no-release-control2/2 logs/source, all eight focused logs,
-reproduction runner, runtime/install logs, full gate log/results and `gate-logs.tar.gz`
-with all197 per-command logs. `source-sha256.txt` binds tested code/gate/lock;
-`SHA256SUMS` binds captured evidence. Original gate location:
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-P8Z98W`.
+Raw evidence (baseline0/2 and no-release-control2/2 logs/source, eight focused
+logs, reproduction runner, gate log/results and per-command logs) was not kept in
+the repository; key numbers are in `docs/workspace/http-session-start-review-20261101/README.md`. Original gate location:
+`$TMPDIR/stoneforge-merge-check-P8Z98W`.
 All75 historical evidence hashes verified unchanged. No prior failure/control or
 completion/history record is overwritten. Source diff whitespace check passes;
 raw captured log whitespace remains intentionally verbatim.
@@ -2108,13 +2107,10 @@ Independent verification on Node **v22.23.3**, pnpm8.15.5:
   Source diff whitespace, unchanged source since worker gate, clean starting
   worktree and master ancestry checks pass. No source change during checks.
 
-Original gate results: /var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-thsMOB/results.json.
-Durable complete197-step logs archive, results, failure, one isolated diagnostic,
-probe source/log/setup failure and install/runtime logs are in
-`docs/workspace/http-session-start-review-20261101/steward-rereview-gate/`.
-To replay portable probe, copy independent-probe.bun.test.ts.txt into Smithy src/api
-and run Bun in a fresh sanitized checkEnvironment() with pinned Node PATH;
-remove the scratch copy afterward. No live routing/provider fixtures allowed.
+Original gate results: $TMPDIR/stoneforge-merge-check-thsMOB/results.json.
+Raw gate logs, results, the isolated diagnostic and the probe source/logs were
+not kept in the repository; key numbers are in `docs/workspace/http-session-start-review-20261101/README.md`. The probe's scenarios are
+covered by the permanent `packages/smithy/src/api/http-session-start.concurrent.bun.test.ts`.
 
 Limitations: retained admission lasts the SessionManager lifetime even after an
 explicit exact-session stop succeeds; no reset/recovery protocol was added.

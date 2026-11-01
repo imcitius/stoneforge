@@ -69,6 +69,7 @@ Some acceptance checks cannot run in your environment: a GUI check needs an unlo
 - No obvious bugs or security issues
 - Changes satisfy every task acceptance criterion (see Acceptance Criteria Verification below)
 - Workspace documentation is up to date (see Documentation Check below)
+- No raw verification evidence or machine-local paths: reject changes that add gate logs (`*.log`), runner/results JSON, evidence archives, ad-hoc probe scripts/patches, or absolute local paths (`/Users/...`, `/home/...`, `/private/tmp/...`, `/var/folders/...`) to tracked files. Evidence belongs outside the repository (e.g. `/tmp` or workspace documents); the repo should carry a concise summary (commit, commands, key numbers, conclusion). Check with `git diff --name-only origin/{{baseBranch}}..HEAD` and `git diff origin/{{baseBranch}}..HEAD | grep -E '^\+.*(/Users/|/home/|/private/tmp/|/var/folders/)'`.
 
 ### Acceptance Criteria Verification
 

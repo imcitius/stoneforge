@@ -48,7 +48,8 @@ writers, and entity-plus-channel registration is not a single transaction; later
 failures may still leave a registered entity without its channel. Neither limitation
 is claimed fixed here.
 
-`agent-id-collision-evidence/source-blobs.json` verifies identical Git blobs on
+A Git blob comparison (raw `source-blobs.json`, not retained in the repository)
+verified identical Git blobs on
 cdc223c, delivered4c29bb0 and assigned baseline24df339 for the API, original test,
 generator, channel factory, Quarry API and Bun storage. No adjacent cleanup change
 is needed to demonstrate the defect.
@@ -92,14 +93,14 @@ Environment: macOS arm64, Node22.23.3, Bun1.3.11, pnpm8.15.5.
 - Required `pnpm check:merge`: **exit0,191/191 checks,295.89s**. New regression
   7/7 (75 assertions), original API27/27. Tested source/test commit
   `54289c6`; subsequent changes only add evidence/documentation.
-  Full logs: `/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-Pq4S7U/`.
-  Gate console, results and both API suite logs are preserved in the evidence folder.
+  Full logs: `$TMPDIR/stoneforge-merge-check-Pq4S7U/`.
+  Gate console, results and both API suite logs were kept as local evidence only.
 - `git diff --check` and SHA-256 readback of all16 evidence files: passed.
 
 Original console, failing step, full results JSON and isolated diagnostic are
-preserved byte-for-byte with original paths and SHA-256 in
-`agent-id-collision-evidence/manifest.json`. Investigation logs are preserved there
-as well. Current full gate step logs remain in the path recorded below.
+preserved byte-for-byte with SHA-256 in a local evidence manifest. Those raw
+files and the investigation logs were removed from the repository before
+publication (el-ju3fwi); this report keeps the conclusions and key numbers.
 Separate root build/lint/test, browser/packaged Desktop, Node Quarry/core/storage,
 and live provider suites were not run. Required gate runs its declared typecheck,
 Desktop build, isolated Bun suites, Smithy Node and Desktop Node checks. No app
@@ -110,8 +111,8 @@ was performed. Independent steward review remains required.
 ## Worker continuation after approved safe-sync — 2026-11-01
 
 Approved installed operational CLI identity matched build d58bd815 (dirty=false)
-and all four Director-provided hashes; exact values are retained in
-`agent-id-collision-evidence/2026-11-01/preflight.json`. Safe-sync incorporated
+and all four Director-provided hashes; exact values were recorded in a local
+preflight file (not retained in the repository). Safe-sync incorporated
 local master `bdd07d45252ad3f9a052902b4255c5089f0253fa` without conflicts as
 `4f238dc4447b5e2bf321af97ec57845555e78712`, now pushed to the assigned branch.
 The first sync stopped before merging because Git lacked committer identity;
@@ -145,9 +146,9 @@ under22, so their full acceptance remains outstanding. Runtime preparation was
 insufficient for this worker gate, not evidence of a newly discovered source bug.
 
 Exact commands/results, failed step logs, passing API logs, controlled runtime
-probes and SHA-256 manifest are preserved under
-`agent-id-collision-evidence/2026-11-01/`. Full194-step logs remain at
-`/var/folders/b6/ltn3hn4j3nq1n86rbg2j9zk40000gn/T/stoneforge-merge-check-ShDh3S/`.
+probes and SHA-256 manifest were preserved as local evidence; they are not
+retained in the repository. Full194-step logs were written to
+`$TMPDIR/stoneforge-merge-check-ShDh3S/`.
 Environment: macOS arm64, Node26.8.2, Bun1.3.11, pnpm8.15.5.
 
 No gate retries, native rebuild, threshold/exclusion/config changes or source

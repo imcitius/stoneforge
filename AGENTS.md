@@ -4,7 +4,7 @@ Instructions for the Stoneforge `core` repository in this local workspace.
 
 ## Workspace and documentation
 
-- Shared project root: `/Users/citius/Desktop/Work/Stoneforge`. Read its `AGENTS.md`
+- Shared project root: `<workspace>`. Read its `AGENTS.md`
   as well as these repository instructions. Use `sf` for shared tasks, documents,
   messages and agent data; preserve `STONEFORGE_ROOT` when working in a worktree.
 - The registered checkout is `stoneforge/` beneath that root, repository ID `core`,

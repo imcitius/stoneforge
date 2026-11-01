@@ -246,3 +246,11 @@ All dependency installation uses pinned pnpm. Bun, Node, Vitest and Playwright a
 runners selected from manifests/config, not alternative workspace installers.
 Keep the running Desktop app and sessions intact. Build/verify separate artifacts;
 installation and restart require a separately coordinated explicit update step.
+
+## Workspace policy: run the gate in the foreground (Director, 2026-11-01)
+
+Run `pnpm check:merge` (and any other long verification) as a **foreground** command in the same turn: use a Bash timeout of 600000 ms and `tee` to a log, with pinned Node 22 first on PATH (`export PATH="$PWD/apps/desktop/node_modules/node/bin:$PATH"`). **Never** start the gate in the background and then end your turn or wait for a notification: ending the turn ends the session, the daemon treats it as interrupted and resumes it, and after 3 resumes the task fails with "Steward recovery limit reached". If one run is longer than 10 minutes, re-invoke a foreground wait on the same log (e.g. a loop that polls for the exit line) in the same turn instead of ending it.
+
+## Workspace policy: no raw evidence dumps in the repository (Director, 2026-11-01)
+
+The fork is published publicly. Do not merge commits that add raw gate logs, results JSON, ad-hoc scripts/patches or machine-local absolute paths (`/Users/...`, `/private/tmp/...`, `/var/folders/...`) to tracked files. Evidence belongs in /tmp or workspace `sf` documents, with a concise summary (key numbers, commit, conclusion) in the repo doc. If a task adds them, reject with that finding. Check: `git diff --name-only <base>...HEAD | grep -E '\.(log)$|results\.json'` and `git diff <base>...HEAD | grep -E '^\+.*(/Users/|/private/tmp/|/var/folders/)'`.
