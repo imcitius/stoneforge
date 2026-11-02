@@ -4,13 +4,16 @@
  * Tests for TB-O23a: Plugin System REST endpoints
  *
  * These tests verify the plugin API endpoints work correctly.
- * They require the orchestrator server to be running.
+ * They spawn the orchestrator server against an isolated temporary project
+ * (own cwd, STONEFORGE_ROOT, database, OS-assigned port, daemon disabled) so
+ * they never touch an enclosing live workspace or its default port.
  */
 
 import { describe, it, expect, beforeAll, afterAll, setDefaultTimeout } from 'bun:test';
 import { spawn, type Subprocess } from 'bun';
-import { resolve, dirname } from 'node:path';
-import { unlinkSync, existsSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 
 // Integration tests spawn an orchestrator server which can take time to start.
 // The default 5000ms test timeout is too short for beforeAll server startup.
@@ -18,40 +21,105 @@ import { unlinkSync, existsSync } from 'node:fs';
 setDefaultTimeout(30_000);
 
 // Test configuration
-const TEST_PORT = 3458; // Use a different port than default
-const SERVER_URL = `http://localhost:${TEST_PORT}`;
-const TEST_DB_PATH = '/tmp/stoneforge-plugin-api-test.db';
 const STARTUP_POLL_INTERVAL_MS = 100;
 // Orchestrator startup can take several seconds (git/worktree init, session restore).
 // Use a generous timeout to avoid flaky startup failures on slower machines/CI.
 const STARTUP_TIMEOUT_MS = Number(process.env.ORCHESTRATOR_TEST_STARTUP_TIMEOUT_MS ?? 20_000);
+const TEST_HOST = '127.0.0.1';
 
-// Server process
+// Server process and its isolated project
 let serverProcess: Subprocess<'ignore', 'pipe', 'pipe'> | null = null;
+let projectRoot = '';
+let dbPath = '';
+let SERVER_URL = '';
 
 // ============================================================================
 // Server Lifecycle
 // ============================================================================
 
+/**
+ * Inherited variables that would point the spawned server at another project,
+ * port or daemon. Agent and Desktop shells set several of these for the live
+ * workspace; the test server must never see them.
+ */
+const INHERITED_ENV_TO_STRIP = new Set(['PORT', 'ORCHESTRATOR_PORT', 'HOST', 'DAEMON_AUTO_START', 'LOG_LEVEL']);
+
+/**
+ * Build the environment for the spawned server: strip Stoneforge/agent/port
+ * variables and point it at a temporary project so it can neither open the
+ * enclosing live project's database nor bind the default port.
+ */
+function buildIsolatedServerEnv(
+  baseEnv: Record<string, string | undefined>,
+  root: string,
+): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(baseEnv)) {
+    if (value === undefined) continue;
+    if (key.startsWith('STONEFORGE_') || key.startsWith('SF_') || INHERITED_ENV_TO_STRIP.has(key)) continue;
+    env[key] = value;
+  }
+  return {
+    ...env,
+    STONEFORGE_ROOT: root,
+    STONEFORGE_DB_PATH: join(root, '.stoneforge', 'stoneforge.db'),
+    STONEFORGE_UPLOAD_DIR: join(root, '.stoneforge', 'uploads', 'terminal'),
+    // Port 0: the OS picks a free port; the server logs the bound port.
+    PORT: '0',
+    HOST: TEST_HOST,
+    DAEMON_AUTO_START: 'false',
+    LOG_LEVEL: 'info',
+  };
+}
+
+function createTestProject(): void {
+  // realpath: macOS tmpdir is a symlink (/var -> /private/var)
+  projectRoot = realpathSync(mkdtempSync(join(tmpdir(), 'stoneforge-plugin-api-test-')));
+  mkdirSync(join(projectRoot, '.stoneforge'), { recursive: true });
+  dbPath = join(projectRoot, '.stoneforge', 'stoneforge.db');
+}
+
+function removeTestProject(): void {
+  if (projectRoot) {
+    try {
+      rmSync(projectRoot, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+}
+
 async function startServer(): Promise<void> {
   const serverPath = resolve(dirname(import.meta.path), 'index.ts');
 
-  // Start the server
+  // cwd is the temp project: the server derives PROJECT_ROOT (daemon state,
+  // plugin command cwd) from process.cwd().
   serverProcess = spawn({
     cmd: ['bun', 'run', serverPath],
-    env: {
-      ...process.env,
-      PORT: String(TEST_PORT),
-      // Use a test database in /tmp to work in both main repo and worktrees
-      STONEFORGE_DB_PATH: TEST_DB_PATH,
-    },
+    cwd: projectRoot,
+    env: buildIsolatedServerEnv(process.env, projectRoot),
     stdout: 'pipe',
     stderr: 'pipe',
   });
 
-  const stdoutPromise = serverProcess.stdout
-    ? new Response(serverProcess.stdout).text().catch(() => '')
-    : Promise.resolve('');
+  // Stream stdout so the bound port can be read while the server keeps running.
+  let stdout = '';
+  let boundPort: number | null = null;
+  const decoder = new TextDecoder();
+  const stdoutPromise = (async () => {
+    try {
+      for await (const chunk of serverProcess!.stdout) {
+        stdout += decoder.decode(chunk, { stream: true });
+        if (boundPort === null) {
+          const match = stdout.match(/Server running at http:\/\/[^\s:]+:(\d+)/);
+          if (match) boundPort = Number(match[1]);
+        }
+      }
+    } catch {
+      // Process killed
+    }
+    return stdout;
+  })();
   const stderrPromise = serverProcess.stderr
     ? new Response(serverProcess.stderr).text().catch(() => '')
     : Promise.resolve('');
@@ -74,21 +142,25 @@ async function startServer(): Promise<void> {
   const deadline = Date.now() + STARTUP_TIMEOUT_MS;
   while (Date.now() < deadline) {
     if (exitCode !== null) {
-      const [stdout, stderr] = await Promise.all([stdoutPromise, stderrPromise]);
+      const [out, err] = await Promise.all([stdoutPromise, stderrPromise]);
       throw new Error(
         `Server exited before startup (exit code ${exitCode}).\n` +
-          `stdout:\n${truncateOutput(stdout)}\n` +
-          `stderr:\n${truncateOutput(stderr)}`
+          `stdout:\n${truncateOutput(out)}\n` +
+          `stderr:\n${truncateOutput(err)}`
       );
     }
-    try {
-      const response = await fetch(`${SERVER_URL}/api/health`);
-      if (response.ok) {
-        console.log('[test] Server started successfully');
-        return;
+    if (boundPort !== null) {
+      try {
+        const url = `http://${TEST_HOST}:${boundPort}`;
+        const response = await fetch(`${url}/api/health`);
+        if (response.ok) {
+          SERVER_URL = url;
+          console.log(`[test] Server started successfully on port ${boundPort}`);
+          return;
+        }
+      } catch {
+        // Server not ready yet
       }
-    } catch {
-      // Server not ready yet
     }
     await Bun.sleep(STARTUP_POLL_INTERVAL_MS);
   }
@@ -96,32 +168,19 @@ async function startServer(): Promise<void> {
   if (serverProcess) {
     serverProcess.kill();
   }
-  const [stdout, stderr] = await Promise.all([stdoutPromise, stderrPromise]);
+  const [out, err] = await Promise.all([stdoutPromise, stderrPromise]);
   throw new Error(
     `Server failed to start within ${STARTUP_TIMEOUT_MS}ms.\n` +
-      `stdout:\n${truncateOutput(stdout)}\n` +
-      `stderr:\n${truncateOutput(stderr)}`
+      `stdout:\n${truncateOutput(out)}\n` +
+      `stderr:\n${truncateOutput(err)}`
   );
 }
 
 async function stopServer(): Promise<void> {
   if (serverProcess) {
     serverProcess.kill();
+    await serverProcess.exited.catch(() => undefined);
     serverProcess = null;
-  }
-}
-
-function cleanupTestDb(): void {
-  // Clean up SQLite database files (main db, write-ahead log, and shared memory)
-  for (const suffix of ['', '-wal', '-shm']) {
-    const file = `${TEST_DB_PATH}${suffix}`;
-    if (existsSync(file)) {
-      try {
-        unlinkSync(file);
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
   }
 }
 
@@ -131,14 +190,47 @@ function cleanupTestDb(): void {
 
 describe('Plugin API Integration Tests', () => {
   beforeAll(async () => {
-    // Clean up any stale test database from previous runs
-    cleanupTestDb();
+    createTestProject();
     await startServer();
   });
 
   afterAll(async () => {
     await stopServer();
-    cleanupTestDb();
+    removeTestProject();
+  });
+
+  describe('test isolation', () => {
+    it('runs the server against a temporary project, not the enclosing workspace', () => {
+      expect(existsSync(dbPath)).toBe(true);
+      expect(SERVER_URL).not.toBe('http://localhost:3457');
+    });
+
+    it('strips inherited Stoneforge and agent environment', () => {
+      const env = buildIsolatedServerEnv(
+        {
+          PATH: '/usr/bin',
+          STONEFORGE_ROOT: '/live/project',
+          STONEFORGE_DB_PATH: '/live/project/.stoneforge/stoneforge.db',
+          STONEFORGE_DESKTOP_INSTANCE_ID: 'desktop-instance',
+          STONEFORGE_SESSION_ID: 'session',
+          SF_ENTITY_ID: 'el-worker',
+          ORCHESTRATOR_PORT: '3457',
+          PORT: '3457',
+          DAEMON_AUTO_START: 'true',
+        },
+        '/tmp/isolated',
+      );
+      expect(env).toEqual({
+        PATH: '/usr/bin',
+        STONEFORGE_ROOT: '/tmp/isolated',
+        STONEFORGE_DB_PATH: '/tmp/isolated/.stoneforge/stoneforge.db',
+        STONEFORGE_UPLOAD_DIR: '/tmp/isolated/.stoneforge/uploads/terminal',
+        PORT: '0',
+        HOST: TEST_HOST,
+        DAEMON_AUTO_START: 'false',
+        LOG_LEVEL: 'info',
+      });
+    });
   });
 
   describe('GET /api/plugins/builtin', () => {
