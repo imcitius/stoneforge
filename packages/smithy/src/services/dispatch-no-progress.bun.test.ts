@@ -332,11 +332,20 @@ describe('(b) no-progress handoff loop stops', () => {
   test('explicit Director assignment resets the counter and clears the hold', async () => {
     const s = await services();
     await holdTask(s);
-    await s.assignment.assignToAgent(task.id, worker.id as unknown as EntityId, { markAsStarted: true });
+    await s.assignment.assignToAgent(task.id, worker.id as unknown as EntityId);
     const assigned = metaOf(await current());
     expect(assigned.noProgress).toBeUndefined();
     expect(assigned.dispatchHold).toBeUndefined();
     expect(assigned.branch).toBeDefined();
+  });
+
+  test('explicit start of a held DEFERRED task rejects without a write (shared start rule, el-52oa7i)', async () => {
+    const s = await services();
+    await holdTask(s);
+    const held = await current();
+    await expect(s.assignment.assignToAgent(task.id, worker.id as unknown as EntityId, { markAsStarted: true }))
+      .rejects.toThrow("task is in 'deferred' status");
+    expect(await current()).toEqual(held);
   });
 });
 

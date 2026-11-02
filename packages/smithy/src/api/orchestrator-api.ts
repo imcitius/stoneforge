@@ -12,6 +12,7 @@
  */
 
 import type { StorageBackend } from '@stoneforge/storage';
+import { assertTaskStartable } from '../services/task-start-contract.js';
 import {
   type Entity,
   type EntityId,
@@ -221,6 +222,10 @@ export interface OrchestratorAPI extends QuarryAPI {
    * Explicitly assigns/reassigns a task atomically against its original snapshot.
    * Concurrent changes reject without retry; completion claims/history are retained.
    * This is not an automatic ready/unassigned eligibility claim.
+   *
+   * `markAsStarted` shares the startTask status rule (el-52oa7i): only OPEN or
+   * IN_PROGRESS tasks can be started; any other status rejects with
+   * CONCURRENT_MODIFICATION and no write. Assignment and start are one CAS write.
    */
   assignTaskToAgent(
     taskId: ElementId,
@@ -570,6 +575,10 @@ export class OrchestratorAPIImpl extends QuarryAPIImpl implements OrchestratorAP
     if (!task) {
       throw new Error(`Task not found: ${taskId}`);
     }
+
+    // Same start status rule as TaskAssignmentService.startTask, checked against
+    // the snapshot the single CAS write below uses (never resurrects work).
+    if (options?.markAsStarted) assertTaskStartable(task);
 
     const agent = await this.getAgent(agentId);
     if (!agent) {

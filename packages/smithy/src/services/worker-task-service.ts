@@ -420,8 +420,39 @@ export class WorkerTaskServiceImpl implements WorkerTaskService {
       interactive: false, // Workers are typically headless
     });
 
-    // 7. Update task with session ID
-    await this.taskAssignment.updateSessionId(taskId, session.id);
+    // 7. Record the session and its history entry against the lifecycle state
+    // this start decided on (el-52oa7i). If the task moved on meanwhile
+    // (handoff, reassignment, close, ...), nothing is written and the session
+    // started above is stopped so it cannot run as an orphan.
+    const decided = dispatchResult.task;
+    const decidedMeta = getOrchestratorTaskMeta(decided.metadata as Record<string, unknown> | undefined);
+    try {
+      await this.taskAssignment.recordSession(taskId, {
+        decision: {
+          status: decided.status,
+          assignee: decided.assignee,
+          branch: decidedMeta?.branch,
+          sessionId: decidedMeta?.sessionId,
+        },
+        entry: {
+          sessionId: session.id,
+          providerSessionId: session.providerSessionId,
+          agentId,
+          agentName: agent.name,
+          agentRole: 'worker',
+          startedAt: createTimestamp(),
+        },
+        sessionId: session.id,
+      });
+    } catch (error) {
+      logger.warn(`Session ${session.id} for task ${taskId} not recorded, stopping it: ${error instanceof Error ? error.message : String(error)}`);
+      try {
+        await this.sessionManager.stopSession(session.id, { graceful: false, reason: 'Task changed before session record' });
+      } catch (stopError) {
+        logger.warn(`Failed to stop unrecorded session ${session.id}:`, stopError);
+      }
+      throw error;
+    }
 
     return {
       task: dispatchResult.task,

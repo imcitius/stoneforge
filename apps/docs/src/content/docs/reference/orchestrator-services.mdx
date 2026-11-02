@@ -68,6 +68,42 @@ the server does not authenticate this assertion. Invalid or missing input return
 400, invalid task state or assignment returns 422, a stale or concurrent update
 returns 409, and a missing task returns 404. A successful start returns the task.
 
+`assignToAgent(..., { markAsStarted: true })` and the API's
+`assignTaskToAgent(..., { markAsStarted: true })` use the same status rule: only
+`open` or `in_progress` tasks are started; `review`, `closed`, `deferred` and other
+statuses reject with a conflict and no write. Assignment and start are one write
+against the read task version. A held (`deferred`) no-progress task is started with
+`sf task undefer`; an explicit assignment without start still ends the hold.
+
+#### Session record contract
+
+Spawn paths record a new session with `recordSession`:
+
+```typescript
+await assignmentService.recordSession(taskId, {
+  // Lifecycle state the spawn was decided on
+  decision: { status, assignee, branch, sessionId, mergeStatus /* optional */ },
+  entry: { sessionId: session.id, providerSessionId, agentId, agentName, agentRole, startedAt },
+  sessionId: session.providerSessionId ?? session.id, // omit to keep (resume)
+  assignTo: stewardId,                                 // optional claim
+  metadata: { mergeStatus: 'testing' },                // optional extra fields
+});
+```
+
+It reads the task again and rejects with a conflict and no write
+(`details.sessionRecordRefused`, `details.changed`) when status, assignee, branch,
+the recorded session or a supplied `mergeStatus` differ from the decision. Other
+metadata written meanwhile does not cause a rejection. The history entry is appended
+(session history is append-only within its 50-entry window). The session, claim
+and extra fields are written in the same update, using the version that was read. A
+concurrent write between that read and the update also rejects. The caller owns the
+spawned session and must stop it when the record is rejected. `startWorkerOnTask`
+and the dispatch daemon (automatic worker dispatch, orphan worker resume/fresh
+spawn, merge steward spawn and orphan resume, recovery steward spawn) do this. They
+stop exactly that internal session, without a graceful shutdown.
+`updateSessionId` is a deprecated explicit replacement. It writes once with the
+version it read, but it does not validate status and does not add a history entry.
+
 #### Completion identity and recovery
 
 Worker completion requires an `open` or `in_progress` task, the current
@@ -348,6 +384,9 @@ const result = await workerTaskService.startWorkerOnTask(taskId, agentId, {
 // same branch); `branch` above is an override only when it differs from it.
 // A recorded branch with prior work that no longer exists is refused with
 // TaskBranchUnavailableError instead of restarting from the target.
+// The session and its history entry are recorded with recordSession; if the task
+// changed after dispatch (handoff, reassignment, close), the started session is
+// stopped and the conflict is rethrown.
 
 // Complete a task
 const result = await workerTaskService.completeTask(taskId, {

@@ -185,7 +185,9 @@ When the count reaches `noProgressHandoffLimit` (default `3`), the daemon:
 
 The counter resets, and a held task resumes, after a Director/Human change:
 `sf task undefer <id>`, a description or title change, a dependency change, a new
-commit on the task branch, or an explicit assignment. Rate-limit pauses, session
+commit on the task branch, or an explicit assignment. An explicit start
+(`markAsStarted`, start-worker) of a deferred task is rejected, so undefer it to
+start work again. Rate-limit pauses, session
 crashes and orphan resumes do not change the counter. A worker session stopped as
 **hung** is counted like a handoff (unchanged since the last baseline increments,
 any change resets). If that reaches the limit, the task is also unassigned and the

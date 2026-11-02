@@ -2292,3 +2292,99 @@ daemon/sessions/tasks and closed maintenance el-1clm untouched.
   adds this note; its result is recorded in the task completion and the
   Documentation Directory rather than in a later tracked commit, so the gated commit
   is the final commit.
+
+## Assignment/spawn lifecycle writers — el-52oa7i, 2026-11-02
+
+Follow-up to el-2htch/el-54uuqf. The el-54uuqf worker found three lifecycle writers
+outside the start contract: `markAsStarted` status writes, `updateSessionId`, and
+daemon post-spawn session/history writes. They could resurrect or overwrite a task
+that had moved on (same class as el-56khe, el-5jwe6q, el-2q3e2y, el-4dcv06).
+
+### Contract
+
+- **markAsStarted** (`TaskAssignmentService.assignToAgent`,
+  `OrchestratorAPI.assignTaskToAgent`): shares the startTask status rule via
+  `services/task-start-contract.ts`. Only OPEN or IN_PROGRESS is started. REVIEW,
+  CLOSED, DEFERRED and other statuses reject with CONCURRENT_MODIFICATION
+  (`startErrorKind: 'invalid-state'`) **before any write**. Assignment and start stay
+  **one** CAS write against the validated snapshot, so no assigned-but-not-started
+  state can be left behind. Caller/assignee coherence holds by construction: the new
+  assignee is a registered agent, and that agent starts. The session follows the
+  documented assignment reset (`ASSIGNMENT_RESET_FIELDS`), because a new work cycle
+  begins.
+  Intentional change: an explicit start of a held DEFERRED no-progress task is
+  refused. `sf task undefer` is the start path, and an explicit assignment without
+  start still ends the hold (`dispatch-no-progress` test adjusted, new rejection
+  test).
+- **recordSession** (new `TaskAssignmentService` method): re-reads the task and
+  refuses when status, assignee, `orchestrator.branch`, the recorded `sessionId` or
+  a supplied `mergeStatus` differ from the spawn decision. A refusal performs no write
+  and raises ConflictError CONCURRENT_MODIFICATION with
+  `details.sessionRecordRefused/changed`. Unrelated metadata written meanwhile is
+  tolerated. Otherwise it appends the history entry (append-only, 50-entry window
+  unchanged) and writes the session, optional claim (`assignTo`) and extra metadata
+  in one update with `expectedUpdatedAt` from that validated snapshot. It never
+  retries.
+- **Callers**: `WorkerTaskService.startWorkerOnTask` now records the session and a
+  history entry; before, it only replaced `sessionId`. The daemon uses
+  `recordSession` for automatic worker dispatch, orphan worker resume and fresh
+  spawn, merge steward spawn and orphan resume, and recovery steward spawn. On
+  refusal, the just-spawned session is stopped by its exact internal ID
+  (`stopSession(session.id, { graceful: false })`; Spawner handle cleanup is from
+  el-4f7pc9). A lost race returns false, and the daemon rethrows other errors after
+  cleanup so the poll reports them. The recovery steward path previously called
+  `stopSession(stewardId)` with the entity ID, so the steward session was not
+  stopped; it now stops the session ID.
+- **Pre-spawn metadata writes in the same paths** (orphan worktree re-attach, clearing
+  of a failed-resume session, merge steward `lastSyncResult`) now merge into the
+  latest snapshot with one CAS write. Before, they rewrote metadata from the poll
+  snapshot, which could revert `mergeStatus`, `stewardRecoveryCount` or the cleared
+  session. Their timing is unchanged.
+- **updateSessionId**: kept as a deprecated explicit replacement; now one write with
+  `expectedUpdatedAt` from its read. No production caller remains.
+
+Normal-path behavior is otherwise the same: identical session IDs (provider ID for
+daemon, internal ID for start-worker), history entries, claim fields and mergeStatus.
+
+### Evidence
+
+`packages/smithy/src/services/spawn-session-record.bun.test.ts` (41 tests): two real
+QuarryAPI connections to one temporary SQLite file, a real Git repo/worktrees, a real
+SessionManager and inert provider handles. A competitor commits through the second
+connection after the provider handle exists and before the record. Each REGRESSION row
+asserts that the winner equals the other connection's snapshot (including events), that
+the spawned session has no history entry and that its handle was terminated:
+
+- markAsStarted after committed CLOSED/REVIEW/DEFERRED, service and API (6).
+- recordSession: refusal per field (4), tolerated unrelated metadata, commit between
+  its read and write rejects (two connections), positive append.
+- startWorkerOnTask: close/handoff/reassign (3) + positive.
+- Daemon automatic worker dispatch: close/handoff/reassign after the claim (3,
+  PRESERVATION) + positive.
+- Orphan worker resume and fresh spawn × close/handoff/reassign (6) + 2 positives.
+- Merge steward spawn × merge/reject/other-steward claim (3), orphan steward resume ×
+  merge (1) + positive.
+- Recovery steward spawn × complete/handoff/close (3) + positive.
+
+**Negative control** (no branch switch): only the four production files
+(`orchestrator-api.ts`, `task-assignment-service.ts`, `worker-task-service.ts`,
+`dispatch-daemon.ts`) were replaced with the pre-change `HEAD` content, the new suite
+ran, and the files were restored and verified with `cmp`. Result: **11 pass / 30 fail**.
+All markAsStarted, startWorkerOnTask, orphan, merge-steward and recovery-steward
+REGRESSION rows fail on old code (overwrite/resurrection, session left running). The
+recordSession rows and the startWorkerOnTask positive fail because the method and
+history entry did not exist. The automatic worker dispatch rows **pass on old code**:
+that path already used CAS on its assignment receipt (el-1q2vv). They are kept as
+preservation tests. The positive rows also pass on old code.
+
+Adjusted existing tests: `dispatch-daemon.bun.test.ts` (resume mock now returns a
+session with an internal ID, because `recordSession` rejects empty IDs; the recovery
+steward failure test now expects the exact session ID instead of the entity ID),
+`task-assignment-service.bun.test.ts` (the handoff test no longer relies on
+markAsStarted moving REVIEW to IN_PROGRESS), `dispatch-no-progress.bun.test.ts` (see
+above), `worker-task-service.test.ts` (`recordSession` mock + refusal cleanup test).
+
+Not changed: completion, handoff, unassign, automatic claim rules, HTTP start/session
+routes, SessionManager/Spawner, and other daemon metadata writers (resumeCount,
+stewardRecoveryCount, hung/rate-limit records, triage). No storage, gate, threshold or
+configuration changes.

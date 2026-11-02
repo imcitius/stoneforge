@@ -163,6 +163,7 @@ function createMockTaskAssignment(): TaskAssignmentService {
     startTask: vi.fn(),
     completeTask: vi.fn(),
     updateSessionId: vi.fn(),
+    recordSession: vi.fn(),
     getAgentTasks: vi.fn(),
     getAgentWorkload: vi.fn(),
     agentHasCapacity: vi.fn(),
@@ -331,7 +332,7 @@ describe('WorkerTaskService', () => {
         session: mockSession,
         events: null,
       });
-      (mockTaskAssignment.updateSessionId as MockInstance).mockResolvedValue(mockTask);
+      (mockTaskAssignment.recordSession as MockInstance).mockResolvedValue(mockTask);
     });
 
     it('should start a worker on a task with worktree', async () => {
@@ -405,10 +406,23 @@ describe('WorkerTaskService', () => {
         mockAgent.id as unknown as EntityId
       );
 
-      expect(mockTaskAssignment.updateSessionId).toHaveBeenCalledWith(
+      // Recorded through the CAS session contract with a history entry (el-52oa7i).
+      expect(mockTaskAssignment.updateSessionId).not.toHaveBeenCalled();
+      expect(mockTaskAssignment.recordSession).toHaveBeenCalledWith(
         mockTask.id,
-        mockSession.id
+        expect.objectContaining({
+          sessionId: mockSession.id,
+          decision: expect.objectContaining({ status: mockTask.status, assignee: mockTask.assignee }),
+          entry: expect.objectContaining({ sessionId: mockSession.id, agentId: mockAgent.id, agentRole: 'worker' }),
+        })
       );
+    });
+
+    it('stops the started session and rethrows when the session record is refused', async () => {
+      const refusal = new Error('status changed since the spawn decision');
+      (mockTaskAssignment.recordSession as MockInstance).mockRejectedValue(refusal);
+      await expect(service.startWorkerOnTask(mockTask.id, mockAgent.id as unknown as EntityId)).rejects.toBe(refusal);
+      expect(mockSessionManager.stopSession).toHaveBeenCalledWith(mockSession.id, expect.objectContaining({ graceful: false }));
     });
 
     it('should throw if agent not found', async () => {

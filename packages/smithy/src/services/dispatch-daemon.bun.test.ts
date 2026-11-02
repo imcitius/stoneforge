@@ -84,7 +84,8 @@ function createMockSessionManager(): SessionManager {
     }),
     stopSession: mock(async () => {}),
     suspendSession: mock(async () => {}),
-    resumeSession: mock(async () => ({ session: {} as SessionRecord, events: new EventEmitter() })),
+    // A resumed session always has an internal ID; recordSession rejects empty IDs (el-52oa7i).
+    resumeSession: mock(async () => ({ session: { id: 'resumed-session' } as SessionRecord, events: new EventEmitter() })),
     getSession: mock(() => undefined),
     listSessions: mock(() => []),
     messageSession: mock(async () => ({ success: true })),
@@ -3386,8 +3387,11 @@ describe('spawnRecoveryStewardForTask - atomic worker unassignment', () => {
     // The metadata update error should be reported
     expect(result.errors).toBe(1);
 
-    // Steward session should have been terminated to prevent orphan
-    expect(sessionManager.stopSession).toHaveBeenCalledWith(stewardId);
+    // Steward session should have been terminated to prevent orphan — by its exact
+    // internal session ID (the old call passed the steward entity ID; el-52oa7i).
+    expect(sessionManager.stopSession).toHaveBeenCalledWith(
+      expect.stringMatching(/^session-recovery-/), expect.objectContaining({ graceful: false }));
+    expect(sessionManager.stopSession).not.toHaveBeenCalledWith(stewardId);
 
     // Task should STILL be assigned to the original worker (not orphaned)
     const updatedTask = await api.get<Task>(task.id);

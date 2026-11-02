@@ -53,7 +53,7 @@ import type { SessionManager, SessionRecord } from '../runtime/session-manager.j
 import { DispatchAssignmentError, type DispatchService, type DispatchOptions } from './dispatch-service.js';
 import type { WorktreeManager, CreateWorktreeResult } from '../git/worktree-manager.js';
 import type { SyncResult } from '../cli/commands/task.js';
-import type { TaskAssignmentService } from './task-assignment-service.js';
+import type { TaskAssignmentService, RecordSessionOptions } from './task-assignment-service.js';
 import type { StewardScheduler } from './steward-scheduler.js';
 import type { AgentPoolService } from './agent-pool-service.js';
 import type { SettingsService } from './settings-service.js';
@@ -67,6 +67,7 @@ import {
   appendTaskSessionHistory,
   type TaskSessionHistoryEntry,
   type OrchestratorTaskMeta,
+  type MergeStatus,
   type NoProgressState,
   type DispatchHold,
   type ProgressFingerprint,
@@ -2244,6 +2245,51 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    * clears or the TTL expires.  Only `warning` type notifications are
    * deduplicated — `info` and `error` notifications bypass this helper.
    */
+  /**
+   * Records a just-spawned session through the CAS session contract
+   * (TaskAssignmentService.recordSession, el-52oa7i). On any rejection — the task's
+   * status/assignee/branch/session changed since the spawn decision, or a concurrent
+   * write — nothing is written and the spawned session is stopped (exact internal ID,
+   * non-graceful) so it cannot keep running as an orphan. A lost race
+   * (ConflictError) returns false and is logged; any other error is rethrown after
+   * the cleanup so the poll reports it. Never retried against a newer snapshot.
+   */
+  private async recordSpawnedSession(
+    taskId: ElementId,
+    session: SessionRecord,
+    options: RecordSessionOptions,
+  ): Promise<boolean> {
+    try {
+      await this.taskAssignment.recordSession(taskId, options);
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.warn(`Not recording session ${session.id} on task ${taskId}; stopping it: ${message}`);
+      this.operationLog?.write('warn', 'dispatch', `Spawned session ${session.id} not recorded on task ${taskId}; stopped: ${message}`,
+        { taskId, agentId: session.agentId, sessionId: session.id });
+      try {
+        await this.sessionManager.stopSession(session.id, { graceful: false, reason: 'Task changed before session record' });
+      } catch (stopError) {
+        logger.warn(`Failed to stop unrecorded session ${session.id}:`, stopError);
+      }
+      if (error instanceof ConflictError) return false;
+      throw error;
+    }
+  }
+
+  /**
+   * Merges orchestrator metadata into the latest task snapshot with one CAS write,
+   * instead of rewriting metadata from an older snapshot (which reverted concurrent
+   * lifecycle metadata). A concurrent write rejects; no retry.
+   */
+  private async updateLatestTaskMeta(taskId: ElementId, updates: Partial<OrchestratorTaskMeta>): Promise<Task> {
+    const latest = await this.api.get<Task>(taskId);
+    if (!latest) throw new Error(`Task not found: ${taskId}`);
+    return this.api.update<Task>(taskId, {
+      metadata: updateOrchestratorTaskMeta(latest.metadata as Record<string, unknown> | undefined, updates),
+    }, { expectedUpdatedAt: latest.updatedAt });
+  }
+
   private emitWarningOnce(
     key: string,
     data: { type: 'warning'; title: string; message?: string },
@@ -3034,13 +3080,11 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     const worktreePath = resolved.path;
     if (resolved.path !== taskMeta?.worktree || resolved.branch !== taskMeta?.branch) {
       // Update task metadata with the (re)attached worktree info
-      await this.api.update(task.id, {
-        metadata: updateOrchestratorTaskMeta(
-          task.metadata as Record<string, unknown> | undefined,
-          { worktree: resolved.path, branch: resolved.branch }
-        ),
-      });
+      await this.updateLatestTaskMeta(task.id, { worktree: resolved.path, branch: resolved.branch });
     }
+    // Lifecycle state this recovery decided on; a session is recorded only while
+    // it still holds (el-52oa7i).
+    const decision = { status: task.status, assignee: task.assignee, branch: resolved.branch };
 
     // 2. Try resume first if we have a previous session ID
     const previousSessionId = taskMeta?.sessionId;
@@ -3072,14 +3116,10 @@ export class DispatchDaemonImpl implements DispatchDaemon {
           agentRole: 'worker',
           startedAt: createTimestamp(),
         };
-        const updatedTask = await this.api.get<Task>(task.id);
-        if (updatedTask) {
-          const metadataWithHistory = appendTaskSessionHistory(
-            updatedTask.metadata as Record<string, unknown> | undefined,
-            resumeHistoryEntry
-          );
-          await this.api.update<Task>(task.id, { metadata: metadataWithHistory });
-        }
+        if (!(await this.recordSpawnedSession(task.id, session, {
+          decision: { ...decision, sessionId: previousSessionId },
+          entry: resumeHistoryEntry,
+        }))) return false;
 
         // Attach rapid-exit detector to catch silent rate limits
         if (events) {
@@ -3100,11 +3140,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
         );
 
         // Clear stale session ID so next recovery cycle doesn't try to resume again
-        const clearedMeta = updateOrchestratorTaskMeta(
-          task.metadata as Record<string, unknown> | undefined,
-          { sessionId: undefined }
-        );
-        await this.api.update(task.id, { metadata: clearedMeta });
+        await this.updateLatestTaskMeta(task.id, { sessionId: undefined });
       }
     }
 
@@ -3134,6 +3170,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     }
 
     // Record session history entry and new sessionId for fresh spawned worker session
+    // (the new session ID lets future recovery cycles resume this session). The
+    // decision expects no recorded session: none existed or the failed resume cleared it.
     const freshSpawnHistoryEntry: TaskSessionHistoryEntry = {
       sessionId: session.id,
       providerSessionId: session.providerSessionId,
@@ -3142,19 +3180,11 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       agentRole: 'worker',
       startedAt: createTimestamp(),
     };
-    const taskAfterFreshSpawn = await this.api.get<Task>(task.id);
-    if (taskAfterFreshSpawn) {
-      const metadataWithHistory = appendTaskSessionHistory(
-        taskAfterFreshSpawn.metadata as Record<string, unknown> | undefined,
-        freshSpawnHistoryEntry
-      );
-      // Write the new session ID so future recovery cycles can resume this session
-      const metadataWithSessionId = updateOrchestratorTaskMeta(
-        metadataWithHistory,
-        { sessionId: session.providerSessionId ?? session.id }
-      );
-      await this.api.update<Task>(task.id, { metadata: metadataWithSessionId });
-    }
+    if (!(await this.recordSpawnedSession(task.id, session, {
+      decision: { ...decision, sessionId: undefined },
+      entry: freshSpawnHistoryEntry,
+      sessionId: session.providerSessionId ?? session.id,
+    }))) return false;
 
     // Attach rapid-exit detector to catch silent rate limits
     if (events) {
@@ -3326,14 +3356,13 @@ export class DispatchDaemonImpl implements DispatchDaemon {
           agentRole: 'steward',
           startedAt: createTimestamp(),
         };
-        const updatedTask = await this.api.get<Task>(task.id);
-        if (updatedTask) {
-          const metadataWithHistory = appendTaskSessionHistory(
-            updatedTask.metadata as Record<string, unknown> | undefined,
-            resumeHistoryEntry
-          );
-          await this.api.update<Task>(task.id, { metadata: metadataWithHistory });
-        }
+        if (!(await this.recordSpawnedSession(task.id, session, {
+          decision: {
+            status: TaskStatus.REVIEW, assignee: task.assignee, branch: taskMeta?.branch,
+            sessionId: previousSessionId, mergeStatus: taskMeta?.mergeStatus,
+          },
+          entry: resumeHistoryEntry,
+        }))) return;
         this.emitter.emit('agent:spawned', stewardId, worktreePath);
         logger.info(`Resumed steward session for orphaned task ${task.id} on ${steward.name}`);
         return;
@@ -3343,12 +3372,13 @@ export class DispatchDaemonImpl implements DispatchDaemon {
           error
         );
 
-        // Clear stale session ID so next recovery cycle doesn't try to resume again
-        const clearedMeta = updateOrchestratorTaskMeta(
-          task.metadata as Record<string, unknown> | undefined,
-          { sessionId: undefined }
-        );
-        await this.api.update(task.id, { metadata: clearedMeta });
+        // Clear stale session ID so next recovery cycle doesn't try to resume again.
+        // The fresh spawn decides on the cleared snapshot; its record still
+        // requires the lifecycle state this recovery started from.
+        const cleared = await this.updateLatestTaskMeta(task.id, { sessionId: undefined });
+        await this.spawnMergeStewardForTask(steward, { ...cleared, status: task.status, assignee: task.assignee });
+        logger.info(`Spawned fresh steward session for orphaned task ${task.id} on ${steward.name}`);
+        return;
       }
     }
 
@@ -3487,16 +3517,11 @@ export class DispatchDaemonImpl implements DispatchDaemon {
           agentRole: 'worker',
           startedAt: createTimestamp(),
         };
-        const metadataWithHistory = appendTaskSessionHistory(
-          updatedTask.metadata as Record<string, unknown> | undefined,
-          sessionHistoryEntry
-        );
         // Set owningDirector and targetBranch if not already set (merge into same metadata update)
         const existingOrcMeta = getOrchestratorTaskMeta(
           updatedTask.metadata as Record<string, unknown> | undefined
         );
-        let finalMetadata = metadataWithHistory;
-        const metaUpdate: { owningDirector?: EntityId; targetBranch?: string } = {};
+        const metaUpdate: { -readonly [K in keyof OrchestratorTaskMeta]?: OrchestratorTaskMeta[K] } = {};
 
         // Resolve owning director if not already set
         let resolvedDirectorId = existingOrcMeta?.owningDirector;
@@ -3516,14 +3541,23 @@ export class DispatchDaemonImpl implements DispatchDaemon {
           }
         }
 
-        if (Object.keys(metaUpdate).length > 0) {
-          finalMetadata = updateOrchestratorTaskMeta(finalMetadata, metaUpdate);
-        }
         // Baseline for the next handoff's no-progress decision.
         if (progressState) {
-          finalMetadata = updateOrchestratorTaskMeta(finalMetadata, { noProgress: progressState, dispatchHold: undefined });
+          Object.assign(metaUpdate, { noProgress: progressState, dispatchHold: undefined });
         }
-        await this.api.update<Task>(task.id, { metadata: finalMetadata }, { expectedUpdatedAt: updatedTask.updatedAt });
+        // The assignment receipt is the spawn decision: a handoff, close or
+        // reassignment after the claim refuses the record (el-52oa7i). The
+        // catch below stops this attempt's session.
+        await this.taskAssignment.recordSession(task.id, {
+          decision: {
+            status: updatedTask.status,
+            assignee: updatedTask.assignee,
+            branch: existingOrcMeta?.branch,
+            sessionId: existingOrcMeta?.sessionId,
+          },
+          entry: sessionHistoryEntry,
+          metadata: metaUpdate,
+        });
       }
 
       // Notify pool service that agent was spawned
@@ -4228,20 +4262,16 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       logger.debug(`Syncing task ${task.id} branch before steward spawn...`);
       syncResult = await this.syncTaskBranch(task);
 
-      // Store sync result in task metadata for audit trail
-      await this.api.update<Task>(task.id, {
-        metadata: updateOrchestratorTaskMeta(
-          task.metadata as Record<string, unknown> | undefined,
-          {
-            lastSyncResult: {
-              success: syncResult.success,
-              conflicts: syncResult.conflicts,
-              error: syncResult.error,
-              message: syncResult.message,
-              syncedAt: new Date().toISOString(),
-            },
-          }
-        ),
+      // Store sync result in task metadata for audit trail (merged into the latest
+      // snapshot; never rewrites lifecycle metadata from the poll snapshot).
+      await this.updateLatestTaskMeta(task.id, {
+        lastSyncResult: {
+          success: syncResult.success,
+          conflicts: syncResult.conflicts,
+          error: syncResult.error,
+          message: syncResult.message,
+          syncedAt: new Date().toISOString(),
+        },
       });
     }
 
@@ -4268,9 +4298,11 @@ export class DispatchDaemonImpl implements DispatchDaemon {
 
     // Record steward assignment and session history on the task to prevent double-dispatch and enable recovery.
     // Setting task.assignee makes the steward visible in the UI and enables
-    // getAgentTasks() lookups for orphan recovery.
-    // Re-read task to get latest metadata (after sync result was stored)
-    const taskAfterSync = await this.api.get<Task>(task.id);
+    // getAgentTasks() lookups for orphan recovery. The claim is recorded only if
+    // the task is still the REVIEW task this spawn decided on (same assignee —
+    // unclaimed, or this steward for orphan recovery —, branch, session and merge
+    // status). A concurrent merge, reject or other steward's claim refuses the
+    // record and the session started above is stopped (el-52oa7i).
     const sessionHistoryEntry: TaskSessionHistoryEntry = {
       sessionId: session.id,
       providerSessionId: session.providerSessionId,
@@ -4279,23 +4311,20 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       agentRole: 'steward',
       startedAt: createTimestamp(),
     };
-    // First append session history, then apply steward assignment metadata
-    const metadataWithHistory = appendTaskSessionHistory(
-      taskAfterSync?.metadata as Record<string, unknown> | undefined,
-      sessionHistoryEntry
-    );
-    const finalMetadata = updateOrchestratorTaskMeta(
-      metadataWithHistory,
-      {
-        assignedAgent: stewardId,
-        mergeStatus: 'testing' as const,
-        sessionId: session.providerSessionId ?? session.id,
-      }
-    );
-    await this.api.update<Task>(task.id, {
-      assignee: stewardId,
-      metadata: finalMetadata,
+    const recorded = await this.recordSpawnedSession(task.id, session, {
+      decision: {
+        status: TaskStatus.REVIEW,
+        assignee: task.assignee,
+        branch: orchestratorMeta?.branch as string | undefined,
+        sessionId: orchestratorMeta?.sessionId as string | undefined,
+        mergeStatus: orchestratorMeta?.mergeStatus as MergeStatus | undefined,
+      },
+      entry: sessionHistoryEntry,
+      assignTo: stewardId,
+      metadata: { mergeStatus: 'testing' },
+      sessionId: session.providerSessionId ?? session.id,
     });
+    if (!recorded) return;
 
     // Notify pool service that agent was spawned
     if (this.poolService) {
@@ -4466,51 +4495,25 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     // 6. Session started successfully — now transfer the task from worker to steward.
     //    If the metadata update fails, terminate the steward session to avoid an
     //    orphaned steward running without proper task assignment.
-    try {
-      const taskAfterUpdate = await this.api.get<Task>(task.id);
-      const sessionHistoryEntry: TaskSessionHistoryEntry = {
-        sessionId: session.id,
-        providerSessionId: session.providerSessionId,
-        agentId: stewardId,
-        agentName: recoverySteward.name,
-        agentRole: 'steward',
-        startedAt: createTimestamp(),
-      };
-
-      const metadataWithHistory = appendTaskSessionHistory(
-        taskAfterUpdate?.metadata as Record<string, unknown> | undefined,
-        sessionHistoryEntry
-      );
-      const finalMetadata = updateOrchestratorTaskMeta(
-        metadataWithHistory,
-        {
-          assignedAgent: stewardId,
-          sessionId: session.providerSessionId ?? session.id,
-        }
-      );
-      await this.api.update<Task>(task.id, {
-        assignee: stewardId,
-        metadata: finalMetadata,
-      });
-    } catch (metadataError) {
-      // Metadata update failed — terminate the steward session to prevent an
-      // orphaned steward running without a proper task assignment. The task
-      // retains its original worker assignment and can be retried on next poll.
-      logger.error(
-        `Failed to update task metadata after starting recovery steward session for ${task.id}. ` +
-        `Terminating steward session to prevent orphan.`,
-        metadataError
-      );
-      try {
-        await this.sessionManager.stopSession(stewardId);
-      } catch (stopError) {
-        logger.error(
-          `Failed to stop orphaned recovery steward session for ${recoverySteward.name}:`,
-          stopError
-        );
-      }
-      throw metadataError;
-    }
+    //    The transfer is recorded only while the task is still the stuck worker
+    //    task this spawn decided on (status, worker assignee, branch, session);
+    //    otherwise (completed, handed off, reassigned, ...) nothing is written and
+    //    the steward session — by its exact internal ID — is stopped (el-52oa7i).
+    const sessionHistoryEntry: TaskSessionHistoryEntry = {
+      sessionId: session.id,
+      providerSessionId: session.providerSessionId,
+      agentId: stewardId,
+      agentName: recoverySteward.name,
+      agentRole: 'steward',
+      startedAt: createTimestamp(),
+    };
+    const recorded = await this.recordSpawnedSession(task.id, session, {
+      decision: { status: task.status, assignee: task.assignee, branch: taskMeta?.branch, sessionId: taskMeta?.sessionId },
+      entry: sessionHistoryEntry,
+      assignTo: stewardId,
+      sessionId: session.providerSessionId ?? session.id,
+    });
+    if (!recorded) return false;
 
     if (this.poolService) {
       await this.poolService.onAgentSpawned(stewardId);

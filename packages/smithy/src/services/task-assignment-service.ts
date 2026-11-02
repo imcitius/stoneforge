@@ -26,11 +26,12 @@ import { createTimestamp, TaskStatus, ElementType, ConflictError, ConflictErrorC
 // Use type alias for TaskStatus values
 type TaskStatusValue = typeof TaskStatus[keyof typeof TaskStatus];
 import type { QuarryAPI } from '@stoneforge/quarry';
-import type { OrchestratorTaskMeta, MergeStatus, HandoffHistoryEntry } from '../types/index.js';
+import type { OrchestratorTaskMeta, MergeStatus, HandoffHistoryEntry, TaskSessionHistoryEntry } from '../types/index.js';
 import {
   getOrchestratorTaskMeta,
   updateOrchestratorTaskMeta,
   closeTaskSessionHistory,
+  appendTaskSessionHistory,
   generateBranchName,
   generateWorktreePath,
   createSlugFromTitle,
@@ -41,6 +42,7 @@ import {
   getAgentMetadata,
 } from '../api/orchestrator-api.js';
 import type { MergeRequestProvider } from './merge-request-provider.js';
+import { assertTaskStartable, isStartableTaskStatus } from './task-start-contract.js';
 
 
 // ============================================================================
@@ -59,8 +61,60 @@ export interface AssignTaskOptions {
   worktree?: string;
   /** Claude Code session ID */
   sessionId?: string;
-  /** Whether to mark the task as started immediately */
+  /**
+   * Also start the task in the same CAS write. Shares the startTask status rule:
+   * only OPEN or IN_PROGRESS tasks can be started; anything else rejects with no
+   * write (never resurrects REVIEW/CLOSED/... work).
+   */
   markAsStarted?: boolean;
+}
+
+/**
+ * Lifecycle fields observed when a session spawn was decided. A session record is
+ * refused when any of them changed before the record is written.
+ */
+export interface SessionSpawnDecision {
+  /** Expected task status. */
+  status: Task['status'];
+  /** Expected `task.assignee` (undefined = unassigned). */
+  assignee: EntityId | undefined;
+  /** Expected `orchestrator.branch`. */
+  branch: string | undefined;
+  /**
+   * Expected `orchestrator.sessionId`. A recorded session that changed since the
+   * decision (e.g. another spawn recorded first) is never replaced.
+   */
+  sessionId: string | undefined;
+  /** Expected `orchestrator.mergeStatus`, checked only when supplied. */
+  mergeStatus?: MergeStatus;
+}
+
+/** Options for {@link TaskAssignmentService.recordSession}. */
+export interface RecordSessionOptions {
+  /** Lifecycle fields the spawn decision was made against. */
+  decision: SessionSpawnDecision;
+  /** History entry for the new session; appended (sessionHistory is append-only). */
+  entry: TaskSessionHistoryEntry;
+  /** New `orchestrator.sessionId`; omitted = keep the recorded value (resume). */
+  sessionId?: string;
+  /** Claim the task for this agent (`assignee` + `orchestrator.assignedAgent`). */
+  assignTo?: EntityId;
+  /** Extra orchestrator metadata committed in the same write. */
+  metadata?: Partial<OrchestratorTaskMeta>;
+}
+
+/** Details carried by a refused session record (ConflictError.details). */
+export interface SessionRecordRefusal {
+  taskId: ElementId;
+  sessionRecordRefused: true;
+  changed: string[];
+  sessionId: string;
+}
+
+/** True when `error` is a refused {@link TaskAssignmentService.recordSession}. */
+export function isSessionRecordRefusal(error: unknown): error is ConflictError & { details: SessionRecordRefusal } {
+  return error instanceof ConflictError &&
+    (error.details as Partial<SessionRecordRefusal> | undefined)?.sessionRecordRefused === true;
 }
 
 /** Exact committed assignment returned by dispatch, never reconstructed after failure. */
@@ -312,11 +366,29 @@ export interface TaskAssignmentService {
   handoffTask(taskId: ElementId, options: HandoffTaskOptions): Promise<Task>;
 
   /**
-   * Updates the session ID for a task.
+   * Records a just-spawned session on its task (el-52oa7i).
    *
-   * @param taskId - The task to update
-   * @param sessionId - The new session ID
-   * @returns The updated task
+   * Contract (one guarded write, never retried against a newer snapshot):
+   * - Re-reads the task and refuses (ConflictError CONCURRENT_MODIFICATION with
+   *   `details.sessionRecordRefused`, no write) when status, assignee, branch,
+   *   recorded sessionId or (if supplied) mergeStatus differ from the spawn
+   *   decision. Unrelated metadata written meanwhile does not refuse.
+   * - Appends the history entry (append-only, existing 50-entry window), sets
+   *   the session, optional claim and extra metadata in ONE update with
+   *   `expectedUpdatedAt` of the validated snapshot. A concurrent write between
+   *   read and update rejects with CONCURRENT_MODIFICATION.
+   * - The caller owns the spawned session: on any rejection it must stop it.
+   */
+  recordSession(taskId: ElementId, options: RecordSessionOptions): Promise<Task>;
+
+  /**
+   * Replaces the recorded session ID (explicit administrative replacement).
+   *
+   * One write with `expectedUpdatedAt` from the read snapshot; a concurrent change
+   * rejects with CONCURRENT_MODIFICATION. No status/assignee validation and no
+   * history entry: spawn paths must use {@link recordSession} instead.
+   *
+   * @deprecated Use {@link recordSession} for spawned sessions.
    */
   updateSessionId(taskId: ElementId, sessionId: string): Promise<Task>;
 
@@ -479,6 +551,10 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
       );
     }
 
+    // Start shares the startTask status rule (el-52oa7i): validated against the
+    // same snapshot the single CAS write below uses.
+    if (options?.markAsStarted) assertTaskStartable(task);
+
     // Get and validate the agent
     const agent = await this.api.get<AgentEntity>(asElementId(agentId));
     if (!agent || agent.type !== ElementType.ENTITY || !isAgentEntity(agent)) {
@@ -595,7 +671,7 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
       );
     };
 
-    if (task.status !== TaskStatus.OPEN && task.status !== TaskStatus.IN_PROGRESS) {
+    if (!isStartableTaskStatus(task.status)) {
       reject(`task is in '${task.status}' status; only open or in_progress work can be started.`, 'invalid-state');
     }
     if (!legacy && (typeof agentId !== 'string' || !agentId.trim())) {
@@ -755,6 +831,52 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     return handedOff;
   }
 
+  async recordSession(taskId: ElementId, options: RecordSessionOptions): Promise<Task> {
+    const task = await this.api.get<Task>(taskId);
+    if (!task || task.type !== ElementType.TASK) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+    const { decision, entry, sessionId, assignTo, metadata } = options;
+    if (!entry?.sessionId?.trim() || (sessionId !== undefined && !sessionId.trim())) {
+      throw new ConflictError(
+        `Cannot record session on task ${taskId}: session IDs must be non-empty.`,
+        ConflictErrorCode.CONCURRENT_MODIFICATION,
+        { taskId }
+      );
+    }
+
+    const currentMeta = getOrchestratorTaskMeta(task.metadata);
+    const changed: string[] = [];
+    if (task.status !== decision.status) changed.push('status');
+    if ((task.assignee ?? undefined) !== (decision.assignee ?? undefined)) changed.push('assignee');
+    if (currentMeta?.branch !== decision.branch) changed.push('branch');
+    if (currentMeta?.sessionId !== decision.sessionId) changed.push('sessionId');
+    if (decision.mergeStatus !== undefined && currentMeta?.mergeStatus !== decision.mergeStatus) changed.push('mergeStatus');
+    if (changed.length > 0) {
+      const details: SessionRecordRefusal = { taskId, sessionRecordRefused: true, changed, sessionId: entry.sessionId };
+      throw new ConflictError(
+        `Cannot record session ${entry.sessionId} on task ${taskId}: ${changed.join(', ')} changed since the spawn decision.`,
+        ConflictErrorCode.CONCURRENT_MODIFICATION,
+        details as unknown as Record<string, unknown>
+      );
+    }
+
+    // Append first (append-only history), then the session/claim/extra fields.
+    let newMeta = appendTaskSessionHistory(task.metadata, entry);
+    const updates: Partial<OrchestratorTaskMeta> = {
+      ...(metadata ?? {}),
+      ...(assignTo !== undefined ? { assignedAgent: assignTo } : {}),
+      ...(sessionId !== undefined ? { sessionId } : {}),
+    };
+    if (Object.keys(updates).length > 0) newMeta = updateOrchestratorTaskMeta(newMeta, updates);
+
+    // One write against the validated snapshot; conflicts propagate, no retry.
+    return this.api.update<Task>(taskId, {
+      ...(assignTo !== undefined ? { assignee: assignTo } : {}),
+      metadata: newMeta,
+    }, { expectedUpdatedAt: task.updatedAt });
+  }
+
   async updateSessionId(taskId: ElementId, sessionId: string): Promise<Task> {
     const task = await this.api.get<Task>(taskId);
     if (!task || task.type !== ElementType.TASK) {
@@ -766,7 +888,7 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
       { sessionId }
     );
 
-    return this.api.update<Task>(taskId, { metadata: newMeta });
+    return this.api.update<Task>(taskId, { metadata: newMeta }, { expectedUpdatedAt: task.updatedAt });
   }
 
   // ----------------------------------------

@@ -470,9 +470,10 @@ describe('TaskAssignmentService', () => {
     });
 
     test('hands off active assigned work and clears mergeStatus', async () => {
-      // markAsStarted below changes REVIEW to IN_PROGRESS. Actual REVIEW work
-      // must use the explicit review/reject lifecycle, not worker handoff.
-      const task = await createTestTask('Task in review', TaskStatus.REVIEW);
+      // Actual REVIEW work must use the explicit review/reject lifecycle, not
+      // worker handoff; markAsStarted no longer starts a REVIEW task (el-52oa7i),
+      // so the active task carries the review-like mergeStatus instead.
+      const task = await createTestTask('Task in review', TaskStatus.OPEN);
       const steward = await createTestWorker('merge-steward');
       const stewardId = steward.id as unknown as EntityId;
 
