@@ -129,6 +129,46 @@ async function measureTime<T>(fn: () => Promise<T>): Promise<{ result: T; durati
 }
 
 /**
+ * Fixed number of independent timed runs behind each absolute threshold.
+ * Never adapt this count, or add runs, in response to an assertion outcome.
+ */
+const THRESHOLD_SAMPLES = 16;
+
+/**
+ * Threshold estimator: fastest of THRESHOLD_SAMPLES independent timed runs.
+ *
+ * `measure` performs any per-run setup untimed and returns the duration of the
+ * operation under test (normally via measureTime). Host contention
+ * (preemption, other processes' gates, slower-core scheduling) only adds time
+ * to an individual run, so the minimum estimates the uncontended cost of the
+ * same deterministic work. A real regression adds work to every run,
+ * including the fastest, so thresholds stay unchanged (el-53k1uj).
+ */
+async function minimumDuration(
+  measure: (sample: number) => Promise<number>,
+  samples = THRESHOLD_SAMPLES
+): Promise<number> {
+  const durations: number[] = [];
+  for (let sample = 0; sample < samples; sample++) {
+    durations.push(await measure(sample));
+  }
+  expect(durations.length).toBe(samples);
+  return Math.min(...durations);
+}
+
+/** Minimum duration of THRESHOLD_SAMPLES repeated runs of the same read. */
+async function minimumReadDuration<T>(
+  read: () => Promise<T>,
+  check: (result: T) => void = () => {}
+): Promise<number> {
+  return minimumDuration(async () => {
+    const { result, duration } = await measureTime(read);
+    check(result);
+    return duration;
+  });
+}
+
+/**
  * Create multiple tasks in batch with unique IDs
  */
 async function createTaskBatch(
@@ -306,9 +346,14 @@ describe('Query API Performance', () => {
   // ==========================================================================
 
   describe('Single Operation Performance', () => {
+    // Each run times exactly one operation; see minimumDuration.
     it('should create a single task within threshold', async () => {
-      const task = await createTestTask();
-      const { duration } = await measureTime(() => api.create(toCreateInput(task)));
+      const duration = await minimumDuration(async () => {
+        const task = await createTestTask();
+        const { result, duration } = await measureTime(() => api.create(toCreateInput(task)));
+        expect(result.id).toBe(task.id);
+        return duration;
+      });
 
       expect(duration).toBeLessThan(THRESHOLDS.singleCreate);
     });
@@ -317,29 +362,53 @@ describe('Query API Performance', () => {
       const task = await createTestTask();
       const created = await api.create(toCreateInput(task));
 
-      const { duration } = await measureTime(() => api.get(created.id));
+      const duration = await minimumReadDuration(() => api.get(created.id),
+        (result) => expect(result?.id).toBe(created.id));
 
       expect(duration).toBeLessThan(THRESHOLDS.singleGet);
     });
 
     it('should update a single element within threshold', async () => {
-      const task = await createTestTask();
-      const created = await api.create(toCreateInput(task));
-
-      const { duration } = await measureTime(() =>
-        api.update<Task>(created.id, { title: 'Updated Title' })
-      );
+      const duration = await minimumDuration(async (sample) => {
+        const created = await api.create(toCreateInput(await createTestTask()));
+        const title = `Updated Title ${sample}`;
+        const { result, duration } = await measureTime(() =>
+          api.update<Task>(created.id, { title })
+        );
+        expect(result.title).toBe(title);
+        return duration;
+      });
 
       expect(duration).toBeLessThan(THRESHOLDS.singleUpdate);
     });
 
     it('should delete a single element within threshold', async () => {
-      const task = await createTestTask();
-      const created = await api.create(toCreateInput(task));
-
-      const { duration } = await measureTime(() => api.delete(created.id));
+      const duration = await minimumDuration(async () => {
+        const created = await api.create(toCreateInput(await createTestTask()));
+        const { duration } = await measureTime(() => api.delete(created.id));
+        expect((await api.get<Task>(created.id))?.status).toBe(TaskStatus.TOMBSTONE);
+        return duration;
+      });
 
       expect(duration).toBeLessThan(THRESHOLDS.singleDelete);
+    });
+
+    it('should ignore a contended run but reject work added to every run', async () => {
+      // Deterministic durations, no timer: one run inflated by host contention
+      // (el-53k1uj measured 113.21 ms against the 50 ms create threshold).
+      const runs = (extra: number) => (sample: number) =>
+        Promise.resolve((sample === 0 ? 113.21 : 4 + (sample % 3)) + extra);
+      let calls = 0;
+      const contended = await minimumDuration((sample) => {
+        calls++;
+        return runs(0)(sample);
+      });
+      expect(calls).toBe(THRESHOLD_SAMPLES);
+      expect(contended).toBeLessThan(THRESHOLDS.singleCreate);
+
+      // A regression adding 60 ms of work to every run raises the minimum too.
+      const regressed = await minimumDuration(runs(60));
+      expect(() => expect(regressed).toBeLessThan(THRESHOLDS.singleCreate)).toThrow();
     });
   });
 
@@ -391,16 +460,16 @@ describe('Query API Performance', () => {
     });
 
     it('should list all elements within threshold', async () => {
-      const { result, duration } = await measureTime(() =>
-        api.list<Task>({ type: 'task', limit: DATASET_SIZES.medium })
+      const duration = await minimumReadDuration(
+        () => api.list<Task>({ type: 'task', limit: DATASET_SIZES.medium }),
+        (result) => expect(result.length).toBe(DATASET_SIZES.medium)
       );
 
-      expect(result.length).toBe(DATASET_SIZES.medium);
       expect(duration).toBeLessThan(THRESHOLDS.listAll);
     });
 
     it('should list with status filter within threshold', async () => {
-      const { duration } = await measureTime(() =>
+      const duration = await minimumReadDuration(() =>
         api.list<Task>({ type: 'task', status: TaskStatus.OPEN } as TaskFilter)
       );
 
@@ -408,7 +477,7 @@ describe('Query API Performance', () => {
     });
 
     it('should list with priority filter within threshold', async () => {
-      const { duration } = await measureTime(() =>
+      const duration = await minimumReadDuration(() =>
         api.list<Task>({ type: 'task', priority: Priority.MEDIUM } as TaskFilter)
       );
 
@@ -416,7 +485,7 @@ describe('Query API Performance', () => {
     });
 
     it('should list with tag filter within threshold', async () => {
-      const { duration } = await measureTime(() =>
+      const duration = await minimumReadDuration(() =>
         api.list<Task>({ type: 'task', tags: ['batch-5'] })
       );
 
@@ -424,11 +493,11 @@ describe('Query API Performance', () => {
     });
 
     it('should list with pagination within threshold', async () => {
-      const { result, duration } = await measureTime(() =>
-        api.listPaginated<Task>({ type: 'task', limit: 20, offset: 0 })
+      const duration = await minimumReadDuration(
+        () => api.listPaginated<Task>({ type: 'task', limit: 20, offset: 0 }),
+        (result) => expect(result.items.length).toBe(20)
       );
 
-      expect(result.items.length).toBe(20);
       expect(duration).toBeLessThan(THRESHOLDS.listPaginated);
     });
 
@@ -453,7 +522,7 @@ describe('Query API Performance', () => {
     });
 
     it('should sort by created_at within threshold', async () => {
-      const { duration } = await measureTime(() =>
+      const duration = await minimumReadDuration(() =>
         api.list<Task>({ type: 'task', orderBy: 'created_at', orderDir: 'desc' })
       );
 
@@ -470,16 +539,16 @@ describe('Query API Performance', () => {
       // Use pageSize to stay within default API limits
       await createTaskBatch(api, DATASET_SIZES.pageSize);
 
-      const { result, duration } = await measureTime(() => api.ready());
+      const duration = await minimumReadDuration(() => api.ready(),
+        (result) => expect(result.length).toBe(DATASET_SIZES.pageSize));
 
-      expect(result.length).toBe(DATASET_SIZES.pageSize);
       expect(duration).toBeLessThan(THRESHOLDS.ready);
     });
 
     it('should query ready tasks with filters within threshold', async () => {
       await createTaskBatch(api, DATASET_SIZES.pageSize);
 
-      const { duration } = await measureTime(() =>
+      const duration = await minimumReadDuration(() =>
         api.ready({ priority: Priority.MEDIUM })
       );
 
@@ -503,9 +572,9 @@ describe('Query API Performance', () => {
         }
       }
 
-      const { result, duration } = await measureTime(() => api.blocked());
+      const duration = await minimumReadDuration(() => api.blocked(),
+        (result) => expect(result.length).toBe(DATASET_SIZES.pageSize / 2));
 
-      expect(result.length).toBe(DATASET_SIZES.pageSize / 2);
       expect(duration).toBeLessThan(THRESHOLDS.blocked);
     });
 
@@ -523,7 +592,7 @@ describe('Query API Performance', () => {
         }
       }
 
-      const { duration } = await measureTime(() => api.ready());
+      const duration = await minimumReadDuration(() => api.ready());
 
       // Should still complete within threshold even with chain
       expect(duration).toBeLessThan(THRESHOLDS.ready);
@@ -538,12 +607,12 @@ describe('Query API Performance', () => {
         await api.create(toCreateInput(task));
       }
 
-      const { result, duration } = await measureTime(() =>
-        api.ready({ assignee: 'user:agent-0' as EntityId })
+      const duration = await minimumReadDuration(
+        () => api.ready({ assignee: 'user:agent-0' as EntityId }),
+        // 10% of tasks should be assigned to agent-0
+        (result) => expect(result.length).toBe(DATASET_SIZES.pageSize / 10)
       );
 
-      // 10% of tasks should be assigned to agent-0
-      expect(result.length).toBe(DATASET_SIZES.pageSize / 10);
       expect(duration).toBeLessThan(THRESHOLDS.ready);
     });
   });
@@ -554,18 +623,23 @@ describe('Query API Performance', () => {
 
   describe('Dependency Operation Performance', () => {
     it('should add dependency within threshold', async () => {
-      const task1 = await createTestTask();
-      const task2 = await createTestTask();
-      await api.create(toCreateInput(task1));
-      await api.create(toCreateInput(task2));
+      const duration = await minimumDuration(async () => {
+        // Fresh, unrelated pair per run so every run does the same work.
+        const task1 = await createTestTask();
+        const task2 = await createTestTask();
+        await api.create(toCreateInput(task1));
+        await api.create(toCreateInput(task2));
 
-      const { duration } = await measureTime(() =>
-        api.addDependency({
-          blockerId: task2.id,
-          blockedId: task1.id,
-          type: DependencyType.BLOCKS,
-        })
-      );
+        const { result, duration } = await measureTime(() =>
+          api.addDependency({
+            blockerId: task2.id,
+            blockedId: task1.id,
+            type: DependencyType.BLOCKS,
+          })
+        );
+        expect(result.blockedId).toBe(task1.id);
+        return duration;
+      });
 
       expect(duration).toBeLessThan(THRESHOLDS.addDependency);
     });
@@ -608,11 +682,11 @@ describe('Query API Performance', () => {
         });
       }
 
-      const { result, duration } = await measureTime(() =>
-        api.getDependencyTree(tasks[0].id)
+      const duration = await minimumReadDuration(
+        () => api.getDependencyTree(tasks[0].id),
+        (result) => expect(result.root.element.id).toBe(tasks[0].id)
       );
 
-      expect(result.root.element.id).toBe(tasks[0].id);
       expect(duration).toBeLessThan(THRESHOLDS.getDependencyTree);
     });
 
@@ -628,16 +702,12 @@ describe('Query API Performance', () => {
         });
       }
 
-      const { result: deps, duration: depsTime } = await measureTime(() =>
-        api.getDependencies(tasks[1].id)
-      );
+      const depsTime = await minimumReadDuration(() => api.getDependencies(tasks[1].id),
+        (deps) => expect(deps.length).toBe(1));
 
-      const { result: dependents, duration: dependentsTime } = await measureTime(() =>
-        api.getDependents(tasks[0].id)
-      );
+      const dependentsTime = await minimumReadDuration(() => api.getDependents(tasks[0].id),
+        (dependents) => expect(dependents.length).toBe(19));
 
-      expect(deps.length).toBe(1);
-      expect(dependents.length).toBe(19);
       expect(depsTime).toBeLessThan(50);
       expect(dependentsTime).toBeLessThan(100);
     });
@@ -673,17 +743,17 @@ describe('Query API Performance', () => {
     });
 
     it('should search by content keyword within threshold', async () => {
-      const { result, duration } = await measureTime(() =>
-        api.search(uniqueSearchKeyword)
+      const duration = await minimumReadDuration(
+        () => api.search(uniqueSearchKeyword),
+        // Half the documents have the unique keyword in content
+        (result) => expect(result.length).toBe(DATASET_SIZES.medium / 2)
       );
 
-      // Half the documents have the unique keyword in content
-      expect(result.length).toBe(DATASET_SIZES.medium / 2);
       expect(duration).toBeLessThan(THRESHOLDS.search);
     });
 
     it('should search by content within threshold', async () => {
-      const { duration } = await measureTime(() =>
+      const duration = await minimumReadDuration(() =>
         api.search('performance testing')
       );
 
@@ -694,7 +764,7 @@ describe('Query API Performance', () => {
       // Add some tasks too
       await createTaskBatch(api, 20);
 
-      const { duration } = await measureTime(() =>
+      const duration = await minimumReadDuration(() =>
         api.search('Document', { type: 'document' })
       );
 
@@ -799,8 +869,9 @@ describe('Query API Performance', () => {
           });
         }
 
-        const { duration } = await measureTime(() => api.ready());
-        timesWithDeps.push(duration);
+        // Fastest of a fixed number of runs per step (see minimumDuration): a
+        // single contended sample at either endpoint would distort the ratio.
+        timesWithDeps.push(await minimumReadDuration(() => api.ready()));
       }
 
       // Ready query time should not explode as dependencies increase
@@ -838,16 +909,21 @@ describe('Query API Performance', () => {
       // Simulate multiple operations that might happen in rapid succession
       const tasks = await createTaskBatch(api, 50);
 
-      const { duration } = await measureTime(async () => {
-        // Mix of operations
-        await api.list<Task>({ type: 'task' });
-        await api.ready();
-        await api.get(tasks[0].id);
-        await api.update<Task>(tasks[0].id, { status: TaskStatus.IN_PROGRESS });
-        await api.ready();
-        await api.blocked();
-        await api.search('Test');
-        await api.getDependencies(tasks[0].id);
+      const duration = await minimumDuration(async (sample) => {
+        // Mix of operations; each run updates a different task so the update
+        // performs a real status transition every time.
+        const task = tasks[sample];
+        const { duration } = await measureTime(async () => {
+          await api.list<Task>({ type: 'task' });
+          await api.ready();
+          await api.get(task.id);
+          await api.update<Task>(task.id, { status: TaskStatus.IN_PROGRESS });
+          await api.ready();
+          await api.blocked();
+          await api.search('Test');
+          await api.getDependencies(task.id);
+        });
+        return duration;
       });
 
       // All operations should complete quickly
@@ -868,10 +944,11 @@ describe('Query API Performance', () => {
         await api.create(toCreateInput(doc));
       }
 
-      const { result, duration } = await measureTime(() => api.stats());
+      const duration = await minimumReadDuration(() => api.stats(), (result) => {
+        expect(result.elementsByType.task).toBe(DATASET_SIZES.medium);
+        expect(result.elementsByType.document).toBe(20);
+      });
 
-      expect(result.elementsByType.task).toBe(DATASET_SIZES.medium);
-      expect(result.elementsByType.document).toBe(20);
       expect(duration).toBeLessThan(200);
     });
   });
