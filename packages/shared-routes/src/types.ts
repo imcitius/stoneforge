@@ -20,6 +20,7 @@ import type {
   InboxFilter,
   InboxItem,
   CreateInboxItemInput,
+  IdGeneratorConfig,
 } from '@stoneforge/core';
 
 // ============================================================================
@@ -53,6 +54,8 @@ export interface QuarryLikeAPI {
   getTasksInPlan(planId: ElementId, filter?: Record<string, unknown>): Promise<Task[]>;
   addTaskToPlan(taskId: ElementId, planId: ElementId, options?: { actor?: EntityId }): Promise<Dependency>;
   removeTaskFromPlan(taskId: ElementId, planId: ElementId, actor?: EntityId): Promise<void>;
+  /** ID generator config (adaptive length + collision check) for core element factories. */
+  getIdGeneratorConfig(): IdGeneratorConfig;
 }
 
 /**

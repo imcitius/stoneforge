@@ -998,7 +998,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
         originalTaskId,
         fixType: options.type,
       },
-    });
+    }, this.api.getIdGeneratorConfig());
 
     // Save the task to the database
     const fixTask = await this.api.create<Task>(

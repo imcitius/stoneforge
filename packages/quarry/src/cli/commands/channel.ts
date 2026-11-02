@@ -133,7 +133,7 @@ async function channelCreateHandler(
         ...(tags && { tags }),
       };
 
-      channel = await createDirectChannel(input);
+      channel = await createDirectChannel(input, api.getIdGeneratorConfig());
     } else {
       if (!options.name) {
         return failure('--name is required for group channels', ExitCode.INVALID_ARGUMENTS);
@@ -173,7 +173,7 @@ async function channelCreateHandler(
         ...(tags && { tags }),
       };
 
-      channel = await createGroupChannel(input);
+      channel = await createGroupChannel(input, api.getIdGeneratorConfig());
     }
 
     const created = await api.create(channel as unknown as Element & Record<string, unknown>);

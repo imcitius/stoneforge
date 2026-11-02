@@ -294,7 +294,7 @@ export class HandoffServiceImpl implements HandoffService {
           providerSessionId: session.providerSessionId,
           ...options.metadata,
         },
-      });
+      }, this.api.getIdGeneratorConfig());
 
       // Save the handoff document
       const savedDocument = await this.api.create(
@@ -313,7 +313,7 @@ export class HandoffServiceImpl implements HandoffService {
           fromAgentId: agentId,
           handoffDocumentId,
         },
-      });
+      }, this.api.getIdGeneratorConfig());
 
       const savedMessage = await this.api.create(
         handoffMessage as unknown as Record<string, unknown> & { createdBy: EntityId }
@@ -429,7 +429,7 @@ export class HandoffServiceImpl implements HandoffService {
           taskIds: options.taskIds,
           ...options.metadata,
         },
-      });
+      }, this.api.getIdGeneratorConfig());
 
       // Save the handoff document
       const savedDocument = await this.api.create(
@@ -450,7 +450,7 @@ export class HandoffServiceImpl implements HandoffService {
           handoffDocumentId,
           taskIds: options.taskIds,
         },
-      });
+      }, this.api.getIdGeneratorConfig());
 
       const savedMessage = await this.api.create(
         handoffMessage as unknown as Record<string, unknown> & { createdBy: EntityId }

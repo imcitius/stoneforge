@@ -493,7 +493,7 @@ export function createLibraryRoutes(services: CollaborateServices) {
       };
 
       // Create the library using the factory function
-      const library = await createLibrary(libraryInput);
+      const library = await createLibrary(libraryInput, api.getIdGeneratorConfig());
 
       // Persist to database
       const created = await api.create(library as unknown as Element & Record<string, unknown>);

@@ -393,7 +393,7 @@ export class DispatchServiceImpl implements DispatchService {
       createdBy: sender,
       tags: ['dispatch-notification', metadata.type],
       metadata: { dispatchNotification: true },
-    });
+    }, this.api.getIdGeneratorConfig());
 
     // Save the document
     const savedDoc = await this.api.create(
@@ -409,7 +409,7 @@ export class DispatchServiceImpl implements DispatchService {
       contentRef: savedDoc.id as unknown as DocumentId,
       tags: ['dispatch-notification', metadata.type],
       metadata: { ...metadata as Record<string, unknown>, suppressInbox: true },
-    });
+    }, this.api.getIdGeneratorConfig());
 
     // Save the message
     const savedMessage = await this.api.create(

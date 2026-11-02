@@ -170,7 +170,7 @@ export class RoleDefinitionServiceImpl implements RoleDefinitionService {
         purpose: 'agent-system-prompt',
         role: input.role,
       },
-    });
+    }, this.api.getIdGeneratorConfig());
 
     // Save the system prompt document
     const savedPromptDoc = await this.api.create<Document>(
@@ -229,7 +229,7 @@ export class RoleDefinitionServiceImpl implements RoleDefinitionService {
         [ROLE_DEF_META_KEY]: definition,
         systemPromptDocId: savedPromptDoc.id,
       },
-    });
+    }, this.api.getIdGeneratorConfig());
 
     // Save the role definition document
     const savedRoleDefDoc = await this.api.create<Document>(

@@ -194,7 +194,7 @@ async function msgSendHandler(
           createdBy: actor,
           ...(actorName && { entityAName: actorName }),
           ...(targetName && { entityBName: targetName }),
-        });
+        }, api.getIdGeneratorConfig());
         dmChannel = await api.create<Channel>(newDmChannel as unknown as Channel & Record<string, unknown>);
       }
 

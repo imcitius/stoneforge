@@ -173,6 +173,8 @@ function createMockApi(): QuarryAPI {
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    // createFixTask passes this to createTask (el-4htfn).
+    getIdGeneratorConfig: vi.fn(() => ({ checkCollision: async () => false })),
   } as unknown as QuarryAPI;
 }
 

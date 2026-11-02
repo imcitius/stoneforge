@@ -338,7 +338,7 @@ export function createDocumentRoutes(services: CollaborateServices) {
       }
 
       // Create the document using the factory function
-      const document = await createDocument(docInput);
+      const document = await createDocument(docInput, api.getIdGeneratorConfig());
 
       // Create in database
       const created = await api.create(document as unknown as Element & Record<string, unknown>);
@@ -666,7 +666,7 @@ export function createDocumentRoutes(services: CollaborateServices) {
         }
       }
 
-      const newDoc = await createDocument(docInput);
+      const newDoc = await createDocument(docInput, api.getIdGeneratorConfig());
 
       // Create in database
       const created = await api.create(newDoc as unknown as Element & Record<string, unknown>);

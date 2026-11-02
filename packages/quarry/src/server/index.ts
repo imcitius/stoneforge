@@ -2857,7 +2857,8 @@ app.get('/api/playbooks/:name', async (c) => {
     // Load the full playbook
     const playbookInput = loadPlaybookFromFile(found.path, 'system' as EntityId);
 
-    // Create a Playbook object to return (without actually storing it)
+    // Create a Playbook object to return (without actually storing it).
+    // No IdGeneratorConfig: this transient view is never inserted into elements.
     const playbook = createPlaybook(playbookInput);
 
     return c.json({

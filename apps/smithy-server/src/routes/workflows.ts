@@ -287,7 +287,7 @@ export function createWorkflowRoutes(services: Services) {
         variables: variables ?? {},
         tags: tags ?? [],
         createdBy,
-      });
+      }, api.getIdGeneratorConfig());
 
       // Save the workflow using create
       const savedWorkflow = await api.create<Workflow>({
@@ -530,7 +530,7 @@ export function createWorkflowRoutes(services: Services) {
         extends: extendsArr,
         tags: tags ?? [],
         createdBy,
-      });
+      }, api.getIdGeneratorConfig());
 
       // Save the playbook using create
       const savedPlaybook = await api.create<Playbook>({

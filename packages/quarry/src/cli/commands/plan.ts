@@ -96,7 +96,7 @@ async function planCreateHandler(
       ...(tags && { tags }),
     };
 
-    const plan = await createPlan(input);
+    const plan = await createPlan(input, api.getIdGeneratorConfig());
     const created = await api.create(plan as unknown as Element & Record<string, unknown>);
 
     return success(created, `Created plan ${created.id}`);

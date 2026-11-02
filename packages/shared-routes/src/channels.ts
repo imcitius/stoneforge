@@ -157,7 +157,7 @@ export function createChannelRoutes(services: CollaborateServices) {
           metadata: body.metadata,
         };
 
-        channel = await createGroupChannel(groupInput);
+        channel = await createGroupChannel(groupInput, api.getIdGeneratorConfig());
       } else {
         // Direct channel
         if (!body.entityA || typeof body.entityA !== 'string') {
@@ -184,7 +184,7 @@ export function createChannelRoutes(services: CollaborateServices) {
           metadata: body.metadata,
         };
 
-        channel = await createDirectChannel(directInput);
+        channel = await createDirectChannel(directInput, api.getIdGeneratorConfig());
       }
 
       // Create the channel in database

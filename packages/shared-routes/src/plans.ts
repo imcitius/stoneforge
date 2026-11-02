@@ -406,7 +406,7 @@ export function createPlanRoutes(services: CollaborateServices) {
         descriptionRef: body.descriptionRef,
       };
 
-      const plan = await createPlan(planInput);
+      const plan = await createPlan(planInput, api.getIdGeneratorConfig());
       const created = await api.create(plan as unknown as Element & Record<string, unknown>);
 
       // Now add or create the initial task
@@ -425,7 +425,7 @@ export function createPlanRoutes(services: CollaborateServices) {
           tags: body.initialTask.tags || [],
           createdBy: body.createdBy as EntityId,
         };
-        const task = await createTask(taskInput);
+        const task = await createTask(taskInput, api.getIdGeneratorConfig());
         createdTask = await api.create(task as unknown as Element & Record<string, unknown>);
         taskId = createdTask.id as ElementId;
       }

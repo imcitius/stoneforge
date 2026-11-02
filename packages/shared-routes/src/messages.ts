@@ -59,7 +59,7 @@ export function createMessageRoutes(services: CollaborateServicesWithBroadcast) 
         createdBy: body.sender as EntityId,
         category: DocumentCategory.MESSAGE_CONTENT,
         immutable: true,
-      });
+      }, api.getIdGeneratorConfig());
       const createdDoc = await api.create(contentDoc as unknown as Element & Record<string, unknown>);
 
       // Create the message with the content document reference
@@ -70,7 +70,7 @@ export function createMessageRoutes(services: CollaborateServicesWithBroadcast) 
         ...(body.threadId && { threadId: body.threadId }),
         ...(body.tags && { tags: body.tags }),
       };
-      const message = await createMessage(messageInput as unknown as CreateMessageInput);
+      const message = await createMessage(messageInput as unknown as CreateMessageInput, api.getIdGeneratorConfig());
       const createdMessage = await api.create(message as unknown as Element & Record<string, unknown>);
 
       // Handle attachments if provided

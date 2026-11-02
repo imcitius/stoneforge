@@ -294,7 +294,7 @@ export const DEFAULT_AGENTS = [
  * When provider/model are specified (e.g. demo mode), they are set on each agent.
  * Returns the number of agents created (skips existing ones for idempotency).
  */
-async function createDefaultAgents(
+export async function createDefaultAgents(
   api: QuarryAPI,
   agentOptions?: { provider?: string; model?: string }
 ): Promise<{ created: number; skipped: number }> {
@@ -324,7 +324,7 @@ async function createDefaultAgents(
       entityType: EntityTypeValue.AGENT,
       createdBy: OPERATOR_ENTITY_ID,
       metadata: { [AGENT_META_KEY]: agentMeta },
-    });
+    }, api.getIdGeneratorConfig());
 
     const savedEntity = await api.create(entity as unknown as Record<string, unknown> & { createdBy: EntityId });
     const agentEntityId = asEntityId(savedEntity.id);
@@ -342,7 +342,7 @@ async function createDefaultAgents(
         agentName: agentDef.name,
         purpose: 'Agent direct messaging channel',
       },
-    });
+    }, api.getIdGeneratorConfig());
 
     await api.create<Channel>(
       channel as unknown as Record<string, unknown> & { createdBy: EntityId }

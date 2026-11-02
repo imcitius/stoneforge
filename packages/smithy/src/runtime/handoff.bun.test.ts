@@ -325,6 +325,11 @@ function createMockApi(
       return savedDocuments.get(id) ?? savedMessages.get(id);
     },
 
+    // HandoffService passes this to core factories (el-4htfn).
+    getIdGeneratorConfig() {
+      return { checkCollision: async (id: string) => savedDocuments.has(id) || savedMessages.has(id) };
+    },
+
     async update(id: string, updates: any): Promise<any> {
       return { id, ...updates };
     },

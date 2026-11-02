@@ -267,7 +267,7 @@ export class AgentPoolServiceImpl implements AgentPoolService {
       metadata: {
         [POOL_METADATA_KEY]: config,
       },
-    });
+    }, this.api.getIdGeneratorConfig());
 
     const saved = await this.api.create<Entity>(entity as unknown as Record<string, unknown> & { createdBy: EntityId });
     const poolId = saved.id as ElementId;

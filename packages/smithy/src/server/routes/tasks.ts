@@ -232,7 +232,7 @@ export function createTaskRoutes(services: Services) {
         tags: body.tags,
         metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
         createdBy,
-      });
+      }, api.getIdGeneratorConfig());
 
       const savedTask = await api.create(taskData as unknown as Record<string, unknown> & { createdBy: EntityId });
       const task = savedTask as unknown as Task;
@@ -798,7 +798,7 @@ export function createTaskRoutes(services: Services) {
             content: reopenLine,
             contentType: ContentType.MARKDOWN,
             createdBy: 'orchestrator' as EntityId,
-          });
+          }, api.getIdGeneratorConfig());
           const created = await api.create(newDoc as unknown as Document & Record<string, unknown>);
           await api.update<Task>(taskId, { descriptionRef: created.id as unknown as DocumentId });
         }
