@@ -232,6 +232,45 @@ holds only the conclusions.
 - Stewards reject changes that add raw evidence files or machine-local paths and
   ask for a summary instead.
 
+## Timing-sensitive tests and gate flakes
+
+The gate often runs while the host is heavily loaded (load averages of 15–40 are
+common on the shared workstation), so a wall-clock assertion with a bound of a few
+milliseconds or less is a gate flake, not a performance guarantee. Do not fix such
+a flake by raising the bound. Prefer, in this order:
+
+1. **Deterministic structural checks** that prove the intended property directly:
+   spy on the `StorageBackend` (`query`/`queryOne`/`run`) and count read calls,
+   writes and rows returned to JS; assert traversal counters such as
+   `nodesVisited`; assert with `EXPLAIN QUERY PLAN` that a point operation is an
+   index `SEARCH` keyed on the lookup column (a `SEARCH` on a low-selectivity
+   index such as dependency `type` still reads most of the table); or compare
+   counted operations at two input sizes to show linear/constant growth.
+2. **Robust timing only when unavoidable**: use a minimum or median of repeated
+   samples after warm-up, justify the bound in a comment against a measured
+   baseline, and show a mutant that must fail it (el-55qcdj `minimumPerQuery`
+   in `query-performance.bun.test.ts`).
+
+Every converted test needs a mutation control: break the optimized path in the
+source (full scan, index-defeating SQL, missing early exit, extra per-item query),
+confirm the new check fails, then revert the mutant. Do not commit mutants.
+
+Applied in `packages/quarry/src/services/dependency.perf.bun.test.ts`:
+el-28lyno (non-blocking `detectCycle` skip: no `db.query` calls, `nodesVisited`
+0) and el-4ijp7l (every remaining timing bound: cycle detection, wide/diamond
+graphs, cache rebuild, cache point queries/updates, combined workflow and the
+non-blocking stress test now assert exact or linearly bounded storage-operation
+counts plus index-keyed query plans). el-4ijp7l mutation controls, 13 mutants
+applied and reverted, each failing its converted tests: cycle lookup loading all
+edges, cycle lookup SQL defeating the `blocked_id` index, no early exit on the
+target, depth limit off by one, non-blocking types traversing, `isBlocked`
+loading the whole cache or defeating its key index, `getAllBlocked` N+1,
+`getBlockedBy` filtering in JS, `addBlocked` pre-read, `removeBlocked` defeating
+its key index, and full scans in rebuild parent lookup or `computeBlockingState`.
+Worker validation: the file passed 3 consecutive runs (22/22) and one pinned
+Node 22.23.3 `pnpm check:merge` passed 203/203, exit 0 (454.49s runner) at load
+average about 31–41.
+
 ## Recorded validation — 2026-09-26, task el-5xd
 
 Tested code commit: `502a86ed65b733f51c254fb9dd3aa3d8546e0408`, based on local
