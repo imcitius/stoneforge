@@ -5,10 +5,11 @@
  */
 
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import type { EntityId, ElementId, Task, Document, DocumentId } from '@stoneforge/core';
 import { createTask, createDocument, TaskStatus, ElementType, Priority, Complexity, ContentType, updateTaskStatus, StoneforgeError } from '@stoneforge/core';
 import type { OrchestratorTaskMeta } from '../../index.js';
-import { updateOrchestratorTaskMeta } from '../../index.js';
+import { updateOrchestratorTaskMeta, getOrchestratorTaskMeta } from '../../index.js';
 import type { Services } from '../services.js';
 import { formatTaskResponse } from '../formatters.js';
 import type { QuarryAPI } from '@stoneforge/quarry';
@@ -57,6 +58,65 @@ export function createTaskRoutes(services: Services) {
       'SELECT element_id FROM blocked_cache'
     );
     return new Set(rows.map((r) => r.element_id));
+  }
+
+  /** Invalid assignee input (unknown entity, wrong type): reported as 400. */
+  class AssigneeInputError extends Error {}
+
+  /**
+   * Apply an assignee change through the orchestrator assignment contract
+   * (el-5s9l15). Writing `task.assignee` alone left
+   * `metadata.orchestrator.assignedAgent` unset or stale, so a later
+   * `startTask` rejected the incoherent assignment with 422.
+   *
+   * - `null`/empty: administrative unassign (`unassignTask` mode `admin`).
+   * - registered agent: `assignToAgent` (assignee and assignedAgent together,
+   *   per ASSIGNMENT_RESET_FIELDS). Re-selecting the coherent current agent is
+   *   a no-op; re-selecting it while incoherent repairs the assignment.
+   * - other entity (operator): assignee set and the orchestrator agent
+   *   ownership fields cleared in one write, like an admin unassign.
+   */
+  async function applyAssignee(task: Task, assignee: string | null): Promise<Task> {
+    const meta = getOrchestratorTaskMeta(task.metadata);
+    if (!assignee) {
+      if (!task.assignee && !meta?.assignedAgent) return task;
+      return taskAssignmentService.unassignTask(task.id, { mode: 'admin' });
+    }
+    const agent = await agentRegistry.getAgent(assignee as EntityId);
+    if (agent) {
+      if (task.assignee === assignee && meta?.assignedAgent === assignee) return task;
+      return taskAssignmentService.assignToAgent(task.id, assignee as EntityId);
+    }
+    const entity = await api.get(assignee as ElementId);
+    if (!entity || entity.type !== ElementType.ENTITY) {
+      throw new AssigneeInputError(`Assignee not found: ${assignee}`);
+    }
+    if (task.assignee === assignee && !meta?.assignedAgent) return task;
+    const metadata = meta ? updateOrchestratorTaskMeta(task.metadata, {
+      assignedAgent: undefined,
+      sessionId: undefined,
+      worktree: undefined,
+      startedAt: undefined,
+    }) : task.metadata;
+    return api.update<Task>(task.id, { assignee: assignee as EntityId, metadata }, { expectedUpdatedAt: task.updatedAt });
+  }
+
+  function isAssigneeValue(value: unknown): value is string | null {
+    return value === null || typeof value === 'string';
+  }
+
+  function assignmentErrorResponse(c: Context, error: unknown, action: string) {
+    if (error instanceof AssigneeInputError) {
+      return c.json({ error: { code: 'INVALID_INPUT', message: error.message } }, 400);
+    }
+    if (error instanceof StoneforgeError && error.httpStatus === 409) {
+      return c.json({ error: { code: error.code, message: error.message } }, 409);
+    }
+    if (error instanceof Error && error.message.startsWith('Task not found:')) {
+      return c.json({ error: { code: 'NOT_FOUND', message: error.message } }, 404);
+    }
+    logger.error(`Failed to ${action}:`, error);
+    return c.json({ error: { code: 'INTERNAL_ERROR', message: String(error) } }, 500);
   }
 
   app.put('/api/tasks/:id/repository', async c => {
@@ -294,19 +354,15 @@ export function createTaskRoutes(services: Services) {
         mergeStatus?: string;
       };
 
-      const task = await api.get<Task>(taskId);
+      let task = await api.get<Task>(taskId);
       if (!task || task.type !== ElementType.TASK) {
         return c.json({ error: { code: 'NOT_FOUND', message: 'Task not found' } }, 404);
       }
-
-      const updates: Record<string, unknown> = {};
-
-      if (body.title !== undefined) updates.title = body.title;
-      if (body.description !== undefined) {
-        // Description is stored in metadata
-        const existingMeta = (task.metadata ?? {}) as Record<string, unknown>;
-        updates.metadata = { ...existingMeta, description: body.description };
+      // Validate everything before the first write.
+      if (body.assignee !== undefined && !isAssigneeValue(body.assignee)) {
+        return c.json({ error: { code: 'INVALID_INPUT', message: 'assignee must be a string or null' } }, 400);
       }
+      let mappedStatus: TaskStatus | undefined;
       if (body.status !== undefined) {
         const statusMap: Record<string, TaskStatus> = {
           backlog: TaskStatus.BACKLOG,
@@ -317,26 +373,40 @@ export function createTaskRoutes(services: Services) {
           deferred: TaskStatus.DEFERRED,
           closed: TaskStatus.CLOSED,
         };
-        const mappedStatus = statusMap[body.status];
+        mappedStatus = statusMap[body.status];
         if (!mappedStatus) {
           return c.json({ error: { code: 'INVALID_INPUT', message: `Invalid status: ${body.status}` } }, 400);
         }
-        updates.status = mappedStatus;
       }
+      const validMergeStatuses = ['pending', 'testing', 'merging', 'merged', 'conflict', 'test_failed', 'failed', 'not_applicable'];
+      if (body.mergeStatus !== undefined && !validMergeStatuses.includes(body.mergeStatus)) {
+        return c.json({ error: { code: 'INVALID_INPUT', message: `Invalid mergeStatus: ${body.mergeStatus}` } }, 400);
+      }
+
+      // Assignment goes through the orchestrator assignment contract so the
+      // task stays startable (el-5s9l15). Remaining fields are applied to the
+      // assigned task so its metadata is not overwritten by the old snapshot.
+      if (body.assignee !== undefined) {
+        task = await applyAssignee(task, body.assignee);
+      }
+
+      const updates: Record<string, unknown> = {};
+
+      if (body.title !== undefined) updates.title = body.title;
+      if (body.description !== undefined) {
+        // Description is stored in metadata
+        const existingMeta = (task.metadata ?? {}) as Record<string, unknown>;
+        updates.metadata = { ...existingMeta, description: body.description };
+      }
+      if (mappedStatus !== undefined) updates.status = mappedStatus;
       if (body.priority !== undefined) updates.priority = body.priority;
       if (body.complexity !== undefined) updates.complexity = body.complexity;
-      if (body.assignee !== undefined) updates.assignee = body.assignee || null;
       if (body.owner !== undefined) updates.owner = body.owner || null;
       if (body.deadline !== undefined) updates.deadline = body.deadline || null;
       if (body.tags !== undefined) updates.tags = body.tags;
 
       // Handle mergeStatus update (nested in metadata.orchestrator)
       if (body.mergeStatus !== undefined) {
-        const validMergeStatuses = ['pending', 'testing', 'merging', 'merged', 'conflict', 'test_failed', 'failed', 'not_applicable'];
-        if (!validMergeStatuses.includes(body.mergeStatus)) {
-          return c.json({ error: { code: 'INVALID_INPUT', message: `Invalid mergeStatus: ${body.mergeStatus}` } }, 400);
-        }
-
         const existingMeta = (task.metadata ?? {}) as Record<string, unknown>;
         const existingOrchestrator = (existingMeta.orchestrator ?? {}) as Record<string, unknown>;
         updates.metadata = {
@@ -355,8 +425,26 @@ export function createTaskRoutes(services: Services) {
       const updatedTask = await api.update(taskId, updates) as unknown as Task;
       return c.json({ task: formatTaskResponse(updatedTask) });
     } catch (error) {
-      logger.error('Failed to update task:', error);
-      return c.json({ error: { code: 'INTERNAL_ERROR', message: String(error) } }, 500);
+      return assignmentErrorResponse(c, error, 'update task');
+    }
+  });
+
+  // POST /api/tasks/:id/assign - Assign to an agent/operator, or unassign (null)
+  app.post('/api/tasks/:id/assign', async (c) => {
+    try {
+      const taskId = c.req.param('id') as ElementId;
+      const body = (await c.req.json().catch(() => null)) as { assignee?: unknown } | null;
+      if (!body || body.assignee === undefined || !isAssigneeValue(body.assignee)) {
+        return c.json({ error: { code: 'INVALID_INPUT', message: 'assignee (string or null) is required' } }, 400);
+      }
+      const task = await api.get<Task>(taskId);
+      if (!task || task.type !== ElementType.TASK) {
+        return c.json({ error: { code: 'NOT_FOUND', message: 'Task not found' } }, 404);
+      }
+      const updatedTask = await applyAssignee(task, body.assignee);
+      return c.json({ task: formatTaskResponse(updatedTask) });
+    } catch (error) {
+      return assignmentErrorResponse(c, error, 'assign task');
     }
   });
 

@@ -42,6 +42,7 @@ import {
 import {
   useTask,
   useUpdateTask,
+  useAssignTask,
   useDeleteTask,
   useStartTask,
   useCompleteTask,
@@ -60,7 +61,7 @@ import { useAllEntities } from '../../api/hooks/useAllElements';
 import { TaskStatusBadge, TaskPriorityBadge, TaskTypeBadge, MergeStatusBadge } from './index';
 import { TaskDependencySection } from './TaskDependencySection';
 import { MarkdownContent } from '../shared/MarkdownContent';
-import type { Task, Agent, Priority, TaskStatus, Complexity, MergeStatus, TaskSessionHistoryEntry } from '../../api/types';
+import type { Task, Agent, Priority, TaskStatus, Complexity, MergeStatus, TaskSessionHistoryEntry, EntityId } from '../../api/types';
 import { TranscriptViewer, messageToStreamEvent } from '../shared/TranscriptViewer';
 import type { StreamEvent } from '../workspace/types';
 import { useImageDrop } from '../../hooks/useImageDrop';
@@ -103,6 +104,7 @@ export function TaskDetailPanel({ taskId, onClose, onNavigateToTask }: TaskDetai
   const { data: operatorsData } = useOperators();
   const { data: entities } = useAllEntities();
   const updateTask = useUpdateTask();
+  const assignTask = useAssignTask();
   const deleteTask = useDeleteTask();
   const startTask = useStartTask();
   const completeTask = useCompleteTask();
@@ -139,6 +141,15 @@ export function TaskDetailPanel({ taskId, onClose, onNavigateToTask }: TaskDetai
     try {
       await updateTask.mutateAsync({ taskId: task.id, ...updates });
       setEditingField(null);
+    } catch {
+      // Error handled by mutation state
+    }
+  };
+
+  const handleAssign = async (assignee: string | null) => {
+    if (!task) return;
+    try {
+      await assignTask.mutateAsync({ taskId: task.id, assignee: (assignee ?? null) as EntityId | null });
     } catch {
       // Error handled by mutation state
     }
@@ -382,8 +393,8 @@ export function TaskDetailPanel({ taskId, onClose, onNavigateToTask }: TaskDetai
               entityNameMap={entityNameMap}
               workers={workers}
               operators={operators}
-              onSave={(assignee) => handleUpdate({ assignee: assignee ?? null })}
-              isUpdating={updateTask.isPending && editingField === 'assignee'}
+              onSave={handleAssign}
+              isUpdating={assignTask.isPending}
             />
           </MetadataField>
 
@@ -472,6 +483,11 @@ export function TaskDetailPanel({ taskId, onClose, onNavigateToTask }: TaskDetai
         {updateTask.isError && (
           <div className="mt-4 p-3 bg-[var(--color-danger-muted)] border border-[var(--color-danger)] rounded-lg text-sm text-[var(--color-danger)]">
             Failed to update: {updateTask.error?.message}
+          </div>
+        )}
+        {assignTask.isError && (
+          <div className="mt-4 p-3 bg-[var(--color-danger-muted)] border border-[var(--color-danger)] rounded-lg text-sm text-[var(--color-danger)]" data-testid="task-assign-error">
+            Failed to assign: {assignTask.error?.message}
           </div>
         )}
       </div>

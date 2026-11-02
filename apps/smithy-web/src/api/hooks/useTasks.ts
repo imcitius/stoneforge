@@ -15,6 +15,7 @@ import type {
   TaskTypeValue,
   EntityId,
 } from '../types';
+import { taskAssignRequest } from './taskAssignRequest';
 
 // ============================================================================
 // API Functions
@@ -236,17 +237,19 @@ export function useUpdateTask() {
 }
 
 /**
- * Hook to assign a task to an agent
+ * Hook to assign a task to an agent or operator, or unassign it (null).
+ *
+ * Uses POST /api/tasks/:id/assign, which goes through the orchestrator
+ * assignment contract (assignee and metadata.orchestrator.assignedAgent are
+ * written together), so an agent-assigned task can then be started.
  */
 export function useAssignTask() {
   const queryClient = useQueryClient();
 
-  return useMutation<TaskResponse, Error, { taskId: string; agentId: EntityId | null }>({
-    mutationFn: async ({ taskId, agentId }) => {
-      return fetchApi<TaskResponse>(`/tasks/${taskId}/assign`, {
-        method: 'POST',
-        body: JSON.stringify({ agentId }),
-      });
+  return useMutation<TaskResponse, Error, { taskId: string; assignee: EntityId | null }>({
+    mutationFn: async ({ taskId, assignee }) => {
+      const { path, init } = taskAssignRequest(taskId, assignee);
+      return fetchApi<TaskResponse>(path, init);
     },
     onSuccess: (_, { taskId }) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
