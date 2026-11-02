@@ -167,6 +167,24 @@ test.describe('TB82: Task Search', () => {
     await expect(searchInput).toBeFocused();
   });
 
+  test('pressing / in a contenteditable keeps focus and inserts the character', async ({ page }) => {
+    await expect(page.getByTestId('tasks-page')).toBeVisible({ timeout: 10000 });
+    await page.evaluate(() => {
+      const editor = document.createElement('div');
+      editor.contentEditable = 'true';
+      editor.dataset.testid = 'shortcut-editor';
+      document.body.appendChild(editor);
+    });
+
+    const editor = page.getByTestId('shortcut-editor');
+    await editor.focus();
+    await page.keyboard.press('/');
+
+    await expect(editor).toBeFocused();
+    await expect(editor).toHaveText('/');
+    await expect(page.getByTestId('task-search-input')).not.toBeFocused();
+  });
+
   test('search highlights matching characters in task titles', async ({ page }) => {
     const { count, titles } = await ensureTestTasks(page);
     if (count === 0) {

@@ -23,10 +23,12 @@ export function PlanSearchBar({ value, onChange, onClear }: PlanSearchBarProps) 
         onClear();
         inputRef.current?.blur();
       }
-      // Focus search on / when not in an input/textarea
+      // Focus search on / when not in an editable field
       if (
         e.key === '/' &&
-        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
+        !(e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement ||
+          (e.target instanceof HTMLElement && e.target.isContentEditable))
       ) {
         e.preventDefault();
         inputRef.current?.focus();
