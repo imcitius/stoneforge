@@ -5,6 +5,17 @@
  * contain spaces. They report a fixed `--version` and, for any other
  * invocation, delegate to a real Node when one is available. Fixture package
  * managers record how they were invoked and which `node` they saw on PATH.
+ *
+ * Process spawns and timeouts (el-45u96a): tests of the selection rules use
+ * {@link fixtureProbe}, which reads the version a fixture would print instead
+ * of executing it, so their result cannot depend on host load. Real
+ * `--version` probes stay covered by the explicit-Node test and by every
+ * WorktreeManager, Spawner and merge-steward test, which go through production
+ * code paths. Tests that spawn real processes get {@link REAL_SPAWN_TIMEOUT_MS}
+ * instead of Bun's 5 s default: production allows each probe 10 s, so a slow
+ * but successful probe must not be reported as a Bun timeout, and on the
+ * shared, heavily loaded gate host (load 20–180) one such test once took
+ * 5067 ms. The bound only catches hangs; no assertion depends on speed.
  */
 
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
@@ -28,6 +39,8 @@ import { MergeStewardServiceImpl } from '../services/merge-steward-service.js';
 
 const REAL_NODE = Bun.which('node') ?? undefined;
 const REAL_NPM = Bun.which('npm') ?? undefined;
+/** Above project-node.ts probeVersion's own 10 s timeout; see the header. */
+const REAL_SPAWN_TIMEOUT_MS = 30_000;
 
 let sandbox: string;
 const savedEnv = { PATH: process.env.PATH, HOME: process.env.HOME, NVM_DIR: process.env.NVM_DIR, PM_LOG: process.env.PM_LOG, FAKE_PM_MODE: process.env.FAKE_PM_MODE };
@@ -81,6 +94,24 @@ function stoneforgeRuntimeDir(): string {
   writeExecutable(path.join(bin, 'node'), '#!/bin/sh\necho v22.23.3\n');
   writeExecutable(path.join(bin, 'sf'), '#!/bin/sh\necho bundled-sf\n');
   return bin;
+}
+
+/**
+ * Version probe for selection-logic tests: returns the version a fixture
+ * script from {@link fakeNodeDir}/{@link stoneforgeRuntimeDir} would print,
+ * without spawning it. Executables outside the sandbox (e.g. a system
+ * /usr/bin/node on Linux) are reported as unusable so results stay host
+ * independent. `probed` records every path the resolver asked about.
+ */
+function fixtureProbe() {
+  const probed: string[] = [];
+  const probeVersion = async (node: string) => {
+    probed.push(node);
+    if (!node.startsWith(sandbox + path.sep)) return { error: 'outside fixture sandbox (stub probe)' };
+    const match = /echo (v\d+\.\d+\.\d+)/.exec(fs.readFileSync(node, 'utf8'));
+    return match ? { version: match[1] } : { error: 'fixture prints no version' };
+  };
+  return { probed, probeVersion };
 }
 
 function project(name: string, files: Record<string, string>): string {
@@ -142,22 +173,37 @@ describe('resolveProjectNode', () => {
     const runtime = stoneforgeRuntimeDir();
     const node24 = fakeNodeDir('node 24', '24.22.0');
     const node26 = fakeNodeDir('homebrew', '26.8.2');
-    const env = { PATH: [runtime, node26, node24, '/usr/bin', '/bin'].join(':'), HOME: process.env.HOME };
+    // Newer compatible Nodes later on PATH and in nvm must not displace the
+    // first compatible PATH entry.
+    const node24Later = fakeNodeDir('node 24 later', '24.22.5');
+    fakeNodeDir(path.join('home', '.nvm', 'versions', 'node', 'v24.22.9'), '24.22.9');
+    const env = { PATH: [runtime, node26, node24, node24Later, '/usr/bin', '/bin'].join(':'), HOME: process.env.HOME };
     const app24 = project('app 24', STABLES_LIKE);
     const app22 = project('app 22', { 'package.json': JSON.stringify({ engines: { node: '>=22.12.0 <23' } }) });
+    const { probed, probeVersion } = fixtureProbe();
+    const options = { env, systemPrefixes: [], probeVersion };
 
-    const r24 = await resolveProjectNode(app24, { env, systemPrefixes: [] });
+    const r24 = await resolveProjectNode(app24, options);
     expect(r24).toMatchObject({ status: 'selected', node: path.join(node24, 'node'), version: 'v24.22.0', source: 'path' });
-    const r22 = await resolveProjectNode(app22, { env, systemPrefixes: [] });
+    expect(probed).toEqual(expect.arrayContaining([runtime, node26, node24].map((dir) => path.join(dir, 'node'))));
+    // Without a version file only engines.node decides: the incompatible
+    // bundled 22 and Homebrew 26 come first on PATH and must be skipped; the
+    // first compatible PATH Node wins over newer PATH and nvm ones.
+    const engines24 = project('app 24 engines only', { 'package.json': JSON.stringify({ engines: { node: '>=24.22.0 <24.23' } }) });
+    expect(await resolveProjectNode(engines24, options)).toMatchObject({ status: 'selected', node: path.join(node24, 'node'), version: 'v24.22.0', source: 'path' });
+    const r22 = await resolveProjectNode(app22, options);
     expect(r22).toMatchObject({ status: 'selected', node: path.join(runtime, 'node'), version: 'v22.23.3' });
-    expect(await resolveProjectNode(project('plain', { 'package.json': '{}' }), { env, systemPrefixes: [] })).toEqual({ status: 'unconstrained' });
+    const before = probed.length;
+    expect(await resolveProjectNode(project('plain', { 'package.json': '{}' }), options)).toEqual({ status: 'unconstrained' });
+    expect(probed).toHaveLength(before);
   });
 
   test('incompatible-only and missing Node produce actionable errors listing what was checked', async () => {
     const runtime = stoneforgeRuntimeDir();
     const node26 = fakeNodeDir('homebrew', '26.8.2');
     const app = project('app', STABLES_LIKE);
-    const error = await resolveProjectNode(app, { env: { PATH: `${runtime}:${node26}`, HOME: process.env.HOME }, systemPrefixes: [], repositoryId: 'stables' }).catch((e) => e);
+    const { probeVersion } = fixtureProbe();
+    const error = await resolveProjectNode(app, { env: { PATH: `${runtime}:${node26}`, HOME: process.env.HOME }, systemPrefixes: [], repositoryId: 'stables', probeVersion }).catch((e) => e);
     expect(error).toBeInstanceOf(ProjectNodeError);
     expect(error.code).toBe('PROJECT_NODE_INCOMPATIBLE');
     expect(error.message).toContain('>=24.22.0 <24.23');
@@ -166,7 +212,7 @@ describe('resolveProjectNode', () => {
     expect(error.message).toContain('sf repo update stables --node-path');
     expect(error.message).toContain('nvm');
 
-    const missing = await resolveProjectNode(app, { env: { PATH: path.join(sandbox, 'empty'), HOME: process.env.HOME }, systemPrefixes: [] }).catch((e) => e);
+    const missing = await resolveProjectNode(app, { env: { PATH: path.join(sandbox, 'empty'), HOME: process.env.HOME }, systemPrefixes: [], probeVersion }).catch((e) => e);
     expect(missing).toBeInstanceOf(ProjectNodeError);
     expect(missing.message).toContain('no Node executables found');
   });
@@ -180,7 +226,7 @@ describe('resolveProjectNode', () => {
     await expect(resolveProjectNode(app, { env, systemPrefixes: [], explicitNode: path.join(sandbox, 'missing', 'node') })).rejects.toThrow(/not an absolute path to an executable/);
     expect(await resolveProjectNode(app, { env: { PATH: '' }, systemPrefixes: [], explicitNode: path.join(node24, 'node') }))
       .toMatchObject({ status: 'selected', source: 'explicit', version: 'v24.22.0' });
-  });
+  }, REAL_SPAWN_TIMEOUT_MS);
 
   test('discovers installed nvm versions and prefers the .nvmrc match', async () => {
     const versions = path.join(process.env.HOME!, '.nvm', 'versions', 'node');
@@ -190,7 +236,7 @@ describe('resolveProjectNode', () => {
       fs.renameSync(path.join(versions, `v${v}`, 'x', 'bin'), path.join(versions, `v${v}`, 'bin'));
     }
     const app = project('app', STABLES_LIKE);
-    const result = await resolveProjectNode(app, { env: { PATH: '/usr/bin:/bin', HOME: process.env.HOME }, systemPrefixes: [] });
+    const result = await resolveProjectNode(app, { env: { PATH: '/usr/bin:/bin', HOME: process.env.HOME }, systemPrefixes: [], probeVersion: fixtureProbe().probeVersion });
     expect(result).toMatchObject({ status: 'selected', source: 'version-manager', node: path.join(versions, 'v24.22.0', 'bin', 'node') });
   });
 });
@@ -210,7 +256,7 @@ describe('projectNodeEnvironment', () => {
     expect(out.split('\n').slice(0, 3)).toEqual(['v24.22.0', 'bundled-sf', path.join(runtime, 'sf')]);
     expect(pmLog()[0]).toContain('node=v24.22.0');
     expect(projectNodeEnvironment({ status: 'unconstrained' }, basePath)).toEqual({});
-  });
+  }, REAL_SPAWN_TIMEOUT_MS);
 });
 
 describe('WorktreeManager dependency install', () => {
@@ -232,7 +278,7 @@ describe('WorktreeManager dependency install', () => {
     expect(error.message).toContain('sf repo update app --node-path');
     expect(pmLog()).toEqual([]);
     expect(fs.existsSync(path.join(repo, '.stoneforge/.worktrees/w1-w1'))).toBe(false);
-  });
+  }, REAL_SPAWN_TIMEOUT_MS);
 
   test('compatible Node: npm ci runs on it; lockfile and engine-strict untouched', async () => {
     const runtime = stoneforgeRuntimeDir();
@@ -247,7 +293,7 @@ describe('WorktreeManager dependency install', () => {
     // Shim links live under the project's .stoneforge and are self-ignored.
     expect(execSync('git status --porcelain --untracked-files=all -- .stoneforge/.runtime', { cwd: repo, encoding: 'utf8' })).toBe('');
     expect(fs.existsSync(path.join(repo, '.stoneforge/.runtime/node-shims'))).toBe(true);
-  });
+  }, REAL_SPAWN_TIMEOUT_MS);
 
   test('EBADENGINE is not retried with a loose install', async () => {
     const node24 = fakeNodeDir('node 24', '24.22.0');
@@ -259,7 +305,7 @@ describe('WorktreeManager dependency install', () => {
     expect(error.code).toBe('PROJECT_NODE_INCOMPATIBLE');
     expect(error.details).toContain('EBADENGINE');
     expect(pmLog().map((l) => l.split(' |')[0])).toEqual(['npm ci']);
-  });
+  }, REAL_SPAWN_TIMEOUT_MS);
 
   test('declared package manager (packageManager + pnpm lockfile) runs through corepack on the project Node', async () => {
     const node24 = fakeNodeDir('node 24', '24.22.0');
@@ -273,7 +319,7 @@ describe('WorktreeManager dependency install', () => {
     const calls = pmLog();
     expect(calls).toContain('corepack pnpm install --frozen-lockfile | node=v24.22.0');
     expect(calls).toContain('pnpm install --frozen-lockfile | node=v24.22.0 | sf=');
-  });
+  }, REAL_SPAWN_TIMEOUT_MS);
 
   test.skipIf(!REAL_NODE || !REAL_NPM)('real npm ci with engine-strict on a compatible explicit Node', async () => {
     const real = fs.realpathSync(REAL_NODE!);
@@ -318,7 +364,7 @@ describe('Spawner project Node preflight', () => {
     await spawner.spawn(agent, 'director', { mode: 'interactive', workingDirectory: repo });
     expect(calls).toHaveLength(1);
     expect(calls[0].environmentVariables?.PATH).toBeUndefined();
-  });
+  }, REAL_SPAWN_TIMEOUT_MS);
 
   test('worker child gets the registry-configured Node through PATH; sf stays bundled', async () => {
     const runtime = stoneforgeRuntimeDir();
@@ -344,7 +390,7 @@ describe('Spawner project Node preflight', () => {
 
     await registry.setNodePath('default', null);
     expect((await registry.list())[0].nodePath).toBeUndefined();
-  });
+  }, REAL_SPAWN_TIMEOUT_MS);
 });
 
 describe('Merge steward checks', () => {
@@ -364,5 +410,5 @@ describe('Merge steward checks', () => {
     expect(bad.exitCode).toBe(1);
     expect(bad.output).toContain('sf repo update app --node-path');
     expect(bad.output).not.toContain('ran');
-  });
+  }, REAL_SPAWN_TIMEOUT_MS);
 });

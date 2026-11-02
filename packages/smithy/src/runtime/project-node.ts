@@ -258,6 +258,17 @@ export interface ResolveProjectNodeOptions {
   readonly systemPrefixes?: readonly string[];
   /** Hint for the remediation message, e.g. the repository ID. */
   readonly repositoryId?: string;
+  /**
+   * Reads a candidate's version (default: runs `<node> --version`). Tests of
+   * the selection rules substitute a probe that does not spawn processes.
+   */
+  readonly probeVersion?: (node: string) => Promise<NodeVersionProbe>;
+}
+
+/** Result of asking a Node executable for its version. */
+export interface NodeVersionProbe {
+  readonly version?: string;
+  readonly error?: string;
 }
 
 function isExecutableFile(file: string): boolean {
@@ -302,7 +313,7 @@ function discoverCandidates(env: NodeJS.ProcessEnv, prefixes: readonly string[])
   return found;
 }
 
-async function probeVersion(node: string): Promise<{ version?: string; error?: string }> {
+async function probeVersion(node: string): Promise<NodeVersionProbe> {
   try {
     const { stdout } = await execFileAsync(node, ['--version'], {
       encoding: 'utf8',
@@ -335,6 +346,7 @@ export async function resolveProjectNode(directory: string, options: ResolveProj
   const env = options.env ?? process.env;
   if (!requirement && !options.explicitNode) return { status: 'unconstrained' };
   const req = requirement ?? {};
+  const probe = options.probeVersion ?? probeVersion;
   if (req.engines) {
     try { validateNodeRange(req.engines); }
     catch (error) {
@@ -370,11 +382,11 @@ export async function resolveProjectNode(directory: string, options: ResolveProj
     if (!path.isAbsolute(node) || !isExecutableFile(node)) {
       fail([{ path: node, source: 'explicit', error: 'not an absolute path to an executable file' }], true);
     }
-    const probe = await probeVersion(node);
-    const candidate: ProjectNodeCandidate = { path: node, source: 'explicit', ...probe };
-    const version = probe.version ? parseNodeVersion(probe.version) : null;
+    const probed = await probe(node);
+    const candidate: ProjectNodeCandidate = { path: node, source: 'explicit', ...probed };
+    const version = probed.version ? parseNodeVersion(probed.version) : null;
     if (!version || !acceptable(version, req)) fail([candidate], true);
-    return { status: 'selected', node, version: probe.version!, source: 'explicit', requirement: req };
+    return { status: 'selected', node, version: probed.version!, source: 'explicit', requirement: req };
   }
 
   const seen = new Set<string>();
@@ -387,7 +399,7 @@ export async function resolveProjectNode(directory: string, options: ResolveProj
     seen.add(real);
     unique.push(candidate);
   }
-  const probed: ProjectNodeCandidate[] = await Promise.all(unique.map(async (c) => ({ ...c, ...(await probeVersion(c.path)) })));
+  const probed: ProjectNodeCandidate[] = await Promise.all(unique.map(async (c) => ({ ...c, ...(await probe(c.path)) })));
   const compatible = probed
     .map((c, index) => ({ c, index, version: c.version ? parseNodeVersion(c.version) : null }))
     .filter((entry): entry is { c: ProjectNodeCandidate; index: number; version: Version } => !!entry.version && acceptable(entry.version, req));

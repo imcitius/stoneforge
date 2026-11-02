@@ -271,6 +271,42 @@ Worker validation: the file passed 3 consecutive runs (22/22) and one pinned
 Node 22.23.3 `pnpm check:merge` passed 203/203, exit 0 (454.49s runner) at load
 average about 31–41.
 
+### Process-spawning tests: stub the logic, bound the real spawns
+
+A test that spawns real processes is load-sensitive even without a timing
+assertion: Bun's default per-test timeout is 5 s. el-45u96a: in
+`packages/smithy/src/runtime/project-node.bun.test.ts` the selection test
+(`resolveProjectNode > selects compatible PATH Node ...`) ran real
+`node --version` probes of fixture scripts and once hit 5067 ms in a gate run
+(normally under 0.1 s). Do not add retries. Instead:
+
+- **Stub the subprocess where the test is about logic.** `resolveProjectNode`
+  accepts an optional `probeVersion`; the selection, error-listing and nvm
+  discovery tests pass `fixtureProbe()`, which reads the version a fixture
+  script would print without executing it (paths outside the fixture sandbox
+  are reported unusable, so results are host-independent). The selection test
+  dropped from ~90 ms to ~7 ms with no spawns.
+- **Keep real probes covered.** The explicit-Node, `projectNodeEnvironment`,
+  WorktreeManager, Spawner and merge-steward tests still run real fixture and
+  package-manager processes through production paths.
+- **Give real-spawn tests an explicit, justified timeout**
+  (`REAL_SPAWN_TIMEOUT_MS` = 30 s, above the production probe's own 10 s
+  timeout). It only catches hangs; no assertion depends on speed.
+
+Mutation controls (applied to `project-node.ts`, each reverted, not committed):
+removing the compatibility filter, or skipping it only for PATH candidates,
+fails the selection test (plus the error, WorktreeManager, Spawner and
+merge-steward incompatibility tests); ignoring PATH order (newest compatible
+wins) and preferring version-manager Nodes over PATH each fail the selection
+test, which now also has an engines-only project and newer compatible Nodes
+later on PATH and in nvm; removing the `.nvmrc` preference fails the nvm test.
+Before this change, removing the compatibility filter did not fail the
+selection test, because the `.nvmrc` preference alone still picked Node 24.
+Worker validation on `a8f9c297`: the file passed 29/29 three times in isolation
+(load about 40–70) and three times while a gate ran (load about 85); one pinned
+Node 22.23.3 `pnpm check:merge` passed 205/205, exit 0 (687.43s runner, file
+5.42s) at load average up to about 197.
+
 ## Recorded validation — 2026-09-26, task el-5xd
 
 Tested code commit: `502a86ed65b733f51c254fb9dd3aa3d8546e0408`, based on local
