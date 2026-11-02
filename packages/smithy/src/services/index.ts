@@ -63,6 +63,7 @@ export {
   type CompleteTaskOptions,
   type HandoffTaskOptions,
   type TaskCompletionResult,
+  type StartTaskOptions,
   type ReconcileCompletionOptions,
   type TaskAssignment,
   type AssignmentFilter,

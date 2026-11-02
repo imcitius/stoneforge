@@ -243,8 +243,10 @@ describe('TaskAssignmentService', () => {
       expect(meta?.sessionId).toBe('session-456');
     });
 
-    test('starts task without session ID', async () => {
+    test('starts assigned task without session ID (legacy positional form)', async () => {
       const task = await createTestTask('Task without session');
+      const worker = await createTestWorker('frank-legacy');
+      await service.assignToAgent(task.id, worker.id as unknown as EntityId);
 
       const started = await service.startTask(task.id);
 
@@ -252,6 +254,55 @@ describe('TaskAssignmentService', () => {
 
       const meta = getOrchestratorTaskMeta(started.metadata as Record<string, unknown>);
       expect(meta?.startedAt).toBeDefined();
+      expect(meta?.sessionId).toBeUndefined();
+    });
+
+    test('current assigned agent starts with explicit caller identity', async () => {
+      const task = await createTestTask('Task with caller');
+      const worker = await createTestWorker('frank-caller');
+      const agentId = worker.id as unknown as EntityId;
+      await service.assignToAgent(task.id, agentId, { sessionId: 'session-789' });
+
+      const started = await service.startTask(task.id, { agentId, sessionId: 'session-789' });
+
+      expect(started.status).toBe(TaskStatus.IN_PROGRESS);
+      expect(started.assignee).toBe(agentId);
+      const meta = getOrchestratorTaskMeta(started.metadata as Record<string, unknown>);
+      expect(meta?.assignedAgent).toBe(agentId);
+      expect(meta?.sessionId).toBe('session-789');
+      expect(meta?.startedAt).toBeDefined();
+    });
+
+    test('rejects an unassigned task (contract el-2htch; previously started without owner)', async () => {
+      const task = await createTestTask('Unassigned task');
+
+      await expect(service.startTask(task.id)).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+      expect((await api.get<Task>(task.id))?.status).toBe(TaskStatus.OPEN);
+    });
+
+    test('rejects another agent, an empty caller, a replaced session and inactive statuses', async () => {
+      const task = await createTestTask('Guarded start');
+      const owner = (await createTestWorker('frank-owner')).id as unknown as EntityId;
+      const other = (await createTestWorker('frank-other')).id as unknown as EntityId;
+      await service.assignToAgent(task.id, owner, { sessionId: 'session-owner' });
+      const before = await api.get<Task>(task.id);
+
+      for (const call of [
+        () => service.startTask(task.id, { agentId: other }),
+        () => service.startTask(task.id, { agentId: '' as EntityId }),
+        () => service.startTask(task.id, { agentId: owner, sessionId: 'session-other' }),
+        () => service.startTask(task.id, { agentId: owner, sessionId: ' ' }),
+        () => service.startTask(task.id, 'session-other'),
+      ]) {
+        await expect(call()).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+      }
+      expect(await api.get<Task>(task.id)).toEqual(before);
+
+      for (const status of [TaskStatus.CLOSED, TaskStatus.DEFERRED, TaskStatus.REVIEW, TaskStatus.BACKLOG]) {
+        const blocked = await api.update<Task>(task.id, { status });
+        await expect(service.startTask(task.id, { agentId: owner })).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+        expect(await api.get<Task>(task.id)).toEqual(blocked);
+      }
     });
 
     test('throws error when task does not exist', async () => {

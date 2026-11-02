@@ -40,12 +40,26 @@ const task = await assignmentService.assignToAgent(taskId, agentId, {
 // Unassign
 await assignmentService.unassignTask(taskId, { mode: 'admin' }); // deliberate current-owner release
 
-// Start
-await assignmentService.startTask(taskId, 'session-456');
+// Start as the current assigned agent (records the session only if none is recorded)
+await assignmentService.startTask(taskId, { agentId, sessionId: 'session-456' });
 
 // Complete as the current worker (use the internal session-history ID)
 await assignmentService.completeTask(taskId, { agentId, sessionId: internalSessionId });
 ```
+
+#### Start contract
+
+`startTask` accepts only `open` or `in_progress` tasks with a coherent agent
+assignment (assignee equals the assigned agent, and it is a registered agent).
+With `{ agentId }` the caller must be the current assignee. A supplied `sessionId`
+is recorded only when no session is recorded; a different recorded session is
+never replaced, and session history is not modified. Status, `startedAt` and the
+session are written once with the validated task version, so a concurrent close,
+deferral, Human or other-agent assignment rejects with a conflict instead of being
+overwritten. The legacy positional form `startTask(taskId, sessionId?)` remains
+supported but makes no caller assertion; the same state guards and version check
+apply. Unassigned tasks are rejected. These checks prevent stale operations; they
+are not authentication.
 
 #### Completion identity and recovery
 

@@ -76,6 +76,22 @@ export type UnassignTaskOptions =
   | { mode: 'admin' };
 
 /**
+ * Caller assertion for {@link TaskAssignmentService.startTask}.
+ *
+ * `agentId` is checked against the current task state; it is a stale-call guard,
+ * not an authentication/authorization boundary.
+ */
+export interface StartTaskOptions {
+  /** Current assigned agent that starts its own work. */
+  agentId: EntityId;
+  /**
+   * Session to associate when none is recorded. If a session is already recorded,
+   * it must equal that value: start never replaces a recorded session.
+   */
+  sessionId?: string;
+}
+
+/**
  * Options for completing a task
  */
 export interface CompleteTaskOptions {
@@ -242,15 +258,27 @@ export interface TaskAssignmentService {
   unassignTask(taskId: ElementId, options: UnassignTaskOptions): Promise<Task>;
 
   /**
-   * Marks a task as started by the assigned agent.
+   * Marks a task as started by its current assigned agent.
    *
-   * Sets the task status to IN_PROGRESS and records the start time.
+   * Contract (one guarded write, never retried against a newer snapshot):
+   * - Status must be OPEN or IN_PROGRESS; any other status is rejected.
+   * - The task must have a coherent agent assignment: `assignee` equals
+   *   `metadata.orchestrator.assignedAgent` and is a registered agent entity.
+   *   Unassigned, Human/non-agent and split-ownership tasks are rejected.
+   * - Object form: `options.agentId` must equal the current assignee.
+   *   Legacy positional form `startTask(taskId, sessionId?)` makes no caller
+   *   assertion; it is otherwise subject to the same guards and CAS.
+   * - A supplied session is recorded only when none is recorded; a different
+   *   recorded session is never replaced. Session history is never modified.
+   * - Status IN_PROGRESS, startedAt and the session are committed together with
+   *   `expectedUpdatedAt` from the validated snapshot. A concurrent change
+   *   rejects with CONCURRENT_MODIFICATION and the winner is preserved.
    *
    * @param taskId - The task to start
-   * @param sessionId - Optional session ID to associate
+   * @param options - Caller identity and optional session, or legacy session ID
    * @returns The updated task
    */
-  startTask(taskId: ElementId, sessionId?: string): Promise<Task>;
+  startTask(taskId: ElementId, options?: StartTaskOptions | string): Promise<Task>;
 
   /**
    * Marks a task as completed by the assigned agent.
@@ -548,28 +576,61 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     });
   }
 
-  async startTask(taskId: ElementId, sessionId?: string): Promise<Task> {
+  async startTask(taskId: ElementId, options?: StartTaskOptions | string): Promise<Task> {
     const task = await this.api.get<Task>(taskId);
     if (!task || task.type !== ElementType.TASK) {
       throw new Error(`Task not found: ${taskId}`);
     }
 
-    const updates: Partial<OrchestratorTaskMeta> = {
-      startedAt: createTimestamp(),
+    // Legacy positional form carries only a session; it asserts no caller.
+    const legacy = options == null || typeof options === 'string';
+    const agentId = legacy ? undefined : (options as StartTaskOptions).agentId;
+    const sessionId = legacy ? ((options as string | null | undefined) ?? undefined) : (options as StartTaskOptions).sessionId;
+    const currentMeta = getOrchestratorTaskMeta(task.metadata);
+    const reject = (reason: string): never => {
+      throw new ConflictError(
+        `Cannot start task ${taskId}: ${reason}`,
+        ConflictErrorCode.CONCURRENT_MODIFICATION,
+        { taskId, status: task.status, assignee: task.assignee, agentId, sessionId }
+      );
     };
-    if (sessionId) {
-      (updates as { sessionId?: string }).sessionId = sessionId;
+
+    if (task.status !== TaskStatus.OPEN && task.status !== TaskStatus.IN_PROGRESS) {
+      reject(`task is in '${task.status}' status; only open or in_progress work can be started.`);
+    }
+    if (!legacy && (typeof agentId !== 'string' || !agentId.trim())) {
+      reject('the object form requires the caller agentId.');
+    }
+    if (sessionId !== undefined && (typeof sessionId !== 'string' || !sessionId.trim())) {
+      reject('sessionId must be a non-empty string when supplied.');
+    }
+    if (!task.assignee || task.assignee !== currentMeta?.assignedAgent) {
+      reject('requires a coherent current agent assignment (assignee and assignedAgent must match).');
+    }
+    if (agentId !== undefined && agentId !== task.assignee) {
+      reject('caller is not the current assigned agent.');
+    }
+    if (sessionId !== undefined && currentMeta?.sessionId !== undefined && currentMeta.sessionId !== sessionId) {
+      reject('a different session is already recorded; start never replaces a recorded session.');
+    }
+    const assignedAgent = await this.api.get<AgentEntity>(asElementId(task.assignee!));
+    if (!assignedAgent || assignedAgent.type !== ElementType.ENTITY || !isAgentEntity(assignedAgent)) {
+      reject('the assignee is not a registered agent.');
     }
 
-    const newMeta = updateOrchestratorTaskMeta(
-      task.metadata as Record<string, unknown> | undefined,
-      updates
-    );
+    const updates: Partial<OrchestratorTaskMeta> = {
+      startedAt: createTimestamp(),
+      ...(sessionId !== undefined ? { sessionId } : {}),
+    };
+    const newMeta = updateOrchestratorTaskMeta(task.metadata, updates);
 
+    // One write against the validated snapshot. A conflict propagates unchanged;
+    // there is no retry with a newer owner, status or session. Only an asserted
+    // caller is recorded as actor; the legacy form keeps Quarry's default.
     return this.api.update<Task>(taskId, {
       status: TaskStatus.IN_PROGRESS,
       metadata: newMeta,
-    });
+    }, { expectedUpdatedAt: task.updatedAt, ...(agentId !== undefined ? { actor: agentId } : {}) });
   }
 
   async completeTask(taskId: ElementId, options?: CompleteTaskOptions): Promise<TaskCompletionResult> {

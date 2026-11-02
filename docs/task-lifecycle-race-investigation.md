@@ -2176,3 +2176,119 @@ check:merge` on 30789ab: **194/194, exit0, 325.87s** (Smithy Node 375/375), log
 `/tmp/el-4f7pc9-gate.log`. Root build/lint, Playwright, packaged GUI and live
 providers were not run. Independent steward review and approved local delivery
 remain required; installed Desktop unchanged.
+
+## SDK startTask guard — el-2htch, 2026-11-01
+
+Supersedes **only** the el-191a6 `start, R1` / `start, R2` matrix rows and follow-up
+proposal 5 above. Those historical measurements remain evidence of the original
+defect (IN_PROGRESS with stale A metadata/session over CLOSED, DEFERRED, Human and
+successor B; R2 also restored A as assignee and reverted schedule/closure fields).
+Base: local master `02511ed` (el-56khe delivered), fast-forward safe sync, no
+conflicts. The el-56khe HTTP receipt/release contracts are not touched.
+
+Reachability is unchanged: repository search still finds **no production caller**
+of `TaskAssignmentService.startTask`; daemon and start-worker flows use
+`assignToAgent(..., { markAsStarted: true })`. No user-facing start incident was
+reproduced or is claimed fixed. The Smithy HTTP route `POST /api/tasks/:id/start`
+(dashboard "Start Task") does **not** call this method; it is a separate direct
+status writer without CAS or assignment checks and is unchanged (reported to
+Director, not in scope).
+
+### Contract
+
+`startTask(taskId, options?: StartTaskOptions | string)`:
+
+- Supported statuses: OPEN and IN_PROGRESS. CLOSED, DEFERRED, REVIEW, BACKLOG,
+  BLOCKED and TOMBSTONE reject.
+- Current assignment: `assignee` must be set, equal `orchestrator.assignedAgent`
+  and resolve to a registered agent entity. Unassigned, split (e.g. Human assignee
+  over agent metadata) and coherent Human/non-agent ownership reject.
+- Caller identity, object form `{ agentId, sessionId? }`: `agentId` is required and
+  must equal the current assignee. It is a stale-call guard, not authentication.
+- Legacy positional form `startTask(taskId, sessionId?)` is retained for the
+  documented assign-then-start call. It makes **no caller assertion**: after a
+  committed explicit reassignment it can start successor B's own coherent
+  assignment (status/startedAt only), but cannot change B's owner, session or
+  history. Same state guards and CAS apply. Actor is recorded only for the object
+  form; the legacy form keeps Quarry's default actor.
+- Session: a supplied non-empty `sessionId` is recorded only when
+  `orchestrator.sessionId` is unset; an equal value is accepted; a different
+  recorded session rejects (start never replaces a session). `sessionHistory`,
+  `handoffHistory`, branch and worktree are never modified by start.
+- Write: status IN_PROGRESS, startedAt and the session in **one** Quarry update
+  with `expectedUpdatedAt` from the validated snapshot (existing Quarry CAS, no new
+  helper or framework). Conflicts propagate as CONCURRENT_MODIFICATION; no retry
+  against a newer snapshot. All guard rejections use the same ConflictError code
+  as handoff/completion and perform no write.
+
+Intentional compatibility changes: an **unassigned** task no longer starts (the old
+unit test "starts task without session ID" relied on that and now assigns first;
+a new test asserts the rejection); a supplied empty/whitespace session now rejects
+instead of being ignored; replacing a different recorded session now rejects
+(`updateSessionId`, an unchanged legacy writer, remains the explicit replacement
+API). The interface accepts both forms, so existing positional call sites compile.
+
+### Evidence
+
+`task-lifecycle-race-evidence.bun.test.ts` (two real QuarryAPI connections to one
+temporary SQLite file, Git repo fixture; no timers/providers/daemon/live data):
+
+- The 8 former `DEFECT evidence: start …` rows are converted to `REGRESSION: start
+  rejects and preserves {closed,deferred,reassign,human} at read {1,2}` and 8 new
+  `start-legacy` rows run the positional form at the same boundaries. Each asserts
+  exactly one attempted task write, CONCURRENT_MODIFICATION, full winner equality
+  via the other connection (histories, schedule, closure, version), unchanged
+  events and absence from the unassigned ready pool. The start input is changed
+  from `'stale-session'` to `{ agentId: owner, sessionId: 'provider-old' }`, valid
+  against the stale snapshot, so only the version check can reject. The original
+  `'stale-session'` input is kept as a separate regression: both forms now reject
+  before any write. The defect-only assertion branch is removed because no DEFECT
+  rows remain in this matrix; the historical results remain in this report.
+- Sequential (fresh-read) stale-owner regressions after committed CLOSED,
+  DEFERRED, B, Human, REVIEW, unassigned and coherent non-agent ownership: zero
+  writes, winner and events unchanged.
+- Positive: current assigned worker starts an OPEN assignment with one write,
+  records the session, keeps both histories/branch/worktree; same-session restart
+  accepted. Legacy contract test as described above.
+- `task-assignment-service.bun.test.ts`: legacy assign-then-start with and without
+  session, object-form positive, unassigned rejection, other agent/empty caller/
+  replaced session/inactive statuses reject with unchanged task.
+
+Negative control (no branch switch): only the service file was temporarily
+replaced with `git show master:` content, `bun test … -t start` ran, and the fixed
+file was restored and verified with `cmp`: **0 pass / 26 fail**, exit 1. The 24
+REGRESSION rows fail on the old overwrite behavior; POSITIVE and CONTRACT fail
+because the old method stores the options object as session / replaces the
+recorded session. Log `/tmp/el-2htch-negative.log`.
+
+Not changed: automatic dispatch, assignment, completion, handoff, unassign,
+`updateSessionId`, the HTTP start route and other metadata writers. No storage,
+gate, threshold or configuration changes; installed Desktop5f53cef, live
+daemon/sessions/tasks and closed maintenance el-1clm untouched.
+
+### el-2htch worker verification
+
+- Runtime: `node -v` **v22.23.3** (pinned `apps/desktop/node_modules/node/bin` first
+  on PATH), pnpm 8.15.5, Bun 1.3.11, macOS arm64. `pnpm install --frozen-lockfile`
+  exit 0, lockfile unchanged.
+- Focused: `bun test` evidence + assignment + handoff-ownership suites **170 pass /
+  0 fail, 919 assertions** (`/tmp/el-2htch-focused.log`); evidence suite alone 91/91.
+  `pnpm --filter @stoneforge/smithy typecheck` exit 0.
+- Negative control: 0/26 on old service (above).
+- One required `pnpm check:merge` on source commit `8c87adc`: **199/199, exit 0,
+  425.67 s**; evidence step 91/91 (492 assertions), Smithy Node/Vitest 365/365,
+  Desktop Node 17/17. No retries, skipped steps, threshold or gate changes. Log
+  `/tmp/el-2htch-gate.log`. Only this documentation changed after the gate.
+- Not run: root build/lint/test separately, Quarry Node, browser/Playwright,
+  packaged Desktop, live providers. Commits use the Human-approved command-scoped
+  identity; no Git config written. Independent exact-final steward review and
+  approved CLI local delivery remain required; worker does not self-approve.
+- Review rework after steward el-5qra review of `e82e500`: removed a machine-local
+  results path from this section; synced with local master `5d28744` through the
+  approved CLI (`sf task sync`), keeping master's el-4f7pc9 section and this one
+  (additive doc conflict only; `task-assignment-service.ts` merged cleanly).
+  Post-sync focused suites 170/170 (919 assertions), Smithy typecheck exit 0 on Node
+  22.23.3. The single post-sync pinned-Node `pnpm check:merge` runs on the commit that
+  adds this note; its result is recorded in the task completion and the
+  Documentation Directory rather than in a later tracked commit, so the gated commit
+  is the final commit.

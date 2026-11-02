@@ -1,5 +1,5 @@
 /**
- * el-191a6 evidence with assignment, cleanup and completion preservation regressions.
+ * el-191a6 evidence with assignment, start, cleanup and completion preservation regressions.
  * Remaining DEFECT evidence is NOT desired lifecycle policy.
  * Passing defect cases prove the documented unsafe result on the audited revision.
  * Convert those assertions to rejection/preservation regressions with each approved fix.
@@ -76,23 +76,25 @@ function cleanupOptions() {
   } };
 }
 
-type Operation = 'assign' | 'start' | 'complete' | 'unassign';
+type Operation = 'assign' | 'start' | 'start-legacy' | 'complete' | 'unassign';
 async function run(operation: Operation) {
   const service = createTaskAssignmentService(api);
   switch (operation) {
     case 'assign': return service.assignToAgent(task.id, owner, { markAsStarted: true, sessionId: 'stale-session' });
-    case 'start': return service.startTask(task.id, 'stale-session');
+    // Valid against the stale snapshot, so only the version check can reject.
+    // The el-191a6 'stale-session' input is now rejected before any write (below).
+    case 'start': return service.startTask(task.id, { agentId: owner, sessionId: 'provider-old' });
+    case 'start-legacy': return service.startTask(task.id);
     case 'complete': return (await service.completeTask(task.id, { agentId: owner, sessionId: 'internal-old', createMergeRequest: false })).task;
     case 'unassign': return service.unassignTask(task.id, cleanupOptions());
   }
 }
 
-for (const operation of ['assign', 'start', 'complete', 'unassign'] as const) {
+// Former start DEFECT evidence (el-191a6) is converted by el-2htch; no DEFECT rows remain here.
+for (const operation of ['assign', 'start', 'start-legacy', 'complete', 'unassign'] as const) {
   for (const kind of ['closed', 'deferred', 'reassign', 'human']) {
     for (const readNumber of [1, 2]) {
-      test(operation === 'assign' || operation === 'complete' || operation === 'unassign'
-        ? `REGRESSION: ${operation} rejects and preserves ${kind} at read ${readNumber}`
-        : `DEFECT evidence: ${operation} overwrites ${kind} at read ${readNumber}`, async () => {
+      test(`REGRESSION: ${operation} rejects and preserves ${kind} at read ${readNumber}`, async () => {
         const get = api.get.bind(api);
         let reads = 0;
         let winner: Task | undefined;
@@ -105,45 +107,118 @@ for (const operation of ['assign', 'start', 'complete', 'unassign'] as const) {
           }
           return result;
         };
-        if (operation === 'assign' || operation === 'complete' || operation === 'unassign') {
-          const update = api.update.bind(api);
-          let attempts = 0;
-          api.update = async (...args) => {
-            if (args[0] === task.id) ++attempts;
-            return update(...args);
-          };
-          await expect(run(operation)).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
-          api.get = get;
-          expect(attempts).toBe(1);
-          expect(winner).toBeDefined();
-          // Full equality includes both histories, schedule, closure and version.
-          expect(await other.get(task.id)).toEqual(winner!);
-          expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
-          expect((await other.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(0);
-          return;
-        }
-        const result = await run(operation);
+        const update = api.update.bind(api);
+        let attempts = 0;
+        api.update = async (...args) => {
+          if (args[0] === task.id) ++attempts;
+          return update(...args);
+        };
+        // Exactly one guarded write: the conflict comes from the version check.
+        await expect(run(operation)).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
         api.get = get;
+        expect(attempts).toBe(1);
         expect(winner).toBeDefined();
-        expect(await api.get(task.id)).toEqual(result);
-        expect(result).not.toEqual(winner!);
-        expect(result.status).toBe(operation === 'complete' ? TaskStatus.REVIEW : TaskStatus.IN_PROGRESS);
-        expect(result.assignee).toBe(operation === 'complete' ? undefined : readNumber === 2 ? owner : winner!.assignee);
-        const meta = getOrchestratorTaskMeta(result.metadata)!;
-        expect(meta.assignedAgent).toBe(owner);
-        expect(meta.sessionId).toBe(operation === 'complete' ? 'provider-old' : 'stale-session');
-        if (kind === 'closed' || kind === 'deferred') {
-          expect(result.scheduledFor).toBe(readNumber === 1 ? future : undefined);
-          expect(result.deadline).toBe(readNumber === 1 ? future : undefined);
-        }
-        if (kind === 'closed') expect(result.closedAt).toBe(readNumber === 1 ? winner!.closedAt : undefined);
-        if (kind === 'reassign') {
-          expect(meta.sessionHistory?.some(s => s.sessionId === 'internal-new')).toBe(false);
-        }
+        // Full equality includes both histories, schedule, closure and version.
+        expect(await other.get(task.id)).toEqual(winner!);
+        expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
+        expect((await other.ready()).filter(t => t.id === task.id && !t.assignee)).toHaveLength(0);
       });
     }
   }
 }
+
+// el-2htch startTask contract on the same two-connection fixture.
+function countTaskWrites() {
+  const update = api.update.bind(api);
+  const counter = { writes: 0 };
+  api.update = async (...args) => {
+    if (args[0] === task.id) ++counter.writes;
+    return update(...args);
+  };
+  return counter;
+}
+
+test('REGRESSION: start rejects the el-191a6 stale-session input before any write', async () => {
+  const events = storage.query('SELECT * FROM events ORDER BY id');
+  const counter = countTaskWrites();
+  for (const call of [
+    () => createTaskAssignmentService(api).startTask(task.id, 'stale-session'),
+    () => createTaskAssignmentService(api).startTask(task.id, { agentId: owner, sessionId: 'stale-session' }),
+  ]) {
+    await expect(call()).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+  }
+  expect(counter.writes).toBe(0);
+  expect(await other.get(task.id)).toEqual(task);
+  expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
+});
+
+for (const kind of ['closed', 'deferred', 'reassign', 'human', 'review', 'unassigned', 'non-agent'] as const) {
+  test(`REGRESSION: stale owner start after committed ${kind} rejects without a write`, async () => {
+    let winner: Task;
+    if (kind === 'review') winner = await other.update<Task>(task.id, { status: TaskStatus.REVIEW });
+    else if (kind === 'unassigned') winner = await other.update<Task>(task.id, { assignee: undefined, metadata: { ...task.metadata,
+      orchestrator: { ...getOrchestratorTaskMeta(task.metadata), assignedAgent: undefined, sessionId: undefined } } });
+    // Coherent but non-agent ownership: both fields name a Human.
+    else if (kind === 'non-agent') winner = await other.update<Task>(task.id, { assignee: 'human:owner' as EntityId, metadata: { ...task.metadata,
+      orchestrator: { ...getOrchestratorTaskMeta(task.metadata), assignedAgent: 'human:owner' as EntityId, sessionId: undefined } } });
+    else winner = await change(kind);
+    const events = storage.query('SELECT * FROM events ORDER BY id');
+    const counter = countTaskWrites();
+    const calls = [() => createTaskAssignmentService(api).startTask(task.id, { agentId: owner })];
+    // Legacy form asserts no caller, so only state guards apply; B's own
+    // coherent assignment is covered by the legacy contract test below.
+    if (kind !== 'reassign') calls.push(() => createTaskAssignmentService(api).startTask(task.id));
+    if (kind === 'non-agent') calls.push(() => createTaskAssignmentService(api).startTask(task.id, { agentId: 'human:owner' as EntityId }));
+    for (const call of calls) {
+      await expect(call()).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+    }
+    expect(counter.writes).toBe(0);
+    expect(await other.get(task.id)).toEqual(winner);
+    expect(storage.query('SELECT * FROM events ORDER BY id')).toEqual(events);
+  });
+}
+
+test('POSITIVE: current assigned worker starts an OPEN assignment with one guarded write', async () => {
+  const assigned = await other.update<Task>(task.id, { status: TaskStatus.OPEN, metadata: { ...task.metadata,
+    orchestrator: { ...getOrchestratorTaskMeta(task.metadata), sessionId: undefined, startedAt: undefined } } });
+  const counter = countTaskWrites();
+  const started = await createTaskAssignmentService(api).startTask(task.id, { agentId: owner, sessionId: 'provider-start' });
+  expect(counter.writes).toBe(1);
+  expect(await other.get(task.id)).toEqual(started);
+  expect(started.status).toBe(TaskStatus.IN_PROGRESS);
+  expect(started.assignee).toBe(owner);
+  const before = getOrchestratorTaskMeta(assigned.metadata)!;
+  const meta = getOrchestratorTaskMeta(started.metadata)!;
+  expect(meta.assignedAgent).toBe(owner);
+  expect(meta.sessionId).toBe('provider-start');
+  expect(meta.startedAt).toBeDefined();
+  // Start never edits histories, branch or worktree.
+  expect(meta.sessionHistory).toEqual(before.sessionHistory);
+  expect(meta.handoffHistory).toEqual(before.handoffHistory);
+  expect(meta.branch).toBe(before.branch);
+  expect(meta.worktree).toBe(before.worktree);
+  // Re-starting with the same recorded session is accepted and keeps it.
+  const again = await createTaskAssignmentService(api).startTask(task.id, { agentId: owner, sessionId: 'provider-start' });
+  expect(getOrchestratorTaskMeta(again.metadata)!.sessionId).toBe('provider-start');
+  expect(counter.writes).toBe(2);
+});
+
+test('CONTRACT: legacy positional start asserts no caller but cannot take over successor B', async () => {
+  const winner = await change('reassign');
+  const started = await createTaskAssignmentService(api).startTask(task.id);
+  // Current coherent owner B keeps ownership, session and both histories.
+  expect(started.assignee).toBe(successor);
+  const before = getOrchestratorTaskMeta(winner.metadata)!;
+  const meta = getOrchestratorTaskMeta(started.metadata)!;
+  expect(meta.assignedAgent).toBe(successor);
+  expect(meta.sessionId).toBe('provider-new');
+  expect(meta.sessionHistory).toEqual(before.sessionHistory);
+  expect(meta.handoffHistory).toEqual(before.handoffHistory);
+  // A legacy session argument still cannot replace B's recorded session.
+  await expect(createTaskAssignmentService(api).startTask(task.id, 'provider-old'))
+    .rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+  expect(await other.get(task.id)).toEqual(started);
+});
 
 // Former unassign W1/second-write DEFECT evidence: no second write remains.
 test('REGRESSION: unassign commits coherent release before W1 and preserves successor/events', async () => {
