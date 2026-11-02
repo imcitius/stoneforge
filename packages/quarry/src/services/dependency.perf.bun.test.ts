@@ -13,7 +13,7 @@
  * - Ready queries: O(n) on non-blocked elements (single table scan)
  */
 
-import { describe, expect, test, beforeEach, afterEach } from 'bun:test';
+import { describe, expect, test, beforeEach, afterEach, spyOn } from 'bun:test';
 import {
   DependencyService,
   createDependencyService,
@@ -372,32 +372,37 @@ describe('Dependency Performance', () => {
       // Create chain with blocking dependencies
       createDependencyChain(service, 50, testEntity);
 
-      // Non-blocking type should skip all traversal
-      const start = performance.now();
+      // Non-blocking type should skip all traversal. Assert the skip
+      // deterministically (no graph reads) rather than with a sub-millisecond
+      // wall-clock bound, which is flaky on loaded machines.
+      const querySpy = spyOn(db, 'query');
       const result = service.detectCycle(
         'el-chain-49' as ElementId,
         'el-chain-0' as ElementId,
         DependencyType.REFERENCES // non-blocking
       );
-      const elapsed = performance.now() - start;
 
       expect(result.hasCycle).toBe(false);
       expect(result.nodesVisited).toBe(0); // No traversal for non-blocking
-      expect(elapsed).toBeLessThan(1); // Should be nearly instant
+      expect(querySpy).not.toHaveBeenCalled(); // No dependency lookups
+      querySpy.mockRestore();
     });
 
     test('relates-to type skips cycle detection', () => {
-      const start = performance.now();
+      // Populate the graph so a traversal would have work to do.
+      createDependencyChain(service, 50, testEntity);
+
+      const querySpy = spyOn(db, 'query');
       const result = service.detectCycle(
-        'el-a' as ElementId,
-        'el-b' as ElementId,
+        'el-chain-49' as ElementId,
+        'el-chain-0' as ElementId,
         DependencyType.RELATES_TO
       );
-      const elapsed = performance.now() - start;
 
       expect(result.hasCycle).toBe(false);
       expect(result.nodesVisited).toBe(0);
-      expect(elapsed).toBeLessThan(1);
+      expect(querySpy).not.toHaveBeenCalled();
+      querySpy.mockRestore();
     });
   });
 });
