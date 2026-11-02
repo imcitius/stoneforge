@@ -13,6 +13,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { fixtureEnv } from '../tests/fixture-env.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const { _electron } = createRequire(join(root, 'apps/smithy-web/package.json'))('playwright');
@@ -24,8 +25,7 @@ const cli = join(resources, 'backend/dist/bin/sf.js');
 const temp = await realpath(await mkdtemp(join(tmpdir(), 'stoneforge-tabs-')));
 const appData = join(temp, 'app-data');
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-const env = { ...process.env };
-for (const key of Object.keys(env)) if (/^(STONEFORGE_|SF_)/.test(key) || ['ORCHESTRATOR_URL', 'ELECTRON_RUN_AS_NODE'].includes(key)) delete env[key];
+const env = fixtureEnv();
 const observations = [];
 const errors = [];
 let electron, page;

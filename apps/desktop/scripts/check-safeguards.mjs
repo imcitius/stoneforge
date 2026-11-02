@@ -7,14 +7,14 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
+import { fixtureEnv, isInheritedSessionKey } from '../tests/fixture-env.mjs';
 
 assert(process.env.DESKTOP_APP, 'DESKTOP_APP must name the exact relocated app');
 const resources = join(realpathSync(process.env.DESKTOP_APP), 'Contents/Resources');
 assert.equal(realpathSync(process.execPath), realpathSync(join(resources, 'runtime/node')),
   'Use the bundled Node, not the developer runtime');
-for (const key of Object.keys(process.env)) {
-  if (/^(STONEFORGE_|SF_)/.test(key) || ['ORCHESTRATOR_URL', 'ELECTRON_RUN_AS_NODE'].includes(key)) delete process.env[key];
-}
+// In-process production imports below read process.env too, so scrub it globally.
+for (const key of Object.keys(process.env)) if (isInheritedSessionKey(key)) delete process.env[key];
 const backend = join(resources, 'backend');
 const require = createRequire(join(backend, 'package.json'));
 const bundled = path => import(pathToFileURL(join(backend, 'dist', path)).href);
@@ -37,7 +37,7 @@ const { CodexEventMapper } = await bundled('providers/codex/event-mapper.js');
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: 'pipe' }).trim();
 const root = realpathSync(mkdtempSync(join(tmpdir(), 'desktop-safeguards-')));
 const cli = (cwd, ...args) => execFileSync(process.execPath, [join(backend, 'dist/bin/sf.js'), ...args], {
-  cwd, encoding: 'utf8', stdio: 'pipe', env: { ...process.env, STONEFORGE_ROOT: cwd }, timeout: 30000,
+  cwd, encoding: 'utf8', stdio: 'pipe', env: fixtureEnv({ STONEFORGE_ROOT: cwd }), timeout: 30000,
 });
 let count = 0;
 const pass = label => { count++; console.log(`PASS ${label}`); };

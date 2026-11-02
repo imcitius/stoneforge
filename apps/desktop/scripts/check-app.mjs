@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { spawn, execFileSync } from 'node:child_process';
 import { findExternalServer } from '../../../packages/quarry/dist/cli/server-discovery.js';
+import { fixtureEnv } from '../tests/fixture-env.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(join(root, 'apps/smithy-web/package.json'));
 const { _electron } = require('playwright');
@@ -28,8 +29,7 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
   execFileSync(node, [join(root, 'apps/desktop/scripts/check-pty.mjs'), resources], { stdio: 'inherit' });
   const a = join(temp, 'Atlas'); await mkdir(a);
-  const env = { ...process.env };
-  for (const key of ['STONEFORGE_ROOT', 'STONEFORGE_DESKTOP_INSTANCE_ID', 'STONEFORGE_DB_PATH', 'STONEFORGE_UPLOAD_DIR', 'ELECTRON_RUN_AS_NODE']) delete env[key];
+  const env = fixtureEnv();
   const sf = (...args) => execFileSync(node, [cli, ...args], { cwd: a, env, stdio: 'pipe' });
   sf('init', '--preset', 'auto', '--name', 'desktop-fixture');
   sf('agent', 'register', 'codex-director', '--role', 'director', '--provider', 'codex');

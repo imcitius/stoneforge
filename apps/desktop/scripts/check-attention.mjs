@@ -9,6 +9,7 @@ import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
+import { fixtureEnv } from '../tests/fixture-env.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(join(root, 'apps/smithy-web/package.json'));
 const { _electron } = require('playwright');
@@ -17,8 +18,7 @@ const resources = join(bundle, 'Contents/Resources');
 const node = join(resources, 'runtime/node'), cli = join(resources, 'backend/dist/bin/sf.js');
 const temp = await mkdtemp(join(tmpdir(), 'stoneforge-attention-'));
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-const env = { ...process.env };
-for (const key of ['STONEFORGE_ROOT', 'STONEFORGE_DESKTOP_INSTANCE_ID', 'STONEFORGE_DB_PATH', 'STONEFORGE_UPLOAD_DIR', 'STONEFORGE_SESSION_ID', 'SF_ENTITY_ID', 'ELECTRON_RUN_AS_NODE']) delete env[key];
+const env = fixtureEnv();
 let electron;
 const evidence = { bundle, temp, checks: [] };
 async function until(fn, label, timeout=30_000) {

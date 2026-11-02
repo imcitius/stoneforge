@@ -7,6 +7,7 @@ import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { ProjectManager, canonicalProjectRoot } from '../dist/manager.js';
+import { fixtureEnv } from './fixture-env.mjs';
 const require = createRequire(import.meta.url);
 const root = resolve(import.meta.dirname, '../../..');
 const node = require.resolve('node/bin/node');
@@ -48,8 +49,7 @@ test('non-canonical stored roots (/var vs /private/var, symlinks) are migrated w
   let manager;
   try {
     const a = join(canonicalTemp, 'A'); await mkdir(a);
-    const env = { ...process.env }; delete env.STONEFORGE_ROOT;
-    execFileSync(node, [cli, 'init', '--preset', 'auto', '--name', 'canonical-fixture'], { cwd: a, env, stdio: 'pipe' });
+    execFileSync(node, [cli, 'init', '--preset', 'auto', '--name', 'canonical-fixture'], { cwd: a, env: fixtureEnv(), stdio: 'pipe' });
     await symlink(a, join(canonicalTemp, 'alias'));
     const viaTemp = join(temp, 'A'), viaAlias = join(temp, 'alias');
     if (process.platform === 'darwin' && tmpdir().startsWith('/var/')) assert.notEqual(viaTemp, a, 'Fixture must exercise /var vs /private/var');
