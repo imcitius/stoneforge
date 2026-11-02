@@ -133,6 +133,42 @@ were not measured. The threshold says "never raise this", so CI keeps the test
 and a red CI run on this test alone should be read with that in mind. Tracked as
 **el-1caqsx** (contract decision needed; see also workspace reference el-241).
 
+### Pinned third-party actions (el-3fg1vs)
+
+Every `uses:` in `.github/workflows/*.yml` references a full 40-character commit
+SHA followed by the release it came from, e.g.
+`actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0`. The repo is
+public and `desktop-release.yml` holds `contents: write`, so a retargeted major
+tag (`@v4`) must not be able to change what runs. Workflows also keep minimal
+token permissions: `ci.yml`, `deploy-docs.yml` and `deploy-website.yml` are
+`contents: read`; only `desktop-release.yml` has `contents: write`.
+
+Pins as of 2026-11-02 (the commit each major tag pointed to then, so pinning
+changed nothing at runtime): `actions/checkout` v4.4.0, `actions/setup-node`
+v4.4.0, `actions/setup-python` v5.6.0, `actions/upload-artifact` v4.6.2,
+`pnpm/action-setup` v4.3.0, `oven-sh/setup-bun` v2.2.0.
+
+Updating a pin (deliberate, reviewed change; never a bare tag):
+
+1. Pick the release tag, then resolve it read-only. Annotated tags (`type: tag`)
+   must be dereferenced to the commit:
+   ```sh
+   gh api repos/OWNER/ACTION/git/ref/tags/vX.Y.Z --jq '.object.type + " " + .object.sha'
+   gh api repos/OWNER/ACTION/git/tags/<tag-object-sha> --jq .object.sha   # only if type is "tag"
+   ```
+2. Replace the SHA and the `# vX.Y.Z` comment in every workflow using that action,
+   and read the action's release notes/diff between the old and new commit.
+3. Check: `git grep -nE 'uses: [^ ]+@v?[0-9]+(\.[0-9]+)*$' .github/workflows` must
+   print nothing, and `actionlint` (with shellcheck) on `.github/workflows/*.yml`
+   must exit 0. The Desktop test `apps/desktop/tests/ci-release.test.mjs`
+   (*every workflow action is pinned to a full commit SHA*, part of the gate)
+   fails on any `uses:` without a SHA and `# vX.Y.Z` comment.
+
+Dependabot is **not** configured: version updates open branches and pull requests
+in the repository. If wanted later, a `.github/dependabot.yml` with
+`package-ecosystem: github-actions` understands SHA pins with version comments;
+enabling it is a separate decision.
+
 ### Validation — el-2wx7k3, 2026-11-01
 
 Implementation commit `948dc27` (base local master `2927d82`). Commands were run

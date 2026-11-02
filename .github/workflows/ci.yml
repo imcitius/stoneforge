@@ -26,29 +26,33 @@ on:
   pull_request:
     branches: [main, master]
 
+# Read-only token: CI only checks out and tests.
+permissions:
+  contents: read
+
 jobs:
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 8.15.5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           # Same Node as the Desktop runtime pin and the check:merge gate.
           node-version: 22.23.3
           cache: pnpm
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.11
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           # node-pty 1.1.0 ships no Linux prebuild, so pnpm install compiles it
           # with pnpm 8.15.5's bundled node-gyp 9.4.1. That node-gyp imports

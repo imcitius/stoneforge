@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -161,10 +161,28 @@ test('workflow triggers, pins and permissions match the release contract', () =>
   const steps = [...workflow.matchAll(/run: bash scripts\/ci-release\.sh (\w+)/g)].map((m) => m[1]);
   assert.deepEqual(steps, ['resolve', 'preflight', 'build', 'artifacts', 'verify', 'notes', 'publish']);
   assert.match(workflow, /if: steps\.release\.outputs\.DRY_RUN == 'false'\n(?: {8}.*\n)*? {8}run: bash scripts\/ci-release\.sh publish/);
-  assert.match(workflow, /if: steps\.release\.outputs\.DRY_RUN == 'true'\n {8}uses: actions\/upload-artifact@v4/);
+  assert.match(workflow, /if: steps\.release\.outputs\.DRY_RUN == 'true'\n {8}uses: actions\/upload-artifact@[0-9a-f]{40} # v4\.\d+\.\d+\n/);
   // The local runner executes the same subcommands in the same order.
   const local = readFileSync(join(root, 'scripts/ci-release-local.sh'), 'utf8');
   assert.deepEqual([...local.matchAll(/bash "\$STEP" (\w+)/g)].map((m) => m[1]), steps);
+});
+
+// Third-party actions are pinned to full commit SHAs with the release as a comment (el-3fg1vs);
+// a retargeted tag must not change what runs, notably in the contents: write release workflow.
+test('every workflow action is pinned to a full commit SHA', () => {
+  const dir = join(root, '.github/workflows');
+  const files = readdirSync(dir).filter((name) => /\.ya?ml$/.test(name));
+  assert.ok(files.includes('desktop-release.yml'));
+  let count = 0;
+  for (const name of files) {
+    for (const line of readFileSync(join(dir, name), 'utf8').split('\n')) {
+      const m = line.match(/^\s*(?:- )?uses:\s*(.*)$/);
+      if (!m) continue;
+      count += 1;
+      assert.match(m[1], /^[\w.-]+\/[\w./-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+$/, `${name}: ${line.trim()}`);
+    }
+  }
+  assert.ok(count > 0);
 });
 
 // `pnpm release` (scripts/release.mjs) only validates and prints the tag commands.
