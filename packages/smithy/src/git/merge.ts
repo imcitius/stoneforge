@@ -23,6 +23,7 @@
 
 import { execFile } from 'node:child_process';
 import { resolveTarget, requireRemoteTarget } from './target.js';
+import { assertGitIdentity, GitIdentityError } from './identity.js';
 import { hasDeliveryRemote, isLocalDelivery } from './delivery.js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -38,6 +39,9 @@ const MAIN_BRANCH_NAMES = new Set(['main', 'master']);
 // ============================================================================
 
 export interface MergeBranchOptions {
+  /** Optional caller context for actionable Git diagnostics. */
+  taskId?: string;
+  sourceWorktree?: string;
   /** Workspace root (the main repo checkout) */
   workspaceRoot: string;
   /** Branch to merge from */
@@ -356,11 +360,14 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
     await execFileAsync('git', ['fetch', 'origin'], { cwd: workspaceRoot, encoding: 'utf8' });
   }
 
-  // Ensure the target branch exists (auto-creates review branches from main)
-  await ensureTargetBranchExists(workspaceRoot, targetBranch, localOnly);
-
-  const target = await resolveTarget(workspaceRoot, targetBranch, 'none');
-  if (!localOnly) requireRemoteTarget(target, targetBranch);
+  // Resolve an absent review branch from main without creating/pushing it yet.
+  // Identity failure must not leave new integration refs behind.
+  const createTarget = !MAIN_BRANCH_NAMES.has(targetBranch)
+    && !await branchExistsLocally(workspaceRoot, targetBranch)
+    && (localOnly || !await branchExistsOnRemote(workspaceRoot, targetBranch));
+  const resolutionBranch = createTarget ? await detectTargetBranch(workspaceRoot) : targetBranch;
+  const target = await resolveTarget(workspaceRoot, resolutionBranch, 'none');
+  if (!localOnly) requireRemoteTarget(target, resolutionBranch);
   const targetRef = target.commit;
 
   // Build commit message
@@ -382,6 +389,8 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
     );
     const commitsAhead = parseInt(countStr.trim(), 10);
     if (commitsAhead === 0) {
+      // No new commit is needed, so this path needs no commit identity.
+      if (createTarget) await ensureTargetBranchExists(workspaceRoot, targetBranch, localOnly);
       if (localOnly) {
         try {
           await syncLocalBranchFromCommit(workspaceRoot, targetBranch, targetRef);
@@ -451,6 +460,15 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
   try {
     let commitHash: string;
 
+    await assertGitIdentity(mergeDir, {
+      operation: `${mergeStrategy} merge into ${targetBranch}`,
+      source: sourceBranch,
+      taskId: options.taskId,
+      sourceWorktree: options.sourceWorktree,
+    });
+
+    if (createTarget) await ensureTargetBranchExists(workspaceRoot, targetBranch, localOnly);
+
     if (mergeStrategy === 'squash') {
       await execGitSafe(['merge', '--squash', '--', sourceBranch], mergeDir, workspaceRoot);
       await execGitSafe(['commit', '--cleanup=verbatim', '-m', message], mergeDir, workspaceRoot);
@@ -518,7 +536,9 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
     const execError = error as { stdout?: string; stderr?: string; message?: string };
     const output = (execError.stdout ?? '') + (execError.stderr ?? '') + (execError.message ?? '');
 
-    if (output.includes('CONFLICT') || output.includes('Automatic merge failed')) {
+    if (error instanceof GitIdentityError) {
+      mergeResult = { success: false, hasConflict: false, error: error.message };
+    } else if (output.includes('CONFLICT') || output.includes('Automatic merge failed')) {
       // Abort the merge to clean up
       try {
         if (mergeStrategy === 'squash') {

@@ -471,6 +471,8 @@ async function taskMergeHandler(
     const localDelivery = options.local === true || repository.delivery === 'local' || !await hasRemote(workspaceRoot);
 
     const mergeResult = await mergeBranch({
+      taskId,
+      sourceWorktree: orchestratorMeta?.worktree,
       workspaceRoot,
       sourceBranch,
       targetBranch,
@@ -882,6 +884,17 @@ async function taskSyncHandler(
     const target = await resolveTarget(fullWorktreePath, syncBranch);
     const targetDescription = `${target.ref} (${target.commit})`;
 
+    // Probe in the actual commit cwd, before Git can change the index/worktree.
+    // Keep no-op/fast-forward sync usable without a commit identity.
+    const { assertGitIdentity, syncNeedsIdentity } = await import('../../git/identity.js');
+    if (await syncNeedsIdentity(fullWorktreePath, target.commit)) {
+      await assertGitIdentity(fullWorktreePath, {
+        operation: `task sync with ${targetDescription}`,
+        source: branch ?? 'HEAD',
+        taskId,
+      });
+    }
+
     // Attempt to merge
     try {
       await execFileAsync('git', ['merge', target.commit, '--no-edit'], {
@@ -957,11 +970,10 @@ async function taskSyncHandler(
           branch,
         };
 
-        const mode = getOutputMode(options);
-        if (mode === 'json') {
-          return success(syncResult);
-        }
-        return failure(syncResult.message, ExitCode.GENERAL_ERROR);
+        return failure(
+          `Task ${taskId}; source=${branch ?? 'HEAD'}; worktree=${fullWorktreePath}: ${syncResult.message}\n${syncResult.error}`,
+          ExitCode.GENERAL_ERROR
+        );
       } catch {
         // Failed to check status
         const syncResult: SyncResult = {
@@ -972,11 +984,10 @@ async function taskSyncHandler(
           branch,
         };
 
-        const mode = getOutputMode(options);
-        if (mode === 'json') {
-          return success(syncResult);
-        }
-        return failure(syncResult.message, ExitCode.GENERAL_ERROR);
+        return failure(
+          `Task ${taskId}; source=${branch ?? 'HEAD'}; worktree=${fullWorktreePath}: ${syncResult.message}\n${syncResult.error}`,
+          ExitCode.GENERAL_ERROR
+        );
       }
     }
   } catch (err) {

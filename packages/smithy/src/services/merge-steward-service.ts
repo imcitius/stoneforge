@@ -897,6 +897,8 @@ export class MergeStewardServiceImpl implements MergeStewardService {
 
     const remoteDelivery = await this.hasDeliveryRemote();
     return mergeBranch({
+      taskId,
+      sourceWorktree: orchestratorMeta.worktree,
       workspaceRoot: this.config.workspaceRoot,
       sourceBranch,
       targetBranch,

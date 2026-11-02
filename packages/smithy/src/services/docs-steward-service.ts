@@ -703,6 +703,7 @@ export class DocsStewardServiceImpl implements DocsStewardService {
     const { mergeBranch } = await import('../git/merge.js');
 
     const result = await mergeBranch({
+      sourceWorktree: worktreePath,
       workspaceRoot: this.config.workspaceRoot,
       sourceBranch: branchName,
       targetBranch: await this.getTargetBranch(),

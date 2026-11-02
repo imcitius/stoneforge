@@ -138,6 +138,13 @@ async function mergeHandler(
         { cwd: workspaceRoot }
       );
 
+      const { assertGitIdentity } = await import('../../git/identity.js');
+      await assertGitIdentity(mergeDir, {
+        operation: `merge into ${targetBranch}`,
+        source: sourceBranch,
+        sourceWorktree: cwd,
+      });
+
       // 3. Squash merge source branch
       await execGit(['merge', '--squash', '--', sourceBranch], { cwd: mergeDir });
 
