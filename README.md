@@ -101,15 +101,45 @@ Compared to running a single agent (Claude Code, Cursor), Stoneforge gives you p
 
 ## Quick Start
 
-### Prerequisites
+### Install the macOS app (recommended)
 
-- **Node.js 18+** or **Bun** (any recent version)
+Releases of this repository are **Stoneforge Desktop** builds for macOS on Apple Silicon
+(arm64), published on [GitHub Releases](https://github.com/imcitius/stoneforge/releases).
+The app bundles its own Node.js runtime, SQLite, the `sf` CLI and the web dashboard.
 
-### From Zero to Orchestrating
+1. Download `Stoneforge-Desktop-<version>-arm64.dmg` (or the `.zip`) and `SHA256SUMS.txt`
+   from the [latest release](https://github.com/imcitius/stoneforge/releases/latest);
+   optionally check them with `shasum -a 256 -c SHA256SUMS.txt`.
+2. Open the dmg and drag **Stoneforge Desktop** to Applications.
+3. **First launch:** the app is ad-hoc signed and not notarized (no Apple Developer ID yet),
+   so macOS blocks it the first time. Right-click (Control-click) the app → **Open** → **Open**
+   (on macOS 15 and later: try to open it once, then System Settings → Privacy & Security →
+   **Open Anyway**), or remove the quarantine attribute:
+
+   ```bash
+   xattr -dr com.apple.quarantine '/Applications/Stoneforge Desktop.app'
+   ```
+
+4. Install and sign in to at least one agent CLI on the Mac: **Claude Code** and/or **OpenAI Codex**.
+   The app does not install or authenticate them.
+5. Choose **Add project**, select your project folder and let the app initialize it. Each project
+   gets its own backend and dashboard inside the window.
+
+Intel Macs, Linux and Windows have no app build; use the source install below.
+See [apps/desktop/README.md](apps/desktop/README.md) for details.
+
+### From source (CLI and web dashboard)
+
+Prerequisites: **Node.js 22** (the repository pins 22.23.3), **pnpm 8.15.5**, Git 2.30+.
 
 ```bash
-# 1. Install the Stoneforge CLI globally
-npm install -g @stoneforge/smithy
+# 1. Build the Stoneforge CLI from source and put `sf` on your PATH
+git clone https://github.com/imcitius/stoneforge.git
+cd stoneforge
+pnpm install --frozen-lockfile
+pnpm build
+pnpm --filter @stoneforge/smithy-web build:web   # dashboard assets served by `sf serve`
+(cd packages/smithy && pnpm link --global)
 
 # 2. Initialize a workspace in your project
 cd your-project && sf init
@@ -120,6 +150,10 @@ sf serve
 # 4. Open the dashboard
 open http://localhost:3457
 ```
+
+The `@stoneforge/*` packages on npm are the last upstream publications; this repository
+does not publish npm packages, so `npm install -g @stoneforge/smithy` installs an older
+upstream version without this repository's changes.
 
 Once the dashboard is running:
 
@@ -341,7 +375,7 @@ The documentation site is built with Astro and lives in `apps/docs/`. For the mo
 git clone https://github.com/imcitius/stoneforge
 cd stoneforge
 
-# Init Stoneforge (make sure you've globally installed stoneforge NPM package)
+# Init Stoneforge (needs `sf` on PATH: see Quick Start "From source")
 pnpm install && sf init
 
 # Start stoneforge server

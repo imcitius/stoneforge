@@ -1,0 +1,96 @@
+name: Desktop release
+
+# Builds Stoneforge Desktop for macOS (Apple Silicon only, ad-hoc signed, not
+# notarized) and publishes a GitHub Release when a v* tag is pushed. A manual
+# dispatch defaults to a dry run that only uploads the verified files as a
+# workflow artifact. Each step runs scripts/ci-release.sh; run the same steps
+# locally with scripts/ci-release-local.sh. See apps/desktop/README.md "Releases".
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: build, verify and upload a workflow artifact only (no GitHub Release)'
+        type: boolean
+        default: true
+      version:
+        description: 'Optional version (e.g. 1.2.3 or 1.2.3-rc.1). Dry run default: the tag, else 0.0.0-dryrun.<run>. A real release always uses the tag ref and must match it.'
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  desktop-release:
+    name: macOS arm64 build and release
+    # Pinned arm64 (Apple Silicon) runner image, not the moving "latest" label.
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      RELEASE_DRY_RUN_INPUT: ${{ inputs.dry_run }}
+      RELEASE_VERSION_INPUT: ${{ inputs.version }}
+    steps:
+      - name: Checkout the tag
+        uses: actions/checkout@v4
+        with:
+          # GITHUB_REF (the tag for tag pushes). build-info only reads HEAD and the tree state.
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.5
+
+      - uses: actions/setup-node@v4
+        with:
+          # Exactly the Desktop bundled-runtime pin (apps/desktop/package.json) and check:merge.
+          node-version: 22.23.3
+          cache: pnpm
+
+      - name: Resolve tag, version and mode
+        id: release
+        run: bash scripts/ci-release.sh resolve
+
+      - name: Preflight (toolchain pins, clean tree at GITHUB_SHA, no existing release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/ci-release.sh preflight
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build and package (release mode)
+        run: bash scripts/ci-release.sh build
+
+      - name: Release artifacts (zip, dmg, SHA256SUMS; codesign, inventory and GUI smoke)
+        run: bash scripts/ci-release.sh artifacts
+
+      - name: Verify artifacts (build-info commit = GITHUB_SHA, dirty=false, codesign)
+        run: bash scripts/ci-release.sh verify
+
+      - name: Release notes
+        run: bash scripts/ci-release.sh notes
+
+      - name: Upload dry-run artifact
+        if: steps.release.outputs.DRY_RUN == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stoneforge-desktop-${{ steps.release.outputs.VERSION }}-arm64
+          path: |
+            apps/desktop/dist/release/
+            apps/desktop/dist/release-notes.md
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish GitHub Release
+        if: steps.release.outputs.DRY_RUN == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/ci-release.sh publish

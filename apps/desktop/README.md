@@ -10,7 +10,8 @@ not the completed daily-use release. See [verification and remaining work](../..
 
 `imcitius/stoneforge` is now the main repository (upstream `stoneforge-ai/stoneforge`
 is no longer maintained). Its releases are these macOS Desktop builds, created from
-`v*` Git tags by a dedicated workflow. Nothing in `.github/workflows` publishes npm
+`v*` Git tags by `.github/workflows/desktop-release.yml` (see [Releases](#releases)).
+Nothing in `.github/workflows` publishes npm
 packages: the upstream changesets `publish.yml`, which also created `v<version>`
 GitHub releases, was removed so it cannot collide with Desktop tags. CI runs on
 push/PR to `master`; the docs/website Cloudflare deploys are manual-only because
@@ -57,7 +58,8 @@ node apps/desktop/scripts/release-artifacts.mjs --version v1.26.0
   becomes dirty during packaging. It rebuilds `@stoneforge/smithy...` and Desktop
   first, because ignored `dist/` output is not covered by the clean-tree check.
 - The version is written to `Info.plist` (`CFBundleShortVersionString` and
-  `CFBundleVersion`, both the full semver string, including any prerelease suffix),
+  `CFBundleVersion`, both the full semver string, including any prerelease suffix;
+  see the [prerelease limitation](#tags-and-prereleases)),
   the bundled `package.json`/`build-info.json` (`"release": true`) and therefore the
   project-toolbar build label and About panel. Without a release version, local packaging is
   unchanged: `package.json`'s version, modified trees allowed (shown as `(modified)`).
@@ -73,6 +75,11 @@ node apps/desktop/scripts/release-artifacts.mjs --version v1.26.0
   `scripts/check-app.mjs` on the extracted zip app. The GUI smoke needs an unlocked
   graphical session; `--no-smoke` skips it and is not release acceptance.
 
+- When running release mode directly in a worktree, an untracked cache such as a
+  hook's `.a5c/` directory counts as dirty. Park it outside the checkout for the
+  build (`mv .a5c ../.a5c-parked`, move it back afterwards) instead of relaxing the
+  check; `scripts/ci-release-local.sh` (below) builds a clean clone and is unaffected.
+
 For development, rebuild the workspace SQLite addon for the pinned runtime first:
 
 ```sh
@@ -84,6 +91,102 @@ The right end of the project toolbar shows the bundled version and commit hash. 
 commit, branch and build time; the macOS About panel shows the same identity.
 A `(modified)` suffix means the build included uncommitted source changes.
 This metadata is baked into the application, independent of subsequent source edits.
+
+## Releases
+
+GitHub Releases of `imcitius/stoneforge` are produced only by
+`.github/workflows/desktop-release.yml`. Pushing a `v*` tag builds the app on a pinned
+Apple Silicon runner (`macos-15`, Node 22.23.3, pnpm 8.15.5), verifies it and publishes
+the release. Nothing else in the repository publishes npm packages or creates releases.
+
+### Cutting a release
+
+```sh
+pnpm release v1.26.0        # validates, checks the tree, prints the commands; changes nothing
+git tag -a v1.26.0 -m "Stoneforge Desktop v1.26.0" <commit>
+git push origin v1.26.0     # starts the workflow
+gh run list --repo imcitius/stoneforge --workflow desktop-release.yml --limit 3
+```
+
+`pnpm release` (`scripts/release.mjs`) replaced the former upstream `scripts/release.ts`
+(npm publish plus `gh release create v<version>`). It only validates the version with
+the same parser as `package:mac`, refuses a dirty tree or an existing local/remote tag
+or GitHub release, warns when `HEAD` is not `origin/master`, and prints the exact tag
+commands. It creates, pushes and publishes nothing.
+
+#### Tags and prereleases
+
+- Tags are `vMAJOR.MINOR.PATCH` or `vMAJOR.MINOR.PATCH-PRERELEASE` (strict semver, see
+  above). Any tag with a `-` (for example `v1.26.0-rc.1`) is published as a GitHub
+  **prerelease**, which GitHub never marks as "latest".
+- Prefer final tags for releases users should install. `CFBundleVersion` carries the
+  prerelease suffix (it is not purely numeric); this is accepted outside the App Store,
+  but macOS does not guarantee `1.26.0-rc.1` → `1.26.0` ordering for update/version
+  comparisons.
+- A release can never be overwritten silently: the workflow fails before building when
+  a release (including a draft) already exists for the tag, checks again right before
+  publishing, and `gh release create` itself refuses duplicates. To redo a release,
+  delete it deliberately or, better, tag a new version.
+
+### What the workflow does
+
+Each step runs one subcommand of `scripts/ci-release.sh`:
+
+1. `resolve`: tag/version (strict semver, `v` required), prerelease and dry-run mode.
+2. `preflight`: macOS arm64, exact Node/pnpm pins, checkout `HEAD` = `GITHUB_SHA`
+   with a clean tree, the tag points to that commit, no existing release.
+3. `pnpm install --frozen-lockfile`, then `build`: the [Build and run](#build-and-run)
+   sequence and `package:mac` in release mode with the tag's version.
+4. `artifacts`: `release-artifacts.mjs` creates the zip, dmg and `SHA256SUMS.txt`,
+   verifies `codesign --verify --deep --strict`, the complete inventory and version of
+   the extracted zip and the mounted dmg, and runs the `check-app.mjs` GUI smoke on the
+   extracted zip app (GitHub macOS runners have a graphical session; `--no-smoke` is not used).
+5. `verify`: independently checks exactly these three files, `shasum -c`, `hdiutil verify`,
+   and for the packaged and the extracted app: build-info commit = `GITHUB_SHA`,
+   `dirty=false`, `release=true`, version, arm64-only executable and codesign; the tree is
+   still clean afterwards.
+6. `notes`, then `publish`: `gh release create <tag> --verify-tag --generate-notes`
+   (`--prerelease` for `-` tags) with the zip, dmg and `SHA256SUMS.txt`, a fixed section
+   (arm64 only; ad-hoc signed, not notarized, first-launch steps; Codex/Claude Code CLIs
+   must be installed and authenticated) and GitHub's generated notes.
+
+Any failure fails the job. The job has `contents: write` only, uses no secrets beyond
+`GITHUB_TOKEN`, caches the pnpm store and runs one release per ref at a time.
+
+**Dry run.** Actions → *Desktop release* → *Run workflow* (`dry_run` is on by default,
+`version` optional; default the tag name or `0.0.0-dryrun.<run number>`). It runs the
+same build and verification and uploads `stoneforge-desktop-<version>-arm64` (release
+files plus notes, kept 14 days) as a workflow artifact; it never creates a release. A
+non-dry-run dispatch must be started on a `v*` tag ref.
+
+**Local rehearsal.** `scripts/ci-release-local.sh [--version v0.0.0-local.1] [--keep]`
+clones the committed `HEAD` into a temporary directory, creates the tag only in that
+clone, and runs the same subcommands with the environment of a tag push, printing the
+`gh release create` command instead of running it. It needs an unlocked graphical
+session, Node 22.23.3 first on `PATH`, pnpm 8.15.5 and an authenticated `gh` (used
+read-only for the existing-release check). Uncommitted changes are not included.
+
+### Artifacts
+
+| File | Contents |
+|------|----------|
+| `Stoneforge-Desktop-<version>-arm64.dmg` | Compressed disk image with the app and an `/Applications` link |
+| `Stoneforge-Desktop-<version>-arm64.zip` | The same signed app (`ditto`, preserves the signature) |
+| `SHA256SUMS.txt` | SHA-256 of both; check with `shasum -a 256 -c SHA256SUMS.txt` |
+
+### First launch (for users)
+
+Apple Silicon Macs only. The app is ad-hoc signed and **not notarized**, so Gatekeeper
+blocks the first launch of a downloaded copy. After moving **Stoneforge Desktop** to
+`/Applications`, either right-click (Control-click) it → **Open** → **Open** (macOS 15
+and later: open it once, then System Settings → Privacy & Security → **Open Anyway**), or:
+
+```sh
+xattr -dr com.apple.quarantine '/Applications/Stoneforge Desktop.app'
+```
+
+Install and authenticate the Codex and/or Claude Code CLIs before starting agents; the
+app bundles Node, SQLite and `sf` but not the provider CLIs or their logins.
 
 ## Use
 

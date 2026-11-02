@@ -2,15 +2,21 @@
 import Button from '../ui/Button.astro';
 import Badge from '../ui/Badge.astro';
 
-let version = '1.8.0';
+// Version badge: latest GitHub Release of imcitius/stoneforge (the macOS Desktop builds
+// published from v* tags). The fork no longer publishes @stoneforge/* to npm, so npm's
+// "latest" would be stale. /releases/latest skips drafts and prereleases; when no release
+// exists yet (404), the API is unreachable or rate-limited, the badge omits the version.
+let vMinor: string | null = null;
 try {
-  const res = await fetch('https://registry.npmjs.org/@stoneforge/smithy/latest');
+  const headers: Record<string, string> = { Accept: 'application/vnd.github+json', 'User-Agent': 'stoneforge-website-build' };
+  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  const res = await fetch('https://api.github.com/repos/imcitius/stoneforge/releases/latest', { headers });
   if (res.ok) {
-    const data = await res.json();
-    version = data.version;
+    const { tag_name: tag } = await res.json();
+    const match = typeof tag === 'string' ? /^v?(\d+\.\d+)\.\d+$/.exec(tag) : null;
+    if (match) vMinor = match[1];
   }
 } catch {}
-const vMinor = version.replace(/\.\d+$/, '');
 ---
 
 <section class="relative min-h-[100svh] flex items-center pt-14 overflow-hidden">
@@ -27,7 +33,7 @@ const vMinor = version.replace(/\.\d+$/, '');
         <div data-reveal>
           <Badge class="mb-8">
             <span class="w-1.5 h-1.5 rounded-full bg-[var(--site-success)] animate-pulse-glow"></span>
-            v{vMinor} &mdash; Now with Github, Linear, and Notion sync
+            {vMinor ? `v${vMinor}` : 'macOS app'} &mdash; Now with Github, Linear, and Notion sync
           </Badge>
         </div>
 
