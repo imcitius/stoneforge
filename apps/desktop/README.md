@@ -199,7 +199,7 @@ app bundles Node, SQLite and `sf` but not the provider CLIs or their logins.
    Cancel leaves the folder unchanged. Setup progress appears in the project toolbar,
    and failures use a native dialog visible above an open project. Adding a project
    (or launching with `--project=<path>`) is an explicit request to open it, so its
-   server starts once; its agents stay stopped.
+   server and task processing start once, unless task processing was explicitly paused.
 3. Projects are tabs in the window's title bar, right of the macOS window buttons;
    the project dashboard uses the full window width beneath the tab bar and toolbar.
    Each tab shows the project name (truncated with an ellipsis) and a status dot:
@@ -218,8 +218,14 @@ app bundles Node, SQLite and `sf` but not the provider CLIs or their logins.
    ⌃Tab, the » menu or a notification): a stopped project shows its state page with
    **Start project** (and **Show logs**), and stays stopped until you start it.
    Desktop does not restore a selection at launch, so nothing starts invisibly.
-   Start agents using the existing dashboard. Starting a project does not resume
-   directors or start its dispatch daemon.
+   Starting a project starts task processing (the dispatch daemon), including on an
+   adopted external server, unless you explicitly paused it with `sf daemon stop`
+   or the dashboard daemon toggle. A running project with processing stopped shows
+   **Task processing paused** in its toolbar/tab status; its tab menu offers
+   **Task processing paused — Resume**. Resume persists across restarts. Desktop
+   polls status every three seconds, including changes made from the CLI/dashboard.
+   Starting does not directly restore director terminals; the daemon may dispatch
+   eligible work and recover assigned worker/steward sessions.
    Empty title-bar space drags the window; tabs and buttons do not.
 4. Project commands are in each tab's menu: right-click / Control-click a tab, press
    Shift+F10 when it has keyboard focus, or use the compact **⋯** button at the right
@@ -234,7 +240,9 @@ app bundles Node, SQLite and `sf` but not the provider CLIs or their logins.
    starts once and Restart stops and starts once; other projects are unaffected.
    The toolbar beneath the tabs shows the project name, a state label (Running,
    Stopped, Starting…, Stopping…, Error, Needs your input), path and build. Remove only
-   removes registration; project files remain.
+   removes registration; project files remain. Stop, Restart, Remove and Quit preserve
+   the task-processing preference: shutting down a server never means “pause until
+   resumed.” An explicit user pause stays paused after a project restart.
 5. Drag a tab to reorder, or use **Move Tab Left/Right** in the tab menu. The order is stored in
    `preferences.json` in the application userData directory, never in a project;
    without that file, or when it is invalid, tabs follow registration order. New
@@ -322,6 +330,10 @@ It never attaches to or kills an unrelated process. Discovered external servers
 are monitored by PID, process start time, open database and listening socket;
 requests are blocked when that ownership disappears. Stop/Restart/Quit also stop
 adopted servers gracefully through their daemon/session APIs before SIGTERM.
+The daemon stop request uses `?persist=false`, advertised by the status endpoint's
+`supportsTransientStop` field. Older servers that lack this capability receive
+SIGTERM through their graceful server-shutdown handler; Desktop does not call their
+persisting daemon-stop endpoint.
 A legacy server has no identity-token protocol: its routing is checked through
 local OS ownership and health; restart it from Desktop to use the current backend. Start/stop and normal parent
 exit release the lock. A hard-killed backend can leave a stale lock: read its
@@ -384,6 +396,11 @@ node apps/desktop/scripts/check-tabs.mjs
 node apps/desktop/scripts/check-getting-started.mjs
 node apps/desktop/scripts/check-attention.mjs
 ```
+
+`tests/daemon-lifecycle.test.mjs` exercises real managed and adopted servers: default
+processing, explicit CLI pause, stop/start, restart, Resume, Remove and exact
+preference/config preservation. `tests/external.test.mjs` also checks explicit Start
+on an adopted server with automatic startup disabled.
 
 `tests/canonical-root.test.mjs` covers the registry migration (`/var` vs
 `/private/var` and a symlinked alias, started against a real backend) and reports of

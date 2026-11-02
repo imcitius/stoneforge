@@ -145,6 +145,18 @@ try {
   }
   const registered = await run(freshView.id, `(async () => (await fetch('/api/repositories')).json())()`);
   assert.equal(registered.repositories.length, 2);
+  // Pausing via the API must surface in Desktop, and the actual tab-menu action
+  // must resume it without opening another project or launching a provider.
+  await run(freshView.id, `(async () => {
+    const response = await fetch('/api/daemon/stop', { method: 'POST' });
+    if (!response.ok) throw new Error(await response.text());
+  })()`);
+  await page.waitForFunction(() => document.getElementById('state').textContent === 'Task processing paused');
+  await page.screenshot({ path: join(temp, 'task-processing-paused.png') });
+  await chooseTabAction(electron, page, 'Task processing paused — Resume');
+  await page.waitForFunction(() => document.getElementById('state').textContent === 'Running');
+  assert.equal((await run(freshView.id, `(async () => (await fetch('/api/daemon/status')).json())()`)).isRunning, true);
+  console.log('Task processing paused status and tab-menu Resume: passed');
   await restorePopup();
   await run(freshView.id, `(async () => {
     await fetch('/api/daemon/stop', { method: 'POST' });

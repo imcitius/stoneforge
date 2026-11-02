@@ -73,6 +73,7 @@ export function saveDaemonState(
       shouldRun,
       updatedAt: new Date().toISOString(),
       updatedBy,
+      configOverrides: getDaemonState()?.configOverrides,
     };
 
     writeFileSync(STATE_FILE, JSON.stringify(state, null, 2) + '\n', 'utf-8');
@@ -86,10 +87,10 @@ export function saveDaemonState(
  *
  * Returns true if:
  * - No state file exists (first run, default to starting)
- * - State file indicates shouldRun is true
+ * - State is not an explicit user stop
  *
  * Returns false if:
- * - State file indicates shouldRun is false (user intentionally stopped it)
+ * - State has shouldRun false and updatedBy 'user'
  */
 export function shouldDaemonAutoStart(): boolean {
   const state = getDaemonState();
@@ -99,7 +100,7 @@ export function shouldDaemonAutoStart(): boolean {
     return true;
   }
 
-  return state.shouldRun;
+  return !(state.shouldRun === false && state.updatedBy === 'user');
 }
 
 /**

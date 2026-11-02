@@ -46,7 +46,7 @@ body.fullscreen #titlebar{padding-left:8px}
 #title{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;overflow:hidden}
 #name{flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #state{flex:none;padding:1px 7px;border:1px solid var(--border);border-radius:9px;font-size:11px;color:var(--muted);white-space:nowrap}#state[hidden]{display:none}
-#state[data-status="running"]{color:var(--ok)}#state[data-status="error"]{color:var(--error);border-color:var(--error)}#state[data-status="attention"]{color:var(--warn)}
+#state[data-status="running"]{color:var(--ok)}#state[data-status="error"]{color:var(--error);border-color:var(--error)}#state[data-status="attention"],#state[data-status="paused"]{color:var(--warn)}
 #path{min-width:0;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #add-progress{flex:0 1 auto;min-width:0;margin:0;font-size:12px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #build{-webkit-app-region:no-drag;flex:none;font-size:11px;color:var(--muted);white-space:nowrap}
@@ -57,3 +57,5 @@ main{flex:1;min-height:0;position:relative;overflow:auto}
 #start{background:var(--accent);border-color:var(--accent);color:var(--chrome);font-weight:600}#start:hover{background:#93c5fd}#start:disabled{background:var(--surface);border-color:var(--border);color:var(--muted)}
 #start[hidden],#status-logs[hidden]{display:none}
 #error{position:absolute;left:24px;right:24px;top:8px;padding:16px;border:1px solid var(--error);background:var(--bg);color:var(--error);z-index:2}
+
+[data-status="paused"] .dot{background:var(--warn)}

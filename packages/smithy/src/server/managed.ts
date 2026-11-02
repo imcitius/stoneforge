@@ -49,7 +49,8 @@ async function start(message: Record<string, unknown>): Promise<void> {
   process.env.STONEFORGE_ROOT = projectRoot;
   process.env.STONEFORGE_DB_PATH = dbPath;
   process.env.STONEFORGE_UPLOAD_DIR = resolve(projectRoot, '.stoneforge/uploads/terminal');
-  process.env.DAEMON_AUTO_START = 'false';
+  // Desktop Start Project is explicit; only the saved user pause suppresses processing.
+  delete process.env.DAEMON_AUTO_START;
   delete process.env.SF_ENTITY_ID;
   const identity = { projectId: message.projectId as string, instanceId: message.instanceId as string, protocolVersion: 1 };
   process.env.STONEFORGE_DESKTOP_INSTANCE_ID = identity.instanceId;
@@ -57,7 +58,7 @@ async function start(message: Record<string, unknown>): Promise<void> {
   const { startSmithyServer } = await import('./index.js');
   server = await startSmithyServer({
     projectRoot, dbPath, port: 0, host: '127.0.0.1', webRoot: message.webRoot as string,
-    identity, autoResume: false, autoStartDaemon: false,
+    identity, autoResume: false, autoStartDaemon: true,
     authorize: (headers) => {
       const provided = Buffer.from(headers.get('x-stoneforge-secret') ?? '');
       return headers.get('x-stoneforge-project') === identity.projectId &&

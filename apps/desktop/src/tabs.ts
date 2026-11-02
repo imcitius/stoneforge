@@ -4,14 +4,15 @@
  */
 
 export type ProjectState = 'stopped' | 'starting' | 'ready' | 'stopping' | 'error';
-export type StatusKind = 'running' | 'stopped' | 'busy' | 'error' | 'attention';
+export type StatusKind = 'running' | 'stopped' | 'busy' | 'error' | 'attention' | 'paused';
 export type TabStatus = { kind: StatusKind; label: string; symbol: string };
 
 /** Status dot and text for one tab. A pending human decision outranks the backend state. */
-export function projectStatus(project: { state: ProjectState; needsInput?: boolean; error?: string }): TabStatus {
+export function projectStatus(project: { state: ProjectState; needsInput?: boolean; error?: string; taskProcessingPaused?: boolean }): TabStatus {
   if (project.needsInput) return { kind: 'attention', label: 'Needs your input', symbol: '!' };
   switch (project.state) {
-    case 'ready': return { kind: 'running', label: 'Running', symbol: '●' };
+    case 'ready': if (project.taskProcessingPaused) return { kind: 'paused', label: 'Task processing paused', symbol: 'Ⅱ' };
+      return { kind: 'running', label: 'Running', symbol: '●' };
     case 'starting': return { kind: 'busy', label: 'Starting…', symbol: '◌' };
     case 'stopping': return { kind: 'busy', label: 'Stopping…', symbol: '◌' };
     case 'error': return { kind: 'error', label: project.error ? `Error: ${project.error}` : 'Error', symbol: '✕' };
@@ -42,14 +43,14 @@ export function projectActions(project: { state: ProjectState; running?: boolean
 }
 
 export type MenuEntry = { type: 'separator' } |
-  { id: 'start' | 'stop' | 'restart' | 'logs' | 'repositories' | 'move-left' | 'move-right' | 'remove' | 'busy'; label: string; enabled: boolean; toolTip?: string };
+  { id: 'start' | 'stop' | 'restart' | 'logs' | 'repositories' | 'move-left' | 'move-right' | 'remove' | 'busy' | 'resume-processing'; label: string; enabled: boolean; toolTip?: string };
 
 /**
  * Per-tab menu (right-click, Shift+F10, or the ⋯ button on the active tab): Start or Stop by
  * state, Restart when running, then Logs/Repositories, tab order, and Remove. Items needing a
  * confirmation end with an ellipsis.
  */
-export function tabMenuModel(project: { state: ProjectState; running?: boolean }, pending: LifecycleAction | undefined,
+export function tabMenuModel(project: { state: ProjectState; running?: boolean; taskProcessingPaused?: boolean }, pending: LifecycleAction | undefined,
   index: number, count: number): MenuEntry[] {
   const can = projectActions(project, pending);
   const busy = pending === 'start' || pending === 'restart' || project.state === 'starting' ? 'Starting…'
@@ -59,6 +60,7 @@ export function tabMenuModel(project: { state: ProjectState; running?: boolean }
   if (can.start || (!busy && !can.stop)) entries.push({ id: 'start', label: 'Start Project', enabled: can.start });
   if (can.stop) entries.push({ id: 'stop', label: 'Stop Project…', enabled: true });
   if (can.restart || project.state === 'ready') entries.push({ id: 'restart', label: 'Restart Project…', enabled: can.restart });
+  if (project.state === 'ready' && project.taskProcessingPaused) entries.push({ id: 'resume-processing', label: 'Task processing paused — Resume', enabled: !pending });
   entries.push({ type: 'separator' },
     { id: 'logs', label: 'Show Logs', enabled: can.logs },
     { id: 'repositories', label: 'Repositories…', enabled: can.repositories, ...(can.repositories ? {} : { toolTip: 'Start the project to manage its repositories' }) },

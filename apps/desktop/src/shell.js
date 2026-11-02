@@ -152,7 +152,7 @@ function renderStatus(project) {
   start.disabled = !project.actions?.start;
   start.textContent = starting ? 'Starting…' : 'Start project';
   start.setAttribute('aria-label', starting ? `Starting ${project.name}` : `Start ${project.name}`);
-  start.title = 'Start the project server. Agents stay stopped until you start them.';
+  start.title = 'Start the project and task processing, unless you paused it.';
   $('status-logs').setAttribute('aria-label', `Show logs for ${project.name}`);
 }
 

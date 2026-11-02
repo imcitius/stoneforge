@@ -52,7 +52,7 @@ import { notifyClientsOfNewSession } from './websocket.js';
 import { attachSessionEventSaver } from './routes/sessions.js';
 import { notifySSEClientsOfNewSession } from './routes/events.js';
 import { startServer } from './server.js';
-import { shouldDaemonAutoStart, saveDaemonState } from './daemon-state.js';
+import { shouldDaemonAutoStart } from './daemon-state.js';
 import { createLspManager } from './services/lsp-manager.js';
 import { createLspRoutes } from './routes/lsp.js';
 import { initializeBroadcaster } from '@stoneforge/shared-routes';
@@ -263,7 +263,6 @@ async function startUnlockedSmithyServer(options: SmithyServerOptions = {}): Pro
     daemonStatus = 'stopped-by-user';
   } else {
     services.dispatchDaemon.start();
-    saveDaemonState(true, 'server-startup');
     markDaemonAsServerManaged();
     logger.info('Dispatch daemon auto-started');
     daemonStatus = 'running';

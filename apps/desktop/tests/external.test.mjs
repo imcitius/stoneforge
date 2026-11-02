@@ -48,6 +48,7 @@ test('adopts an existing standalone process only for its database, then stops it
     assert.equal(instance.child, undefined, 'Adoption must not spawn another backend');
     assert.equal(instance.external.pid, child.pid);
     assert.equal(manager.projects.get(project.id).state, 'ready');
+    assert.equal((await (await fetch(instance.endpoint + '/api/daemon/status')).json()).isRunning, true, 'Explicit Desktop start enables processing on an adopted server');
     assert.equal(await manager.isCurrent(project.id, instance), true);
     await manager.stop(project.id); await exited;
     assert.equal(manager.instances.has(project.id), false);

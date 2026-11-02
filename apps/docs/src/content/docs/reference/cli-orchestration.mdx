@@ -140,7 +140,7 @@ sf daemon start [--server <url>]
 ```
 
 <Aside>
-  The dispatch daemon starts automatically with `sf serve`. You only need this command if running the daemon separately.
+  The dispatch daemon starts automatically with `sf serve` and Desktop Start Project unless explicitly paused. Use this command to clear a saved user pause and resume processing.
 </Aside>
 
 #### `sf daemon stop`
@@ -153,6 +153,7 @@ Checks daemon state before asking for confirmation; `--force` skips the prompt.
 An already stopped daemon exits successfully without sending a stop request.
 HTTP failures, invalid responses, and a stop response reporting that the daemon
 is still running exit with code 1 and an error, without a success message.
+An explicit stop persists across server and Desktop project restarts. Desktop project shutdown preserves that preference; its tab menu offers **Task processing paused — Resume**.
 Use `sf daemon status` afterward to read back the current state.
 
 #### `sf daemon status`

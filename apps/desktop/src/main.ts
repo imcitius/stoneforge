@@ -93,7 +93,7 @@ function runLifecycle(action: LifecycleAction, id: string): Promise<boolean> {
 async function confirmLifecycle(action: Exclude<LifecycleAction, 'start'>, project: { name: string }): Promise<boolean> {
   const text = {
     stop: { message: `Stop ${project.name}?`, button: 'Stop', detail: 'Its server and running agents will be stopped. Other projects keep running. Project files and worktrees are preserved.' },
-    restart: { message: `Restart ${project.name}?`, button: 'Restart', detail: 'Its server and running agents will be stopped, then the server starts again. Agents stay stopped until you start them. Other projects keep running.' },
+    restart: { message: `Restart ${project.name}?`, button: 'Restart', detail: 'Its server and running agents will be stopped, then the server starts again. Task processing resumes unless you paused it. Other projects keep running.' },
     remove: { message: `Remove ${project.name} from Desktop?`, button: 'Remove', detail: 'Its server and running agents will be stopped and the project leaves the tab bar. Project files, data and worktrees stay in place; Add project registers it again.' },
   }[action];
   const answer = await dialog.showMessageBox(window, { type: 'question', message: text.message, detail: text.detail,
@@ -138,10 +138,10 @@ function tabMenu(id: string): MenuItemConstructorOptions[] {
   const act = (command: string) => () => { void projectCommand(command, id).catch(showActionError); };
   const clicks: Record<string, () => void> = {
     start: act('start'), stop: act('stop'), restart: act('restart'), logs: act('logs'),
-    repositories: act('repositories'), remove: act('remove'),
+    repositories: act('repositories'), remove: act('remove'), 'resume-processing': act('resume-processing'),
     'move-left': () => setOrder(moveProject(order, id, -1)), 'move-right': () => setOrder(moveProject(order, id, 1)),
   };
-  return tabMenuModel({ state: project.state, running: manager.instances.has(id) }, lifecycle.pendingAction(id), index, order.length)
+  return tabMenuModel({ state: project.state, running: manager.instances.has(id), taskProcessingPaused: project.taskProcessingPaused }, lifecycle.pendingAction(id), index, order.length)
     .map((entry) => 'id' in entry ? { id: `project-${entry.id}`, label: entry.label, enabled: entry.enabled, toolTip: entry.toolTip, click: clicks[entry.id] } : { type: 'separator' as const });
 }
 function dispose(id: string): void {
@@ -204,6 +204,10 @@ async function projectCommand(command: string, id: string): Promise<void> {
   if (!manager.projects.has(id)) throw new Error('Unknown project');
   if (command === 'select') { await lifecycle.select(id); return; }
   if (command === 'start' || command === 'stop' || command === 'restart' || command === 'remove') { await runLifecycle(command, id); return; }
+  if (command === 'resume-processing') {
+    if (!lifecycle.pendingAction(id)) await manager.resumeTaskProcessing(id);
+    return;
+  }
   if (command === 'logs') { await showLogs(window, id, manager.projects.get(id)!.name, manager.logs.get(id)); return; }
   if (command === 'repositories') {
     // Never starts a stopped project: repository management needs its running server.
@@ -338,7 +342,7 @@ async function boot(): Promise<void> {
         if (!workspace.initialized) {
           const answer = await dialog.showMessageBox(window, {
             type: 'question', message: `Set up Stoneforge in ${basename(workspace.root)}?`,
-            detail: `${workspace.root}\n\nThis folder has no Stoneforge database. Setup creates workspace data, default agents and agent instructions. Agents will stay stopped.\n\n` +
+            detail: `${workspace.root}\n\nThis folder has no Stoneforge database. Setup creates workspace data, default agents and agent instructions. Task processing starts when the project opens.\n\n` +
               (workspace.hasConfig ? 'Existing configuration and exported data will be reused.' :
                 'Review: agents merge to a review branch; you merge to main.\nAuto: agents merge directly to main.\nApprove: restricted agent actions need approval; merges use pull requests.'),
             buttons: workspace.hasConfig ? ['Cancel', 'Initialize'] : ['Cancel', 'Review', 'Auto', 'Approve'],

@@ -13,7 +13,7 @@ export { createSchedulerRoutes } from './scheduler.js';
 export { createPluginRoutes } from './plugins.js';
 export { createEventRoutes, notifySSEClientsOfNewSession } from './events.js';
 export { createUploadRoutes } from './upload.js';
-export { createDaemonRoutes, markDaemonAsServerManaged } from './daemon.js';
+// Daemon HTTP routes live in @stoneforge/smithy/server (the dev entry point uses it).
 export { createWorkflowRoutes } from './workflows.js';
 export { createPoolRoutes } from './pools.js';
 export { createLspRoutes } from './lsp.js';

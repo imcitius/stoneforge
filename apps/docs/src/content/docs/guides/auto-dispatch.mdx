@@ -7,6 +7,22 @@ import { Steps, Aside, LinkCard } from '@astrojs/starlight/components';
 
 The dispatch daemon is the engine that connects plans to execution. It continuously polls for ready tasks, available workers, and pending messages — then makes assignment decisions automatically. No manual task assignment required.
 
+## Starting and pausing task processing
+
+Starting a Desktop project or `sf serve` starts the daemon by default. An explicit
+`sf daemon stop` or dashboard stop persists a user pause in
+`.stoneforge/daemon-state.json`; it survives server/project restarts. Use
+`sf daemon start`, the dashboard toggle, or Desktop's **Task processing paused —
+Resume** tab-menu item to resume. Desktop displays **Task processing paused** while
+the available daemon is stopped, and refreshes this status every three seconds.
+
+Desktop Stop, Restart, Remove and Quit stop processing without changing that
+preference. The HTTP stop endpoint persists by default; `POST
+/api/daemon/stop?persist=false` is the transient shutdown variant. Status exposes
+`pausedByUser` and `supportsTransientStop`. Start/stop preserve daemon configuration
+overrides. Standalone `DAEMON_AUTO_START=false` still disables automatic startup;
+Desktop's explicit Start Project uses the saved user preference instead.
+
 ## What auto-dispatch solves
 
 Without the daemon, you'd need to manually:

@@ -16,6 +16,7 @@ export interface Project {
   state: 'stopped' | 'starting' | 'ready' | 'stopping' | 'error';
   error?: string;
   needsInput?: boolean;
+  taskProcessingPaused?: boolean;
 }
 export interface Instance {
   projectId: string;
@@ -199,9 +200,11 @@ export class ProjectManager extends EventEmitter {
       instance.ready = Promise.resolve(instance);
       this.instances.set(id, instance);
       this.logs.set(id, `Connected to existing workspace server (PID ${external.pid}) at ${external.endpoint}.\n`);
-      instance.monitor = setInterval(() => { void this.isCurrent(id, instance); }, 2000);
-      instance.monitor.unref();
-      project.state = 'ready'; this.changed(); return instance;
+      await this.startExternalTaskProcessing(project, instance);
+      project.state = 'ready';
+      this.monitorProcessing(id, instance);
+      await this.refreshTaskProcessing(id);
+      this.changed(); return instance;
     } catch (error) {
       project.state = 'error'; project.error = error instanceof Error ? error.message : String(error); this.changed(); throw error;
     }
@@ -270,6 +273,7 @@ export class ProjectManager extends EventEmitter {
     child.on('exit', (code, signal) => {
       clearTimeout(timer);
       if (this.instances.get(id) !== instance) return;
+      clearInterval(instance.monitor);
       this.instances.delete(id);
       project.state = instance.stopping && !instance.failure ? 'stopped' : 'error';
       if (instance.failure) project.error = instance.failure;
@@ -296,12 +300,80 @@ export class ProjectManager extends EventEmitter {
         const health = identityProblems(await response.json() as Record<string, unknown>, { projectId: id, instanceId: instance.instanceId, projectRoot: project.root });
         if (health.length) throw new Error(`Endpoint identity mismatch: ${health.join('; ')}`);
         if (instance.stopping) throw new Error('Backend stopped during startup');
-        clearTimeout(timer); project.state = 'ready'; this.changed(); resolveReady(instance);
+        clearTimeout(timer); project.state = 'ready';
+        this.monitorProcessing(id, instance);
+        await this.refreshTaskProcessing(id);
+        this.changed(); resolveReady(instance);
       })().catch((error) => { clearTimeout(timer); this.fail(id, instance, error instanceof Error ? error : new Error(String(error)), rejectReady); });
     });
     child.send({ type: 'start', projectRoot: project.root, projectId: id, instanceId: instance.instanceId, secret: instance.secret, webRoot: this.options.webRoot });
     void ready.catch((error: Error) => { project.error = error.message; if (project.state !== 'stopped') project.state = 'error'; this.changed(); });
     return ready;
+  }
+  private async startExternalTaskProcessing(project: Project, instance: Instance): Promise<void> {
+    if (!await this.isCurrent(project.id, instance)) throw new Error('Project server changed during startup.');
+    const response = await fetch(instance.endpoint + '/api/daemon/status', {
+      headers: this.headers(instance), signal: AbortSignal.timeout(5000), redirect: 'error',
+    });
+    if (!response.ok) throw new Error(`Could not read task processing status (${response.status})`);
+    const status = await response.json() as { available?: boolean; isRunning?: boolean; pausedByUser?: boolean };
+    if (status.available !== true || status.isRunning !== false) return;
+    let paused = status.pausedByUser;
+    if (paused === undefined) {
+      // Legacy servers do not expose the preference. Read their workspace's state;
+      // never overwrite it to infer or repair a prior user decision.
+      try {
+        const saved = JSON.parse(await readFile(join(project.root, '.stoneforge/daemon-state.json'), 'utf8'));
+        paused = saved.shouldRun === false && saved.updatedBy === 'user';
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+        paused = false;
+      }
+    }
+    if (paused || !await this.isCurrent(project.id, instance)) return;
+    const started = await fetch(instance.endpoint + '/api/daemon/start', {
+      method: 'POST', headers: this.headers(instance), signal: AbortSignal.timeout(5000), redirect: 'error',
+    });
+    if (!started.ok) throw new Error(`Could not start task processing (${started.status})`);
+  }
+  private monitorProcessing(id: string, instance: Instance): void {
+    let polling = false;
+    instance.monitor = setInterval(() => {
+      if (polling) return;
+      polling = true;
+      void this.refreshTaskProcessing(id).finally(() => { polling = false; });
+    }, 3000);
+    instance.monitor.unref();
+  }
+  /** Poll the backend so pauses made through CLI/dashboard are visible in Desktop too. */
+  async refreshTaskProcessing(id: string): Promise<void> {
+    const instance = this.instances.get(id), project = this.projects.get(id);
+    if (!instance || !project || project.state !== 'ready' || instance.stopping) return;
+    try {
+      if (!await this.isCurrent(id, instance)) return;
+      const response = await fetch(instance.endpoint + '/api/daemon/status', {
+        headers: this.headers(instance), signal: AbortSignal.timeout(5000), redirect: 'error',
+      });
+      if (!response.ok) return;
+      const status = await response.json() as { available?: boolean; isRunning?: boolean };
+      if (this.instances.get(id) !== instance || project.state !== 'ready' || instance.stopping) return;
+      if (typeof status.available !== 'boolean' || typeof status.isRunning !== 'boolean') return;
+      const paused = status.available && !status.isRunning;
+      if (project.taskProcessingPaused !== paused) {
+        project.taskProcessingPaused = paused; this.changed();
+      }
+    } catch { /* Keep the last known status on a transient disconnect. */ }
+  }
+  async resumeTaskProcessing(id: string): Promise<void> {
+    const instance = this.instances.get(id);
+    if (!instance || this.projects.get(id)?.state !== 'ready' || instance.stopping || !await this.isCurrent(id, instance)) {
+      throw new Error('Start the project before resuming task processing.');
+    }
+    const response = await fetch(instance.endpoint + '/api/daemon/start', {
+      method: 'POST', headers: this.headers(instance), signal: AbortSignal.timeout(5000), redirect: 'error',
+    });
+    if (!response.ok) throw new Error(`Could not resume task processing (${response.status})`);
+    await this.refreshTaskProcessing(id);
   }
   headers(instance: Instance): Record<string, string> {
     if (instance.external && !instance.external.credentials) return {};
@@ -313,17 +385,27 @@ export class ProjectManager extends EventEmitter {
     if (!instance) return;
     if (instance.stopping) return instance.stopping;
     const project = this.projects.get(id)!;
-    project.state = 'stopping'; project.needsInput = false; this.changed();
+    project.state = 'stopping'; project.needsInput = false; delete project.taskProcessingPaused; this.changed();
     instance.stopping = (async () => {
       if (instance.external) {
         const external = instance.external;
-        for (const path of ['/api/daemon/stop', '/api/sessions/stop-all']) {
+        if (!await this.isCurrent(id, instance)) return;
+        const status = await fetch(instance.endpoint + '/api/daemon/status', {
+          headers: this.headers(instance), signal: AbortSignal.timeout(5000), redirect: 'error',
+        });
+        if (!status.ok) throw new Error(`Could not read external daemon status (${status.status})`);
+        const daemon = await status.json() as { available?: boolean; supportsTransientStop?: boolean };
+        // Old servers ignore persist=false. Use their graceful SIGTERM shutdown instead
+        // of accidentally recording a permanent user pause through their stop endpoint.
+        const paths = daemon.supportsTransientStop ? ['/api/daemon/stop?persist=false', '/api/sessions/stop-all']
+          : daemon.available === false ? ['/api/sessions/stop-all'] : [];
+        for (const path of paths) {
           if (!await this.isCurrent(id, instance)) return;
           const response = await fetch(instance.endpoint + path, { method: 'POST',
             headers: { ...this.headers(instance), 'Content-Type': 'application/json' },
             body: JSON.stringify({ graceful: true }), signal: AbortSignal.timeout(30_000), redirect: 'error' });
           if (!response.ok) {
-            if (path === '/api/daemon/stop' && response.status === 503) {
+            if (path === '/api/daemon/stop?persist=false' && response.status === 503) {
               const status = await fetch(instance.endpoint + '/api/daemon/status', { headers: this.headers(instance), signal: AbortSignal.timeout(3000), redirect: 'error' });
               if (status.ok && (await status.json() as { available?: boolean }).available === false) continue;
             }
@@ -331,8 +413,16 @@ export class ProjectManager extends EventEmitter {
           }
         }
         if (await this.isCurrent(id, instance)) process.kill(external.pid, 'SIGTERM');
-        for (let attempt = 0; attempt < 100; attempt++) {
-          if (!await this.isCurrent(id, instance)) return;
+        // Shutdown closes the listening socket before sessions/storage and the lock.
+        // Wait for that exact process to exit; socket loss alone is not safe to restart.
+        for (let attempt = 0; attempt < 460; attempt++) {
+          let started: string;
+          try { started = (await runFile('/bin/ps', ['-p', String(external.pid), '-o', 'lstart='], { timeout: 3000 })).stdout.trim(); }
+          catch (error) {
+            if ((error as { code?: number }).code !== 1) throw error;
+            started = '';
+          }
+          if (started !== external.started) { await this.isCurrent(id, instance); return; }
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
         throw new Error('External server did not stop. Check its terminal.');

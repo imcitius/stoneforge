@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, mkdir, symlink, cp } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir, symlink, cp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join, dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -29,6 +29,9 @@ test('three real backends isolate identical agent IDs, credentials and events; r
     execFileSync(node, [cli, 'init', '--preset', 'auto', '--name', 'isolation-fixture'], { cwd: a, env: fixtureEnv, stdio: 'pipe' });
     execFileSync(node, [cli, 'agent', 'register', 'fixture-worker', '--role', 'worker', '--mode', 'ephemeral'], { cwd: a, env: fixtureEnv, stdio: 'pipe' });
     execFileSync(node, [cli, 'task', 'create', '--title', 'isolation-task'], { cwd: a, env: fixtureEnv, stdio: 'pipe' });
+    // This routing test assigns tasks manually; explicitly pause its fixture daemon
+    // before starting servers so auto-dispatch cannot launch real providers.
+    await writeFile(join(a, '.stoneforge/daemon-state.json'), JSON.stringify({ shouldRun: false, updatedBy: 'user' }));
     // Clone initialized data so each project deliberately contains the same local IDs.
     for (const name of ['B', 'C']) await cp(a, join(temp, name), { recursive: true });
     const projects = await Promise.all(['A', 'B', 'C'].map((name) => manager.add(join(temp, name))));

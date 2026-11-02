@@ -6,7 +6,7 @@
 
 import { Hono } from 'hono';
 import type { Services } from '../services.js';
-import { saveDaemonState, saveDaemonConfigOverrides } from '../daemon-state.js';
+import { saveDaemonState, saveDaemonConfigOverrides, shouldDaemonAutoStart } from '../daemon-state.js';
 import { createLogger } from '../../utils/logger.js';
 import { parseRateLimitResetTime } from '../../utils/rate-limit-parser.js';
 
@@ -45,6 +45,8 @@ export function createDaemonRoutes(services: Services) {
     return c.json({
       isRunning: dispatchDaemon.isRunning(),
       available: true,
+      pausedByUser: !shouldDaemonAutoStart(),
+      supportsTransientStop: true,
       serverManaged,
       config: {
         pollIntervalMs: config.pollIntervalMs,
@@ -120,8 +122,10 @@ export function createDaemonRoutes(services: Services) {
 
       dispatchDaemon.stop();
 
-      // Persist state so daemon stays stopped after server restart
-      saveDaemonState(false, 'user');
+      // Project shutdown stops work without changing the user's restart preference.
+      const persist = c.req.query('persist') !== 'false';
+      if (persist) saveDaemonState(false, 'user');
+      logger.info(`Dispatch daemon stopped (${persist ? 'explicit user pause' : 'project shutdown; preference preserved'})`);
 
       // Reset server-managed flag when stopped
       serverManaged = false;
