@@ -129,7 +129,7 @@ This fixture has no workspace documentation library to update.
 
   const { initializeServices } = await import('../packages/smithy/src/server/services.js');
   services = await initializeServices({ projectRoot: workspace, dbPath: join(workspace, '.stoneforge/stoneforge.db') });
-  const entity = await createEntity({ name: 'test-operator', entityType: EntityTypeValue.SYSTEM, createdBy: asEntityId('system:test') });
+  const entity = await createEntity({ name: 'test-operator', entityType: EntityTypeValue.SYSTEM, createdBy: asEntityId('system:test') }, services.api.getIdGeneratorConfig());
   const operator = await services.api.create({ ...entity });
   const createdBy = asEntityId(operator.id);
   const director = await services.agentRegistry.registerDirector({ name: 'live-director', createdBy, provider: reviewerProvider });
