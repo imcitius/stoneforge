@@ -14,7 +14,14 @@ const node = require.resolve('node/bin/node');
 const cli = join(root, 'packages/smithy/dist/bin/sf.js');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-test('adopts an existing standalone process only for its database, then stops it gracefully', { timeout: 40_000 }, async () => {
+// External-server adoption is macOS-only product behavior: findExternalServer
+// (packages/quarry/src/cli/server-discovery.ts) returns undefined on other
+// platforms and discovers servers through /usr/sbin/lsof and /bin/ps. Linux CI
+// (pnpm check:ci) therefore reports this test as skipped; pnpm check:merge runs
+// only on macOS, where it always runs.
+const adoptionSkip = process.platform !== 'darwin' && 'external-server adoption is macOS-only (findExternalServer returns undefined elsewhere)';
+
+test('adopts an existing standalone process only for its database, then stops it gracefully', { timeout: 40_000, skip: adoptionSkip }, async () => {
   const temp = await realpath(await mkdtemp(join(tmpdir(), 'sf-adopt-')));
   const projectRoot = join(temp, 'Existing'); await mkdir(projectRoot);
   const otherRoot = join(temp, 'Other'); await mkdir(otherRoot);

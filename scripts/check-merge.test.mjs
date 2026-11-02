@@ -4,6 +4,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, 
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { checkEnvironment, checkRuntime, runChecks, runMergeGate } from './check-merge.mjs';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const options = { log: () => {}, stdio: 'pipe' };
 const child = (name, code) => ({ name, command: process.execPath, args: ['-e', code] });
@@ -143,4 +145,11 @@ test('a successful preflight proceeds to the requested checks and preserves thei
   assert.match(fixture.logs.join('\n'), /FAILED exit=17: intentional failure/);
   const logDirectory = fixture.logs.find(line => line.includes('Full logs and results.json: ')).split('Full logs and results.json: ')[1];
   t.after(() => rmSync(logDirectory, { recursive: true, force: true }));
+});
+
+test('check:ci accepts no filtering or skip flags', () => {
+  const script = fileURLToPath(new URL('./check-ci.mjs', import.meta.url));
+  const result = spawnSync(process.execPath, [script, '--skip', 'anything'], { encoding: 'utf8', env: checkEnvironment() });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Usage: pnpm check:ci \(no filtering or skip flags\)/);
 });

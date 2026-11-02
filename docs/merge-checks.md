@@ -90,6 +90,67 @@ actor or server. The invoking shell and installed application are unchanged.
   does not invent coverage for them. Add relevant checks when reviewing changes
   in these areas. Intel macOS, Linux and Windows are not verified by this gate;
   the command fails on non-macOS instead of silently skipping Desktop.
+  Linux is exercised separately by GitHub CI through `pnpm check:ci`; see
+  "CI vs gate" below. A green CI run is not macOS acceptance.
+
+## CI vs gate
+
+GitHub CI (`.github/workflows/ci.yml`, `ubuntu-latest`, push/PR to `master`) runs
+`pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build` and then
+**`pnpm check:ci`** (`scripts/check-ci.mjs`). `check:ci` calls the gate's own
+`runMergeGate()`: the same Node/native preflight, the same `mergeChecks()` step
+list in the same order and the same per-file Bun isolation as `pnpm check:merge`.
+No step is filtered and it accepts no arguments. The only difference is the host:
+`check:merge` refuses non-macOS hosts, `check:ci` runs on macOS or Linux.
+CI pins pnpm 8.15.5, Node 22.23.3, Bun 1.3.11 and Python 3.11.
+
+Before el-2wx7k3, CI ran `bun test src` in each package. In Smithy that also
+loads the Vitest `*.test.ts` files under Bun and shares one Bun process across
+files (locally exit 1: 2118 pass, 21 skip, 56 fail, 1 error) while the gate
+passed. It was replaced, not fixed: `bun test src` in Smithy is still not a
+supported check.
+
+What differs on Linux (all visible in the logs, none hidden):
+
+| Item | Linux behaviour | Why |
+| --- | --- | --- |
+| Desktop `external.test.mjs` adoption test | Skipped with reason | `findExternalServer` (`packages/quarry/src/cli/server-discovery.ts`) returns `undefined` off macOS and discovers servers with `/usr/sbin/lsof` and `/bin/ps`. Adoption is macOS-only product behaviour. |
+| Desktop `socket-workaround.test.mjs` Electron EINVAL test | Skipped (existing) | Injects a macOS-only socket error. |
+| Other 15 Desktop Node tests, Desktop build | Run | Plain Node/TypeScript, temporary Git repos and SQLite. |
+| `node-pty` | Compiled during install | 1.1.0 ships prebuilds only for darwin/win32. pnpm 8.15.5's bundled node-gyp 9.4.1 imports `distutils`, removed in Python 3.12 (the ubuntu-24.04 default), so CI pins Python 3.11 via `actions/setup-python`. |
+| `better-sqlite3` | Prebuilt Linux binary | Loaded by the preflight like on macOS. |
+| PTY fixtures (Smithy Vitest, Bun runtime tests) | Run | Linux PTY via node-pty; passed in the Ubuntu container run. |
+
+Known Linux result (pre-existing, not changed by el-2wx7k3): Quarry
+`query-performance.bun.test.ts` → *should maintain list performance as dataset
+grows* asserts a `minimumPerQuery` ratio `< 3` for 150 vs 50 tasks. Each list
+query returns all `size` tasks, so the work is linear. On macOS arm64 it measured
+2.864 (load ~22). In an Ubuntu 24.04 arm64 container (4 CPUs, container load ~2)
+it measured 3.0025, 3.0564 in two full runs and 3.029–3.048 in four of five
+isolated runs. The per-query minimums were stable (about 0.137 / 0.276 / 0.417 ms),
+so this looks like a platform difference, not load noise. GitHub's x64 runners
+were not measured. The threshold says "never raise this", so CI keeps the test
+and a red CI run on this test alone should be read with that in mind. Tracked as
+**el-1caqsx** (contract decision needed; see also workspace reference el-241).
+
+### Validation — el-2wx7k3, 2026-11-01
+
+Implementation commit `948dc27` (base local master `2927d82`). Commands were run
+from the worktree root, Node 22.23.3 first on PATH.
+
+| Where | Command | Result |
+| --- | --- | --- |
+| macOS arm64 | `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build` | Exit 0 each (typecheck 17/17, build 14/14). |
+| macOS arm64 | `pnpm check:ci` | **200/200, exit 0**, 488.17 s; Desktop 17/17, Smithy Vitest 376/376, gate regressions 13/13. |
+| macOS arm64 | `pnpm check:merge` | **200/200, exit 0**, 409.48 s. |
+| macOS arm64 | Executed command lists (`results.json`) | `check:ci` and `check:merge` ran identical 200 commands. |
+| Ubuntu 24.04 arm64 container, non-root, no global Git identity, Python 3.11, 4 CPUs | The four CI commands above | Install/typecheck/build exit 0; `check:ci` 199/200, only the Quarry list-scaling test above failed (3.0564); Desktop 15 pass / 2 skip; same 200 commands as macOS. |
+| Ubuntu container, Python 3.12 (no setup-python) | `pnpm install --frozen-lockfile` | Exit 1: `ModuleNotFoundError: No module named 'distutils'` while building node-pty. |
+| — | `actionlint` 1.7.12 with shellcheck 0.11.0 on `.github/workflows/*.yml` | 0 errors; a negative control (`run: ls $FOO`) reported SC2086, so shellcheck was active. |
+
+Not run: the workflow on GitHub (the Director pushes), x64 Linux, Playwright,
+`pnpm lint`/`pnpm test`. The container emulates the runner (Ubuntu 24.04,
+non-root `runner`, pinned toolchain); it is not the GitHub image.
 
 ## Steward review and activation
 

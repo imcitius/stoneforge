@@ -46,6 +46,17 @@ cd packages/quarry && bun test src
 cd packages/smithy && bun test src
 ```
 
+These are quick per-package runs, not the acceptance check. In `packages/smithy`,
+`bun test src` also loads the Vitest `*.test.ts` files under Bun and shares one Bun
+process across files, so it reports failures that the real check does not.
+The checks that count run every `*.bun.test.ts` in its own Bun process plus
+Smithy's Vitest suite under Node (see `docs/merge-checks.md`):
+
+```bash
+pnpm check:merge   # pre-merge gate, macOS; includes the Desktop Node tests
+pnpm check:ci      # what GitHub CI runs (macOS or Linux); same steps minus the named CI skips
+```
+
 Typecheck all packages:
 
 ```bash

@@ -90,7 +90,15 @@ pnpm lint
 pnpm typecheck
 ```
 </TabItem>
+<TabItem label="Acceptance (CI / pre-merge)">
+```bash
+pnpm check:ci      # what GitHub CI runs (macOS or Linux)
+pnpm check:merge   # pre-merge gate (macOS); also runs the Desktop Node tests
+```
+</TabItem>
 </Tabs>
+
+The per-package runs are quick checks, not the acceptance check. In `packages/smithy`, `bun test src` also loads the Vitest `*.test.ts` files under Bun and shares one Bun process across files, so it reports failures the acceptance check does not. `pnpm check:ci` and `pnpm check:merge` run every `*.bun.test.ts` in its own Bun process plus Smithy's Vitest suite under Node (see `docs/merge-checks.md` in the repository).
 
 ## Making changes
 
@@ -115,7 +123,8 @@ pnpm typecheck
 
    ```bash
    npx turbo run typecheck
-   bun test src  # in the relevant package directory
+   bun test src  # in the relevant package directory (quick check)
+   pnpm check:ci # the selection GitHub CI runs
    ```
 
 5. **Submit a pull request** against `master`
