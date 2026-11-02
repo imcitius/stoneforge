@@ -165,7 +165,8 @@ export function TaskDetailPanel({ taskId, onClose, onNavigateToTask }: TaskDetai
 
   const handleStart = async () => {
     if (!task) return;
-    await startTask.mutateAsync({ taskId: task.id });
+    if (!task.assignee) return;
+    await startTask.mutateAsync({ taskId: task.id, agentId: task.assignee });
   };
 
   const handleComplete = async () => {

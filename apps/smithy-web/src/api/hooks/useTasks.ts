@@ -261,10 +261,11 @@ export function useAssignTask() {
 export function useStartTask() {
   const queryClient = useQueryClient();
 
-  return useMutation<TaskResponse, Error, { taskId: string }>({
-    mutationFn: async ({ taskId }) => {
+  return useMutation<TaskResponse, Error, { taskId: string; agentId: string }>({
+    mutationFn: async ({ taskId, agentId }) => {
       return fetchApi<TaskResponse>(`/tasks/${taskId}/start`, {
         method: 'POST',
+        body: JSON.stringify({ agentId }),
       });
     },
     onSuccess: (_, { taskId }) => {

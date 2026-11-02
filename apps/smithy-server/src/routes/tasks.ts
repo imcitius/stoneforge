@@ -6,7 +6,7 @@
 
 import { Hono } from 'hono';
 import type { EntityId, ElementId, Task, Document, DocumentId } from '@stoneforge/core';
-import { createTask, createDocument, TaskStatus, ElementType, Priority, Complexity, ContentType, updateTaskStatus } from '@stoneforge/core';
+import { createTask, createDocument, TaskStatus, ElementType, Priority, Complexity, ContentType, updateTaskStatus, StoneforgeError } from '@stoneforge/core';
 import type { OrchestratorTaskMeta } from '@stoneforge/smithy';
 import { createLogger, updateOrchestratorTaskMeta, getOrchestratorTaskMeta } from '@stoneforge/smithy';
 import type { Services } from '../services.js';
@@ -351,26 +351,33 @@ export function createTaskRoutes(services: Services) {
 
   // NOTE: POST /api/tasks/bulk-delete is now in @stoneforge/shared-routes (createTaskRoutes)
 
-  // POST /api/tasks/:id/start - Start task (set to in_progress)
+  // POST /api/tasks/:id/start - Start as the asserted current assignee
   app.post('/api/tasks/:id/start', async (c) => {
     try {
       const taskId = c.req.param('id') as ElementId;
-
-      const task = await api.get<Task>(taskId);
-      if (!task || task.type !== ElementType.TASK) {
-        return c.json({ error: { code: 'NOT_FOUND', message: 'Task not found' } }, 404);
+      const body = (await c.req.json().catch(() => null)) as { agentId?: unknown; sessionId?: unknown } | null;
+      if (!body || typeof body.agentId !== 'string' || !body.agentId.trim() ||
+          (body.sessionId !== undefined && (typeof body.sessionId !== 'string' || !body.sessionId.trim()))) {
+        return c.json({ error: { code: 'INVALID_INPUT', message: 'agentId is required; sessionId must be a non-empty string when supplied' } }, 400);
       }
 
-      if (task.status !== TaskStatus.OPEN) {
-        return c.json({ error: { code: 'INVALID_STATE', message: 'Task must be in open status to start' } }, 400);
-      }
-
-      const updatedTask = await api.update(taskId, {
-        status: TaskStatus.IN_PROGRESS,
-      } as unknown as Record<string, unknown>) as unknown as Task;
+      const updatedTask = await taskAssignmentService.startTask(taskId, {
+        agentId: body.agentId as EntityId,
+        sessionId: body.sessionId as string | undefined,
+      });
 
       return c.json({ task: formatTaskResponse(updatedTask) });
     } catch (error) {
+      if (error instanceof StoneforgeError) {
+        const response = { error: { code: error.code, message: error.message } };
+        if (error.details.startErrorKind === 'invalid-state' || error.details.startErrorKind === 'invalid-assignee') {
+          return c.json(response, 422);
+        }
+        if (error.httpStatus === 409) return c.json(response, 409);
+      }
+      if (error instanceof Error && error.message.startsWith('Task not found:')) {
+        return c.json({ error: { code: 'NOT_FOUND', message: error.message } }, 404);
+      }
       logger.error('Failed to start task:', error);
       return c.json({ error: { code: 'INTERNAL_ERROR', message: String(error) } }, 500);
     }

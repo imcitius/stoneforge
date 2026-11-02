@@ -587,35 +587,35 @@ export class TaskAssignmentServiceImpl implements TaskAssignmentService {
     const agentId = legacy ? undefined : (options as StartTaskOptions).agentId;
     const sessionId = legacy ? ((options as string | null | undefined) ?? undefined) : (options as StartTaskOptions).sessionId;
     const currentMeta = getOrchestratorTaskMeta(task.metadata);
-    const reject = (reason: string): never => {
+    const reject = (reason: string, kind: 'invalid-state' | 'invalid-assignee' | 'conflict'): never => {
       throw new ConflictError(
         `Cannot start task ${taskId}: ${reason}`,
         ConflictErrorCode.CONCURRENT_MODIFICATION,
-        { taskId, status: task.status, assignee: task.assignee, agentId, sessionId }
+        { taskId, status: task.status, assignee: task.assignee, agentId, sessionId, startErrorKind: kind }
       );
     };
 
     if (task.status !== TaskStatus.OPEN && task.status !== TaskStatus.IN_PROGRESS) {
-      reject(`task is in '${task.status}' status; only open or in_progress work can be started.`);
+      reject(`task is in '${task.status}' status; only open or in_progress work can be started.`, 'invalid-state');
     }
     if (!legacy && (typeof agentId !== 'string' || !agentId.trim())) {
-      reject('the object form requires the caller agentId.');
+      reject('the object form requires the caller agentId.', 'invalid-assignee');
     }
     if (sessionId !== undefined && (typeof sessionId !== 'string' || !sessionId.trim())) {
-      reject('sessionId must be a non-empty string when supplied.');
+      reject('sessionId must be a non-empty string when supplied.', 'conflict');
     }
     if (!task.assignee || task.assignee !== currentMeta?.assignedAgent) {
-      reject('requires a coherent current agent assignment (assignee and assignedAgent must match).');
+      reject('requires a coherent current agent assignment (assignee and assignedAgent must match).', 'invalid-assignee');
     }
     if (agentId !== undefined && agentId !== task.assignee) {
-      reject('caller is not the current assigned agent.');
+      reject('caller is not the current assigned agent.', 'invalid-assignee');
     }
     if (sessionId !== undefined && currentMeta?.sessionId !== undefined && currentMeta.sessionId !== sessionId) {
-      reject('a different session is already recorded; start never replaces a recorded session.');
+      reject('a different session is already recorded; start never replaces a recorded session.', 'conflict');
     }
     const assignedAgent = await this.api.get<AgentEntity>(asElementId(task.assignee!));
     if (!assignedAgent || assignedAgent.type !== ElementType.ENTITY || !isAgentEntity(assignedAgent)) {
-      reject('the assignee is not a registered agent.');
+      reject('the assignee is not a registered agent.', 'invalid-assignee');
     }
 
     const updates: Partial<OrchestratorTaskMeta> = {

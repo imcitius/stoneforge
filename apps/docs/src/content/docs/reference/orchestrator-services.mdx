@@ -61,6 +61,13 @@ supported but makes no caller assertion; the same state guards and version check
 apply. Unassigned tasks are rejected. These checks prevent stale operations; they
 are not authentication.
 
+Both Smithy HTTP servers expose `POST /api/tasks/:id/start` through this service.
+The JSON body must contain `agentId` (the caller's asserted agent ID) and may
+contain `sessionId`. The service checks that the caller is the current assignee;
+the server does not authenticate this assertion. Invalid or missing input returns
+400, invalid task state or assignment returns 422, a stale or concurrent update
+returns 409, and a missing task returns 404. A successful start returns the task.
+
 #### Completion identity and recovery
 
 Worker completion requires an `open` or `in_progress` task, the current

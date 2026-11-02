@@ -187,6 +187,18 @@ const task = await api.assignTaskToAgent(taskId, workerId, {
 });
 ```
 
+### Start an assigned task over HTTP
+
+The Smithy server accepts `POST /api/tasks/:id/start` with a JSON body such as
+`{ "agentId": "el-worker", "sessionId": "session-123" }`. `agentId` is required;
+`sessionId` is optional. The route passes this caller assertion to
+`TaskAssignmentService.startTask`. It accepts `open` and `in_progress` tasks only
+when the assignee, orchestrator assigned agent, and registered agent agree.
+The existing session is preserved, and the task is updated against its validated
+version. Responses are 400 for malformed input, 422 for invalid state or assignee,
+409 for a stale or concurrent update, and 404 for a missing task. The caller ID
+in the request is an assertion, not authentication.
+
 ### Orchestrator task metadata
 
 Each task carries orchestration metadata — branch, worktree, merge status, handoff history, etc.

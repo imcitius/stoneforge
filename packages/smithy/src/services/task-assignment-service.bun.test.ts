@@ -296,11 +296,16 @@ describe('TaskAssignmentService', () => {
       ]) {
         await expect(call()).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
       }
+      await expect(service.startTask(task.id, { agentId: other })).rejects.toMatchObject({
+        details: { startErrorKind: 'invalid-assignee' },
+      });
       expect(await api.get<Task>(task.id)).toEqual(before);
 
       for (const status of [TaskStatus.CLOSED, TaskStatus.DEFERRED, TaskStatus.REVIEW, TaskStatus.BACKLOG]) {
         const blocked = await api.update<Task>(task.id, { status });
-        await expect(service.startTask(task.id, { agentId: owner })).rejects.toMatchObject({ code: 'CONCURRENT_MODIFICATION' });
+        await expect(service.startTask(task.id, { agentId: owner })).rejects.toMatchObject({
+          code: 'CONCURRENT_MODIFICATION', details: { startErrorKind: 'invalid-state' },
+        });
         expect(await api.get<Task>(task.id)).toEqual(blocked);
       }
     });

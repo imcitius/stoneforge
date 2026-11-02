@@ -433,10 +433,10 @@ export function TasksPage() {
     });
   };
 
-  const handleStartTask = async (taskId: string) => {
+  const handleStartTask = async (taskId: string, agentId: string) => {
     setPendingStart((prev) => new Set(prev).add(taskId));
     try {
-      await startTaskMutation.mutateAsync({ taskId });
+      await startTaskMutation.mutateAsync({ taskId, agentId });
     } finally {
       setPendingStart((prev) => {
         const next = new Set(prev);
@@ -1021,7 +1021,7 @@ function ResizeHandle({ columnId, onResizeStart }: ResizeHandleProps) {
 interface TaskListViewProps {
   groups: TaskGroup[];
   entityNameMap: Map<string, string>;
-  onStart: (taskId: string) => void;
+  onStart: (taskId: string, agentId: string) => void;
   onComplete: (taskId: string) => void;
   onReopen: (taskId: string) => void;
   onSelectTask: (taskId: string) => void;
@@ -1216,7 +1216,7 @@ function TaskListView({
 interface GroupSectionProps {
   group: TaskGroup;
   entityNameMap: Map<string, string>;
-  onStart: (taskId: string) => void;
+  onStart: (taskId: string, agentId: string) => void;
   onComplete: (taskId: string) => void;
   onReopen: (taskId: string) => void;
   onSelectTask: (taskId: string) => void;
@@ -1280,7 +1280,7 @@ function GroupSection({
               key={task.id}
               task={task}
               assigneeName={task.assignee ? entityNameMap.get(task.assignee) : undefined}
-              onStart={() => onStart(task.id)}
+              onStart={() => task.assignee && onStart(task.id, task.assignee)}
               onComplete={() => onComplete(task.id)}
               onReopen={() => onReopen(task.id)}
               onClick={() => onSelectTask(task.id)}
