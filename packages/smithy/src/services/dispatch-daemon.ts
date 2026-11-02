@@ -304,9 +304,9 @@ export interface DispatchDaemonConfig {
 
   /**
    * Maximum session duration in ms for steward sessions specifically.
-   * Steward sessions are expected to be short-lived; this provides
-   * a safety net for sessions that fail to self-terminate.
-   * Default: 1800000 (30 minutes).
+   * Optional hard cap. A review can legitimately last longer than 30 minutes,
+   * including a foreground merge gate. Hung sessions are handled by
+   * sessionIdleTimeoutMs instead. Default: 0 (disabled).
    */
   readonly maxStewardSessionDurationMs?: number;
 
@@ -2304,7 +2304,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       maxResumeAttemptsBeforeRecovery: config?.maxResumeAttemptsBeforeRecovery ?? 3,
       noProgressHandoffLimit: Math.max(0, config?.noProgressHandoffLimit ?? DEFAULT_NO_PROGRESS_HANDOFF_LIMIT),
       maxSessionDurationMs: config?.maxSessionDurationMs ?? 0,
-      maxStewardSessionDurationMs: config?.maxStewardSessionDurationMs ?? 30 * 60 * 1000,
+      maxStewardSessionDurationMs: config?.maxStewardSessionDurationMs ?? 0,
       sessionIdleTimeoutMs: Math.max(0, config?.sessionIdleTimeoutMs ?? DEFAULT_SESSION_IDLE_TIMEOUT_MS),
       idleSessionWithoutTaskMs: Math.max(0, config?.idleSessionWithoutTaskMs ?? DEFAULT_IDLE_SESSION_WITHOUT_TASK_MS),
       orphanResumeBackoffMs: Math.max(0, config?.orphanResumeBackoffMs ?? DEFAULT_ORPHAN_RESUME_BACKOFF_MS),
@@ -2747,8 +2747,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    *
    * Applies two thresholds:
    * - `maxSessionDurationMs` — general limit for all sessions (0 = disabled)
-   * - `maxStewardSessionDurationMs` — stricter limit for steward sessions
-   *   (default 30 minutes), which are expected to be short-lived
+   * - `maxStewardSessionDurationMs` — optional hard limit for steward sessions
+   *   (default disabled; inactivity is covered by `reapIdleSessions`)
    */
   private async reapStaleSessions(): Promise<void> {
     const hasGeneralLimit = this.config.maxSessionDurationMs > 0;

@@ -277,3 +277,66 @@ limit-and-reset cycle passes both and burned one attempt per hour.
   executors and recovery stewards are not released.
 - Explicit starts (`POST /api/sessions/...` start/resume, `startWorkerOnTask`) are
   human/Director actions and are not gated by provider limits here.
+
+## Foreground steward gates interrupted on 2026-11-01/02 — el-1dqbmw
+
+Two causes produced the same misleading orphan-resume prompt. The prompt in the
+installed build said "interrupted by a server restart" for *any* lost session;
+it is not evidence that the server restarted.
+
+### 30-minute steward age limit (confirmed for el-2y9mhb, el-16h7v4 and el-4f4k40)
+
+- Persisted agent session history for m-steward-4 records `session-mvzri7p2-000c-arx0`
+  started at **2026-11-02 21:19:40.611Z** and ended at **21:49:42.883Z** with
+  `Steward session exceeded max duration (1805s, limit: 1800s)`. Its Claude
+  transcript records a foreground `pnpm check:merge` begun at 21:48:01Z; the
+  Bash tool returned exit **137** at **21:49:44.899Z**. Gate output completed
+  check 89 and only opened check 90 (`piped-output.bun.test.ts`). The 600-second
+  Bash timeout had not elapsed. The task was resumed at 21:51:50Z.
+- m-steward-4 on el-16h7v4 ended at 2026-11-01 21:07:04Z with the same age-limit
+  reason (1804s); m-steward-2 on el-4f4k40 ended at 20:47:58Z with that reason
+  (1805s). A later m-steward-2 session also ended at 2026-11-02 21:39:07Z
+  with the same reason (1803s). These are independent repeats of the code path,
+  though the retained records alone do not prove each had a gate in flight.
+- `DispatchDaemon.reapStaleSessions()` used the session's creation time and a
+  default `maxStewardSessionDurationMs` of 1,800,000. It called
+  `SessionManager.stopSession(id, { graceful: false })` regardless of recent
+  activity. That reached `SpawnerService.terminate()` and the Claude SDK
+  headless session's `close()`, cancelling the provider and its running tool.
+  The daemon initiated this stop; the available records do not identify the
+  individual OS syscall that delivered SIGKILL to Bash. Check 90's source has
+  no process-group kill, and the gate has no mechanism to kill its parent.
+
+### Actual project backend shutdown (confirmed for el-3ypnie and el-2wx7k3)
+
+At **2026-11-01 21:33:02–21:33:05Z**, seven persisted agent sessions have the
+termination reason `Server shutdown`, including the stewards reviewing
+el-3ypnie and el-2wx7k3. The Desktop project log has seven corresponding exit
+events, then language-server/broadcaster shutdown and a fresh server startup.
+`startSmithyServer().close()` stops every running session; the Desktop-managed
+backend calls it on a project stop, parent IPC disconnect or SIGTERM. The retained
+log does not identify which of these initiated that shutdown. It was a project
+backend lifecycle event affecting all its sessions, not evidence of a test killing
+a process group. The 30-minute age-limit incidents stopped individual sessions
+while the backend continued; the session-stop code uses a session handle rather
+than a negative process-group PID. The live process tree also shows different
+process groups for active tool chains. No unrelated-session kill from the age
+limit was found.
+
+### Source correction and scope
+
+The default hard steward age limit is now **0 (disabled)**. An explicit
+`maxStewardSessionDurationMs` still works. The existing
+`sessionIdleTimeoutMs` default of 30 minutes stops assigned worker/steward
+sessions with no provider output, while an active review can run longer than
+30 minutes. The regression covers a review past the former cap, explicit hard
+cap enforcement, and the idle stop path. It does not alter Desktop project
+Stop/Restart semantics, and the installed daemon retains its old default until
+an independently approved update. The installed API does not expose
+`maxStewardSessionDurationMs` as a runtime override. This investigation did not
+modify the live daemon or stop any sessions.
+
+Verification on the source branch: the focused liveness suite passed **21/21**,
+Smithy typecheck passed, and one foreground `pnpm check:merge` under pinned
+Node **22.23.3** passed **204/204** in **465.19s**. No raw logs or local machine
+paths are committed.

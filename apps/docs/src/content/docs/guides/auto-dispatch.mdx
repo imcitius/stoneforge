@@ -421,7 +421,7 @@ The daemon's behavior can be tuned through configuration:
 | `maxResumeAttemptsBeforeRecovery` | `3` | Resume attempts before spawning a recovery steward |
 | `noProgressHandoffLimit` | `3` | Consecutive no-progress handoffs before the task is deferred with a dispatch hold (`0` disables) |
 | `maxSessionDurationMs` | `0` (disabled) | Max worker session duration before termination |
-| `maxStewardSessionDurationMs` | `1800000` | Max steward session duration (30 min) |
+| `maxStewardSessionDurationMs` | `0` (disabled) | Optional hard cap on steward session age; use `sessionIdleTimeoutMs` to stop hung sessions without interrupting active reviews |
 | `sessionIdleTimeoutMs` | `1800000` | No provider output for this long with an assigned task: worker/steward session is treated as hung, stopped and resumed via orphan recovery (`0` disables) |
 | `idleSessionWithoutTaskMs` | `600000` | Idle worker/steward session without any assigned task is ended (`0` disables) |
 | `orphanResumeBackoffMs` | `60000` | Base delay before resuming the same orphaned task again: `base * 2^n` after the previous session started, capped at 30 min (`0` disables) |

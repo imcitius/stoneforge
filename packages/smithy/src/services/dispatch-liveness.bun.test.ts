@@ -106,10 +106,11 @@ async function services(config: Partial<DispatchDaemonConfig> = {}) {
     {} as StewardScheduler, inbox, { projectRoot: root, ...config });
   const claim = (w: AgentEntity = worker) => (daemon as unknown as { assignTaskToWorker(w: AgentEntity): Promise<boolean> }).assignTaskToWorker(w);
   const reap = () => (daemon as unknown as { reapIdleSessions(): Promise<number> }).reapIdleSessions();
+  const reapHardLimit = () => (daemon as unknown as { reapStaleSessions(): Promise<void> }).reapStaleSessions();
   const resumes: Array<{ agentId: EntityId; options: ResumeSessionOptions }> = [];
   const originalResume = sessions.resumeSession.bind(sessions);
   sessions.resumeSession = async (agentId, options) => { resumes.push({ agentId, options }); return originalResume(agentId, options); };
-  return { registry, assignment, dispatch, sessions, worktrees, daemon, inbox, claim, reap, resumes };
+  return { registry, assignment, dispatch, sessions, worktrees, daemon, inbox, claim, reap, reapHardLimit, resumes };
 }
 
 const metaOf = (t: Task) => getOrchestratorTaskMeta(t.metadata as Record<string, unknown>) as OrchestratorTaskMeta;
@@ -279,6 +280,39 @@ describe('hung running session with an assigned task', () => {
     expect(resume.options.resumePrompt).toContain('stopped by the dispatch daemon');
     expect(resume.options.resumePrompt).toContain('merge status pending');
     expect(resume.options.resumePrompt).toContain(`You are still assigned to review/merge task ${task.id}`);
+  });
+
+  test('active merge steward survives the former 30-minute hard cap; idle and explicit hard limits still work', async () => {
+    const s = await services({ sessionIdleTimeoutMs: 60 * MIN });
+    const steward = await s.registry.registerSteward({ name: 'm-steward-gate', stewardFocus: 'merge', createdBy: creator });
+    const stewardId = steward.id as unknown as EntityId;
+    const { session } = await s.sessions.startSession(stewardId, { workingDirectory: root });
+    await api.update(task.id, {
+      status: TaskStatus.REVIEW, assignee: stewardId,
+      metadata: updateOrchestratorTaskMeta(task.metadata as Record<string, unknown>, {
+        assignedAgent: stewardId, mergeStatus: 'testing', sessionId: session.providerSessionId,
+      }),
+    });
+
+    offset = 31 * MIN;
+    await s.reapHardLimit();
+    expect(s.sessions.getActiveSession(stewardId)?.id).toBe(session.id);
+    expect(await s.reap()).toBe(0);
+
+    // Operators can still request a hard cap for their own workloads.
+    s.daemon.updateConfig({ maxStewardSessionDurationMs: 30 * MIN });
+    await s.reapHardLimit();
+    expect(s.sessions.getActiveSession(stewardId)).toBeUndefined();
+    expect((await s.registry.getAgent(stewardId))?.metadata.agent?.sessionHistory?.[0]?.terminationReason)
+      .toContain('Steward session exceeded max duration');
+
+    // The default inactivity path remains available without a hard cap.
+    s.daemon.updateConfig({ maxStewardSessionDurationMs: 0, sessionIdleTimeoutMs: 30 * MIN });
+    const next = await s.sessions.startSession(stewardId, { workingDirectory: root });
+    offset = 62 * MIN;
+    expect(await s.reap()).toBe(1);
+    expect(s.sessions.getActiveSession(stewardId)).toBeUndefined();
+    expect(metaOf(await current()).lastHungSession?.sessionId).toBe(next.session.id);
   });
 });
 
