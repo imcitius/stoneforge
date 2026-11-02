@@ -8,6 +8,7 @@
 import type { CLIPlugin, PluginRegistrationResult, CommandRegistrationResult, SubcommandMergeResult } from './plugin-types.js';
 import { registerCommand, registerAlias, getCommand, getAllAliases } from './runner.js';
 import type { Command } from './types.js';
+import { registerTaskAssigner } from './task-assigner.js';
 
 // ============================================================================
 // Plugin Registration
@@ -171,6 +172,16 @@ export function registerPluginCommands(
           );
         }
       }
+    }
+  }
+
+  // Register the task assignment contract (first plugin wins)
+  if (plugin.taskAssigner) {
+    const registered = registerTaskAssigner(plugin.name, plugin.taskAssigner);
+    if (verbose) {
+      console.error(registered
+        ? `[plugin:${plugin.name}] Registered task assigner`
+        : `[plugin:${plugin.name}] Skipping task assigner: another plugin already registered one`);
     }
   }
 

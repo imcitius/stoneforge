@@ -7,10 +7,11 @@
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import type { EntityId } from '@stoneforge/core';
+import type { ElementId, EntityId } from '@stoneforge/core';
 import { getAgentMetadata } from '../index.js';
 import type { AgentEntity } from '../api/orchestrator-api.js';
 import { createLogger, getLogLevel } from '../utils/logger.js';
+import { applyTaskAssignee } from '../services/task-assignee.js';
 import { CORS_ORIGINS as DEFAULT_CORS_ORIGINS, PORT as DEFAULT_PORT, HOST as DEFAULT_HOST, PROJECT_ROOT as DEFAULT_PROJECT_ROOT, DB_PATH as DEFAULT_DB_PATH } from './config.js';
 import { initializeServices, type Services } from './services.js';
 import {
@@ -148,6 +149,9 @@ async function startUnlockedSmithyServer(options: SmithyServerOptions = {}): Pro
     api: services.api,
     inboxService: services.inboxService,
     storageBackend: services.storageBackend,
+    // Bulk assignee updates go through the assignment contract (el-4y870m)
+    assignTask: (taskId: ElementId, assignee: EntityId | null) =>
+      applyTaskAssignee(services.api, services.taskAssignmentService, taskId, assignee),
   };
   app.route('/', createSharedTaskRoutes(collaborateServices));
 

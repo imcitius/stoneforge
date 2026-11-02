@@ -78,6 +78,9 @@ export {
   createTaskAssignmentService,
 } from './task-assignment-service.js';
 
+// Generic assignee changes through the assignment contract (el-4y870m)
+export { applyTaskAssignee } from './task-assignee.js';
+
 // Dispatch service (TB-O8a)
 export {
   // Types

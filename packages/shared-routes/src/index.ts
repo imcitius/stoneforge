@@ -5,7 +5,7 @@
  */
 
 // Types
-export type { CollaborateServices, CollaborateServicesWithBroadcast, BroadcastInboxEventFn, QuarryLikeAPI, InboxLikeService } from './types.js';
+export type { CollaborateServices, CollaborateServicesWithBroadcast, BroadcastInboxEventFn, QuarryLikeAPI, InboxLikeService, TaskAssigner } from './types.js';
 
 // Route factories
 export { createElementsRoutes } from './elements.js';

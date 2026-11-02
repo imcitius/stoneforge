@@ -990,3 +990,49 @@ export function sortByDeadline<T extends Task>(tasks: T[]): T[] {
   });
 }
 
+
+// ============================================================================
+// Assignee / Orchestrator Ownership Coherence
+// ============================================================================
+
+/**
+ * Orchestrator ownership fields that describe the current agent assignment.
+ * They are cleared together whenever the assignee stops being that agent
+ * (the same fields as an administrative unassign in the orchestrator).
+ */
+export const ORCHESTRATOR_OWNERSHIP_FIELDS = ['assignedAgent', 'sessionId', 'worktree', 'startedAt'] as const;
+
+/**
+ * Keeps `metadata.orchestrator` coherent with a task assignee written outside
+ * the orchestrator assignment service (el-4y870m).
+ *
+ * Writing `task.assignee` alone left `metadata.orchestrator.assignedAgent`
+ * pointing at a previous agent (or unset), so the orchestrator rejected the
+ * task on start ("assignee and assignedAgent must match"). This helper never
+ * creates an agent assignment (only the orchestrator can: it also records the
+ * branch and worktree); it releases a stale one:
+ *
+ * - no orchestrator metadata, `assignedAgent` already equals `assignee`, or
+ *   no ownership field recorded: returns the input metadata unchanged (same
+ *   reference);
+ * - otherwise: returns new metadata with the ownership fields removed and
+ *   every other orchestrator field (branch, history, repository...) kept.
+ */
+export function releaseStaleOrchestratorAssignment(
+  metadata: Record<string, unknown> | undefined,
+  assignee: string | undefined
+): Record<string, unknown> | undefined {
+  const orchestrator = metadata?.orchestrator;
+  if (!orchestrator || typeof orchestrator !== 'object' || Array.isArray(orchestrator)) {
+    return metadata;
+  }
+  const meta = orchestrator as Record<string, unknown>;
+  if (meta.assignedAgent === assignee || !ORCHESTRATOR_OWNERSHIP_FIELDS.some((field) => field in meta)) {
+    return metadata;
+  }
+  const released = { ...meta };
+  for (const field of ORCHESTRATOR_OWNERSHIP_FIELDS) {
+    delete released[field];
+  }
+  return { ...metadata, orchestrator: released };
+}

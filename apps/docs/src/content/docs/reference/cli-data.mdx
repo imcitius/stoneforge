@@ -72,6 +72,13 @@ sf task assign <task-id> <entity>
 sf task assign <task-id> <entity> --unassign
 ```
 
+With the orchestrator (smithy) installed, the assignment goes through its assignment
+service: assigning a registered agent also records the orchestrator assignment
+(`assignedAgent`, branch and worktree), so the agent can start the task; assigning
+another entity or `--unassign` releases the agent assignment. The entity must exist.
+Without the orchestrator, only the assignee is written and a stale orchestrator
+assignment is released.
+
 ### `sf task defer / undefer`
 
 ```bash

@@ -81,7 +81,21 @@ export interface CollaborateServices {
   api: QuarryLikeAPI;
   inboxService: InboxLikeService;
   storageBackend: StorageBackend;
+  /**
+   * Optional assignment contract for task assignee changes (el-4y870m).
+   * The orchestrator (smithy) server supplies one so that bulk assignee
+   * updates go through its assignment service; without it, shared routes
+   * write the assignee and release a stale orchestrator assignment.
+   */
+  assignTask?: TaskAssigner;
 }
+
+/**
+ * Applies an assignee change to one task through an owner-specific contract
+ * (`null` unassigns). Resolves with the updated task; rejects for an unknown
+ * task or an invalid assignee.
+ */
+export type TaskAssigner = (taskId: ElementId, assignee: EntityId | null) => Promise<Task>;
 
 /**
  * Optional callback for broadcasting inbox events in real-time.

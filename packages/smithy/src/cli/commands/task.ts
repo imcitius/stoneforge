@@ -25,6 +25,7 @@ import { TaskStatus, createTimestamp } from '@stoneforge/core';
  */
 async function createTaskAssignmentService(options: GlobalOptions): Promise<{
   service: import('../../services/task-assignment-service.js').TaskAssignmentService | null;
+  api?: import('@stoneforge/quarry').QuarryAPI;
   error?: string;
 }> {
   try {
@@ -50,7 +51,7 @@ async function createTaskAssignmentService(options: GlobalOptions): Promise<{
     const workspaceRoot = dirname(stoneforgeDir);
     const service = createService(api, mergeProvider, workspaceRoot);
 
-    return { service };
+    return { service, api };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { service: null, error: `Failed to initialize service: ${message}` };
@@ -86,6 +87,25 @@ async function createOrchestratorApi(options: GlobalOptions): Promise<{
     const message = err instanceof Error ? err.message : String(err);
     return { api: null, error: `Failed to initialize API: ${message}` };
   }
+}
+
+/**
+ * Task assigner for the built-in `sf task assign` / `sf assign` commands
+ * (registered through the CLI plugin, el-4y870m). Applies the assignee through
+ * the orchestrator assignment contract so that `metadata.orchestrator`
+ * (assignedAgent, branch, worktree) stays coherent with `task.assignee`.
+ */
+export async function cliTaskAssigner(
+  taskId: ElementId,
+  assignee: EntityId | null,
+  options: GlobalOptions
+): Promise<Task> {
+  const { service, api, error } = await createTaskAssignmentService(options);
+  if (!service || !api) {
+    throw new Error(error ?? 'Failed to initialize task assignment service');
+  }
+  const { applyTaskAssignee } = await import('../../services/task-assignee.js');
+  return applyTaskAssignee(api, service, taskId, assignee);
 }
 
 /**

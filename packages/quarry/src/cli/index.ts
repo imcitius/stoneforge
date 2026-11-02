@@ -11,6 +11,7 @@ export type { CLIPlugin, PluginsConfig as CLIPluginsConfig, PluginDiscoveryResul
 export { isValidCLIPlugin, isValidPluginsConfig } from './plugin-types.js';
 export { discoverPlugins, getKnownPluginPackages } from './plugin-loader.js';
 export { registerPluginCommands, registerAllPlugins, getPluginCommandSummary } from './plugin-registry.js';
+export { registerTaskAssigner, getTaskAssigner, clearTaskAssigner, type CliTaskAssigner } from './task-assigner.js';
 
 // Parser
 export { parseArgs, validateRequiredOptions, getGlobalOptionsHelp, getCommandOptionsHelp } from './parser.js';

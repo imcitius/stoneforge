@@ -14,10 +14,12 @@
 import type { Command, GlobalOptions, CommandResult, CommandOption } from '../types.js';
 import { success, failure, ExitCode } from '../types.js';
 import { getFormatter, getOutputMode } from '../formatter.js';
+import { getTaskAssigner } from '../task-assigner.js';
 import {
   TaskStatus,
   TaskTypeValue,
   updateTaskStatus,
+  releaseStaleOrchestratorAssignment,
   isValidStatusTransition,
   createDocument,
   ContentType,
@@ -731,15 +733,27 @@ async function assignHandler(
       return failure(`Element is not a task: ${id}`, ExitCode.VALIDATION);
     }
 
-    // Update assignment
-    const updates: Partial<Task> = {
-      assignee: options.unassign ? undefined : (assignee as EntityId),
-    };
+    const newAssignee = options.unassign ? undefined : (assignee as EntityId);
+    let updated: Task;
+    const assigner = getTaskAssigner();
+    if (assigner) {
+      // Orchestrator contract: records assignedAgent/branch/worktree for an
+      // agent, releases the agent ownership otherwise (el-4y870m).
+      updated = await assigner(id as ElementId, newAssignee ?? null, options);
+    } else {
+      // A bare assignee write would leave metadata.orchestrator.assignedAgent
+      // stale; release it in the same write.
+      const metadata = releaseStaleOrchestratorAssignment(task.metadata, newAssignee);
+      const updates: Partial<Task> = {
+        assignee: newAssignee,
+        ...(metadata !== task.metadata ? { metadata } : {}),
+      };
 
-    // Save the update with optimistic concurrency control
-    const updated = await api.update<Task>(id as ElementId, updates, {
-      expectedUpdatedAt: task.updatedAt,
-    });
+      // Save the update with optimistic concurrency control
+      updated = await api.update<Task>(id as ElementId, updates, {
+        expectedUpdatedAt: task.updatedAt,
+      });
+    }
 
     // Format output based on mode
     const mode = getOutputMode(options);

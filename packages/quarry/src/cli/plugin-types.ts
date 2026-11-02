@@ -6,6 +6,7 @@
  */
 
 import type { Command } from './types.js';
+import type { CliTaskAssigner } from './task-assigner.js';
 
 // ============================================================================
 // Plugin Interface
@@ -32,6 +33,13 @@ export interface CLIPlugin {
 
   /** Optional initialization function called before commands are registered */
   init?: () => Promise<void>;
+
+  /**
+   * Optional assignment contract used by the built-in `sf task assign` /
+   * `sf assign` commands instead of a bare assignee write (el-4y870m).
+   * The first plugin providing one wins.
+   */
+  taskAssigner?: CliTaskAssigner;
 }
 
 // ============================================================================
@@ -185,6 +193,11 @@ export function isValidCLIPlugin(obj: unknown): obj is CLIPlugin {
 
   // Optional init function
   if (plugin.init !== undefined && typeof plugin.init !== 'function') {
+    return false;
+  }
+
+  // Optional task assigner function
+  if (plugin.taskAssigner !== undefined && typeof plugin.taskAssigner !== 'function') {
     return false;
   }
 
