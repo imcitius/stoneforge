@@ -115,6 +115,7 @@ What differs on Linux (all visible in the logs, none hidden):
 | Item | Linux behaviour | Why |
 | --- | --- | --- |
 | Desktop `external.test.mjs` adoption test | Skipped with reason | `findExternalServer` (`packages/quarry/src/cli/server-discovery.ts`) returns `undefined` off macOS and discovers servers with `/usr/sbin/lsof` and `/bin/ps`. Adoption is macOS-only product behaviour. |
+| Desktop `daemon-lifecycle.test.mjs` external and legacy restart variants (4 of 6) | Skipped with reason (el-58gvjo) | Each adopts a standalone `sf serve` found by the same macOS-only `findExternalServer`; off macOS discovery never succeeds, so they timed out at *external server ready*. The 2 managed variants still run on Linux; `check:merge` (macOS) runs all 6. |
 | Desktop `socket-workaround.test.mjs` Electron EINVAL test | Skipped (existing) | Injects a macOS-only socket error. |
 | All other Desktop Node tests, Desktop build | Run | Plain Node/TypeScript, temporary Git repos and SQLite. |
 | `node-pty` | Compiled during install | 1.1.0 ships prebuilds only for darwin/win32. pnpm 8.15.5's bundled node-gyp 9.4.1 imports `distutils`, removed in Python 3.12 (the ubuntu-24.04 default), so CI pins Python 3.11 via `actions/setup-python`. |
@@ -137,11 +138,12 @@ longer a known Linux failure.
 The Smithy `dispatch-rate-limit-budget.bun.test.ts` Codex-CLI failure from the
 first container runs was fixed on master in **el-2qet1v** (`4dcc7583`); it
 passes in the synced Ubuntu run below without an installed Codex CLI. The
-current Linux-only failure is in the subsequently merged Desktop
+next Linux-only failure was in the subsequently merged Desktop
 `daemon-lifecycle.test.mjs`: four external/legacy restart cases wait for
-`findExternalServer()`, which returns `undefined` off macOS. They fail at
-`external server ready`; the full Linux CI gate is red. Tracked as
-**el-58gvjo**; no test was skipped to hide it. Intermittent single-sample
+`findExternalServer()`, which returns `undefined` off macOS, and failed at
+`external server ready`. **el-58gvjo** resolved it by skipping only those four
+cases off macOS with a stated reason (table above); the managed cases still run
+on Linux and `check:merge` on macOS runs all six. Intermittent single-sample
 timing asserts in `query-performance.bun.test.ts` (single create `< 50` ms,
 ready-vs-dependencies `< 4`) are tracked as **el-53k1uj**.
 

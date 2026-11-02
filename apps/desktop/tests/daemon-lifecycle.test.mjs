@@ -14,9 +14,17 @@ const root = resolve(import.meta.dirname, '../../..');
 const node = require.resolve('node/bin/node');
 const cli = join(root, 'packages/smithy/dist/bin/sf.js');
 
+// External and legacy variants adopt a standalone server, and external-server
+// discovery is macOS-only: findExternalServer
+// (packages/quarry/src/cli/server-discovery.ts) returns undefined on other
+// platforms (it uses /usr/sbin/lsof and /bin/ps). Linux CI (pnpm check:ci)
+// therefore reports those variants as skipped; managed variants always run, and
+// pnpm check:merge runs only on macOS, where every variant runs.
+const externalSkip = process.platform !== 'darwin' && 'external-server discovery is macOS-only (findExternalServer returns undefined elsewhere)';
+
 for (const mode of ['managed', 'external', 'legacy']) for (const paused of [false, true]) {
   const external = mode !== 'managed';
-  test(`${mode} project restart preserves ${paused ? 'explicit user pause' : 'automatic task processing'}`, { timeout: 60_000 }, async () => {
+  test(`${mode} project restart preserves ${paused ? 'explicit user pause' : 'automatic task processing'}`, { timeout: 60_000, skip: external && externalSkip }, async () => {
     const temp = await mkdtemp(join(tmpdir(), 'sf-daemon-lifecycle-'));
     const projectRoot = join(temp, 'project'); await mkdir(projectRoot);
     const manager = new ProjectManager({ dataDir: join(temp, 'registry'), node,
