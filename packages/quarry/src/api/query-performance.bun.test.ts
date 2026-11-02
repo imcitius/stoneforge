@@ -196,7 +196,11 @@ const LIST_SIZES = [50, 100, 150];
 const CREATE_BATCHES = 32;
 const LIST_QUERIES = 256;
 
-type ScalingSample = { durations: number[]; operations: number };
+/**
+ * One independent sample. `rowsPerOperation` is the number of rows each timed
+ * operation returned (list samples only; every query returns the same count).
+ */
+type ScalingSample = { durations: number[]; operations: number; rowsPerOperation?: number };
 type CreateBatch = (api: QuarryAPIImpl, size: number) => Promise<Task[]>;
 type ListTasks = (api: QuarryAPIImpl, size: number) => Promise<Task[]>;
 const listTasks: ListTasks = (api, size) => api.list<Task>({ type: 'task', limit: size });
@@ -251,7 +255,7 @@ async function measureListSample(
       count += tasks.length;
     }
     expect(count).toBe(size * queries);
-    return { durations, operations: queries };
+    return { durations, operations: queries, rowsPerOperation: count / queries };
   });
 }
 
@@ -276,6 +280,17 @@ const meanPerOperation: SampleEstimator = ({ durations, operations }) =>
 const minimumPerQuery: SampleEstimator = ({ durations, operations }) => {
   expect(durations.length).toBe(operations);
   return Math.min(...durations);
+};
+
+/**
+ * Sample estimator: fastest single query divided by the rows that query
+ * returned (el-1caqsx). Every list query returns all `size` tasks, so correct
+ * linear work costs the same per returned row at every size.
+ */
+const minimumPerReturnedRow: SampleEstimator = (sample) => {
+  const rows = sample.rowsPerOperation;
+  if (rows === undefined || rows <= 0) throw new Error('Sample has no returned rows');
+  return minimumPerQuery(sample) / rows;
 };
 
 async function measureScaling(
@@ -315,10 +330,29 @@ function assertCreateScaling(ratio: number): void {
   expect(ratio).toBeLessThan(4);
 }
 
+/**
+ * List contract (el-1caqsx): the cost per RETURNED ROW must not grow
+ * superlinearly. `ratio` is perRow(150) / perRow(50), where perRow(N) is the
+ * median over six fresh-DB samples of (fastest query / rows returned).
+ *
+ * Each list query returns all N tasks, so linear work is the correct shape and
+ * gives a per-row ratio of about 1.0 (measured 0.93-0.95 macOS arm64,
+ * 0.99-1.03 Ubuntu arm64 container). The former total-time contract `< 3`
+ * (= 150 / 50) only passed through fixed per-query overhead and failed on
+ * Linux with linear, stable minimums.
+ * 1.35 derivation, per-row ratios for 150 vs 50 rows:
+ * - linear a + b·N: <= 1.0 -> pass;
+ * - N·log N (legitimate sorting): log 150 / log 50 = 1.28 -> pass;
+ * - el-55qcdj wall-clock mutant (JSON.stringify of the full result for every
+ *   4th row, total ratio 5.06): 5.06 / 3 = 1.69 -> must fail;
+ * - N+1 counted-row control: about 2.9; quadratic about 3 -> must fail.
+ * Do not raise 1.35 to make a measurement pass: a per-row ratio >= 1.35 is a
+ * cost-shape change to report, not noise (the minimum already removes load).
+ */
+const LIST_PER_ROW_RATIO_LIMIT = 1.35;
+
 function assertListScaling(ratio: number): void {
-  // 150 / 50 = 3: the existing contract requires strictly sublinear query time.
-  // Wall-clock ratios use minimumPerQuery medians (el-55qcdj); never raise this.
-  expect(ratio).toBeLessThan(LIST_SIZES[2] / LIST_SIZES[0]);
+  expect(ratio).toBeLessThan(LIST_PER_ROW_RATIO_LIMIT);
 }
 
 // ============================================================================
@@ -784,7 +818,7 @@ describe('Query API Performance', () => {
 
     it('should maintain list performance as dataset grows', async () => {
       assertListScaling(await measureScaling('list', LIST_SIZES, measureListSample,
-        minimumPerQuery));
+        minimumPerReturnedRow, 'ms/row'));
     }, 30_000);
 
     it('should reject quadratic create work with the same sampling and assertion', async () => {
@@ -840,11 +874,11 @@ describe('Query API Performance', () => {
         return tasks;
       };
       const linear = await measureScaling('list-linear-control', LIST_SIZES,
-        (size) => measureListSample(size, countedList(false), clock, 1), minimumPerQuery,
-        'row-visits');
+        (size) => measureListSample(size, countedList(false), clock, 1), minimumPerReturnedRow,
+        'row-visits/row');
       const quadratic = await measureScaling('list-quadratic-control', LIST_SIZES,
-        (size) => measureListSample(size, countedList(true), clock, 1), minimumPerQuery,
-        'row-visits');
+        (size) => measureListSample(size, countedList(true), clock, 1), minimumPerReturnedRow,
+        'row-visits/row');
       assertListScaling(linear);
       expect(() => assertListScaling(quadratic)).toThrow();
     }, 30_000);

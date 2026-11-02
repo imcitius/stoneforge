@@ -116,22 +116,34 @@ What differs on Linux (all visible in the logs, none hidden):
 | --- | --- | --- |
 | Desktop `external.test.mjs` adoption test | Skipped with reason | `findExternalServer` (`packages/quarry/src/cli/server-discovery.ts`) returns `undefined` off macOS and discovers servers with `/usr/sbin/lsof` and `/bin/ps`. Adoption is macOS-only product behaviour. |
 | Desktop `socket-workaround.test.mjs` Electron EINVAL test | Skipped (existing) | Injects a macOS-only socket error. |
-| Other 15 Desktop Node tests, Desktop build | Run | Plain Node/TypeScript, temporary Git repos and SQLite. |
+| All other Desktop Node tests, Desktop build | Run | Plain Node/TypeScript, temporary Git repos and SQLite. |
 | `node-pty` | Compiled during install | 1.1.0 ships prebuilds only for darwin/win32. pnpm 8.15.5's bundled node-gyp 9.4.1 imports `distutils`, removed in Python 3.12 (the ubuntu-24.04 default), so CI pins Python 3.11 via `actions/setup-python`. |
 | `better-sqlite3` | Prebuilt Linux binary | Loaded by the preflight like on macOS. |
 | PTY fixtures (Smithy Vitest, Bun runtime tests) | Run | Linux PTY via node-pty; passed in the Ubuntu container run. |
 
-Known Linux result (pre-existing, not changed by el-2wx7k3): Quarry
-`query-performance.bun.test.ts` → *should maintain list performance as dataset
-grows* asserts a `minimumPerQuery` ratio `< 3` for 150 vs 50 tasks. Each list
-query returns all `size` tasks, so the work is linear. On macOS arm64 it measured
-2.864 (load ~22). In an Ubuntu 24.04 arm64 container (4 CPUs, container load ~2)
-it measured 3.0025, 3.0564 in two full runs and 3.029–3.048 in four of five
-isolated runs. The per-query minimums were stable (about 0.137 / 0.276 / 0.417 ms),
-so this looks like a platform difference, not load noise. GitHub's x64 runners
-were not measured. The threshold says "never raise this", so CI keeps the test
-and a red CI run on this test alone should be read with that in mind. Tracked as
-**el-1caqsx** (contract decision needed; see also workspace reference el-241).
+Quarry list scaling on Linux (resolved, el-1caqsx): *should maintain list
+performance as dataset grows* used to assert a `minimumPerQuery` total-time ratio
+`< 3` for 150 vs 50 tasks. Each list query returns all `size` tasks, so correct
+linear work gives about 3; in an Ubuntu 24.04 arm64 container it measured
+3.0025 / 3.0564 (full runs) and 3.029–3.048 (4 of 5 isolated runs) with stable
+per-query minimums, while macOS passed at ≈2.86 only through fixed per-query
+overhead. The Director changed the contract to cost **per returned row**:
+`perRow(150) / perRow(50) < 1.35` (derivation and mutant results in
+`docs/query-performance-investigation.md`). Measured per-row ratios: macOS
+arm64 0.93–0.95, Ubuntu container 0.99–1.03; `pnpm check:ci` in the container
+passed the performance file 35/35 (ratio 1.027). The list-scaling test is no
+longer a known Linux failure.
+
+The Smithy `dispatch-rate-limit-budget.bun.test.ts` Codex-CLI failure from the
+first container runs was fixed on master in **el-2qet1v** (`4dcc7583`); it
+passes in the synced Ubuntu run below without an installed Codex CLI. The
+current Linux-only failure is in the subsequently merged Desktop
+`daemon-lifecycle.test.mjs`: four external/legacy restart cases wait for
+`findExternalServer()`, which returns `undefined` off macOS. They fail at
+`external server ready`; the full Linux CI gate is red. Tracked as
+**el-58gvjo**; no test was skipped to hide it. Intermittent single-sample
+timing asserts in `query-performance.bun.test.ts` (single create `< 50` ms,
+ready-vs-dependencies `< 4`) are tracked as **el-53k1uj**.
 
 ### Pinned third-party actions (el-3fg1vs)
 
@@ -187,6 +199,23 @@ from the worktree root, Node 22.23.3 first on PATH.
 Not run: the workflow on GitHub (the Director pushes), x64 Linux, Playwright,
 `pnpm lint`/`pnpm test`. The container emulates the runner (Ubuntu 24.04,
 non-root `runner`, pinned toolchain); it is not the GitHub image.
+
+
+### Validation — el-1caqsx, 2026-11-02
+
+Same container recipe (Ubuntu 24.04 arm64 on OrbStack, `--cpus=4`, non-root
+`runner`, Node 22.23.3, Bun 1.3.11, pnpm 8.15.5, Python 3.11, `CI=true`,
+repository imported from `git archive` of the tested commit), base local master
+`cf33330a` (includes el-2wx7k3) plus the el-1caqsx test change:
+
+| Where | Command | Result |
+| --- | --- | --- |
+| Ubuntu container | `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build` | Exit 0 each. |
+| Ubuntu container | `bun test` of the performance file ×5 | List per-row ratios 1.014 / 1.019 / 0.994 / 0.993 / 1.032, all pass; run 5 failed only the ready-vs-dependencies single-sample assert (5.574 vs `< 4`, el-53k1uj). |
+| Ubuntu container | `pnpm check:ci` | **203 checks, 1 failed, exit 1**, 290.44 s. Quarry performance 35/35 (list per-row 1.027); Desktop 49 pass / 2 skip; sole failure `dispatch-rate-limit-budget.bun.test.ts` (Codex CLI absent, el-2qet1v). |
+| macOS arm64 | `pnpm check:merge` (pinned Node 22.23.3, foreground) | **203/203, exit 0**, 456.33 s; list per-row 0.932. |
+| Ubuntu container, synced with master `e3603132` (`8efc64bf`) | `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build`, `pnpm check:ci` | First three exit 0; **204 checks, 1 failed, exit 1**. Quarry performance 35/35 (list per-row 1.00383); Desktop step exit 0. Sole failure remained the Codex-CLI-dependent Smithy test. |
+| Ubuntu container, synced with master `9e4031bb` (`8f23e46b`) | Same four CI commands; Node 22.23.3, Bun 1.3.11, pnpm 8.15.5, Python 3.11 | First three exit 0 (typecheck 17/17, build 14/14); **205 checks, 1 failed, exit 1**, 297.66 s. Quarry performance 35/35 (list per-row 1.009907); Smithy Codex-CLI test passes. Desktop step fails: 61 pass, 4 fail, 2 documented platform skips. The four failures are the new external/legacy daemon lifecycle cases (`external server ready`; el-58gvjo). |
 
 ## Steward review and activation
 

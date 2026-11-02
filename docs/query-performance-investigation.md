@@ -524,3 +524,108 @@ Raw `results.json`, the step 047 log and console output were not committed
 (original temporary directory `$TMPDIR/stoneforge-merge-check-sxdwSj`); the
 numbers above are transcribed from them. The documentation commit that follows
 changes only `docs/`. Independent steward review is still required.
+
+## List contract: per returned row — el-1caqsx, 2026-11-02
+
+Trigger: el-2wx7k3 ran the gate in an Ubuntu 24.04 arm64 container and the
+list test failed with `minimumPerQuery` ratios 3.0025 / 3.0564 (full runs) and
+3.029–3.048 (4 of 5 isolated runs) at container load ~2, with very stable
+per-query minimums (~0.137 / 0.276 / 0.417 ms). That is linear cost, not noise.
+
+### Decision (Director, 2026-11-01)
+
+The `< 3` total-time contract was mis-specified. Each list query returns **all**
+N tasks, so correct linear work gives a total-time ratio of about 150 / 50 = 3;
+macOS only passed through a small fixed per-query overhead (≈2.82–2.86). New
+contract: normalize by result size and require that the cost **per returned
+row** does not grow superlinearly:
+
+    perRow(N) = minimumPerQuery(N) / rowsReturned(N)
+    assert perRow(150) / perRow(50) < 1.35
+
+Why 1.35 (per-row ratios for 150 vs 50 rows):
+
+| Cost shape | Per-row ratio | Outcome |
+|---|---:|---|
+| Linear `a + b·N` (measured: macOS 0.93–0.95, Linux 0.99–1.03) | ≤ 1.0 | pass |
+| `N·log N`, e.g. legitimate sorting (`ln 150 / ln 50`) | 1.28 | pass |
+| el-55qcdj steward wall-clock mutant (total 5.06) | 1.69 | must fail |
+| N+1 counted-row control (8.766 / 3) | 2.92 | must fail |
+| Quadratic | ≈ 3 | must fail |
+
+### Change (test only)
+
+- `ScalingSample` gains `rowsPerOperation`; `measureListSample` sets it to the
+  counted rows returned per query (`count / queries`, already asserted to be
+  `size`).
+- New estimator `minimumPerReturnedRow` = `minimumPerQuery / rowsPerOperation`.
+  Everything else of the el-55qcdj method is unchanged: 256 individually timed
+  queries per fresh DB, fastest query per sample, median of six balanced
+  samples, fixed warmup, no retries/skips/sleeps.
+- `assertListScaling` asserts `< 1.35` (`LIST_PER_ROW_RATIO_LIMIT`). The
+  "never raise this" comment is replaced by the per-row contract, the table
+  above and the rule that a per-row ratio ≥ 1.35 is a cost-shape change to
+  report, not a threshold to raise.
+- Both list counted-row controls use the same per-row estimator: linear
+  control 0.986928 passes, N+1 control 2.922081 is rejected (as before, the
+  N+1 control is the primary non-timing signal).
+- `[scaling]` JSON: `estimator` is `minimumPerReturnedRow`, unit `ms/row`; the
+  diagnostic `meanRatio` stays per query (total time), so it is ≈3× the
+  per-row ratio by construction. Create scaling (`meanPerOperation`, `< 4`)
+  is unchanged.
+
+The el-55qcdj "Limits" rule ("if an uncontended ratio ≥ 3 appears … do not
+relax `< 3`") is superseded by this decision for the list test; its estimator
+limits (minimum ignores GC/scheduler tails; not a tail-latency check) still apply.
+
+### Validation (no retries)
+
+Test file only, final commit `3b9d6680`. The isolated runs and the Linux
+container used `245222e4`, which differs from `3b9d6680` only in one comment
+line (the measured ranges). Standalone `tsc --noEmit` over the test file with
+the Quarry tsconfig: exit 0.
+
+| Host | Runs | List per-row ratio | Same data as total-time ratio (×3) | Other results |
+|---|---|---|---|---|
+| macOS arm64, Bun 1.3.11, load 30–67 (other agents' gates) | full file ×3 | 0.946120, 0.934268, 0.940062 | 2.84, 2.80, 2.82 | 2/3 exit 0; run 2 failed only *should create a single task within threshold* (113.21 ms vs `< 50`, load 47; tracked in el-53k1uj) |
+| Ubuntu 24.04 arm64 container (OrbStack, `--cpus=4`, non-root, load ~1.5) | full file ×5 | 1.013870, 1.018748, 0.993886, 0.993054, 1.032493 | 3.04, 3.06, 2.98, 2.98, 3.10 | 4/5 exit 0; run 5 failed only *should maintain ready query performance as dependencies grow* (5.574 vs `< 4`, single-sample timings; tracked in el-53k1uj) |
+
+Under the old contract three of the five Linux runs would have failed; under
+the new one all list results have > 30% headroom on both hosts. Per-row
+minimums: macOS ≈ 0.00315 / 0.00301 / 0.00295 ms, Linux ≈ 0.00286 / 0.00288 /
+0.00290 ms (50 / 100 / 150 rows).
+
+Mutants (temporary copies of the test file, run with
+`-t "should maintain list performance as dataset grows"`, deleted afterwards,
+not committed), macOS arm64, load 53–60:
+
+| Mutant | Per-row ratio | Total-time medians (×rows) | Result |
+|---|---:|---|---|
+| A: el-55qcdj steward mutant — `JSON.stringify` of the full result for every 4th returned row, inside the timed list call | **1.707890** | 0.342 / 0.899 / 1.754 ms (total ratio 5.12) | exit 1, rejected |
+| B: wall-clock N+1 — re-list all tasks for every returned task (16 queries per sample instead of 256 to fit the timeout) | **3.128845** | 8.94 / 37.9 / 83.9 ms | exit 1, rejected |
+
+The in-suite counted N+1 control (2.922081) is rejected in every run above.
+
+### Required gate and Linux CI selection
+
+| Where | Command | Result |
+|---|---|---|
+| macOS arm64, Node 22.23.3 (pinned, first on PATH), Bun 1.3.11, pnpm 8.15.5, load 22 → 22 (5-min 33 → 35) | one foreground `pnpm check:merge` on `3b9d6680` | **203 checks, 0 failed, exit 0, 456.33 s** (458 s wall). Performance step 048: 35 / 0; list per-row medians 0.003142 / 0.002973 / 0.002928 ms, ratio **0.931971** (mean-based per query 2.497145); create 0.973695; controls 1 / 9.181818 / 0.986928 / 2.922081. |
+| Ubuntu 24.04 arm64 container (as above; Node 22.23.3, Bun 1.3.11, pnpm 8.15.5, Python 3.11) | `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build`, `pnpm check:ci` on `245222e4` (local master `cf33330a`, which includes el-2wx7k3, plus this test change) | Install / typecheck / build exit 0. `check:ci` **203 checks, 1 failed, exit 1, 290.44 s**. Performance step 048: 35 / 0, list per-row ratio **1.027319**. Desktop 49 pass / 2 skip. The one failure is unrelated: Smithy `dispatch-rate-limit-budget.bun.test.ts` (4 pass / 8 fail, `Provider 'codex' is not available`): it needs an installed Codex CLI, absent in the container and on GitHub runners; tracked as **el-2qet1v**. |
+
+After the steward requested a synced-head Linux rerun, master advanced twice.
+The same Ubuntu 24.04 arm64 container and all four CI commands were run on
+each synced branch head, without filtering or skipped checks:
+
+| Synced head | Ubuntu `check:ci` | Quarry list per-row ratio | Other result |
+|---|---|---:|---|
+| `8efc64bf` (master `e3603132`) | 204 checks, 1 failed, exit 1 | 1.003830; performance file 35/35 | Desktop step exit 0; only the existing Codex-CLI-dependent Smithy test failed. |
+| `8f23e46b` (master `9e4031bb`, including the Smithy fix and new Desktop lifecycle test) | 205 checks, 1 failed, exit 1 | 1.009907; performance file 35/35 | Smithy Codex-CLI test passes. Desktop Node suite: 61 pass, 4 fail, 2 documented platform skips. Four new external/legacy restart cases fail at `external server ready` because `findExternalServer()` returns `undefined` off macOS; tracked as el-58gvjo. |
+
+On the latter head, frozen install, typecheck (17/17) and build (14/14) all
+exit 0; `check:ci` takes 297.66 s. These are full-gate failures unrelated to
+the list scaling contract. No test was skipped to make the gate pass.
+
+The list-scaling test is no longer a known Linux failure. Raw logs and
+`results.json` stayed outside the repository; the numbers above are
+transcribed from them.
