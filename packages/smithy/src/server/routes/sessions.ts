@@ -5,6 +5,7 @@
  */
 
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import type { EntityId, ElementId, Task } from '@stoneforge/core';
 import { createTimestamp, ElementType } from '@stoneforge/core';
@@ -23,6 +24,45 @@ import { createLogger } from '../../utils/logger.js';
 
 const logger = createLogger('sessions');
 const CODEX_RESUME_SESSION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type RateLimitDaemon = NonNullable<Services['dispatchDaemon']>;
+type RateLimitAgent = NonNullable<Parameters<RateLimitDaemon['getRateLimitStatus']>[0]>;
+
+/** Fallback Retry-After (seconds) when the daemon reports no reset time. */
+const DEFAULT_RATE_LIMIT_RETRY_AFTER_SECONDS = 60;
+
+/**
+ * Rate limit guard for manual HTTP session starts/resumes.
+ *
+ * Checks only the requested agent's provider (and its fallback chain), so a
+ * limit on another provider does not block this agent. Returns a 429 response
+ * with a Retry-After header derived from the soonest reset time, or undefined
+ * when the agent may proceed (including when no dispatch daemon is running).
+ */
+function rateLimitedResponse(
+  c: Context,
+  dispatchDaemon: Services['dispatchDaemon'],
+  agent: RateLimitAgent
+): Response | undefined {
+  if (!dispatchDaemon) return undefined;
+  const rateLimitStatus = dispatchDaemon.getRateLimitStatus(agent);
+  if (!rateLimitStatus.isPaused) return undefined;
+  const retryAfterSeconds = rateLimitStatus.soonestReset
+    ? Math.max(1, Math.ceil((new Date(rateLimitStatus.soonestReset).getTime() - Date.now()) / 1000))
+    : DEFAULT_RATE_LIMIT_RETRY_AFTER_SECONDS;
+  return c.json(
+    {
+      error: {
+        code: 'RATE_LIMITED',
+        message: 'This agent is currently paused by a provider limit or manual sleep',
+        retryAfter: retryAfterSeconds,
+        soonestReset: rateLimitStatus.soonestReset,
+      },
+    },
+    429,
+    { 'Retry-After': String(retryAfterSeconds) }
+  );
+}
 
 type NotifyClientsCallback = (
   agentId: EntityId,
@@ -216,7 +256,7 @@ export function createSessionRoutes(
   services: Services,
   notifyClientsOfNewSession: NotifyClientsCallback
 ) {
-  const { api, orchestratorApi, agentRegistry, sessionManager, spawnerService, sessionInitialPrompts, sessionMessageService } = services;
+  const { api, orchestratorApi, agentRegistry, sessionManager, spawnerService, sessionInitialPrompts, sessionMessageService, dispatchDaemon } = services;
   const app = new Hono();
 
   // POST /api/agents/:id/start
@@ -284,6 +324,9 @@ export function createSessionRoutes(
           409
         );
       }
+
+      const rateLimited = rateLimitedResponse(c, dispatchDaemon, agent);
+      if (rateLimited) return rateLimited;
 
       // Get agent metadata to determine role
       const agentMeta = getAgentMetadata(agent);
@@ -664,6 +707,9 @@ Please begin working on this task. Use \`sf task get ${taskResult.id}\` to see f
           409
         );
       }
+
+      const rateLimited = rateLimitedResponse(c, dispatchDaemon, agent);
+      if (rateLimited) return rateLimited;
 
       let providerSessionId = body.providerSessionId;
       if (!providerSessionId) {

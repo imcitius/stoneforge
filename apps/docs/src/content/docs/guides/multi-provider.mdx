@@ -205,6 +205,8 @@ The dispatch daemon supports a **fallback chain** — an ordered list of provide
 3. Tries the next provider in the fallback chain
 4. If all providers are rate-limited, the daemon auto-pauses and resumes at the soonest reset time
 
+Manual session starts are guarded the same way. When the server has a dispatch daemon (it creates one whenever a worktree manager is available, even if dispatch polling is stopped), `POST /api/agents/:id/start` and `POST /api/agents/:id/resume` return `429 RATE_LIMITED` with a `Retry-After` header (seconds until the soonest reset, or 60 if unknown) when that agent's provider and its fallback chain are all limited, or the daemon is in a manual sleep. A limit on another provider does not block the agent.
+
 Configure the fallback chain in **Settings > Workspace > Agent Defaults** in the dashboard.
 
 ### Task-type matching
