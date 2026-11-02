@@ -444,55 +444,53 @@ describe('Type definitions', () => {
   });
 });
 
+function modeTestService() {
+  // Mode routing needs no shell, PTY, or provider process. Keep each call observable.
+  const calls = { interactive: 0, headless: 0 };
+  const provider: AgentProvider = {
+    name: 'mode-test',
+    interactive: {
+      name: 'mode-test-interactive',
+      async spawn(): Promise<InteractiveSession> {
+        calls.interactive++;
+        return {
+          write() {}, resize() {}, kill() {}, onData() {}, onExit() {},
+          getSessionId: () => undefined,
+        };
+      },
+      async isAvailable() { return true; },
+    },
+    headless: {
+      name: 'mode-test-headless',
+      async spawn(): Promise<HeadlessSession> {
+        calls.headless++;
+        throw new Error('headless mode selected');
+      },
+      async isAvailable() { return true; },
+    },
+    async isAvailable() { return true; },
+    getInstallInstructions: () => '',
+    async listModels() { return []; },
+  };
+  return { service: createSpawnerService({ provider, workingDirectory: '/tmp' }), calls };
+}
+
 describe('Spawn mode determination', () => {
   test('director defaults to interactive mode', async () => {
-    // This test validates that directors use interactive mode
-    // With node-pty installed, this now spawns a real PTY
-    // The spawn will fail because the shell is running but the claude command doesn't exist
-    const service = createSpawnerService({ claudePath: 'nonexistent-claude' });
+    const { service, calls } = modeTestService();
+    const result = await service.spawn(testAgentId, 'director');
 
-    // Director spawns in interactive mode via PTY
-    // The PTY process spawns the shell successfully, but the claude command will fail
-    // We just verify the spawn attempt is made
-    const spawnPromise = service.spawn(testAgentId, 'director');
-
-    // The spawn should either succeed (PTY started) or fail (shell spawn failed)
-    // Either way indicates interactive mode was attempted
-    try {
-      const result = await spawnPromise;
-      // If spawn succeeds, verify it's in interactive mode
-      expect(result.session.mode).toBe('interactive');
-      // Clean up
-      await service.terminate(result.session.id, false);
-    } catch (error) {
-      // If it fails, it should be because the shell couldn't spawn
-      // (posix_spawnp failed) not because node-pty is missing
-      expect(String(error)).not.toContain('node-pty');
-    }
+    expect(result.session.mode).toBe('interactive');
+    expect(calls).toEqual({ interactive: 1, headless: 0 });
   });
 
-  // Note: Tests for worker/steward defaulting to headless mode require the actual
-  // claude binary to be installed. The spawn throws synchronously in Bun when the
-  // binary is not found. Integration tests with a real claude installation would
-  // verify this behavior.
-
   test('can override mode with options', async () => {
-    const service = createSpawnerService({ claudePath: 'nonexistent-claude' });
+    const { service, calls } = modeTestService();
+    const result = await service.spawn(testAgentId, 'worker', { mode: 'interactive' });
 
-    // Worker with interactive mode override should use PTY
-    const spawnPromise = service.spawn(testAgentId, 'worker', { mode: 'interactive' });
-
-    try {
-      const result = await spawnPromise;
-      // If spawn succeeds, verify it's in interactive mode
-      expect(result.session.mode).toBe('interactive');
-      // Clean up
-      await service.terminate(result.session.id, false);
-    } catch (error) {
-      // If it fails, it should be because the shell couldn't spawn
-      // not because node-pty is missing
-      expect(String(error)).not.toContain('node-pty');
-    }
+    expect(result.session.mode).toBe('interactive');
+    expect(result.session.workerMode).toBe('persistent');
+    expect(calls).toEqual({ interactive: 1, headless: 0 });
   });
 });
 
@@ -563,27 +561,12 @@ describe('Session ID generation', () => {
 });
 
 describe('Worker mode inference', () => {
-  test('headless mode is inferred for worker role', async () => {
-    // This tests that the service determines the correct mode based on role
-    // Director -> interactive, Worker -> headless, Steward -> headless
-    const service = createSpawnerService({ claudePath: 'nonexistent-claude' });
-
-    // Director uses interactive mode - verify via PTY spawn attempt
-    const spawnPromise = service.spawn(testAgentId, 'director');
-
-    try {
-      const result = await spawnPromise;
-      // If spawn succeeds, verify it's in interactive mode
-      expect(result.session.mode).toBe('interactive');
-      // Clean up
-      await service.terminate(result.session.id, false);
-    } catch (error) {
-      // If it fails, it should be because of the shell, not missing node-pty
-      expect(String(error)).not.toContain('node-pty');
+  test('headless mode is inferred for worker and steward roles', async () => {
+    for (const role of ['worker', 'steward'] as const) {
+      const { service, calls } = modeTestService();
+      await expect(service.spawn(testAgentId, role)).rejects.toThrow('headless mode selected');
+      expect(calls).toEqual({ interactive: 0, headless: 1 });
     }
-
-    // Worker/Steward headless mode can only be verified with integration tests
-    // because spawn() throws synchronously in Bun when binary is not found
   });
 });
 
