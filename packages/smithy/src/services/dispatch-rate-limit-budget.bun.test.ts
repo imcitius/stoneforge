@@ -32,6 +32,8 @@ import { createTaskAssignmentService } from './task-assignment-service.js';
 import { createDispatchService } from './dispatch-service.js';
 import { createDispatchDaemon, type DispatchDaemon, type DispatchDaemonConfig } from './dispatch-daemon.js';
 import { createSessionManager, type ResumeSessionOptions } from '../runtime/session-manager.js';
+import { getProviderRegistry } from '../providers/registry.js';
+import type { AgentProvider } from '../providers/types.js';
 import type { SpawnerService, SpawnResult } from '../runtime/spawner.js';
 import { createWorktreeManager } from '../git/worktree-manager.js';
 import type { StewardScheduler } from './steward-scheduler.js';
@@ -53,11 +55,22 @@ let handles: Map<string, { alive: boolean; events: EventEmitter; agentId: Entity
 let providers: Map<string, string>;
 let serial: number;
 let spawner: SpawnerService;
+let originalCodexProvider: AgentProvider;
 
 const git = (cwd: string, ...args: string[]) =>
   execFileSync('git', ['-c', 'user.email=fixture@example.test', '-c', 'user.name=Fixture', ...args], { cwd, stdio: 'pipe', encoding: 'utf8' }).trim();
 
 beforeEach(async () => {
+  const providerRegistry = getProviderRegistry();
+  originalCodexProvider = providerRegistry.get('codex')!;
+  // SessionManager checks provider availability before reaching the inert spawner.
+  // Keep that check inside the fixture so no Codex CLI is needed on PATH.
+  providerRegistry.register({
+    ...originalCodexProvider,
+    isAvailable: async () => true,
+    getInstallInstructions: () => originalCodexProvider.getInstallInstructions(),
+    listModels: () => originalCodexProvider.listModels(),
+  });
   t0 = Date.parse('2026-11-01T15:00:00Z');
   at(0);
   root = mkdtempSync(path.join(tmpdir(), 'sf-ratelimit-'));
@@ -89,6 +102,7 @@ beforeEach(async () => {
   } as unknown as SpawnerService;
 });
 afterEach(() => {
+  getProviderRegistry().register(originalCodexProvider);
   setSystemTime();
   db.close(); rmSync(root, { recursive: true, force: true }); rmSync(origin, { recursive: true, force: true });
 });
