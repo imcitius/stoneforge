@@ -81,7 +81,7 @@ async function deleteLibrary(request: any, id: string) {
 
 // Helper to get all documents
 async function getDocuments(request: any) {
-  const response = await request.get(`${API_BASE}/api/documents?limit=1000`);
+  const response = await request.get(`${API_BASE}/api/documents?limit=500`);
   expect(response.ok()).toBeTruthy();
   const data = await response.json();
   return data.items || data;
@@ -163,7 +163,7 @@ test.describe('TB130: Virtualized Documents List', () => {
 
     // Should show total count without "of" format
     expect(countText).not.toContain(' of ');
-    expect(countText).toMatch(/\d+ documents?/);
+    expect(countText).toMatch(/^\d+ docs?$/);
   });
 
   test('All Documents search filter works instantly with virtualized list', async ({ page, request }) => {
@@ -249,7 +249,7 @@ test.describe('TB130: Virtualized Documents List', () => {
 
     // Should show total count without "of" format
     expect(countText).not.toContain(' of ');
-    expect(countText).toMatch(/\d+ documents?/);
+    expect(countText).toMatch(/^\d+ docs?$/);
   });
 
   test('virtualized documents list supports smooth scrolling', async ({ page, request }) => {

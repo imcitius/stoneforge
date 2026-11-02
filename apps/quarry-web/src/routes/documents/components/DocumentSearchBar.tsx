@@ -35,7 +35,9 @@ export function DocumentSearchBar({ onSelectDocument }: DocumentSearchBarProps) 
     function handleKeyDown(event: KeyboardEvent) {
       if (
         event.key === '/' &&
-        !(event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+        !(event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLTextAreaElement ||
+          (event.target instanceof HTMLElement && event.target.isContentEditable))
       ) {
         event.preventDefault();
         inputRef.current?.focus();
