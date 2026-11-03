@@ -608,10 +608,12 @@ async function taskMergeHandler(
       await execVerify('git', ['branch', '-D', '--', sourceBranch], { cwd: workspaceRoot });
     } catch { /* branch may not exist locally */ }
 
-    // 6. Sync local target branch (best-effort, after all bookkeeping is done)
+    // 6. Sync local target branch (best-effort, after all bookkeeping is done).
+    // Literal executable + argv: a single command string would be treated by
+    // execFile as the executable name and always fail (silently, below).
     try {
-      if (!localDelivery) await execVerify('git fetch origin', { cwd: workspaceRoot, encoding: 'utf8' });
-    } catch { /* best-effort */ }
+      if (!localDelivery) await execVerify('git', ['fetch', 'origin'], { cwd: workspaceRoot, encoding: 'utf8' });
+    } catch { /* best-effort: merge is already delivered and verified */ }
     if (remoteExists) await syncLocalBranch(workspaceRoot, effectiveTargetForVerify);
 
     // 7. Output result

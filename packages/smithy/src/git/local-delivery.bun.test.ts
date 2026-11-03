@@ -40,9 +40,12 @@ function commit(cwd: string, file: string, content = file) {
   return git(cwd, 'rev-parse', 'HEAD');
 }
 function cli(...args: string[]) {
+  return cliWithEnv({}, ...args);
+}
+function cliWithEnv(env: Record<string, string>, ...args: string[]) {
   const executable = process.env.SF_TEST_CLI ?? process.execPath;
   return spawnSync(executable, [...(process.env.SF_TEST_CLI ? [] : [cliSource]), ...args, '--json'], {
-    cwd: root, encoding: 'utf8', env: { ...process.env, STONEFORGE_ROOT: root }, timeout: 20_000,
+    cwd: root, encoding: 'utf8', env: { ...process.env, STONEFORGE_ROOT: root, ...env }, timeout: 20_000,
   });
 }
 /** A task with a real worktree/branch, owned by a live worker session. */
@@ -324,4 +327,90 @@ test('daemon sync with remote delivery still merges origin/<target>, not unpubli
   expect(result.message).toBe('Branch synced with origin/master');
   expect(contains(worktree.path, published)).toBe(true);
   expect(contains(worktree.path, unpublished)).toBe(false);
+});
+
+// --------------------------------------------------------------------------
+// sf task merge: best-effort refresh after merge bookkeeping (el-5pc8o)
+// --------------------------------------------------------------------------
+
+/**
+ * Put a `git` wrapper first on the CLI's PATH. It records each invocation's
+ * literal argv (\x1f-separated, \x1e-terminated) and the real Git exit status.
+ * With failFinalFetch it rejects `git fetch origin` once `git branch -D` has
+ * run, i.e. exactly the best-effort refresh after bookkeeping and cleanup.
+ */
+function gitWrapper(failFinalFetch = false) {
+  const bin = path.join(root, 'wrapper-bin'); mkdirSync(bin);
+  const log = path.join(root, 'git-argv.log');
+  const realGit = execFileSync('/bin/sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim();
+  writeFileSync(path.join(bin, 'git'), [
+    '#!/bin/sh',
+    `log='${log}'`,
+    `printf '%s\\037' "$@" >> "$log"`,
+    `if [ "$1" = branch ] && [ "$2" = -D ]; then : > "$log.deleted"; fi`,
+    `if [ "${failFinalFetch ? '1' : ''}" = 1 ] && [ -e "$log.deleted" ] && [ "$#" -eq 2 ] && [ "$1" = fetch ] && [ "$2" = origin ]; then`,
+    `  printf 'status=128\\036' >> "$log"; echo 'fatal: simulated fetch failure' >&2; exit 128`,
+    'fi',
+    `'${realGit}' "$@"; status=$?`,
+    `printf 'status=%s\\036' "$status" >> "$log"; exit "$status"`,
+    '',
+  ].join('\n'), { mode: 0o755 });
+  const calls = () => (existsSync(log) ? readFileSync(log, 'utf8') : '').split('\x1e').filter(Boolean).map((entry) => {
+    const parts = entry.split('\x1f');
+    return { argv: parts.slice(0, -1), status: Number(parts.at(-1)!.replace('status=', '')) };
+  });
+  return { env: { PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}` }, calls };
+}
+const argvIs = (argv: string[], ...expected: string[]) => argv.length === expected.length && argv.every((a, i) => a === expected[i]);
+
+test('sf task merge with remote delivery runs the final refresh as literal git fetch origin after cleanup', async () => {
+  await setDelivery('remote');
+  const { task, worktree } = await workerTask(TaskStatus.REVIEW);
+  commit(worktree.path, 'TASK');
+  const wrapper = gitWrapper();
+  const result = cliWithEnv(wrapper.env, 'task', 'merge', task.id);
+  expect(result.status, result.stdout + result.stderr).toBe(0);
+
+  const calls = wrapper.calls();
+  const branchDelete = calls.findIndex((c) => argvIs(c.argv, 'branch', '-D', '--', worktree.branch));
+  expect(branchDelete).toBeGreaterThan(-1);
+  const refresh = calls.slice(branchDelete + 1).filter((c) => argvIs(c.argv, 'fetch', 'origin'));
+  expect(refresh).toEqual([{ argv: ['fetch', 'origin'], status: 0 }]);
+
+  const closed = (await api.get<Task>(task.id))!;
+  expect(closed.status).toBe('closed');
+  expect(closed.metadata.orchestrator).toMatchObject({ mergeStatus: 'merged', mergeCommitHash: git(remote, 'rev-parse', 'master') });
+  expect(readFileSync(path.join(repo, 'TASK'), 'utf8')).toBe('TASK');
+});
+
+test('sf task merge keeps a verified remote delivery merged when the final git fetch origin fails', async () => {
+  await setDelivery('remote');
+  const { task, worktree } = await workerTask(TaskStatus.REVIEW);
+  commit(worktree.path, 'TASK');
+  const wrapper = gitWrapper(true);
+  const result = cliWithEnv(wrapper.env, 'task', 'merge', task.id);
+  expect(result.status, result.stdout + result.stderr).toBe(0);
+
+  const calls = wrapper.calls();
+  const branchDelete = calls.findIndex((c) => argvIs(c.argv, 'branch', '-D', '--', worktree.branch));
+  expect(calls.slice(branchDelete + 1).filter((c) => argvIs(c.argv, 'fetch', 'origin'))).toEqual([{ argv: ['fetch', 'origin'], status: 128 }]);
+  // Verification fetch (before bookkeeping) still ran and succeeded.
+  expect(calls.slice(0, branchDelete).some((c) => argvIs(c.argv, 'fetch', '--', 'origin', 'master') && c.status === 0)).toBe(true);
+  const closed = (await api.get<Task>(task.id))!;
+  expect(closed.status).toBe('closed');
+  expect(closed.metadata.orchestrator).toMatchObject({ mergeStatus: 'merged', mergeCommitHash: git(remote, 'rev-parse', 'master') });
+});
+
+test('sf task merge with local delivery never fetches or pushes', async () => {
+  const { task, worktree } = await workerTask(TaskStatus.REVIEW);
+  commit(worktree.path, 'TASK');
+  const before = remoteRefs();
+  const wrapper = gitWrapper();
+  const result = cliWithEnv(wrapper.env, 'task', 'merge', task.id);
+  expect(result.status, result.stdout + result.stderr).toBe(0);
+  const calls = wrapper.calls();
+  expect(calls.some((c) => argvIs(c.argv, 'branch', '-D', '--', worktree.branch))).toBe(true);
+  expect(calls.filter((c) => c.argv[0] === 'fetch' || c.argv[0] === 'push')).toEqual([]);
+  expect(remoteRefs()).toBe(before);
+  expect((await api.get<Task>(task.id))!.status).toBe('closed');
 });
