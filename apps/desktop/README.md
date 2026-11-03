@@ -279,8 +279,10 @@ one workspace into the first entry (its ID, logs and dashboard storage are kept)
 unavailable folder keeps its stored root and reports "Project folder is unavailable"
 when opened. The root is re-resolved before each start. If a backend still reports
 a different identity, Desktop stops it, logs the reason to the project's Logs, and
-keeps the project in the `error` state (shown in the sidebar) with the differing
-roots in the project view and the native error dialog, instead of a silent stop.
+keeps the project in the `error` state instead of a silent stop: its tab shows the
+error status (✕ dot; tooltip and accessible name carry the message), the project
+toolbar label reads “Error”, and the project's status page and the native error
+dialog show the differing roots.
 Runtime logs are capped at 128 KB per project and persisted under `userData/logs`;
 the Logs viewer shows a snapshot of the last 10,000 characters from the current run.
 It opens in a separate child window above the project dashboard, sized to the
