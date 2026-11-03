@@ -449,12 +449,18 @@ routing variables (workspace root, database path, Desktop instance ID, entity ID
 Test fixtures must never pass them to child `sf` processes. Every backend test and
 check script that runs `sf` builds the child environment with `tests/fixture-env.mjs`
 (`fixtureEnv(overrides)`), which strips `STONEFORGE_*`, `SF_*`, `ORCHESTRATOR_URL` and
-`ELECTRON_RUN_AS_NODE` before applying the fixture's own values, so
-`pnpm --filter @stoneforge/desktop test` and the packaged checks (including
-`check-launch-services.mjs`) need no `env -u` prefix inside an agent session. New
-tests or scripts that spawn `sf` must use that helper rather than `{ ...process.env }`.
+`ELECTRON_RUN_AS_NODE` before applying the fixture's own values. Launching the
+packaged app is a second leak path: `/usr/bin/open` forwards its own environment to
+the app and Playwright's `_electron.launch` defaults to the parent environment, and an
+inherited `ELECTRON_RUN_AS_NODE=1` makes the app executable run as plain Node
+(stderr `bad option: --project=...`). The packaged checks therefore also pass the
+`fixtureEnv()` environment to the app launch itself (`check-launch-services.mjs` gives
+it to `open`). With that, `pnpm --filter @stoneforge/desktop test` and the packaged
+checks need no `env -u` prefix inside an agent session. New tests or scripts that
+spawn `sf` or launch the app must use that helper rather than `{ ...process.env }`.
 `tests/env-isolation.test.mjs` enforces this: it fails if a file that runs `sf.js`
-copies `process.env` or does not use `fixtureEnv`, and it reruns the `sf`/backend
+copies `process.env` or does not use `fixtureEnv`, if a `/usr/bin/open` or
+`_electron.launch` of the packaged app passes no explicit `env`, and it reruns the `sf`/backend
 test files with `STONEFORGE_ROOT`, `STONEFORGE_DB_PATH`, `STONEFORGE_UPLOAD_DIR`,
 `STONEFORGE_DESKTOP_INSTANCE_ID`, `STONEFORGE_SESSION_ID` and `SF_ENTITY_ID` aimed at
 an initialized sentinel workspace, requiring every sentinel file (database, WAL/SHM,

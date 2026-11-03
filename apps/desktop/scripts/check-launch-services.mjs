@@ -14,8 +14,16 @@ const workspace = join(temp, 'Проект with spaces'); await mkdir(workspace)
 const env = fixtureEnv();
 execFileSync(join(resources, 'runtime/node'), [join(resources, 'backend/dist/bin/sf.js'), 'init', '--preset', 'auto', '--name', 'launch-fixture'], { cwd: workspace, env, stdio: 'pipe' });
 const stdout = join(temp, 'stdout.log'), stderr = join(temp, 'stderr.log');
-execFileSync('/usr/bin/open', ['-n', '--env', 'PATH=/usr/bin:/bin:/usr/sbin:/sbin', '--env', `STONEFORGE_DESKTOP_TEST_DATA=${join(temp, 'app-data')}`, '--stdout', stdout, '--stderr', stderr, bundle, '--args', `--project=${workspace}`]);
+// `open` forwards its own environment to the launched app. An agent session's
+// ELECTRON_RUN_AS_NODE would make the executable run as plain Node ("bad option:
+// --project=...") and its STONEFORGE_*/SF_* routing would reach the app, so launch
+// with the same stripped fixture environment a Finder-like launch would have.
+execFileSync('/usr/bin/open', ['-n', '--env', 'PATH=/usr/bin:/bin:/usr/sbin:/sbin', '--env', `STONEFORGE_DESKTOP_TEST_DATA=${join(temp, 'app-data')}`, '--stdout', stdout, '--stderr', stderr, bundle, '--args', `--project=${workspace}`], { env });
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+const alive = (pid) => {
+  try { process.kill(pid, 0); return true; } catch (error) { if (error.code === 'ESRCH') return false; throw error; }
+};
+const launchLog = async () => `\n--- app stderr.log ---\n${await readFile(stderr, 'utf8').catch((error) => `<unreadable: ${error.message}>`)}`;
 let backendPid, appPid;
 try {
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -31,17 +39,21 @@ try {
       break;
     } catch { await pause(200); }
   }
-  assert(backendPid && appPid, `Launch did not start a managed child. Diagnostics: ${temp}`);
+  assert(backendPid && appPid, `Launch did not start a managed child. Diagnostics: ${temp}${await launchLog()}`);
   // Let the UI finish loading. No inspector or terminal-provided Node is used.
   await pause(2000);
-  process.kill(backendPid, 0);
+  assert(alive(appPid), `App exited after starting its backend. Diagnostics: ${temp}${await launchLog()}`);
+  assert(alive(backendPid), `Backend exited during startup. Diagnostics: ${temp}${await launchLog()}`);
   console.log(`LaunchServices + packaged runtime + Unicode path: passed. Diagnostics: ${temp}`);
 } finally {
-  if (appPid) process.kill(appPid, 'SIGKILL');
+  // The app may already have exited (a failed launch); that must not mask the real error.
+  if (appPid) {
+    try { process.kill(appPid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
+  }
   if (backendPid) {
     let exited = false;
     for (let attempt = 0; attempt < 250; attempt++) {
-      try { process.kill(backendPid, 0); } catch { exited = true; break; }
+      if (!alive(backendPid)) { exited = true; break; }
       await pause(200);
     }
     assert(exited, 'Backend must exit after losing its parent');

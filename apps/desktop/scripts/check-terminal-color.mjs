@@ -1,10 +1,11 @@
 /** Verify packaged interactive providers with real PTYs, without model/API calls. */
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-const app=resolve(process.env.DESKTOP_APP);
+// process.execPath is a real path; DESKTOP_APP may go through a symlink (/tmp -> /private/tmp).
+const app=realpathSync(resolve(process.env.DESKTOP_APP));
 const resources=join(app,'Contents/Resources');
 assert.equal(process.execPath,join(resources,'runtime/node'),'Run with the candidate bundled Node');
 const temp=mkdtempSync(join(tmpdir(),'stoneforge-packaged-color-'));

@@ -37,6 +37,46 @@ test('every Desktop test/check script that runs sf builds its env with fixtureEn
   }
 });
 
+// Source text of each call `callee(...)` (balanced parentheses; enough for these scripts).
+function calls(source, callee) {
+  const found = [];
+  for (let start = source.indexOf(callee); start !== -1; start = source.indexOf(callee, start + 1)) {
+    let depth = 0, end = start + callee.indexOf('(');
+    for (; end < source.length; end++) {
+      if (source[end] === '(') depth++;
+      else if (source[end] === ')' && --depth === 0) break;
+    }
+    found.push(source.slice(start, end + 1));
+  }
+  return found;
+}
+
+// Launching the packaged app is a second leak path: `/usr/bin/open` and Playwright's
+// `_electron.launch` default to the parent environment, and an agent session's
+// ELECTRON_RUN_AS_NODE=1 makes the app executable run as plain Node ("bad option:
+// --project=...") while STONEFORGE_*/SF_* reach the app's own process.
+test('every Desktop check script that launches the packaged app passes a fixtureEnv() environment', async () => {
+  const files = [...await sources('tests'), ...await sources('scripts')].filter(f => f.name !== self);
+  const launches = [];
+  for (const { path, source } of files) {
+    const open = calls(source, "execFileSync('/usr/bin/open'");
+    const electron = calls(source, '_electron.launch(').filter(call => call.includes('Contents/MacOS/Stoneforge Desktop'));
+    for (const call of open) {
+      // Options follow the argv array; `--env` entries inside the array do not count.
+      const options = call.slice(call.lastIndexOf(']') + 1);
+      assert.match(options, /\benv\b/, `${path}: /usr/bin/open launch must pass { env } (it forwards its environment to the app)`);
+    }
+    for (const call of electron) assert.match(call, /\benv\s*[:,}]/, `${path}: _electron.launch of the packaged app must pass env`);
+    if (open.length + electron.length) {
+      launches.push(path);
+      assert.match(source, /\bfixtureEnv\b/, `${path} launches the app without fixtureEnv()`);
+      assert.doesNotMatch(source, /\{\s*\.\.\.process\.env\b/, `${path} copies process.env; use fixtureEnv() from tests/fixture-env.mjs`);
+    }
+  }
+  assert(launches.includes('scripts/check-launch-services.mjs') && launches.includes('scripts/check-app.mjs'),
+    `Scan must cover the LaunchServices and packaged UI checks, found ${launches}`);
+});
+
 // Every file, including dot-files and SQLite sidecars, with its size, mtime and hash.
 async function snapshot(dir) {
   const entries = {};
