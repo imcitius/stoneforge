@@ -31,6 +31,7 @@ import {
   MergeRequestDetailPanel,
   MergeRequestFilterBar,
 } from '../../components/merge-request';
+import { handleMergeRequestListKey } from './list-shortcuts';
 
 export function MergeRequestsPage() {
   const search = useSearch({ from: '/merge-requests' }) as {
@@ -88,37 +89,17 @@ export function MergeRequestsPage() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't capture if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      switch (e.key) {
-        case 'j': // Next item
-          e.preventDefault();
-          setFocusedIndex((prev) => Math.min(prev + 1, filteredRequests.length - 1));
-          break;
-        case 'k': // Previous item
-          e.preventDefault();
-          setFocusedIndex((prev) => Math.max(prev - 1, 0));
-          break;
-        case 'Enter': // Open detail
-          e.preventDefault();
+      handleMergeRequestListKey(e, {
+        next: () => setFocusedIndex((prev) => Math.min(prev + 1, filteredRequests.length - 1)),
+        prev: () => setFocusedIndex((prev) => Math.max(prev - 1, 0)),
+        open: () => {
           if (filteredRequests[focusedIndex]) {
             handleSelectTask(filteredRequests[focusedIndex].id);
           }
-          break;
-        case 'Escape': // Close panel
-          e.preventDefault();
-          handleCloseDetail();
-          break;
-        case 'r': // Refresh
-          if (!e.metaKey && !e.ctrlKey) {
-            e.preventDefault();
-            refetch();
-          }
-          break;
-      }
+        },
+        close: () => handleCloseDetail(),
+        refresh: () => refetch(),
+      });
     };
 
     document.addEventListener('keydown', handleKeyDown);

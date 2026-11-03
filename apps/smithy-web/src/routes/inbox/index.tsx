@@ -38,6 +38,7 @@ import { useCurrentUser } from '../../contexts';
 import { useRealtimeEvents } from '../../api/hooks/useRealtimeEvents';
 import type { WebSocketEvent } from '@stoneforge/ui';
 import { groupByTimePeriod, TIME_PERIOD_LABELS, type TimePeriod, formatCompactTime } from '../../lib';
+import { getInboxNavigationDirection } from './navigation-shortcuts';
 
 // Types
 interface Entity {
@@ -1069,14 +1070,9 @@ export function InboxPage() {
   // Keyboard shortcuts - using native event listener since useKeyboardShortcut may not exist
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-      if (e.key === 'j' || e.key === 'J') {
-        handleKeyNavigation('next');
-      } else if (e.key === 'k' || e.key === 'K') {
-        handleKeyNavigation('prev');
+      const direction = getInboxNavigationDirection(e);
+      if (direction) {
+        handleKeyNavigation(direction);
       }
     };
 

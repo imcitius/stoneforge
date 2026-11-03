@@ -83,6 +83,7 @@ import {
   setStoredSearch,
 } from '../../lib/task-utils';
 import { getCurrentBinding, formatKeyBinding } from '../../lib/keyboard';
+import { createViewModeShortcutHandlers } from './view-mode-shortcuts';
 
 type TabValue = 'all' | 'backlog' | 'unassigned' | 'assigned' | 'in_progress' | 'closed' | 'awaiting_merge';
 
@@ -228,38 +229,7 @@ export function TasksPage() {
 
   // Keyboard shortcuts for view toggle
   useEffect(() => {
-    let pendingV = false;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't capture if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      if (e.key === 'v' || e.key === 'V') {
-        pendingV = true;
-        return;
-      }
-
-      if (pendingV) {
-        if (e.key === 'l' || e.key === 'L') {
-          setViewMode('list');
-          pendingV = false;
-        } else if (e.key === 'k' || e.key === 'K') {
-          setViewMode('kanban');
-          pendingV = false;
-        } else {
-          pendingV = false;
-        }
-      }
-    };
-
-    const handleKeyUp = () => {
-      // Reset pending state after a short delay
-      setTimeout(() => {
-        pendingV = false;
-      }, 500);
-    };
+    const { handleKeyDown, handleKeyUp } = createViewModeShortcutHandlers(setViewMode);
 
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
