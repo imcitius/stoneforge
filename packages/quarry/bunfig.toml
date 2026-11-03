@@ -1,0 +1,3 @@
+[test]
+# Keep tests hermetic when run inside an agent session (see tests/agent-env.ts).
+preload = ["./tests/bun-preload.ts"]
