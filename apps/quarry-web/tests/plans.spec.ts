@@ -244,35 +244,47 @@ test.describe('TB24: Plan List with Progress', () => {
   });
 
   test('plans list shows plans when available', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
+    // Seed a plan rather than branching on an earlier GET /api/plans snapshot:
+    // other specs create plans in parallel, so an empty snapshot can be stale by
+    // the time the page loads.
+    const title = `TB24 Listed Plan ${Date.now()}`;
+    const createResponse = await page.request.post('/api/plans', {
+      data: { title, createdBy: 'el-0000', initialTask: { title: `${title} task`, priority: 3 } },
+    });
+    expect(createResponse.ok(), await createResponse.text()).toBe(true);
+    const plan = await createResponse.json();
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
-    if (plans.length === 0) {
-      // Should show empty state
-      await expect(page.getByTestId('plans-empty')).toBeVisible();
-    } else {
-      // Should show plans list
-      await expect(page.getByTestId('plans-list')).toBeVisible();
-      // At least one plan item should be visible
-      await expect(page.getByTestId(`plan-item-${plans[0].id}`)).toBeVisible();
-    }
+    // Should show plans list containing the seeded plan
+    await expect(page.getByTestId('plans-list')).toBeVisible();
+    await expect(page.getByTestId(`plan-item-${plan.id}`)).toBeVisible();
+    await expect(page.getByTestId('plans-empty')).toHaveCount(0);
   });
 
   test('plans list shows plan count', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    // The e2e database starts without plans, so seed one (TB121: plans need an initial task).
+    // It is not deleted: parallel tests may have snapshotted it from GET /api/plans.
+    const title = `TB24 Count Plan ${Date.now()}`;
+    const createResponse = await page.request.post('/api/plans', {
+      data: { title, createdBy: 'el-0000', initialTask: { title: `${title} task`, priority: 3 } },
+    });
+    expect(createResponse.ok(), await createResponse.text()).toBe(true);
+    const plan = await createResponse.json();
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('plans-count')).toContainText(`(${plans.length})`);
+    await expect(page.getByTestId(`plan-item-${plan.id}`)).toBeVisible();
+
+    // Header count matches the rendered rows. Other specs create plans in
+    // parallel, so compare against the list rather than an earlier API snapshot.
+    const rows = page.locator('[data-testid="plans-list"] > [data-testid^="plan-item-"]');
+    await expect(async () => {
+      const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThan(0);
+      await expect(page.getByTestId('plans-count')).toHaveText(`(${rowCount})`, { timeout: 1000 });
+    }).toPass({ timeout: 10000 });
   });
 
   test('clicking plan opens detail panel', async ({ page }) => {

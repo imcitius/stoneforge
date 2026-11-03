@@ -1,16 +1,53 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+interface SeededPlan {
+  id: string;
+  title: string;
+}
+
+/**
+ * Unique token for plan titles. The 'qzx' prefix keeps the fuzzy (subsequence)
+ * search from matching plans created by other specs running in parallel.
+ */
+function uniqueToken(): string {
+  return `qzx${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Create a plan through the API. TB121: plans require an initial task.
+ * The e2e database starts with only the operator entity, so every test that
+ * needs plans seeds its own instead of skipping. Seeded plans are not deleted:
+ * other specs running in parallel snapshot GET /api/plans and then open those
+ * plans, and the disposable e2e database is removed by global teardown.
+ */
+async function seedPlan(page: Page, title: string): Promise<SeededPlan> {
+  const response = await page.request.post('/api/plans', {
+    data: {
+      title,
+      createdBy: 'el-0000',
+      initialTask: { title: `${title} task`, priority: 3 },
+    },
+  });
+  expect(response.ok(), `POST /api/plans failed: ${await response.text()}`).toBe(true);
+  const created = await response.json();
+  return { id: created.id as string, title: created.title as string };
+}
+
+async function gotoPlans(page: Page): Promise<void> {
+  await page.goto('/plans');
+  await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
+}
+
+/** Top-level plan rows only ('[data-testid^="plan-item-"]' alone also matches plan-item-title). */
+function planRows(page: Page) {
+  return page.locator('[data-testid="plans-list"] > [data-testid^="plan-item-"]');
+}
+
+function planRow(page: Page, plan: SeededPlan) {
+  return page.getByTestId(`plan-item-${plan.id}`);
+}
 
 test.describe('TB87: Plan Search', () => {
-  // Helper to get test plans
-  async function ensureTestPlans(page: import('@playwright/test').Page): Promise<{ count: number; titles: string[] }> {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-    return {
-      count: plans.length,
-      titles: plans.map((p: { title: string }) => p.title)
-    };
-  }
-
   test.beforeEach(async ({ page }) => {
     // Clear localStorage for consistent testing
     await page.goto('/plans');
@@ -38,48 +75,33 @@ test.describe('TB87: Plan Search', () => {
   });
 
   test('typing in search input filters plans', async ({ page }) => {
-    const { count, titles } = await ensureTestPlans(page);
-    if (count < 2) {
-      test.skip();
-      return;
-    }
+    const token = uniqueToken();
+    const alpha = await seedPlan(page, `TB87 Alpha ${token}`);
+    const beta = await seedPlan(page, `TB87 Beta ${token}`);
 
-    await page.goto('/plans');
-    await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
+    await gotoPlans(page);
+    await expect(planRow(page, alpha)).toBeVisible();
+    await expect(planRow(page, beta)).toBeVisible();
 
-    // Type a search query that should match some plans
-    const searchInput = page.getByTestId('plan-search-input');
-    await searchInput.fill(titles[0].substring(0, 3)); // Use first 3 chars of first plan title
+    // "alpha <token>" matches only the Alpha plan (Beta has no 'l' after its 'a')
+    await page.getByTestId('plan-search-input').fill(`alpha ${token}`);
 
-    // Wait for debounce (300ms) + rendering
-    await page.waitForTimeout(400);
-
-    // The filtered results should include at least one plan (the one we searched for)
-    const filteredPlans = page.locator('[data-testid^="plan-item-"]');
-    const filteredCount = await filteredPlans.count();
-    expect(filteredCount).toBeGreaterThan(0);
+    await expect(planRow(page, beta)).toHaveCount(0);
+    await expect(planRow(page, alpha)).toBeVisible();
+    await expect(planRows(page)).toHaveCount(1);
   });
 
   test('search with no matches shows empty state', async ({ page }) => {
-    const { count } = await ensureTestPlans(page);
-    if (count === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page, `TB87 NoMatch ${uniqueToken()}`);
 
-    await page.goto('/plans');
-    await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
+    await gotoPlans(page);
+    await expect(planRow(page, plan)).toBeVisible();
 
     // Type a search query that shouldn't match anything
-    const searchInput = page.getByTestId('plan-search-input');
-    await searchInput.fill('xyzzynonexistentplan123456789');
+    await page.getByTestId('plan-search-input').fill('xyzzynonexistentplan123456789');
 
-    // Wait for debounce
-    await page.waitForTimeout(400);
-
-    // No plans should be shown
-    const planItems = page.locator('[data-testid^="plan-item-"]');
-    await expect(planItems).toHaveCount(0);
+    // No plans should be shown once the debounced filter applies
+    await expect(planRows(page)).toHaveCount(0);
 
     // Empty state message should appear with search-specific text
     await expect(page.getByTestId('plans-no-search-results')).toBeVisible();
@@ -103,20 +125,16 @@ test.describe('TB87: Plan Search', () => {
   });
 
   test('clicking clear button clears the search', async ({ page }) => {
-    const { count } = await ensureTestPlans(page);
-    if (count === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page, `TB87 ClearButton ${uniqueToken()}`);
 
-    await page.goto('/plans');
-    await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
+    await gotoPlans(page);
+    await expect(planRow(page, plan)).toBeVisible();
 
     const searchInput = page.getByTestId('plan-search-input');
 
-    // Type a search query
-    await searchInput.fill('test');
-    await page.waitForTimeout(400);
+    // Type a search query that hides the seeded plan
+    await searchInput.fill('xyzzynonexistentplan123456789');
+    await expect(planRow(page, plan)).toHaveCount(0);
 
     // Click the clear button
     await page.getByTestId('plan-search-clear').click();
@@ -126,6 +144,9 @@ test.describe('TB87: Plan Search', () => {
 
     // Clear button should be hidden again
     await expect(page.getByTestId('plan-search-clear')).not.toBeVisible();
+
+    // The seeded plan is listed again
+    await expect(planRow(page, plan)).toBeVisible();
   });
 
   test('pressing Escape clears search when input is focused', async ({ page }) => {
@@ -181,32 +202,18 @@ test.describe('TB87: Plan Search', () => {
   });
 
   test('search highlights matching characters in plan titles', async ({ page }) => {
-    const { count, titles } = await ensureTestPlans(page);
-    if (count === 0) {
-      test.skip();
-      return;
-    }
+    const token = uniqueToken();
+    const plan = await seedPlan(page, `TB87 Highlight ${token}`);
 
-    await page.goto('/plans');
-    await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
+    await gotoPlans(page);
+    await expect(planRow(page, plan)).toBeVisible();
 
-    // Find a title and search for part of it
-    const searchTerm = titles[0].substring(0, 3).toLowerCase();
+    await page.getByTestId('plan-search-input').fill(token);
+    await expect(planRows(page)).toHaveCount(1);
 
-    const searchInput = page.getByTestId('plan-search-input');
-    await searchInput.fill(searchTerm);
-    await page.waitForTimeout(400);
-
-    // Check for highlighted marks in plan titles
-    const planTitles = page.locator('[data-testid="plan-item-title"]');
-    const titleCount = await planTitles.count();
-
-    if (titleCount > 0) {
-      // At least one title should have highlighted marks
-      const marks = planTitles.first().locator('mark');
-      const markCount = await marks.count();
-      expect(markCount).toBeGreaterThan(0);
-    }
+    // Each matched character is wrapped in its own <mark>
+    const marks = planRow(page, plan).getByTestId('plan-item-title').locator('mark');
+    await expect(marks).toHaveCount(token.length);
   });
 
   test('search combines with status filter', async ({ page }) => {
@@ -277,131 +284,77 @@ test.describe('TB87: Plan Search', () => {
   });
 
   test('search is debounced (300ms)', async ({ page }) => {
-    const { count } = await ensureTestPlans(page);
-    if (count === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page, `TB87 Debounce ${uniqueToken()}`);
 
-    await page.goto('/plans');
-    await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
+    await gotoPlans(page);
+    await expect(planRow(page, plan)).toBeVisible();
 
     const searchInput = page.getByTestId('plan-search-input');
+    await searchInput.fill('xyzzynonexistentplan123456789');
 
-    // Type quickly using pressSequentially (replacement for deprecated type)
-    await searchInput.pressSequentially('xyz', { delay: 50 });
+    // Immediately after typing the 300ms debounce has not fired: the list is unfiltered
+    expect(await planRow(page, plan).isVisible()).toBe(true);
 
-    // Check immediately - debounce hasn't fired yet
-    await page.waitForTimeout(100);
-
-    // After debounce period, filter should apply
-    await page.waitForTimeout(400);
-
-    const finalPlans = page.locator('[data-testid^="plan-item-"]');
-    const finalCount = await finalPlans.count();
-
-    // The key test is that debouncing is happening
-    expect(typeof finalCount).toBe('number');
+    // After the debounce period the filter applies
+    await expect(planRow(page, plan)).toHaveCount(0);
+    await expect(page.getByTestId('plans-no-search-results')).toBeVisible();
   });
 
   test('clearing search restores all plans', async ({ page }) => {
-    const { count } = await ensureTestPlans(page);
-    if (count < 2) {
-      test.skip();
-      return;
-    }
+    const token = uniqueToken();
+    const alpha = await seedPlan(page, `TB87 Restore Alpha ${token}`);
+    const beta = await seedPlan(page, `TB87 Restore Beta ${token}`);
 
-    await page.goto('/plans');
-    await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('plans-list')).toBeVisible({ timeout: 5000 });
+    await gotoPlans(page);
+    await expect(planRow(page, alpha)).toBeVisible();
+    await expect(planRow(page, beta)).toBeVisible();
 
-    const searchInput = page.getByTestId('plan-search-input');
+    // Search for something that matches nothing
+    await page.getByTestId('plan-search-input').fill('nonexistentuniquequery123');
+    await expect(planRows(page)).toHaveCount(0);
 
-    // Wait for plans list to be visible and stable
-    await page.waitForTimeout(500);
-
-    // Get initial plan count from the visible list
-    const initialPlans = page.locator('[data-testid^="plan-item-"]');
-    const initialCount = await initialPlans.count();
-    expect(initialCount).toBeGreaterThan(0);
-
-    // Search for something that likely won't match everything
-    await searchInput.fill('nonexistentuniquequery123');
-    await page.waitForTimeout(500);
-
-    // Should have 0 results
-    const filteredPlans = page.locator('[data-testid^="plan-item-"]');
-    const filteredCount = await filteredPlans.count();
-    expect(filteredCount).toBe(0);
-
-    // Clear the search
+    // Clear the search from the empty state
     await page.getByTestId('plans-clear-search').click();
-    await page.waitForTimeout(500);
 
-    // Should restore original count
-    const restoredPlans = page.locator('[data-testid^="plan-item-"]');
-    const restoredCount = await restoredPlans.count();
-    expect(restoredCount).toBe(initialCount);
+    // Both seeded plans are listed again. Other specs create plans in
+    // parallel, so the global row count is not compared.
+    await expect(page.getByTestId('plan-search-input')).toHaveValue('');
+    await expect(planRow(page, alpha)).toBeVisible();
+    await expect(planRow(page, beta)).toBeVisible();
   });
 
   test('plan count updates when search is active', async ({ page }) => {
-    // Create some plans for testing with unique titles.
-    // TB121: plans must be created with at least one task.
-    const timestamp = Date.now();
-    for (const name of ['CountTestAlpha', 'CountTestBeta']) {
-      const response = await page.request.post('/api/plans', {
-        data: {
-          title: `${name} ${timestamp}`,
-          createdBy: 'test-user',
-          status: 'draft',
-          initialTask: { title: `${name} task ${timestamp}` },
-        },
-      });
-      expect(response.ok()).toBe(true);
-    }
+    const token = uniqueToken();
+    const alpha = await seedPlan(page, `CountTestAlpha ${token}`);
+    const beta = await seedPlan(page, `CountTestBeta ${token}`);
 
-    await page.goto('/plans');
-    await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('plans-list')).toBeVisible({ timeout: 5000 });
+    await gotoPlans(page);
+    await expect(planRow(page, alpha)).toBeVisible();
+    await expect(planRow(page, beta)).toBeVisible();
+
+    // Without a search the header shows the plain count, e.g. "(12)"
+    const planCount = page.getByTestId('plans-count');
+    await expect(planCount).toHaveText(/^\(\d+\)$/);
 
     // Search for one of the unique plans
-    const searchInput = page.getByTestId('plan-search-input');
-    await searchInput.fill(`CountTestAlpha ${timestamp}`);
+    await page.getByTestId('plan-search-input').fill(`CountTestAlpha ${token}`);
+    await expect(planRows(page)).toHaveCount(1);
 
-    // Count should show filtered count and total (e.g., "1 of 50") once the
-    // debounced search has filtered the list.
-    const planCount = page.getByTestId('plans-count');
-    await expect(planCount).toHaveText(/^\d+\s+of\s+\d+$/, { timeout: 5000 });
-    const filteredCountText = (await planCount.textContent())?.trim() ?? '';
-
-    // The first number should be smaller than the total (we filtered to just one plan)
-    const matches = filteredCountText.match(/^(\d+)\s+of\s+(\d+)$/);
-    expect(matches).not.toBeNull();
-    const filtered = parseInt(matches![1], 10);
-    const total = parseInt(matches![2], 10);
-    expect(filtered).toBe(1);
+    // Count shows "<filtered> of <total>"
+    await expect(planCount).toHaveText(/^1 of \d+$/);
+    const total = parseInt((await planCount.textContent())!.match(/of (\d+)/)![1], 10);
     expect(total).toBeGreaterThanOrEqual(2);
-    expect(filtered).toBeLessThan(total);
-    // Direct children only: each row also contains a nested plan-item-title.
-    await expect(
-      page.locator('[data-testid="plans-list"] > [data-testid^="plan-item-"]')
-    ).toHaveCount(filtered);
   });
 
   test('empty state shows clear search button', async ({ page }) => {
-    const { count } = await ensureTestPlans(page);
-    if (count === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page, `TB87 EmptyState ${uniqueToken()}`);
 
-    await page.goto('/plans');
-    await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
+    await gotoPlans(page);
+    await expect(planRow(page, plan)).toBeVisible();
 
     // Search for something that won't match
     const searchInput = page.getByTestId('plan-search-input');
     await searchInput.fill('xyznonexistent123');
-    await page.waitForTimeout(400);
 
     // Empty state should show clear search button
     await expect(page.getByTestId('plans-clear-search')).toBeVisible();
@@ -409,5 +362,6 @@ test.describe('TB87: Plan Search', () => {
     // Clicking it should clear the search
     await page.getByTestId('plans-clear-search').click();
     await expect(searchInput).toHaveValue('');
+    await expect(planRow(page, plan)).toBeVisible();
   });
 });
