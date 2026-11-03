@@ -16,6 +16,13 @@
  * but successful probe must not be reported as a Bun timeout, and on the
  * shared, heavily loaded gate host (load 20–180) one such test once took
  * 5067 ms. The bound only catches hangs; no assertion depends on speed.
+ *
+ * Host isolation (el-39gc4b): WorktreeManager, Spawner and merge-steward tests
+ * run production discovery, which scans every PATH directory and the system
+ * prefixes /opt/homebrew and /usr/local. GitHub's ubuntu runner image has a
+ * Node there that satisfies the fixtures' requirement, so "incompatible"
+ * fixtures resolved. Those tests use {@link hermeticPath} (host commands
+ * without `node`) and pass {@link NO_SYSTEM_PREFIXES} to the services.
  */
 
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
@@ -61,6 +68,34 @@ afterEach(() => {
   }
   fs.rmSync(sandbox, { recursive: true, force: true });
 });
+
+/** Services under test get no system prefixes: a host /usr/local or /opt/homebrew Node stays invisible. */
+const NO_SYSTEM_PREFIXES: readonly string[] = [];
+
+/**
+ * A directory of symlinks to every /usr/bin and /bin command except `node`,
+ * created once per test sandbox. Fixture scripts and services still find git,
+ * dirname and friends, but no host Node (e.g. /usr/bin/node) is on PATH.
+ */
+function hostTools(): string {
+  const dir = path.join(sandbox, 'host tools');
+  if (fs.existsSync(dir)) return dir;
+  fs.mkdirSync(dir);
+  const linked = new Set(['node']);
+  for (const source of ['/usr/bin', '/bin']) {
+    for (const name of fs.readdirSync(source)) {
+      if (linked.has(name)) continue;
+      linked.add(name);
+      fs.symlinkSync(path.join(source, name), path.join(dir, name));
+    }
+  }
+  return dir;
+}
+
+/** PATH for service tests: the given fixture directories, then host commands without Node. */
+function hermeticPath(...dirs: string[]): string {
+  return [...dirs, hostTools()].join(path.delimiter);
+}
 
 function writeExecutable(file: string, content: string): string {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -261,7 +296,7 @@ describe('projectNodeEnvironment', () => {
 
 describe('WorktreeManager dependency install', () => {
   async function manager(repo: string, projectNodePath?: string) {
-    const m = createWorktreeManager({ workspaceRoot: repo, repositoryId: 'app', projectNodePath });
+    const m = createWorktreeManager({ workspaceRoot: repo, repositoryId: 'app', projectNodePath, projectNodeSystemPrefixes: NO_SYSTEM_PREFIXES });
     await m.initWorkspace();
     return m;
   }
@@ -270,7 +305,7 @@ describe('WorktreeManager dependency install', () => {
 
   test('incompatible Node: no install command runs and the worktree is not left behind', async () => {
     const node26 = fakeNodeDir('homebrew', '26.8.2');
-    process.env.PATH = [node26, '/usr/bin', '/bin'].join(':');
+    process.env.PATH = hermeticPath(node26);
     const repo = gitRepo('repo', STABLES_LIKE);
     const error = await create(await manager(repo), 'w1').catch((e) => e);
     expect(error).toBeInstanceOf(WorktreeError);
@@ -283,7 +318,7 @@ describe('WorktreeManager dependency install', () => {
   test('compatible Node: npm ci runs on it; lockfile and engine-strict untouched', async () => {
     const runtime = stoneforgeRuntimeDir();
     const node24 = fakeNodeDir('node 24', '24.22.0');
-    process.env.PATH = [runtime, node24, '/usr/bin', '/bin'].join(':');
+    process.env.PATH = hermeticPath(runtime, node24);
     const repo = gitRepo('repo', STABLES_LIKE);
     const { path: worktree } = await create(await manager(repo), 'w2');
     expect(pmLog()).toEqual([`npm ci | node=v24.22.0 | sf=${path.join(runtime, 'sf')}`]);
@@ -297,7 +332,7 @@ describe('WorktreeManager dependency install', () => {
 
   test('EBADENGINE is not retried with a loose install', async () => {
     const node24 = fakeNodeDir('node 24', '24.22.0');
-    process.env.PATH = [node24, '/usr/bin', '/bin'].join(':');
+    process.env.PATH = hermeticPath(node24);
     process.env.FAKE_PM_MODE = 'ebadengine';
     const repo = gitRepo('repo', STABLES_LIKE);
     const error = await create(await manager(repo), 'w3').catch((e) => e);
@@ -310,7 +345,7 @@ describe('WorktreeManager dependency install', () => {
   test('declared package manager (packageManager + pnpm lockfile) runs through corepack on the project Node', async () => {
     const node24 = fakeNodeDir('node 24', '24.22.0');
     const node26 = fakeNodeDir('homebrew', '26.8.2');
-    process.env.PATH = [node26, '/usr/bin', '/bin'].join(':');
+    process.env.PATH = hermeticPath(node26);
     const repo = gitRepo('repo', {
       'package.json': JSON.stringify({ name: 'p', packageManager: 'pnpm@9.0.0', engines: { node: '>=24.22.0 <24.23' } }),
       'pnpm-lock.yaml': "lockfileVersion: '9.0'\n",
@@ -355,10 +390,10 @@ describe('Spawner project Node preflight', () => {
   const agent = 'el-worker' as EntityId;
 
   test('worker is not spawned without a compatible Node; director keeps its environment', async () => {
-    process.env.PATH = [fakeNodeDir('homebrew', '26.8.2'), '/usr/bin', '/bin'].join(':');
+    process.env.PATH = hermeticPath(fakeNodeDir('homebrew', '26.8.2'));
     const repo = project('repo', STABLES_LIKE);
     const { calls, p } = provider();
-    const spawner = new SpawnerServiceImpl({ provider: p, workingDirectory: repo });
+    const spawner = new SpawnerServiceImpl({ provider: p, workingDirectory: repo, projectNodeSystemPrefixes: NO_SYSTEM_PREFIXES });
     await expect(spawner.spawn(agent, 'worker', { mode: 'interactive', workingDirectory: repo })).rejects.toBeInstanceOf(ProjectNodeError);
     expect(calls).toHaveLength(0);
     await spawner.spawn(agent, 'director', { mode: 'interactive', workingDirectory: repo });
@@ -369,7 +404,7 @@ describe('Spawner project Node preflight', () => {
   test('worker child gets the registry-configured Node through PATH; sf stays bundled', async () => {
     const runtime = stoneforgeRuntimeDir();
     const node24 = fakeNodeDir('node 24', '24.22.0', { sf: true });
-    process.env.PATH = [runtime, fakeNodeDir('homebrew', '26.8.2'), '/usr/bin', '/bin'].join(':');
+    process.env.PATH = hermeticPath(runtime, fakeNodeDir('homebrew', '26.8.2'));
     const root = gitRepo('project root', STABLES_LIKE);
     fs.mkdirSync(path.join(root, '.stoneforge'));
     const registry = new ProjectRepositories(root);
@@ -380,7 +415,7 @@ describe('Spawner project Node preflight', () => {
     expect((await repositoryForDirectory(root, worktree))?.nodePath).toBe(path.join(node24, 'node'));
 
     const { calls, p } = provider();
-    const spawner = new SpawnerServiceImpl({ provider: p, workingDirectory: root, stoneforgeRoot: root });
+    const spawner = new SpawnerServiceImpl({ provider: p, workingDirectory: root, stoneforgeRoot: root, projectNodeSystemPrefixes: NO_SYSTEM_PREFIXES });
     await spawner.spawn(agent, 'worker', { mode: 'interactive', workingDirectory: worktree });
     const env = calls[0].environmentVariables!;
     expect(env.STONEFORGE_PROJECT_NODE).toBe(path.join(node24, 'node'));
@@ -399,12 +434,12 @@ describe('Merge steward checks', () => {
     const repo = project('repo', STABLES_LIKE);
     const api = { get: async () => ({ id: 'el-t', metadata: {} }) };
     const service = (projectNodePath?: string) => new MergeStewardServiceImpl(api as never, {} as never, {} as never, {} as never,
-      { workspaceRoot: repo, testCommand: 'node --version && echo ran', projectNodePath, repositoryId: 'app' });
+      { workspaceRoot: repo, testCommand: 'node --version && echo ran', projectNodePath, repositoryId: 'app', projectNodeSystemPrefixes: NO_SYSTEM_PREFIXES });
     const ok = await service(path.join(node24, 'node')).runTests('el-t' as ElementId);
     expect(ok.passed).toBe(true);
     expect(ok.output).toContain('v24.22.0');
 
-    process.env.PATH = [fakeNodeDir('homebrew', '26.8.2'), '/usr/bin', '/bin'].join(':');
+    process.env.PATH = hermeticPath(fakeNodeDir('homebrew', '26.8.2'));
     const bad = await service().runTests('el-t' as ElementId);
     expect(bad.passed).toBe(false);
     expect(bad.exitCode).toBe(1);

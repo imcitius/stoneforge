@@ -169,6 +169,13 @@ export interface WorktreeManagerConfig {
    */
   readonly projectNodePath?: string;
   /**
+   * Installation prefixes scanned for Homebrew `opt/node@N` and `n` Node
+   * installs when no explicit Node is configured (default: those of
+   * resolveProjectNode, /opt/homebrew and /usr/local). Tests pass `[]` so a
+   * host Node cannot be discovered.
+   */
+  readonly projectNodeSystemPrefixes?: readonly string[];
+  /**
    * Repository delivery mode. `local` never deletes (or pushes) remote refs.
    * When unset, the mode is read from the project repository registry.
    */
@@ -378,8 +385,8 @@ export interface WorktreeManager {
  * Implementation of the WorktreeManager.
  */
 export class WorktreeManagerImpl implements WorktreeManager {
-  private readonly config: Required<Omit<WorktreeManagerConfig, 'repositoryId' | 'projectNodePath' | 'delivery'>> &
-    Pick<WorktreeManagerConfig, 'repositoryId' | 'projectNodePath' | 'delivery'>;
+  private readonly config: Required<Omit<WorktreeManagerConfig, 'repositoryId' | 'projectNodePath' | 'projectNodeSystemPrefixes' | 'delivery'>> &
+    Pick<WorktreeManagerConfig, 'repositoryId' | 'projectNodePath' | 'projectNodeSystemPrefixes' | 'delivery'>;
   private initialized = false;
   private defaultBranch: string | undefined;
   private worktreeStates: Map<string, WorktreeState> = new Map();
@@ -393,6 +400,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
       defaultBaseBranch: config.defaultBaseBranch ?? '',
       repositoryId: config.repositoryId,
       projectNodePath: config.projectNodePath,
+      projectNodeSystemPrefixes: config.projectNodeSystemPrefixes,
       delivery: config.delivery,
     };
   }
@@ -1071,6 +1079,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
       const resolution = await resolveProjectNode(worktreePath, {
         explicitNode: this.config.projectNodePath,
         repositoryId: this.config.repositoryId,
+        systemPrefixes: this.config.projectNodeSystemPrefixes,
       });
       nodeEnv = projectNodeEnvironment(resolution, process.env.PATH, this.config.workspaceRoot);
     } catch (error) {

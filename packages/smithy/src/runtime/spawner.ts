@@ -76,6 +76,13 @@ export interface SpawnConfig {
   readonly stoneforgeRoot?: string;
   /** Factory for creating SDK hooks (e.g., permission enforcement) for headless sessions */
   readonly sdkHookFactory?: SDKHookFactory;
+  /**
+   * Installation prefixes scanned for Homebrew `opt/node@N` and `n` Node
+   * installs when no explicit Node is configured (default: those of
+   * resolveProjectNode, /opt/homebrew and /usr/local). Tests pass `[]` so a
+   * host Node cannot be discovered.
+   */
+  readonly projectNodeSystemPrefixes?: readonly string[];
 }
 
 /**
@@ -536,6 +543,7 @@ export class SpawnerServiceImpl implements SpawnerService {
       timeout: config?.timeout ?? 120000, // 2 minutes default
       stoneforgeRoot: config?.stoneforgeRoot,
       environmentVariables: config?.environmentVariables,
+      projectNodeSystemPrefixes: config?.projectNodeSystemPrefixes,
     };
 
     // Use injected provider or default to Claude
@@ -971,7 +979,11 @@ export class SpawnerServiceImpl implements SpawnerService {
     const directory = session.workingDirectory;
     try {
       const repo = root ? await repositoryForDirectory(root, directory) : undefined;
-      const resolution = await resolveProjectNode(directory, { explicitNode: repo?.nodePath, repositoryId: repo?.id });
+      const resolution = await resolveProjectNode(directory, {
+        explicitNode: repo?.nodePath,
+        repositoryId: repo?.id,
+        systemPrefixes: options?.projectNodeSystemPrefixes ?? this.defaultConfig.projectNodeSystemPrefixes,
+      });
       const basePath = options?.environmentVariables?.PATH ?? this.defaultConfig.environmentVariables?.PATH ?? process.env.PATH;
       return projectNodeEnvironment(resolution, basePath, root);
     } catch (error) {

@@ -96,6 +96,13 @@ export interface MergeStewardConfig {
   readonly testCommand?: string;
   /** Explicit Node executable for the repository's checks (see ProjectRepository.nodePath). */
   readonly projectNodePath?: string;
+  /**
+   * Installation prefixes scanned for Homebrew `opt/node@N` and `n` Node
+   * installs when no explicit Node is configured (default: those of
+   * resolveProjectNode, /opt/homebrew and /usr/local). Tests pass `[]` so a
+   * host Node cannot be discovered.
+   */
+  readonly projectNodeSystemPrefixes?: readonly string[];
   /** Repository ID, used in remediation messages. */
   readonly repositoryId?: string;
   /** Timeout for test execution in ms (defaults to 5 minutes) */
@@ -408,8 +415,8 @@ const DEFAULT_CONFIG = {
  */
 export class MergeStewardServiceImpl implements MergeStewardService {
   private readonly api: QuarryAPI;
-  private readonly config: Required<Omit<MergeStewardConfig, 'targetBranch' | 'stewardEntityId' | 'mergeRequestProvider' | 'projectNodePath' | 'repositoryId' | 'delivery'>> &
-    Pick<MergeStewardConfig, 'targetBranch' | 'stewardEntityId' | 'mergeRequestProvider' | 'projectNodePath' | 'repositoryId' | 'delivery'>;
+  private readonly config: Required<Omit<MergeStewardConfig, 'targetBranch' | 'stewardEntityId' | 'mergeRequestProvider' | 'projectNodePath' | 'projectNodeSystemPrefixes' | 'repositoryId' | 'delivery'>> &
+    Pick<MergeStewardConfig, 'targetBranch' | 'stewardEntityId' | 'mergeRequestProvider' | 'projectNodePath' | 'projectNodeSystemPrefixes' | 'repositoryId' | 'delivery'>;
   private readonly taskAssignment: TaskAssignmentService;
   private readonly dispatchService: DispatchService;
   private readonly worktreeManager: WorktreeManager | undefined;
@@ -816,7 +823,11 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     try {
       // Checks run on the repository's Node, not on Stoneforge's own runtime.
       const nodeEnv = projectNodeEnvironment(
-        await resolveProjectNode(cwd, { explicitNode: this.config.projectNodePath, repositoryId: this.config.repositoryId }),
+        await resolveProjectNode(cwd, {
+          explicitNode: this.config.projectNodePath,
+          repositoryId: this.config.repositoryId,
+          systemPrefixes: this.config.projectNodeSystemPrefixes,
+        }),
         process.env.PATH,
       );
       const { stdout, stderr } = await execAsync(this.config.testCommand, {
