@@ -503,6 +503,26 @@ focus check fails, retain the failure and inspect the console lock state before
 starting another bounded sample; do not bypass native focus assertions. A passing
 LaunchServices check alone does not establish Logs or onboarding acceptance.
 
+Native window focus (`BrowserWindow.isFocused()`, AppKit key window) exists only while
+the app is the active macOS application. Playwright's clicks and keys are CDP input and,
+unlike a user's click, never activate the app. Before el-66l68k, if another app became
+active while the Logs viewer was open (a person using the Mac, another GUI check), the
+owner's non-forcing `focus()` after the viewer closed was refused and the check failed
+with `Native focus did not settle` (reproduced every time by activating Finder before the
+first Close). The Logs check now activates the app (`app.focus({ steal: true })`) before
+each user action, as the user's click would, and first requires the window that user
+acts in to be key (owner before opening via ⋯, viewer before closing or scrolling). The
+product must still move focus to the viewer on open and back to the owner on close; those
+assertions are unchanged and are not retried. On failure the message names the expected
+window, the frontmost app and PID versus the test app's PID, the console lock state, every
+window's focus/visibility and the shell's active element. Example: `frontmost app
+{"name":"loginwindow",...,"consoleLocked":"true"} ... (test app is NOT active)` means the
+screen locked during the run. With Finder activated before the first Close on an unlocked
+screen, the packaged check passed 5/5 with this change while the unmodified check failed
+3/3 with `Native focus did not settle`. A person or process that keeps activating another app
+*during* a step can still fail it; do not use the Mac while a GUI smoke runs and do not
+run two GUI smokes at once.
+
 For a release candidate, keep the relocated app and its evidence outside managed
 worktrees. `scripts/bundle-manifest.mjs create APP MANIFEST.json` records the complete
 file/directory/link inventory and permissions; `verify` rejects changed or extra

@@ -37,17 +37,61 @@ export async function checkLogs(electron, page, resources, temp) {
     await electron.evaluate((_electron, logs) => { globalThis.__logsFixture = logs; }, logs);
     await page.evaluate(() => window.desktop.command('list'));
   };
-  const nativeFocus = (child) => electron.evaluate(async ({ BrowserWindow }, child) => {
-    const window = BrowserWindow.getAllWindows().find(window => !!window.getParentWindow() === child);
-    if (window.isFocused()) return;
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('Native focus did not settle')), 10_000);
-      window.once('focus', () => { clearTimeout(timeout); resolve(); });
+  // Native focus (NSWindow key status) exists only while this is the active macOS application.
+  // Playwright clicks and keys are CDP input: unlike a user's click they never activate the app.
+  // If another app became active meanwhile (a user, another GUI check), the owner's non-forcing
+  // focus() after the viewer closes is refused and focus never settles (el-66l68k). So before each
+  // user action the check activates the app, as that user's click would; the product must still
+  // move focus to the viewer and back to the owner by itself. On failure, report who is active.
+  const frontmost = () => {
+    try {
+      const info = execFileSync('/usr/bin/lsappinfo', ['info', '-only', 'name', '-only', 'pid',
+        execFileSync('/usr/bin/lsappinfo', ['front']).toString().trim()]).toString();
+      const root = execFileSync('/usr/sbin/ioreg', ['-n', 'Root', '-d1', '-a']).toString();
+      return { name: info.match(/"([^"]*)"/)?.[1], pid: Number(info.match(/pid\s*=\s*(\d+)/)?.[1]),
+        consoleLocked: root.match(/IOConsoleLocked<\/key>\s*<(true|false)\/>/)?.[1] ?? 'unknown' };
+    } catch (error) { return { error: String(error) }; }
+  };
+  const focusReport = async (expected) => {
+    const native = await electron.evaluate(({ BrowserWindow }) => ({ appPid: process.pid,
+      windows: BrowserWindow.getAllWindows().map(w => ({ id: w.id, title: w.getTitle(), child: !!w.getParentWindow(),
+        visible: w.isVisible(), focused: w.isFocused() })) }));
+    const shell = await page.evaluate(() => ({ hasFocus: document.hasFocus(),
+      activeElement: document.activeElement?.id || document.activeElement?.tagName })).catch(error => String(error));
+    const front = frontmost();
+    return `${expected}; frontmost app ${JSON.stringify(front)}, test app pid ${native.appPid}` +
+      `${front.pid === native.appPid ? '' : ' (test app is NOT active)'}; windows ${JSON.stringify(native.windows)}; shell ${JSON.stringify(shell)}`;
+  };
+  const nativeFocus = async (child) => {
+    const settled = await electron.evaluate(async ({ BrowserWindow }, child) => {
+      const window = BrowserWindow.getAllWindows().find(window => !!window.getParentWindow() === child);
+      if (window.isFocused()) return true;
+      return new Promise((resolve) => {
+        const focused = () => { clearTimeout(timeout); resolve(true); };
+        const timeout = setTimeout(() => { window.off('focus', focused); resolve(false); }, 10_000);
+        window.once('focus', focused);
+      });
+    }, child);
+    if (!settled) throw new Error('Native focus did not settle: ' + await focusReport(`expected the ${child ? 'Logs viewer' : 'owner window'} to be focused`));
+  };
+  const activateApp = async () => {
+    const active = await electron.evaluate(async ({ app, BrowserWindow }) => {
+      if (BrowserWindow.getFocusedWindow()) return true;
+      app.focus({ steal: true });
+      if (BrowserWindow.getFocusedWindow()) return true;
+      return new Promise((resolve) => {
+        const focused = () => { clearTimeout(timeout); resolve(true); };
+        const timeout = setTimeout(() => { app.off('browser-window-focus', focused); resolve(false); }, 10_000);
+        app.once('browser-window-focus', focused);
+      });
     });
-  }, child);
+    if (!active) throw new Error('Could not activate the packaged app before a user action: ' + await focusReport('expected the test app to be active'));
+  };
   // Logs opens from the active tab's ⋯ project menu (the toolbar buttons were removed).
   const restorePopup = await recordPopups(electron);
   const open = async () => {
+    // The user clicks ⋯ in the owner window: the app is active and the owner is key.
+    await activateApp(); await nativeFocus(false);
     const waiting = electron.waitForEvent('window');
     await chooseTabAction(electron, page, 'Show Logs');
     const viewer = await waiting;
@@ -80,7 +124,8 @@ export async function checkLogs(electron, page, resources, temp) {
     const area = original.area, bounds = native.bounds;
     assert(bounds.x >= area.x && bounds.y >= area.y && bounds.x + bounds.width <= area.x + area.width &&
       bounds.y + bounds.height <= area.y + area.height, 'Native outer bounds must fit the 600px work area');
-    assert(native.visible && native.focused && native.closable && native.projectVisible, JSON.stringify(native));
+    const nativeOk = native.visible && native.focused && native.closable && native.projectVisible;
+    assert(nativeOk, nativeOk || JSON.stringify({ ...native, frontmost: frontmost() }));
     assert(metrics.close.bottom <= metrics.height && metrics.close.right <= metrics.width && metrics.closeHit);
     assert.equal(metrics.node, 'undefined'); assert.equal(metrics.bridge, 'undefined');
     assert(!metrics.executed && metrics.injectedElements === 0);
@@ -93,6 +138,8 @@ export async function checkLogs(electron, page, resources, temp) {
     await viewer.keyboard.press(key).catch(error => { if (!viewer.isClosed()) throw error; });
   };
   const close = async (viewer, method) => {
+    // The user acts in the viewer: the app is active and the viewer is key.
+    await activateApp(); await nativeFocus(true);
     const closed = viewer.waitForEvent('close');
     if (method === 'button') await viewer.locator('#close').click();
     else if (method === 'escape') { await viewer.locator('pre').focus(); await closingKey(viewer, 'Escape'); }
@@ -113,6 +160,7 @@ export async function checkLogs(electron, page, resources, temp) {
     assert.equal(first.text, fixture.slice(-10_000));
     assert(first.scrollHeight > first.clientHeight * 10);
     await viewer.screenshot({ path: join(temp, 'logs-multiline-top.png') });
+    await activateApp(); await nativeFocus(true);
     await viewer.locator('pre').hover(); await viewer.mouse.wheel(0, 800);
     await viewer.waitForFunction(() => document.querySelector('pre').scrollTop > 0);
     await viewer.locator('pre').focus(); await viewer.keyboard.press('Control+End');
@@ -162,6 +210,7 @@ export async function checkLogs(electron, page, resources, temp) {
     await closingKey(keyboard, 'Enter'); await closed;
     await page.waitForFunction(() => document.hasFocus());
     const previous = await open();
+    await activateApp();
     const replacement = electron.waitForEvent('window');
     const previousClosed = previous.waitForEvent('close');
     await page.evaluate(async () => {
