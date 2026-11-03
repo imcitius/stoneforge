@@ -22,13 +22,13 @@ function fixture(overrides: Partial<Task> = {}): Task {
 
 function setup() {
   const assigned = fixture({ assignee: agent, metadata: { orchestrator: { assignedAgent: agent } } });
-  const api = { get: vi.fn().mockResolvedValue(fixture()), update: vi.fn() };
+  const api = { get: vi.fn(async (id: ElementId) => id === taskId
+    ? fixture()
+    : { id: agent, type: 'entity', metadata: { agent: { agentRole: 'worker', workerMode: 'ephemeral' } } }), update: vi.fn() };
   const assignToAgent = vi.fn().mockResolvedValue(assigned);
   const unassignTask = vi.fn().mockResolvedValue(fixture());
-  const getAgent = vi.fn().mockResolvedValue({ id: agent });
   const services = {
     api,
-    agentRegistry: { getAgent },
     taskAssignmentService: { assignToAgent, unassignTask },
   } as unknown as Services;
   const app = createTaskRoutes(services);
@@ -36,7 +36,7 @@ function setup() {
     method === 'PATCH' ? `/api/tasks/${taskId}` : `/api/tasks/${taskId}/assign`,
     { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) },
   );
-  return { api, assignToAgent, unassignTask, getAgent, send, assigned };
+  return { api, assignToAgent, unassignTask, send, assigned };
 }
 
 describe('task assignment routes', () => {

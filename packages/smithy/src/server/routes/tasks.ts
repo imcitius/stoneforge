@@ -7,7 +7,7 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import type { EntityId, ElementId, Task, Document, DocumentId } from '@stoneforge/core';
-import { createTask, createDocument, TaskStatus, ElementType, Priority, Complexity, ContentType, updateTaskStatus, StoneforgeError } from '@stoneforge/core';
+import { createTask, createDocument, TaskStatus, ElementType, Priority, Complexity, ContentType, updateTaskStatus, StoneforgeError, ValidationError } from '@stoneforge/core';
 import type { OrchestratorTaskMeta } from '../../index.js';
 import { updateOrchestratorTaskMeta, getOrchestratorTaskMeta } from '../../index.js';
 import type { Services } from '../services.js';
@@ -16,6 +16,7 @@ import type { QuarryAPI } from '@stoneforge/quarry';
 import { autoLinkTask, loadConfig } from '@stoneforge/quarry';
 import { createLogger } from '../../utils/logger.js';
 import { createConfiguredProvider } from './external-sync-helpers.js';
+import { applyTaskAssignee } from '../../services/task-assignee.js';
 
 const logger = createLogger('orchestrator');
 
@@ -60,53 +61,12 @@ export function createTaskRoutes(services: Services) {
     return new Set(rows.map((r) => r.element_id));
   }
 
-  /** Invalid assignee input (unknown entity, wrong type): reported as 400. */
-  class AssigneeInputError extends Error {}
-
-  /**
-   * Apply an assignee change through the orchestrator assignment contract
-   * (el-5s9l15). Writing `task.assignee` alone left
-   * `metadata.orchestrator.assignedAgent` unset or stale, so a later
-   * `startTask` rejected the incoherent assignment with 422.
-   *
-   * - `null`/empty: administrative unassign (`unassignTask` mode `admin`).
-   * - registered agent: `assignToAgent` (assignee and assignedAgent together,
-   *   per ASSIGNMENT_RESET_FIELDS). Re-selecting the coherent current agent is
-   *   a no-op; re-selecting it while incoherent repairs the assignment.
-   * - other entity (operator): assignee set and the orchestrator agent
-   *   ownership fields cleared in one write, like an admin unassign.
-   */
-  async function applyAssignee(task: Task, assignee: string | null): Promise<Task> {
-    const meta = getOrchestratorTaskMeta(task.metadata);
-    if (!assignee) {
-      if (!task.assignee && !meta?.assignedAgent) return task;
-      return taskAssignmentService.unassignTask(task.id, { mode: 'admin' });
-    }
-    const agent = await agentRegistry.getAgent(assignee as EntityId);
-    if (agent) {
-      if (task.assignee === assignee && meta?.assignedAgent === assignee) return task;
-      return taskAssignmentService.assignToAgent(task.id, assignee as EntityId);
-    }
-    const entity = await api.get(assignee as ElementId);
-    if (!entity || entity.type !== ElementType.ENTITY) {
-      throw new AssigneeInputError(`Assignee not found: ${assignee}`);
-    }
-    if (task.assignee === assignee && !meta?.assignedAgent) return task;
-    const metadata = meta ? updateOrchestratorTaskMeta(task.metadata, {
-      assignedAgent: undefined,
-      sessionId: undefined,
-      worktree: undefined,
-      startedAt: undefined,
-    }) : task.metadata;
-    return api.update<Task>(task.id, { assignee: assignee as EntityId, metadata }, { expectedUpdatedAt: task.updatedAt });
-  }
-
   function isAssigneeValue(value: unknown): value is string | null {
     return value === null || typeof value === 'string';
   }
 
   function assignmentErrorResponse(c: Context, error: unknown, action: string) {
-    if (error instanceof AssigneeInputError) {
+    if (error instanceof ValidationError) {
       return c.json({ error: { code: 'INVALID_INPUT', message: error.message } }, 400);
     }
     if (error instanceof StoneforgeError && error.httpStatus === 409) {
@@ -387,7 +347,7 @@ export function createTaskRoutes(services: Services) {
       // task stays startable (el-5s9l15). Remaining fields are applied to the
       // assigned task so its metadata is not overwritten by the old snapshot.
       if (body.assignee !== undefined) {
-        task = await applyAssignee(task, body.assignee);
+        task = await applyTaskAssignee(api, taskAssignmentService, task.id, body.assignee, task);
       }
 
       const updates: Record<string, unknown> = {};
@@ -441,7 +401,7 @@ export function createTaskRoutes(services: Services) {
       if (!task || task.type !== ElementType.TASK) {
         return c.json({ error: { code: 'NOT_FOUND', message: 'Task not found' } }, 404);
       }
-      const updatedTask = await applyAssignee(task, body.assignee);
+      const updatedTask = await applyTaskAssignee(api, taskAssignmentService, task.id, body.assignee, task);
       return c.json({ task: formatTaskResponse(updatedTask) });
     } catch (error) {
       return assignmentErrorResponse(c, error, 'assign task');

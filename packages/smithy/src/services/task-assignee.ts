@@ -35,9 +35,10 @@ export async function applyTaskAssignee(
   api: QuarryAPI,
   assignmentService: TaskAssignmentService,
   taskId: ElementId,
-  assignee: EntityId | string | null | undefined
+  assignee: EntityId | string | null | undefined,
+  currentTask?: Task
 ): Promise<Task> {
-  const task = await api.get<Task>(taskId);
+  const task = currentTask ?? await api.get<Task>(taskId);
   if (!task || task.type !== ElementType.TASK) {
     throw new NotFoundError(`Task not found: ${taskId}`, ErrorCode.NOT_FOUND, { elementId: taskId });
   }
