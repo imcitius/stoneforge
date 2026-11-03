@@ -12,6 +12,7 @@
 import { resolve, dirname, extname } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { registerStaticMiddleware } from './static.js';
+import { getPlaybookDetail } from './playbooks.js';
 import { mkdir, readdir, unlink, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { Hono } from 'hono';
@@ -24,8 +25,6 @@ import {
   createWorkflowFromPlaybook,
   createWorkflow,
   discoverPlaybookFiles,
-  loadPlaybookFromFile,
-  createPlaybook,
   createLibrary,
   createGroupChannel,
   createDirectChannel,
@@ -2845,27 +2844,15 @@ app.get('/api/playbooks', async (c) => {
 app.get('/api/playbooks/:name', async (c) => {
   try {
     const name = c.req.param('name');
-    const discovered = discoverPlaybookFiles(PLAYBOOK_SEARCH_PATHS, { recursive: true });
 
-    // Find the playbook by name
-    const found = discovered.find((p: DiscoveredPlaybook) => p.name.toLowerCase() === name.toLowerCase());
+    // Load and validate the full playbook (built in memory, not stored)
+    const playbook = await getPlaybookDetail(name, PLAYBOOK_SEARCH_PATHS);
 
-    if (!found) {
+    if (!playbook) {
       return c.json({ error: { code: 'NOT_FOUND', message: 'Playbook not found' } }, 404);
     }
 
-    // Load the full playbook
-    const playbookInput = loadPlaybookFromFile(found.path, 'system' as EntityId);
-
-    // Create a Playbook object to return (without actually storing it).
-    // No IdGeneratorConfig: this transient view is never inserted into elements.
-    const playbook = createPlaybook(playbookInput);
-
-    return c.json({
-      ...playbook,
-      filePath: found.path,
-      directory: found.directory,
-    });
+    return c.json(playbook);
   } catch (error) {
     console.error('[stoneforge] Failed to get playbook:', error);
     return c.json({ error: { code: 'INTERNAL_ERROR', message: 'Failed to get playbook' } }, 500);
