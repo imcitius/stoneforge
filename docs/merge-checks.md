@@ -50,10 +50,10 @@ An interrupted run is incomplete and must never count as acceptance.
 
 | Step | What it actually checks |
 | --- | --- |
-| `node --test scripts/check-merge.test.mjs` | Runtime/native preflight fixtures and failure-before-steps checks; failure propagation, including first/middle/last failure, missing executable, signal and worker environment isolation. |
+| `node --test scripts/check-merge.test.mjs` | Runtime/native preflight fixtures and failure-before-steps checks; failure propagation, including first/middle/last failure, missing executable, signal and worker environment isolation; every `requiredBunTests` contract suite is present as its own `bun test ./<file>` step, and a missing one fails closed. |
 | `pnpm typecheck --force` | All workspace packages that declare `typecheck`, including shared routes/UI, web/server apps and Desktop; Turbo also builds their dependencies. |
 | `pnpm --filter @stoneforge/desktop build` | Fresh Desktop JavaScript and shell resources; backend SDK builds were prerequisites of Desktop typecheck. |
-| `bun test ./<file>` for every `*.bun.test.ts` under `packages/{core,storage,quarry,smithy}/src` | Core types/config/errors, real Bun SQLite/schema, Quarry API/CLI/dependencies/sync and Smithy orchestration/runtime/providers/Git/repository routing. Each file runs in its own process so Bun module mocks cannot leak into other files. |
+| `bun test ./<file>` for every `*.bun.test.ts` under `packages/{core,storage,quarry,smithy}/src` | Core types/config/errors, real Bun SQLite/schema, Quarry API/CLI/dependencies/sync and Smithy orchestration/runtime/providers/Git/repository routing. Each file runs in its own process so Bun module mocks cannot leak into other files. `requiredBunTests` in `scripts/check-merge.mjs` names contract suites that must stay discovered (currently `packages/smithy/src/server/daemon-lifecycle.bun.test.ts`, the daemon start/stop/auto-start preference contract); if one is moved, renamed or deleted, `mergeChecks()` throws and the gate (and `check:ci`) fails before any step runs. |
 | `pnpm --filter @stoneforge/smithy test:node` | Existing Vitest config: Node routes, permissions, stewardship/merge/worker lifecycle and a real PTY fixture using a fake provider executable. |
 | `pnpm --filter @stoneforge/desktop test` | All Desktop Node tests: four backend tests covering workspace initialization, external-server adoption, multi-project HTTP/WS identity/isolation/restart and real CLI multi-repository registration/binding/merge after restart, plus two Logs bounds/escaping tests, two sidebar preference/view-bounds tests, five director-attention notification tests, a UTF-8 locale test and the pinned-Electron socket-workaround tests. Uses real temporary Git repositories and Node SQLite. |
 
@@ -66,6 +66,23 @@ Core, storage and quarry currently have **no Vitest tests**; their `test:node`
 scripts would report no tests. Smithy uses both runners. `bun test` at the root,
 `bun test src` in Smithy and `pnpm test` are not substitutes for this gate: they
 mix incompatible test imports and/or pull in separate browser suites.
+
+The Smithy HTTP start/assignment/completion Bun suites exercise the served
+`packages/smithy/src/server/routes`. Until el-3klk89 they also re-ran each scenario
+against a duplicate route copy in `apps/smithy-server/src`; that copy was never
+served (the app's `src/index.ts` only calls `startSmithyServer()` from
+`@stoneforge/smithy/server`) and was removed, so those suites now report only
+`sdk:` variants.
+
+After syncing with master for el-3klk89, the new app-side `tasks.start.test.ts`
+was removed because it was byte-identical to the package test. The app-side
+`factory-id-collision.bun.test.ts` was also removed: the package suite exercises
+the same task create, reopen, workflow and playbook routes against the served
+package implementation. The package collision suite passed in the merge gate.
+The app's isolated plugin integration suite passed 14/14, and a temporary-project
+`smithy-server dev` smoke served `/api/health` successfully. The pinned Node
+22.23.3 foreground `pnpm check:merge` passed 211/211 checks, including the
+isolated daemon lifecycle step, after this sync.
 
 The runner removes inherited `STONEFORGE_*`, `SF_*` and `ORCHESTRATOR_URL` only
 from child environments so fixtures do not inherit a worker's shared project,
@@ -84,7 +101,7 @@ actor or server. The invoking shell and installed application are unchanged.
   the installed app or restart user sessions as part of this gate.
 - No paid/live Codex, Claude, OpenCode or external-service authentication/API
   validation. Provider unit tests use mocks/fixtures. Live checks remain explicit.
-- No Playwright frontend suites, standalone `apps/smithy-server` Vitest suite,
+- No Playwright frontend suites, standalone `apps/smithy-server` Bun suite (dev entry only; it has no Vitest suite),
   docs/website builds, browser `sql.js` backend or cross-platform coverage.
   `smithy-next`, docs and website do not declare `typecheck`; the root command
   does not invent coverage for them. Add relevant checks when reviewing changes

@@ -9,7 +9,6 @@ import { createTask, createDocument, createEntity, EntityTypeValue, TaskStatus, 
 import { createTaskAssignmentService } from './task-assignment-service.js';
 import { createWorkerTaskService } from './worker-task-service.js';
 import { createTaskRoutes as sdkRoutes } from '../server/routes/tasks.js';
-import { createTaskRoutes as appRoutes } from '../../../../apps/smithy-server/src/routes/tasks.js';
 import type { MergeRequestProvider, MergeRequestEvidence } from './merge-request-provider.js';
 import { createAgentRegistry } from './agent-registry.js';
 import { getOrchestratorTaskMeta } from '../types/task-meta.js';
@@ -140,7 +139,7 @@ test('explicit CLI reopen preserves unknown operation; completion cannot bypass 
   expect(await saved()).toEqual(snapshot); expect(events()).toEqual(log); expect(p.calls).toBe(1);
 });
 
-for (const [label, routes] of [['sdk', sdkRoutes], ['app', appRoutes]] as const) {
+for (const [label, routes] of [['sdk', sdkRoutes]] as const) {
   for (const kind of ['closed', 'deferred', 'human', 'reassign', 'current', 'missing-identity', 'resumed-provider', 'admin']) {
     test(`${label} real HTTP completion: ${kind}`, async () => {
       if (['closed', 'deferred', 'human', 'reassign'].includes(kind)) await change(kind);

@@ -376,13 +376,15 @@ describe('Dispatch Service Integration', () => {
 
 });
 
+// Route tests target the served implementation in packages/smithy/src/server;
+// this app is only the dev entry for @stoneforge/smithy/server.
 describe('Provider Models API Routes', () => {
   // Import and create route app
-  let routeApp: ReturnType<typeof import('./routes/agents.js').createAgentRoutes>;
+  let routeApp: ReturnType<typeof import('../../../packages/smithy/src/server/routes/agents.js').createAgentRoutes>;
 
   beforeEach(async () => {
     // Import dynamically to get the route creator
-    const { createAgentRoutes } = await import('./routes/agents.js');
+    const { createAgentRoutes } = await import('../../../packages/smithy/src/server/routes/agents.js');
 
     // Create route app with minimal services needed for agent routes
     routeApp = createAgentRoutes({
@@ -420,10 +422,10 @@ describe('Provider Models API Routes', () => {
 
 describe('Agent Model Field API Routes', () => {
   // Import and create route app
-  let routeApp: ReturnType<typeof import('./routes/agents.js').createAgentRoutes>;
+  let routeApp: ReturnType<typeof import('../../../packages/smithy/src/server/routes/agents.js').createAgentRoutes>;
 
   beforeEach(async () => {
-    const { createAgentRoutes } = await import('./routes/agents.js');
+    const { createAgentRoutes } = await import('../../../packages/smithy/src/server/routes/agents.js');
 
     routeApp = createAgentRoutes({
       agentRegistry,

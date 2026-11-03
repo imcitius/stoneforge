@@ -19,7 +19,6 @@ import { createSessionManager } from '../runtime/session-manager.js';
 import type { SpawnerService, SpawnResult } from '../runtime/spawner.js';
 import { createWorktreeManager } from '../git/worktree-manager.js';
 import { createSessionRoutes as sdkRoutes } from '../server/routes/sessions.js';
-import { createSessionRoutes as appRoutes } from '../../../../apps/smithy-server/src/routes/sessions.js';
 
 let root: string, repo: string, storage: StorageBackend, otherStorage: StorageBackend;
 let api: OrchestratorAPI, other: OrchestratorAPI, task: Task, owner: EntityId, successor: EntityId;
@@ -123,7 +122,7 @@ async function harness(routes: typeof sdkRoutes, stage: string) {
 }
 
 
-for (const [label, routes] of [['sdk', sdkRoutes], ['app', appRoutes]] as const) {
+for (const [label, routes] of [['sdk', sdkRoutes]] as const) {
   test(`${label}: independent published-session log rejection keeps exact assignment and events`, async () => {
     const h = await harness(routes, 'success');
     const diagnostics = spyOn(console, 'error').mockImplementation(() => {});
@@ -188,8 +187,8 @@ function deferred() {
   return { promise, resolve };
 }
 
-for (const [label, routes] of [['sdk', sdkRoutes], ['app', appRoutes]] as const) {
-  for (const [otherLabel, contenderRoutes] of [['sdk', sdkRoutes], ['app', appRoutes]] as const) {
+for (const [label, routes] of [['sdk', sdkRoutes]] as const) {
+  for (const [otherLabel, contenderRoutes] of [['sdk', sdkRoutes]] as const) {
     for (const schedule of ['starting', 'accepted']) {
       test(`${label}/${otherLabel}: overlapping HTTP starts preserve the ${schedule} session`, async () => {
         const h = await harness(routes, 'success');
@@ -316,7 +315,7 @@ for (const [label, routes] of [['sdk', sdkRoutes], ['app', appRoutes]] as const)
 
 // Sequential-retry regression adapted from the steward's retained portable probe.
 // The original baseline/control (0/2 vs 2/2) remains in the review evidence.
-for (const [label, routes, otherRoutes] of [['sdk', sdkRoutes, appRoutes], ['app', appRoutes, sdkRoutes]] as const) {
+for (const [label, routes, otherRoutes] of [['sdk', sdkRoutes, sdkRoutes]] as const) {
   for (const stage of ['terminate', 'rollback-persist']) {
     test(`${label}: repeated retry after incomplete ${stage} preserves the exact attempt without new effects`, async () => {
       const h = await harness(routes, stage);
@@ -339,7 +338,7 @@ for (const [label, routes, otherRoutes] of [['sdk', sdkRoutes, appRoutes], ['app
       h.setStage('spawn'); // The baseline retry reaches this failing provider call.
       const lookup = spyOn(h.sessions, 'getActiveSession');
       try {
-        // Recreating either factory must retain the same attempt-bound protection.
+        // Recreating the route factory must retain the same attempt-bound protection.
         for (const factory of [routes, otherRoutes, routes]) {
           const response = await h.contender(factory);
           const body = await response.json();

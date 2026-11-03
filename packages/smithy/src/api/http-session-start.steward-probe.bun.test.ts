@@ -15,7 +15,6 @@ import { createSessionManager } from '../runtime/session-manager.js';
 import type { SpawnerService, SpawnResult } from '../runtime/spawner.js';
 import { createWorktreeManager } from '../git/worktree-manager.js';
 import { createSessionRoutes as sdkRoutes } from '../server/routes/sessions.js';
-import { createSessionRoutes as appRoutes } from '../../../../apps/smithy-server/src/routes/sessions.js';
 
 let root: string, repo: string, storage: StorageBackend, otherStorage: StorageBackend;
 let api: OrchestratorAPI, other: OrchestratorAPI, task: Task, owner: EntityId, successor: EntityId;
@@ -108,7 +107,7 @@ async function harness(routes: typeof sdkRoutes, stage: string) {
     } };
 }
 
-for (const [label, routes] of [['sdk', sdkRoutes], ['app', appRoutes]] as const) {
+for (const [label, routes] of [['sdk', sdkRoutes]] as const) {
   test(`${label}: published session remains assigned after repeated operation log failure`, async () => {
     const h = await harness(routes, 'success');
     const diagnostics = spyOn(console, 'error').mockImplementation(() => {});

@@ -12,7 +12,6 @@ import { createAgentRegistry } from '../services/agent-registry.js';
 import { createTaskAssignmentService } from '../services/task-assignment-service.js';
 import { getOrchestratorTaskMeta, updateOrchestratorTaskMeta } from '../types/task-meta.js';
 import { createSessionRoutes as sdkRoutes } from '../server/routes/sessions.js';
-import { createSessionRoutes as appRoutes } from '../../../../apps/smithy-server/src/routes/sessions.js';
 
 let root: string, repo: string, storage: StorageBackend, otherStorage: StorageBackend;
 let api: OrchestratorAPI, other: OrchestratorAPI, task: Task, owner: EntityId, successor: EntityId;
@@ -152,7 +151,7 @@ for (const race of [false, true]) {
   });
 }
 
-for (const [label, routes] of [['sdk', sdkRoutes], ['app', appRoutes]] as const) {
+for (const [label, routes] of [['sdk', sdkRoutes]] as const) {
   for (const scenario of ['success', 'race', 'persistent-race', 'spawn-failure']) {
     test(`${label} real HTTP start: ${scenario}`, async () => {
       let starts = 0, notifications = 0, worktrees = 0; let winner: Task | undefined; let log: unknown[] = [];

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { checkEnvironment, checkRuntime, runChecks, runMergeGate } from './check-merge.mjs';
+import { checkEnvironment, checkRuntime, mergeChecks, requiredBunTests, runChecks, runMergeGate } from './check-merge.mjs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -152,4 +152,18 @@ test('check:ci accepts no filtering or skip flags', () => {
   const result = spawnSync(process.execPath, [script, '--skip', 'anything'], { encoding: 'utf8', env: checkEnvironment() });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Usage: pnpm check:ci \(no filtering or skip flags\)/);
+});
+
+test('required contract suites run as isolated per-file Bun steps', () => {
+  const checks = mergeChecks();
+  assert(requiredBunTests.includes('packages/smithy/src/server/daemon-lifecycle.bun.test.ts'));
+  for (const file of requiredBunTests) {
+    const steps = checks.filter(check => check.name === file);
+    assert.deepEqual(steps.map(step => [step.command, ...step.args]), [['bun', 'test', `./${file}`]]);
+  }
+});
+
+test('a missing required contract suite fails the step list closed', () => {
+  assert.throws(() => mergeChecks({ required: ['packages/smithy/src/server/missing-contract.bun.test.ts'] }),
+    /Required gate tests not found: packages\/smithy\/src\/server\/missing-contract\.bun\.test\.ts/);
 });

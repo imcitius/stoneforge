@@ -34,7 +34,7 @@ Instructions for the Stoneforge `core` repository in this local workspace.
 | Repository registry and worktrees | `packages/smithy/src/git/` |
 | Built-in role prompts and loader | `packages/smithy/src/prompts/` |
 | Shared React components and hooks | `packages/ui/src/` |
-| Smithy server and dashboard | `apps/smithy-server/src/`, `apps/smithy-web/src/` |
+| Smithy server and dashboard | `packages/smithy/src/server/` (`apps/smithy-server/src/index.ts` is only its dev entry), `apps/smithy-web/src/` |
 | Quarry server and dashboard | `apps/quarry-server/src/`, `apps/quarry-web/src/` |
 | Desktop on local master | `git show master:apps/desktop/README.md` |
 | Documentation site / public site | `apps/docs/`, `apps/website/` |

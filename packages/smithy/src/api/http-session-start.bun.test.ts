@@ -15,7 +15,6 @@ import { createSessionManager } from '../runtime/session-manager.js';
 import type { SpawnerService, SpawnResult } from '../runtime/spawner.js';
 import { createWorktreeManager } from '../git/worktree-manager.js';
 import { createSessionRoutes as sdkRoutes } from '../server/routes/sessions.js';
-import { createSessionRoutes as appRoutes } from '../../../../apps/smithy-server/src/routes/sessions.js';
 
 let root: string, repo: string, storage: StorageBackend, otherStorage: StorageBackend;
 let api: OrchestratorAPI, other: OrchestratorAPI, task: Task, owner: EntityId, successor: EntityId;
@@ -118,7 +117,7 @@ async function harness(routes: typeof sdkRoutes, stage: string) {
     } };
 }
 
-for (const [label, routes] of [['sdk', sdkRoutes], ['app', appRoutes]] as const) {
+for (const [label, routes] of [['sdk', sdkRoutes]] as const) {
   for (const stage of ['spawn', 'reused', 'persist', 'terminate', 'save', 'notify', 'success']) {
     test(`${label}: ${stage} keeps exact ownership boundaries and reusable Git resources`, async () => {
       const h = await harness(routes, stage);

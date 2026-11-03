@@ -84,7 +84,13 @@ export function checkRuntime({ cwd = root, env = checkEnvironment(), log = conso
   return 1;
 }
 
-export function mergeChecks() {
+// Contract suites that must remain gate steps. Discovery already adds every
+// *.bun.test.ts; this list fails closed if one is moved, renamed or deleted.
+export const requiredBunTests = [
+  'packages/smithy/src/server/daemon-lifecycle.bun.test.ts',
+];
+
+export function mergeChecks({ required = requiredBunTests } = {}) {
   const checks = [
     { name: 'gate regression tests', command: 'node', args: ['--test', 'scripts/check-merge.test.mjs'] },
     { name: 'workspace typecheck (uncached)', command: 'pnpm', args: ['typecheck', '--force'] },
@@ -96,6 +102,8 @@ export function mergeChecks() {
     // Bun module mocks can leak across files. Fresh processes keep fixtures isolated.
     for (const file of files) checks.push({ name: file, command: 'bun', args: ['test', `./${file}`] });
   }
+  const missing = required.filter(file => !checks.some(check => check.name === file));
+  if (missing.length) throw new Error(`Required gate tests not found: ${missing.join(', ')}`);
   checks.push(
     { name: 'Smithy Node/Vitest', command: 'pnpm', args: ['--filter', '@stoneforge/smithy', 'test:node'] },
     { name: 'Desktop Node backend integration', command: 'pnpm', args: ['--filter', '@stoneforge/desktop', 'test'] },
