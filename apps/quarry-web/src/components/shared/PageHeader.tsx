@@ -34,6 +34,8 @@ export interface PageHeaderProps {
   count?: number;
   /** Optional total count for "X of Y" display */
   totalCount?: number;
+  /** Test ID for the count element */
+  countTestId?: string;
   /** Optional subtitle/description */
   subtitle?: string;
   /** Action buttons (create, etc.) */
@@ -54,6 +56,7 @@ export function PageHeader({
   iconColor = 'text-blue-500',
   count,
   totalCount,
+  countTestId,
   subtitle,
   actions = [],
   children,
@@ -68,14 +71,14 @@ export function PageHeader({
 
     if (totalCount !== undefined && totalCount !== count) {
       return (
-        <span className="text-sm text-[var(--color-text-secondary)]">
+        <span className="text-sm text-[var(--color-text-secondary)]" data-testid={countTestId}>
           {count} of {totalCount}
         </span>
       );
     }
 
     return (
-      <span className="text-sm text-[var(--color-text-secondary)]">
+      <span className="text-sm text-[var(--color-text-secondary)]" data-testid={countTestId}>
         ({count})
       </span>
     );

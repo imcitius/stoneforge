@@ -185,6 +185,7 @@ export function PlansPage() {
         iconColor="text-blue-500"
         count={plans.length > 0 ? plans.length : undefined}
         totalCount={isSearchActive && totalBeforeSearch !== plans.length ? totalBeforeSearch : undefined}
+        countTestId="plans-count"
         bordered
         actions={[
           {

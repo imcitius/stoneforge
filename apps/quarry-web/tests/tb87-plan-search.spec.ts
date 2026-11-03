@@ -345,23 +345,20 @@ test.describe('TB87: Plan Search', () => {
   });
 
   test('plan count updates when search is active', async ({ page }) => {
-    // Create some plans for testing with unique titles
+    // Create some plans for testing with unique titles.
+    // TB121: plans must be created with at least one task.
     const timestamp = Date.now();
-    await page.request.post('/api/plans', {
-      data: {
-        title: `CountTestAlpha ${timestamp}`,
-        createdBy: 'test-user',
-        status: 'draft',
-      },
-    });
-
-    await page.request.post('/api/plans', {
-      data: {
-        title: `CountTestBeta ${timestamp}`,
-        createdBy: 'test-user',
-        status: 'draft',
-      },
-    });
+    for (const name of ['CountTestAlpha', 'CountTestBeta']) {
+      const response = await page.request.post('/api/plans', {
+        data: {
+          title: `${name} ${timestamp}`,
+          createdBy: 'test-user',
+          status: 'draft',
+          initialTask: { title: `${name} task ${timestamp}` },
+        },
+      });
+      expect(response.ok()).toBe(true);
+    }
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
@@ -369,24 +366,26 @@ test.describe('TB87: Plan Search', () => {
 
     // Search for one of the unique plans
     const searchInput = page.getByTestId('plan-search-input');
-    await searchInput.fill('CountTestAlpha');
-    await page.waitForTimeout(500);
+    await searchInput.fill(`CountTestAlpha ${timestamp}`);
 
-    // Count should show filtered count and total (e.g., "1 of 50")
+    // Count should show filtered count and total (e.g., "1 of 50") once the
+    // debounced search has filtered the list.
     const planCount = page.getByTestId('plans-count');
-    const filteredCountText = await planCount.textContent();
-
-    // Should show "X of Y" format when search is active and filters some results
-    expect(filteredCountText).toContain('of');
+    await expect(planCount).toHaveText(/^\d+\s+of\s+\d+$/, { timeout: 5000 });
+    const filteredCountText = (await planCount.textContent())?.trim() ?? '';
 
     // The first number should be smaller than the total (we filtered to just one plan)
-    const matches = filteredCountText?.match(/\((\d+)\s+of\s+(\d+)\)/);
-    if (matches) {
-      const filtered = parseInt(matches[1], 10);
-      const total = parseInt(matches[2], 10);
-      expect(filtered).toBeLessThanOrEqual(total);
-      expect(filtered).toBeGreaterThan(0);
-    }
+    const matches = filteredCountText.match(/^(\d+)\s+of\s+(\d+)$/);
+    expect(matches).not.toBeNull();
+    const filtered = parseInt(matches![1], 10);
+    const total = parseInt(matches![2], 10);
+    expect(filtered).toBe(1);
+    expect(total).toBeGreaterThanOrEqual(2);
+    expect(filtered).toBeLessThan(total);
+    // Direct children only: each row also contains a nested plan-item-title.
+    await expect(
+      page.locator('[data-testid="plans-list"] > [data-testid^="plan-item-"]')
+    ).toHaveCount(filtered);
   });
 
   test('empty state shows clear search button', async ({ page }) => {
