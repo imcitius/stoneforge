@@ -440,7 +440,13 @@ that each gets its first Getting Started tour, that Skip/Escape are remembered a
 Desktop project Restart (new backend port/origin) and a full app relaunch, that one
 project's dismissal does not affect another, and that Settings → Restart Onboarding Tour
 still works. Screenshots and `getting-started-observations.json` stay in its fixture
-directory. `check-launch-services.mjs` launches through macOS LaunchServices with
+directory. `check-attention.mjs` opens two temporary projects, pauses task processing
+in one (explicit daemon stop), requires its tab to show `paused`, then runs the bundled
+`sf agent await-input` from a fake-provider director. It checks the `attention` tab
+status, exactly one native notification (also in macOS history), that the click
+callback selects the project, and that a human WebSocket reply clears the session
+attention and returns the tab to `paused`. A timed-out tab wait reports the observed
+`data-status`. `check-launch-services.mjs` launches through macOS LaunchServices with
 a minimal PATH and a Unicode workspace path, and checks parent-loss cleanup.
 Both use temporary fixtures and a separate app-data directory.
 

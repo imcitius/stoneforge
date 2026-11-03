@@ -21,10 +21,12 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const env = fixtureEnv();
 let electron;
 const evidence = { bundle, temp, checks: [] };
-async function until(fn, label, timeout=30_000) {
+// `observe` (optional) describes the actual state when the wait times out.
+async function until(fn, label, timeout=30_000, observe) {
   const deadline=Date.now()+timeout;
   while (Date.now()<deadline) { if (await fn()) return; await pause(200); }
-  throw new Error('Timed out: '+label);
+  const observed=observe ? await observe().catch(error=>'unavailable ('+error.message+')') : undefined;
+  throw new Error('Timed out: '+label+(observed===undefined ? '' : '; observed '+observed));
 }
 try {
   execFileSync('/usr/bin/codesign', ['--verify','--deep','--strict',bundle]);
@@ -73,13 +75,18 @@ try {
     const started=await fetch('/api/agents/'+agent.id+'/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({interactive:true,initialPrompt:'Fixture question'})});
     if(!started.ok) throw new Error(await started.text());
   })()`);
+  // The setup's explicit daemon stop is a user pause: Desktop shows this ready project as
+  // 'paused' (el-5frvr5). Record that baseline; attention must override it and then return to it.
+  const waitingTab=()=>page.locator('[role="tab"]').filter({hasText:names[0]});
+  const tabStatus=async()=>'data-status='+await waitingTab().getAttribute('data-status');
+  await until(async()=>await waitingTab().getAttribute('data-status')==='paused','tab shows paused task processing before attention',30_000,tabStatus);
   await page.locator('[role="tab"]').filter({hasText:names[1]}).click();
   await electron.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].hide());
   await writeFile(join(temp,'release'),'go');
   await until(async()=>run(view.id,"fetch('/api/sessions?role=director&status=running').then(r=>r.json()).then(b=>b.sessions.some(s=>s.attention))"),'real CLI attention signal');
   evidence.signal=await readFile(join(temp,'signal.log'),'utf8');
   assert.match(evidence.signal,/Waiting for human input/);
-  await until(async()=>await page.locator('[role="tab"]').filter({hasText:names[0]}).getAttribute('data-status')==='attention','tab attention badge');
+  await until(async()=>await waitingTab().getAttribute('data-status')==='attention','tab attention badge',30_000,tabStatus);
   await until(async()=>electron.evaluate(()=>globalThis.__attentionNotices.length===1),'native notification emitted');
   await until(async()=>electron.evaluate(async({Notification})=>(await Notification.getHistory()).some(n=>n.title==='Нужен ваш ответ — Ожидает ответа')),'macOS delivered history');
   evidence.history=await electron.evaluate(async({Notification})=>(await Notification.getHistory()).filter(n=>n.title==='Нужен ваш ответ — Ожидает ответа').map(n=>({id:n.id,title:n.title,body:n.body})));
@@ -92,10 +99,11 @@ try {
   evidence.checks.push('Deduplication and simulated notification click callback restore/select correct project');
   await run(view.id,"window.__attention.ws.send(JSON.stringify({type:'input',input:'Первый вариант\\r'}))");
   await until(async()=>run(view.id,"fetch('/api/sessions?role=director&status=running').then(r=>r.json()).then(b=>b.sessions.length===1&&!b.sessions[0].attention)"),'human WS input clears attention');
-  await until(async()=>await page.locator('[role="tab"]').filter({hasText:names[0]}).getAttribute('data-status')==='running','badge cleared');
+  // Cleared attention restores the project's underlying status, which is still the paused baseline.
+  await until(async()=>await waitingTab().getAttribute('data-status')==='paused','badge cleared to paused baseline',30_000,tabStatus);
   assert.match(await readFile(join(temp,'answer.log'),'utf8'),/Первый вариант/);
   assert.deepEqual(await run(view.id,'window.__attention.errors'),[]);
-  evidence.checks.push('Real PTY human reply clears session attention and tab badge');
+  evidence.checks.push('Real PTY human reply clears session attention and tab badge back to the paused baseline');
   console.log(JSON.stringify(evidence,null,2));
 } finally {
   if(electron) {
