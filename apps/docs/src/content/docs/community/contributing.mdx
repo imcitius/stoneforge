@@ -23,7 +23,7 @@ Before you begin, make sure you have:
 1. **Fork and clone** the repository
 
    ```bash
-   git clone https://github.com/stoneforge-ai/stoneforge.git
+   git clone https://github.com/imcitius/stoneforge.git
    cd stoneforge
    ```
 
@@ -111,13 +111,15 @@ The per-package runs are quick checks, not the acceptance check. In `packages/sm
 
 2. **Make your changes** — keep commits focused and descriptive
 
-3. **Add a changeset** if your change affects published packages
+3. **Changesets are optional**
+
+   This repository (`imcitius/stoneforge`, now the main repository) does not publish npm
+   packages; releases are macOS Desktop builds from `v*` Git tags. You may still describe a
+   package change with `pnpm changeset`:
 
    ```bash
    pnpm changeset
    ```
-
-   The changeset CLI will walk you through selecting affected packages and writing a summary. Create **one changeset file per affected package**.
 
 4. **Ensure typecheck and tests pass**
 
@@ -130,9 +132,6 @@ The per-package runs are quick checks, not the acceptance check. In `packages/sm
 5. **Submit a pull request** against `master`
 </Steps>
 
-<Aside type="tip">
-Not sure if you need a changeset? If your change modifies code in any `packages/*` directory that gets published to npm, add one. Documentation-only changes, test-only changes, and app-only changes don't need changesets.
-</Aside>
 
 ## Coding standards
 
@@ -157,7 +156,7 @@ Stoneforge follows strict conventions across the codebase:
 
 Not sure where to start? Here are some high-impact areas:
 
-- **Bug fixes** — check [open issues](https://github.com/stoneforge-ai/stoneforge/issues) labeled `bug`
+- **Bug fixes** — check [open issues](https://github.com/imcitius/stoneforge/issues) labeled `bug`
 - **Documentation** — fix inaccuracies, add examples, improve clarity
 - **Tests** — increase coverage, especially for edge cases in orchestration flows
 - **Provider integrations** — improve OpenCode or Codex provider support
@@ -201,7 +200,7 @@ Email **security@stoneforge.ai** with:
 | Initial assessment | Within 1 week |
 | Fix timeline | Depends on severity, typically within 30 days |
 
-We consider security research conducted in good faith to be authorized. See our full [Security Policy](https://github.com/stoneforge-ai/stoneforge/blob/master/SECURITY.md) for details.
+We consider security research conducted in good faith to be authorized. See our full [Security Policy](https://github.com/imcitius/stoneforge/blob/master/SECURITY.md) for details.
 
 ## License
 
@@ -210,7 +209,7 @@ Stoneforge is licensed under **Apache 2.0** across all packages. Your contributi
 ## Get help
 
 <LinkCard title="Discord" description="Ask questions and chat with contributors in real time" href="https://discord.gg/NBCaUUv8Vm" />
-<LinkCard title="GitHub Issues" description="Report bugs and request features" href="https://github.com/stoneforge-ai/stoneforge/issues" />
+<LinkCard title="GitHub Issues" description="Report bugs and request features" href="https://github.com/imcitius/stoneforge/issues" />
 
 <style>{`
 .card-grid {

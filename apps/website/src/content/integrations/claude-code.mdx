@@ -120,10 +120,14 @@ Uncommitted work within a crashed session is lost, so Stoneforge's system prompt
 Install Stoneforge and configure it to use Claude Code:
 
 ```bash
-# Install Stoneforge
-npm install -g @stoneforge/cli
+# Install Stoneforge from source (or download the macOS app:
+# https://github.com/imcitius/stoneforge/releases)
+git clone https://github.com/imcitius/stoneforge.git
+cd stoneforge && pnpm install && pnpm build
+pnpm link --global --filter @stoneforge/smithy
 
 # Initialize in your project
+cd your-project
 sf init
 
 # Start the orchestrator

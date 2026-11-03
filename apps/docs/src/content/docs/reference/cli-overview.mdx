@@ -11,25 +11,26 @@ The `sf` command-line interface is the primary way to interact with Stoneforge. 
 ## Installation
 
 <Tabs>
-  <TabItem label="npm">
-    ```bash
-    npm install -g @stoneforge/quarry
-    ```
-  </TabItem>
-  <TabItem label="pnpm">
-    ```bash
-    pnpm add -g @stoneforge/quarry
-    ```
-  </TabItem>
   <TabItem label="From source">
     ```bash
-    git clone https://github.com/stoneforge-ai/stoneforge.git
+    git clone https://github.com/imcitius/stoneforge.git
     cd stoneforge
     pnpm install && pnpm build
     pnpm link --global --filter @stoneforge/quarry
     ```
   </TabItem>
+  <TabItem label="macOS app">
+    The [macOS Desktop app](/getting-started/installation/) from
+    [GitHub Releases](https://github.com/imcitius/stoneforge/releases) bundles its own
+    `sf` CLI, which it uses to initialize the projects it manages and which its agent
+    sessions run. It does not add `sf` to your shell; build from source for terminal use.
+  </TabItem>
 </Tabs>
+
+<Aside type="note">
+  This repository does not publish the `@stoneforge/*` npm packages; the versions on npm
+  are the last upstream publications.
+</Aside>
 
 Verify it works:
 

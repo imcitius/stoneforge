@@ -2,27 +2,27 @@
 import SectionLabel from '../ui/SectionLabel.astro';
 import CodeBlock from '../ui/CodeBlock.astro';
 
-const installCode = `<span style="color: var(--site-text-ghost);"># Install the Stoneforge CLI globally</span>
-<span style="color: var(--site-text-primary);">npm install -g</span> <span style="color: var(--site-accent);">@stoneforge/smithy</span>
+const installCode = `<span style="color: var(--site-text-ghost);"># Download the macOS app (Apple Silicon) from GitHub Releases</span>
+<span style="color: var(--site-text-primary);">open</span> <span style="color: var(--site-accent);">https://github.com/imcitius/stoneforge/releases</span>
 
-<span style="color: var(--site-text-ghost);"># Initialize a workspace in your project</span>
-<span style="color: var(--site-text-primary);">cd your-project &&</span> <span style="color: var(--site-accent);">sf init</span>
+<span style="color: var(--site-text-ghost);"># First launch: the app is ad-hoc signed, not notarized</span>
+<span style="color: var(--site-text-primary);">xattr -dr com.apple.quarantine</span> <span style="color: var(--site-accent);">'/Applications/Stoneforge Desktop.app'</span>
 
-<span style="color: var(--site-text-ghost);"># Start the server + web dashboard at http://localhost:3457</span>
-<span style="color: var(--site-text-primary);">sf serve</span>`;
+<span style="color: var(--site-text-ghost);"># Open the app, choose Add project and select your project folder</span>
+<span style="color: var(--site-text-primary);">open -a</span> <span style="color: var(--site-accent);">'Stoneforge Desktop'</span>`;
 
-const rawCode = `# Install the Stoneforge CLI globally
-npm install -g @stoneforge/smithy
+const rawCode = `# Download the macOS app (Apple Silicon) from GitHub Releases
+open https://github.com/imcitius/stoneforge/releases
 
-# Initialize a workspace in your project
-cd your-project && sf init
+# First launch: the app is ad-hoc signed, not notarized
+xattr -dr com.apple.quarantine '/Applications/Stoneforge Desktop.app'
 
-# Start the server + web dashboard at http://localhost:3457
-sf serve`;
+# Open the app, choose Add project and select your project folder
+open -a 'Stoneforge Desktop'`;
 
 const steps = [
-  { num: '1', label: 'Install', desc: 'One npm command' },
-  { num: '2', label: 'Initialize', desc: 'Set up workspace' },
+  { num: '1', label: 'Install', desc: 'macOS app from Releases' },
+  { num: '2', label: 'Add project', desc: 'Set up workspace' },
   { num: '3', label: 'Launch', desc: 'Open dashboard' },
 ];
 ---
@@ -40,7 +40,7 @@ const steps = [
         Start in 30 seconds
       </h2>
       <p class="text-[var(--site-text-secondary)] mb-10 leading-relaxed" data-reveal>
-        Three commands. That's it.
+        Download the app, add a project, open the dashboard.
       </p>
 
       <div data-reveal>

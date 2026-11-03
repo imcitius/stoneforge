@@ -12,7 +12,7 @@ export default defineConfig({
         src: './public/logo.svg',
       },
       social: {
-        github: 'https://github.com/stoneforge-ai/stoneforge',
+        github: 'https://github.com/imcitius/stoneforge',
         discord: 'https://discord.gg/NBCaUUv8Vm',
         'x.com': 'https://x.com/stoneforge_ai',
       },

@@ -82,7 +82,7 @@ function setupGitHubClickTracking(): void {
     if (!anchor) return;
 
     const href = anchor.getAttribute('href') || '';
-    if (href.includes('github.com/stoneforge-ai')) {
+    if (href.includes('github.com/imcitius/stoneforge') || href.includes('github.com/stoneforge-ai')) {
       trackEvent('GitHub+Click', { url: href });
     }
   });

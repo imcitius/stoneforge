@@ -77,10 +77,14 @@ When a Codex agent completes its task, the Steward:
 ### Getting started with Codex
 
 ```bash
-# Install Stoneforge
-npm install -g @stoneforge/cli
+# Install Stoneforge from source (or download the macOS app:
+# https://github.com/imcitius/stoneforge/releases)
+git clone https://github.com/imcitius/stoneforge.git
+cd stoneforge && pnpm install && pnpm build
+pnpm link --global --filter @stoneforge/smithy
 
 # Initialize and configure for Codex
+cd your-project
 sf init
 
 # Update .stoneforge/config.yaml to use codex provider

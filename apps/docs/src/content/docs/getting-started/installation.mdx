@@ -21,8 +21,8 @@ import ParamTable from '../../../components/custom/ParamTable.astro';
     {
       "@type": "HowToStep",
       "position": 1,
-      "name": "Install the Stoneforge CLI",
-      "text": "Run: npm install -g @stoneforge/smithy (or use pnpm, or build from source)"
+      "name": "Install Stoneforge",
+      "text": "Download the macOS Desktop app from https://github.com/imcitius/stoneforge/releases, or build the sf CLI from source"
     },
     {
       "@type": "HowToStep",
@@ -53,25 +53,37 @@ import ParamTable from '../../../components/custom/ParamTable.astro';
 ## Install
 
 <Tabs>
-  <TabItem label="npm">
+  <TabItem label="macOS app (GitHub Releases)">
+    Download the latest `Stoneforge Desktop` zip or dmg from
+    [GitHub Releases](https://github.com/imcitius/stoneforge/releases) and move
+    `Stoneforge Desktop.app` to `/Applications`. Releases are Apple Silicon (arm64) only.
+
+    The app is ad-hoc signed and not notarized. On first launch, right-click the app and
+    choose **Open**, or clear the quarantine attribute:
+
     ```bash
-    npm install -g @stoneforge/smithy
+    xattr -dr com.apple.quarantine '/Applications/Stoneforge Desktop.app'
     ```
-  </TabItem>
-  <TabItem label="pnpm">
-    ```bash
-    pnpm add -g @stoneforge/smithy
-    ```
+
+    The app bundles its own Node runtime and `sf` CLI. Choose **Add project** and select
+    a project folder; the app offers to initialize it, then serves its dashboard.
   </TabItem>
   <TabItem label="From source">
     ```bash
-    git clone https://github.com/stoneforge-ai/stoneforge.git
+    git clone https://github.com/imcitius/stoneforge.git
     cd stoneforge
     pnpm install
     pnpm build
+    pnpm link --global --filter @stoneforge/smithy
     ```
   </TabItem>
 </Tabs>
+
+<Aside type="note">
+  [`imcitius/stoneforge`](https://github.com/imcitius/stoneforge) is the main repository.
+  It does not publish the `@stoneforge/*` npm packages: the versions on npm are the last
+  upstream publications and do not include changes made in this repository.
+</Aside>
 
 ## Initialize your project
 

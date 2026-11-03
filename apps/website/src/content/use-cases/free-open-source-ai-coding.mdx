@@ -21,7 +21,7 @@ faqItems:
   - question: "How does this free AI coding agent compare to Devin or Cursor?"
     answer: "Devin charges $20-$500/month depending on the plan, and Cursor Pro costs $20/month per seat. Stoneforge is free. The trade-off is that Stoneforge requires self-hosting and initial setup, while Devin and Cursor are managed services. Stoneforge also provides multi-agent orchestration that those tools don't offer."
   - question: "How long does it take to set up this open source AI coding agent?"
-    answer: "The core install takes about a minute: npm install, sf init, sf serve. Configuring agents, setting up API keys, and learning the orchestration model takes longer, roughly 15 minutes for a basic setup."
+    answer: "The core install takes a few minutes: download the macOS app from GitHub Releases and add your project, or build from source and run sf init and sf serve. Configuring agents, setting up API keys, and learning the orchestration model takes longer, roughly 15 minutes for a basic setup."
 ---
 
 Stoneforge is a free AI coding agent that orchestrates multiple AI agents working on your codebase in parallel. As an open source AI coding assistant licensed under Apache 2.0, there are no per-seat fees, no usage caps, and no premium tiers.
@@ -67,8 +67,11 @@ For solo developers and small teams comfortable with self-hosting, a free AI cod
 ### Get running in minutes
 
 ```bash
-# Install globally
-npm install -g @stoneforge/smithy
+# Install Stoneforge from source (or download the macOS app:
+# https://github.com/imcitius/stoneforge/releases)
+git clone https://github.com/imcitius/stoneforge.git
+cd stoneforge && pnpm install && pnpm build
+pnpm link --global --filter @stoneforge/smithy
 
 # Initialize in your project
 cd your-project
