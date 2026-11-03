@@ -7,6 +7,7 @@
 
 import { GitBranch, GitMerge, AlertTriangle, Bot, User, Play, CheckCircle2, RotateCcw } from 'lucide-react';
 import type { Task } from '../../api/types';
+import { getStartAvailability } from '../../lib/task-start';
 import { TaskStatusBadge, TaskPriorityBadge, TaskTypeBadge } from '@stoneforge/ui/domain';
 import { TaskActionsDropdown } from './TaskActionsDropdown';
 
@@ -43,7 +44,8 @@ export function TaskRow({
   onToggleSelect,
 }: TaskRowProps) {
   const orchestratorMeta = task.metadata?.orchestrator;
-  const canStart = task.status === 'open' && task.assignee;
+  const start = getStartAvailability(task);
+  const canStart = start.visible;
   const canComplete = task.status === 'in_progress';
   const canReopen = task.status === 'closed';
 
@@ -157,11 +159,12 @@ export function TaskRow({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onStart();
+                if (start.enabled) onStart();
               }}
-              disabled={isStarting}
-              className="p-1.5 text-[var(--color-primary)] hover:bg-[var(--color-primary-muted)] rounded disabled:opacity-50 transition-colors"
-              title="Start task"
+              disabled={!start.enabled || isStarting}
+              className="p-1.5 text-[var(--color-primary)] hover:bg-[var(--color-primary-muted)] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title={start.reason ?? 'Start task'}
+              aria-label={start.reason ? `Start task — ${start.reason}` : 'Start task'}
               data-testid="task-row-start"
             >
               <Play className="w-4 h-4" />

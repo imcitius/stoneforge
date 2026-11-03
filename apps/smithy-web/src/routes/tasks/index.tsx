@@ -407,6 +407,8 @@ export function TasksPage() {
     setPendingStart((prev) => new Set(prev).add(taskId));
     try {
       await startTaskMutation.mutateAsync({ taskId, agentId });
+    } catch {
+      // useStartTask toasts the rejection reason
     } finally {
       setPendingStart((prev) => {
         const next = new Set(prev);
@@ -1250,7 +1252,7 @@ function GroupSection({
               key={task.id}
               task={task}
               assigneeName={task.assignee ? entityNameMap.get(task.assignee) : undefined}
-              onStart={() => task.assignee && onStart(task.id, task.assignee)}
+              onStart={() => { if (task.assignee) onStart(task.id, task.assignee); }}
               onComplete={() => onComplete(task.id)}
               onReopen={() => onReopen(task.id)}
               onClick={() => onSelectTask(task.id)}

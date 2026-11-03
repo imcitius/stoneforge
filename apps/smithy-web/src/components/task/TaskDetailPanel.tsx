@@ -65,6 +65,7 @@ import type { Task, Agent, Priority, TaskStatus, Complexity, MergeStatus, TaskSe
 import { TranscriptViewer, messageToStreamEvent } from '../shared/TranscriptViewer';
 import type { StreamEvent } from '../workspace/types';
 import { useImageDrop } from '../../hooks/useImageDrop';
+import { getStartAvailability } from '../../lib/task-start';
 
 interface TaskDetailPanelProps {
   taskId: string;
@@ -127,7 +128,8 @@ export function TaskDetailPanel({ taskId, onClose, onNavigateToTask }: TaskDetai
   const orchestratorMeta = task?.metadata?.orchestrator;
   const description = task?.description;
 
-  const canStart = task?.status === 'open' && task?.assignee;
+  const start = getStartAvailability(task);
+  const canStart = start.visible;
   const canComplete = task?.status === 'in_progress';
   const canReopen = task?.status === 'closed';
   // Can reset if task has an assignee or is in_progress/review/closed
@@ -135,6 +137,13 @@ export function TaskDetailPanel({ taskId, onClose, onNavigateToTask }: TaskDetai
     task?.status === 'in_progress' ||
     task?.status === 'review' ||
     task?.status === 'closed';
+
+  // A previous Start rejection no longer applies once the task or its
+  // assignment changes.
+  const resetStart = startTask.reset;
+  useEffect(() => {
+    resetStart();
+  }, [task?.id, task?.assignee, resetStart]);
 
   const handleUpdate = async (updates: Omit<UpdateTaskInput, 'taskId'>) => {
     if (!task) return;
@@ -175,9 +184,12 @@ export function TaskDetailPanel({ taskId, onClose, onNavigateToTask }: TaskDetai
   };
 
   const handleStart = async () => {
-    if (!task) return;
-    if (!task.assignee) return;
-    await startTask.mutateAsync({ taskId: task.id, agentId: task.assignee });
+    if (!task || !start.agentId) return;
+    try {
+      await startTask.mutateAsync({ taskId: task.id, agentId: start.agentId });
+    } catch {
+      // Shown inline below the action bar and as a toast by useStartTask
+    }
   };
 
   const handleComplete = async () => {
@@ -329,8 +341,10 @@ export function TaskDetailPanel({ taskId, onClose, onNavigateToTask }: TaskDetai
           {canStart && (
             <button
               onClick={handleStart}
-              disabled={startTask.isPending}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--color-primary)] bg-[var(--color-primary-muted)] hover:bg-[var(--color-primary-muted)]/80 rounded-md disabled:opacity-50 transition-colors"
+              disabled={!start.enabled || startTask.isPending}
+              title={start.reason}
+              aria-label={start.reason ? `Start Task — ${start.reason}` : undefined}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--color-primary)] bg-[var(--color-primary-muted)] hover:bg-[var(--color-primary-muted)]/80 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               data-testid="task-start-btn"
             >
               <Play className="w-4 h-4" />
@@ -359,6 +373,21 @@ export function TaskDetailPanel({ taskId, onClose, onNavigateToTask }: TaskDetai
               {reopenTask.isPending ? 'Reopening...' : 'Reopen Task'}
             </button>
           )}
+          {canStart && start.reason && (
+            <span className="text-xs text-[var(--color-text-tertiary)]" data-testid="task-start-hint">
+              {start.reason} in “Assigned To” below.
+            </span>
+          )}
+        </div>
+      )}
+      {canStart && startTask.isError && startTask.variables?.taskId === task.id && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 px-4 py-2 text-xs text-[var(--color-danger)] bg-[var(--color-danger-muted)] border-b border-[var(--color-border)]"
+          data-testid="task-start-error"
+        >
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>{startTask.error.message}</span>
         </div>
       )}
 

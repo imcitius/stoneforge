@@ -6,6 +6,8 @@
 
 import { useCurrentUser } from '../../contexts';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { requestStartTask } from '../../lib/task-start';
 import type {
   TasksResponse,
   TaskResponse,
@@ -259,20 +261,22 @@ export function useAssignTask() {
 }
 
 /**
- * Hook to start working on a task (set to in_progress)
+ * Hook to start working on a task as its current assignee (set to in_progress).
+ * Errors are StartTaskError instances (see lib/task-start) and are toasted.
  */
 export function useStartTask() {
   const queryClient = useQueryClient();
 
   return useMutation<TaskResponse, Error, { taskId: string; agentId: string }>({
-    mutationFn: async ({ taskId, agentId }) => {
-      return fetchApi<TaskResponse>(`/tasks/${taskId}/start`, {
-        method: 'POST',
-        body: JSON.stringify({ agentId }),
-      });
-    },
+    mutationFn: ({ taskId, agentId }) => requestStartTask<TaskResponse>(taskId, agentId),
     onSuccess: (_, { taskId }) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+    },
+    // Rejections (400/404/409/422) carry the startTask reason; surface it
+    // rather than leaving the Start click looking like a no-op.
+    onError: (error, { taskId }) => {
+      toast.error('Could not start task', { description: error.message, duration: 12000 });
       queryClient.invalidateQueries({ queryKey: ['task', taskId] });
     },
   });

@@ -199,6 +199,13 @@ version. Responses are 400 for malformed input, 422 for invalid state or assigne
 409 for a stale or concurrent update, and 404 for a missing task. The caller ID
 in the request is an assertion, not authentication.
 
+In the Smithy dashboard, **Start** on an open task sends the current assignee as
+`agentId`. For an unassigned open task Start is shown disabled with the hint
+"Assign an agent first". A rejected start shows the server's reason as an error
+toast, and the task detail panel also shows it inline. The reason can be a
+non-agent or inconsistent assignee (422), a non-startable status (422) or a
+concurrent change (409).
+
 ### Orchestrator task metadata
 
 Each task carries orchestration metadata — branch, worktree, merge status, handoff history, etc.

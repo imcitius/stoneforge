@@ -7,6 +7,7 @@
 
 import { GitBranch, GitMerge, AlertTriangle, Bot, User, Clock, Calendar, MoreHorizontal, Play, CheckCircle2 } from 'lucide-react';
 import type { Task } from '../../api/types';
+import { getStartAvailability } from '../../lib/task-start';
 import { TaskStatusBadge, TaskPriorityBadge, TaskTypeBadge } from '@stoneforge/ui/domain';
 
 interface TaskCardProps {
@@ -29,7 +30,8 @@ export function TaskCard({
   isCompleting,
 }: TaskCardProps) {
   const orchestratorMeta = task.metadata?.orchestrator;
-  const canStart = task.status === 'open' && task.assignee;
+  const start = getStartAvailability(task);
+  const canStart = start.visible;
   const canComplete = task.status === 'in_progress';
 
   return (
@@ -126,10 +128,11 @@ export function TaskCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onStart();
+                if (start.enabled) onStart();
               }}
-              disabled={isStarting}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-[var(--color-primary)] bg-[var(--color-primary-muted)] rounded hover:bg-[var(--color-primary-muted)]/80 disabled:opacity-50 transition-colors"
+              disabled={!start.enabled || isStarting}
+              title={start.reason}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-[var(--color-primary)] bg-[var(--color-primary-muted)] rounded hover:bg-[var(--color-primary-muted)]/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               data-testid="task-start-button"
             >
               <Play className="w-3 h-3" />
