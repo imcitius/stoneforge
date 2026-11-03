@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { TEST_API_URL } from './e2e-ports';
 
 /**
  * TB96: Media Library Browser
@@ -11,7 +12,7 @@ import { test, expect } from '@playwright/test';
  * - Usage tracking shows which documents use each image
  */
 
-const API_BASE = 'http://localhost:3456';
+const API_BASE = TEST_API_URL;
 
 test.describe('TB96: Media Library Browser', () => {
   test.describe('Image Upload API', () => {

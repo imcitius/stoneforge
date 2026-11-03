@@ -7,9 +7,9 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { TEST_API_URL } from './e2e-ports';
 
-const API_BASE = 'http://localhost:3456';
-const APP_URL = 'http://localhost:5173';
+const API_BASE = TEST_API_URL;
 
 // Helper to wait a bit between API calls to avoid rate limiting
 async function wait(ms: number) {
@@ -79,7 +79,7 @@ async function deleteLibrary(request: any, id: string) {
   return response;
 }
 
-// Helper to get all documents
+// Helper to get all documents (server caps limit at 500)
 async function getDocuments(request: any) {
   const response = await request.get(`${API_BASE}/api/documents?limit=500`);
   expect(response.ok()).toBeTruthy();
@@ -119,7 +119,7 @@ test.describe('TB130: Virtualized Documents List', () => {
     await createDocument(request, 'TB130 Test Document 1');
     await createDocument(request, 'TB130 Test Document 2');
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="all-documents-view"]');
 
     // Check that the virtualized list component is rendered
@@ -134,7 +134,7 @@ test.describe('TB130: Virtualized Documents List', () => {
       await createDocument(request, `TB130 Test Doc ${i.toString().padStart(2, '0')}`);
     }
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="all-documents-view"]');
 
     // Wait for documents to load
@@ -151,7 +151,7 @@ test.describe('TB130: Virtualized Documents List', () => {
     await createDocument(request, 'TB130 Test Count 2');
     await createDocument(request, 'TB130 Test Count 3');
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="all-documents-view"]');
 
     // Wait for documents to load
@@ -177,7 +177,7 @@ test.describe('TB130: Virtualized Documents List', () => {
     await createDocument(request, betaName);
     await createDocument(request, gammaName);
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="all-documents-view"]');
 
     // Wait for documents to load
@@ -205,7 +205,7 @@ test.describe('TB130: Virtualized Documents List', () => {
     await createDocument(request, 'TB130 Test Lib Doc 1', 'Content 1', library.id);
     await createDocument(request, 'TB130 Test Lib Doc 2', 'Content 2', library.id);
 
-    await page.goto(`${APP_URL}/documents?library=${library.id}`);
+    await page.goto(`/documents?library=${library.id}`);
     await page.waitForSelector('[data-testid="library-view"]');
 
     // Check that the virtualized list component is rendered
@@ -220,7 +220,7 @@ test.describe('TB130: Virtualized Documents List', () => {
       await createDocument(request, `TB130 Test LDoc ${i.toString().padStart(2, '0')}`, `Content ${i}`, library.id);
     }
 
-    await page.goto(`${APP_URL}/documents?library=${library.id}`);
+    await page.goto(`/documents?library=${library.id}`);
     await page.waitForSelector('[data-testid="library-view"]');
 
     // Wait for documents to load
@@ -237,7 +237,7 @@ test.describe('TB130: Virtualized Documents List', () => {
     await createDocument(request, 'TB130 Test LC Doc 1', 'Content 1', library.id);
     await createDocument(request, 'TB130 Test LC Doc 2', 'Content 2', library.id);
 
-    await page.goto(`${APP_URL}/documents?library=${library.id}`);
+    await page.goto(`/documents?library=${library.id}`);
     await page.waitForSelector('[data-testid="library-view"]');
 
     // Wait for documents to load
@@ -258,7 +258,7 @@ test.describe('TB130: Virtualized Documents List', () => {
       await createDocument(request, `TB130 Test Scroll Doc ${i.toString().padStart(2, '0')}`);
     }
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="all-documents-view"]');
 
     // Wait for documents to load
@@ -283,7 +283,7 @@ test.describe('TB130: Virtualized Documents List', () => {
     const doc1 = await createDocument(request, 'TB130 Test Selectable Doc 1');
     await createDocument(request, 'TB130 Test Selectable Doc 2');
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="all-documents-view"]');
 
     // Wait for documents to load
@@ -299,7 +299,7 @@ test.describe('TB130: Virtualized Documents List', () => {
 
   test('empty documents state shows correctly', async ({ page }) => {
     // Navigate to documents page - if no documents exist, should show empty state
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="all-documents-view"]');
 
     // Wait for data to load
@@ -320,7 +320,7 @@ test.describe('TB130: Virtualized Documents List', () => {
     // Create a library without any documents
     const library = await createLibrary(request, 'TB130 Test Empty Library');
 
-    await page.goto(`${APP_URL}/documents?library=${library.id}`);
+    await page.goto(`/documents?library=${library.id}`);
     await page.waitForSelector('[data-testid="library-view"]');
 
     // Wait for data to load
@@ -338,7 +338,7 @@ test.describe('TB130: Virtualized Documents List', () => {
       await createDocument(request, `TB130 Test Restore Doc ${i.toString().padStart(2, '0')}`);
     }
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="all-documents-view"]');
 
     // Wait for documents to load
@@ -360,7 +360,7 @@ test.describe('TB130: Virtualized Documents List', () => {
     await createDocument(request, 'TB130 Test Gap 2');
     await createDocument(request, 'TB130 Test Gap 3');
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="all-documents-view"]');
 
     // Wait for documents to load

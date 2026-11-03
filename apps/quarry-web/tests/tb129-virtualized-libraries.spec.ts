@@ -7,9 +7,9 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { TEST_API_URL } from './e2e-ports';
 
-const API_BASE = 'http://localhost:3456';
-const APP_URL = 'http://localhost:5173';
+const API_BASE = TEST_API_URL;
 
 // Helper to create a library via API
 async function createLibrary(request: any, name: string, parentId: string | null = null) {
@@ -56,7 +56,7 @@ test.describe('TB129: Virtualized Libraries List', () => {
   });
 
   test('library tree uses virtualized list component', async ({ page }) => {
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
 
     // Wait for the page to load
     await page.waitForSelector('[data-testid="library-tree"]');
@@ -80,7 +80,7 @@ test.describe('TB129: Virtualized Libraries List', () => {
     const lib2 = await createLibrary(request, 'TB129 Test Library Beta');
     const lib3 = await createLibrary(request, 'TB129 Test Library Gamma');
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="library-tree"]');
 
     // Wait for libraries to appear
@@ -95,7 +95,7 @@ test.describe('TB129: Virtualized Libraries List', () => {
     const child1 = await createLibrary(request, 'TB129 Test Child 1', parent.id);
     const child2 = await createLibrary(request, 'TB129 Test Child 2', parent.id);
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="library-tree"]');
 
     // Wait for parent to appear
@@ -123,7 +123,7 @@ test.describe('TB129: Virtualized Libraries List', () => {
     // Create a test library
     const lib = await createLibrary(request, 'TB129 Test Selectable Library');
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="library-tree"]');
 
     // Wait for library to appear (may need to wait for WebSocket update)
@@ -141,7 +141,7 @@ test.describe('TB129: Virtualized Libraries List', () => {
   });
 
   test('All Documents button is always visible outside virtualized area', async ({ page }) => {
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="library-tree"]');
 
     // All Documents button should always be visible
@@ -161,7 +161,7 @@ test.describe('TB129: Virtualized Libraries List', () => {
     await createLibrary(request, 'TB129 Test Count 2');
     await createLibrary(request, 'TB129 Test Count 3');
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="library-tree"]');
 
     // Wait for data to load and check count
@@ -180,7 +180,7 @@ test.describe('TB129: Virtualized Libraries List', () => {
     const level1 = await createLibrary(request, 'TB129 Test Level 1', level0.id);
     const level2 = await createLibrary(request, 'TB129 Test Level 2', level1.id);
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="library-tree"]');
 
     // Expand level 0
@@ -219,7 +219,7 @@ test.describe('TB129: Virtualized Libraries List', () => {
       libraries.push(lib);
     }
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="library-tree"]');
 
     // Wait for first library to appear (WebSocket may need time to update)
@@ -255,7 +255,7 @@ test.describe('TB129: Virtualized Libraries List', () => {
       }
     }
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="library-tree"]');
 
     // If all libraries are deleted, empty state should show
@@ -291,7 +291,7 @@ test.describe('TB129: Virtualized Libraries List', () => {
       return;
     }
 
-    await page.goto(`${APP_URL}/documents`);
+    await page.goto(`/documents`);
     await page.waitForSelector('[data-testid="library-tree"]');
 
     // Wait for first library to appear
