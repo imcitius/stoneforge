@@ -16,6 +16,7 @@ import { CreateEntityModal } from '../components/entity/CreateEntityModal';
 import { CreateTeamModal } from '../components/team/CreateTeamModal';
 import { CreateDocumentModal } from '../components/document/CreateDocumentModal';
 import { CreatePlanModal } from '@stoneforge/ui/plans';
+import { useCurrentUser } from '../contexts';
 
 interface GlobalQuickActionsContextValue {
   /** Open the create task modal */
@@ -56,6 +57,7 @@ interface GlobalQuickActionsProviderProps {
 
 export function GlobalQuickActionsProvider({ children }: GlobalQuickActionsProviderProps) {
   const navigate = useNavigate();
+  const { currentUser } = useCurrentUser();
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
   const [isCreateBacklogTaskModalOpen, setIsCreateBacklogTaskModalOpen] = useState(false);
   const [isCreateWorkflowModalOpen, setIsCreateWorkflowModalOpen] = useState(false);
@@ -349,6 +351,7 @@ export function GlobalQuickActionsProvider({ children }: GlobalQuickActionsProvi
         isOpen={isCreatePlanModalOpen}
         onClose={() => setIsCreatePlanModalOpen(false)}
         onSuccess={handlePlanCreated}
+        currentUserId={currentUser?.id}
       />
     </GlobalQuickActionsContext.Provider>
   );

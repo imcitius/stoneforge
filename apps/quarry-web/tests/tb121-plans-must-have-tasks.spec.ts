@@ -233,8 +233,7 @@ test.describe('TB121: Plans Must Have Task Children', () => {
       await page.getByTestId('create-plan-btn').click();
       await expect(page.getByTestId('create-plan-modal')).toBeVisible({ timeout: 5000 });
 
-      // Should show "Initial Task Required" notice
-      await expect(page.getByText('Initial Task Required')).toBeVisible();
+      await expect(page.getByText('Plans must have at least one task.')).toBeVisible();
     });
 
     test('Create button is disabled without task', async ({ page }) => {
@@ -251,7 +250,14 @@ test.describe('TB121: Plans Must Have Task Children', () => {
       await expect(page.getByTestId('create-plan-submit')).toBeDisabled();
     });
 
-    test('can create plan with new task', async ({ page }) => {
+    test('can create plan with a selected task', async ({ page }) => {
+      const taskTitle = `UI Test Task ${Date.now()}`;
+      const taskResponse = await page.request.post('/api/tasks', {
+        data: { title: taskTitle, createdBy: 'el-0000', priority: 3 },
+      });
+      expect(taskResponse.ok()).toBe(true);
+      const task = await taskResponse.json();
+
       await page.goto('/plans');
       await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
@@ -259,16 +265,13 @@ test.describe('TB121: Plans Must Have Task Children', () => {
       await expect(page.getByTestId('create-plan-modal')).toBeVisible({ timeout: 5000 });
 
       const planTitle = `UI Test Plan ${Date.now()}`;
-      const taskTitle = `UI Test Task ${Date.now()}`;
 
       // Enter plan title
       await page.getByTestId('plan-title-input').fill(planTitle);
 
-      // Mode should default to "Create New Task"
-      await expect(page.getByTestId('mode-new-task')).toHaveClass(/bg-blue-500/);
-
-      // Enter task title
-      await page.getByTestId('task-title-input').fill(taskTitle);
+      // Select the task from the current task picker.
+      await page.getByTestId('task-search-input').fill(taskTitle);
+      await page.getByTestId(`available-task-${task.id}`).click();
 
       // Submit should now be enabled
       await expect(page.getByTestId('create-plan-submit')).toBeEnabled();
@@ -282,41 +285,36 @@ test.describe('TB121: Plans Must Have Task Children', () => {
       // Plan should be visible in list (use testid to avoid matching detail panel too)
       await expect(page.getByTestId('plans-list').getByText(planTitle)).toBeVisible({ timeout: 5000 });
 
-      // Cleanup: get the plan ID and delete it
+      // Cleanup the plan and its selected task.
       const plansResponse = await page.request.get('/api/plans');
       const plans = await plansResponse.json();
       const createdPlan = plans.find((p: { title: string }) => p.title === planTitle);
       if (createdPlan) {
-        // Get tasks and delete
-        const tasksResponse = await page.request.get(`/api/plans/${createdPlan.id}/tasks`);
-        const tasks = await tasksResponse.json();
-        for (const task of tasks) {
-          await page.request.delete(`/api/tasks/${task.id}?force=true`);
-        }
+        await page.request.delete(`/api/tasks/${task.id}?force=true`);
         await page.request.delete(`/api/plans/${createdPlan.id}?force=true`);
       }
     });
 
-    test('can switch between new task and existing task mode', async ({ page }) => {
+    test('can select and remove a task before creating a plan', async ({ page }) => {
+      const taskResponse = await page.request.post('/api/tasks', {
+        data: { title: `Task selection ${Date.now()}`, createdBy: 'el-0000', priority: 3 },
+      });
+      expect(taskResponse.ok()).toBe(true);
+      const task = await taskResponse.json();
+
       await page.goto('/plans');
       await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
       await page.getByTestId('create-plan-btn').click();
       await expect(page.getByTestId('create-plan-modal')).toBeVisible({ timeout: 5000 });
 
-      // Default is new task mode
-      await expect(page.getByTestId('task-title-input')).toBeVisible();
-
-      // Switch to existing task mode
-      await page.getByTestId('mode-existing-task').click();
-
-      // Should show search input instead of task title input
-      await expect(page.getByTestId('existing-task-search')).toBeVisible();
-      await expect(page.getByTestId('task-title-input')).not.toBeVisible();
-
-      // Switch back to new task mode
-      await page.getByTestId('mode-new-task').click();
-      await expect(page.getByTestId('task-title-input')).toBeVisible();
+      await page.getByTestId('plan-title-input').fill('Selection test plan');
+      await page.getByTestId('task-search-input').fill(task.title);
+      await page.getByTestId(`available-task-${task.id}`).click();
+      await expect(page.getByTestId('create-plan-submit')).toBeEnabled();
+      await page.getByTestId(`remove-selected-task-${task.id}`).click();
+      await expect(page.getByTestId('create-plan-submit')).toBeDisabled();
+      await page.request.delete(`/api/tasks/${task.id}?force=true`);
     });
 
     test('can close modal with cancel button', async ({ page }) => {

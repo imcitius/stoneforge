@@ -21,6 +21,7 @@ import { useSearch, useNavigate } from '@tanstack/react-router';
 import { ElementNotFound } from '../../components/shared/ElementNotFound';
 import { PageHeader } from '../../components/shared';
 import { MobileDetailSheet } from '../../components/shared/MobileDetailSheet';
+import { ProgressRing, ProgressRingWithBreakdown } from '../../components/shared/ProgressRing';
 import {
   PlanSearchBar,
   StatusFilter,
@@ -290,6 +291,9 @@ export function PlansPage() {
                   isSelected={selectedPlanId === plan.id}
                   onClick={() => handlePlanClick(plan.id)}
                   searchMatchIndices={matchIndicesMap.get(plan.id)}
+                  progressRing={plan._progress?.totalTasks ? (
+                    <ProgressRing percentage={plan._progress.completionPercentage} size="mini" testId={`plan-progress-${plan.id}`} />
+                  ) : undefined}
                 />
               ))}
             </div>
@@ -305,6 +309,9 @@ export function PlansPage() {
                   isSelected={selectedPlanId === plan.id}
                   onClick={handlePlanClick}
                   searchMatchIndices={matchIndicesMap.get(plan.id)}
+                  progressRing={plan._progress?.totalTasks ? (
+                    <ProgressRing percentage={plan._progress.completionPercentage} size="mini" testId={`plan-progress-${plan.id}`} />
+                  ) : undefined}
                 />
               ))}
             </div>
@@ -335,6 +342,14 @@ export function PlansPage() {
               <PlanDetailPanel
                 planId={selectedPlanId}
                 onClose={handleCloseDetail}
+                renderProgressRing={({ percentage, completed, total }) => (
+                  <ProgressRingWithBreakdown
+                    percentage={percentage}
+                    completed={completed}
+                    total={total}
+                    testId="plan-detail-progress-ring"
+                  />
+                )}
               />
             )}
           </div>
@@ -361,6 +376,14 @@ export function PlansPage() {
             <PlanDetailPanel
               planId={selectedPlanId}
               onClose={handleCloseDetail}
+              renderProgressRing={({ percentage, completed, total }) => (
+                <ProgressRingWithBreakdown
+                  percentage={percentage}
+                  completed={completed}
+                  total={total}
+                  testId="plan-detail-progress-ring"
+                />
+              )}
             />
           )}
         </MobileDetailSheet>

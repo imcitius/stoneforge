@@ -1,4 +1,55 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type APIResponse, type Page } from '@playwright/test';
+
+// The e2e server is shared by parallel specs. Keep every plan and task scoped to
+// its creating test so assertions never depend on another test's database state.
+const fixtures = new WeakMap<Page, { planIds: string[]; taskIds: string[] }>();
+
+function fixtureIds(page: Page) {
+  let ids = fixtures.get(page);
+  if (!ids) {
+    ids = { planIds: [], taskIds: [] };
+    fixtures.set(page, ids);
+  }
+  return ids;
+}
+
+async function createPlan(page: Page, { data }: { data: Record<string, unknown> }): Promise<APIResponse> {
+  const response = await page.request.post('/api/plans', {
+    data: {
+      ...data,
+      createdBy: 'el-0000',
+      initialTask: { title: `Initial task for ${data.title}`, priority: 3 },
+    },
+  });
+  expect(response.status()).toBe(201);
+  const created = await response.json();
+  fixtureIds(page).planIds.push(created.id);
+  fixtureIds(page).taskIds.push(created.initialTask.id);
+  return response;
+}
+
+async function seedPlan(page: Page) {
+  const response = await createPlan(page, { data: { title: `E2E plan ${Date.now()}` } });
+  return response.json() as Promise<{ id: string; title: string; status: string; initialTask: { id: string } }>;
+}
+
+async function createTask(page: Page, options: { data: Record<string, unknown> }): Promise<APIResponse> {
+  const response = await page.request.post('/api/tasks', options);
+  expect(response.ok()).toBe(true);
+  fixtureIds(page).taskIds.push((await response.json()).id);
+  return response;
+}
+
+test.afterEach(async ({ page }) => {
+  const ids = fixtures.get(page);
+  if (!ids) return;
+  for (const taskId of ids.taskIds) {
+    await page.request.delete(`/api/tasks/${taskId}?force=true`);
+  }
+  for (const planId of ids.planIds) {
+    await page.request.delete(`/api/plans/${planId}?force=true`);
+  }
+});
 
 test.describe('TB24: Plan List with Progress', () => {
   // ============================================================================
@@ -6,10 +57,12 @@ test.describe('TB24: Plan List with Progress', () => {
   // ============================================================================
 
   test('GET /api/plans returns list of plans', async ({ page }) => {
+    const seededPlan = await seedPlan(page);
     const response = await page.request.get('/api/plans');
     expect(response.ok()).toBe(true);
     const plans = await response.json();
     expect(Array.isArray(plans)).toBe(true);
+    expect(plans.some((plan: { id: string }) => plan.id === seededPlan.id)).toBe(true);
 
     // Check each plan has required fields
     for (const plan of plans) {
@@ -23,6 +76,7 @@ test.describe('TB24: Plan List with Progress', () => {
   });
 
   test('GET /api/plans supports status filter parameter', async ({ page }) => {
+    await seedPlan(page);
     // Test that the status parameter is accepted (even if not fully functional)
     // Note: Full status filtering requires plan-specific query support
     const response = await page.request.get('/api/plans?status=draft');
@@ -32,23 +86,16 @@ test.describe('TB24: Plan List with Progress', () => {
   });
 
   test('GET /api/plans/:id returns a plan', async ({ page }) => {
-    // First get list of plans
-    const listResponse = await page.request.get('/api/plans');
-    const plans = await listResponse.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     // Get single plan
-    const response = await page.request.get(`/api/plans/${plans[0].id}`);
+    const response = await page.request.get(`/api/plans/${plan.id}`);
     expect(response.ok()).toBe(true);
-    const plan = await response.json();
+    const fetchedPlan = await response.json();
 
-    expect(plan.id).toBe(plans[0].id);
-    expect(plan.type).toBe('plan');
-    expect(plan.title).toBeDefined();
+    expect(fetchedPlan.id).toBe(plan.id);
+    expect(fetchedPlan.type).toBe('plan');
+    expect(fetchedPlan.title).toBeDefined();
   });
 
   test('GET /api/plans/:id returns 404 for invalid ID', async ({ page }) => {
@@ -59,34 +106,22 @@ test.describe('TB24: Plan List with Progress', () => {
   });
 
   test('GET /api/plans/:id with hydrate.progress includes progress', async ({ page }) => {
-    const listResponse = await page.request.get('/api/plans');
-    const plans = await listResponse.json();
+    const plan = await seedPlan(page);
 
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
-
-    const response = await page.request.get(`/api/plans/${plans[0].id}?hydrate.progress=true`);
+    const response = await page.request.get(`/api/plans/${plan.id}?hydrate.progress=true`);
     expect(response.ok()).toBe(true);
-    const plan = await response.json();
+    const hydratedPlan = await response.json();
 
-    expect(plan._progress).toBeDefined();
-    expect(typeof plan._progress.totalTasks).toBe('number');
-    expect(typeof plan._progress.completedTasks).toBe('number');
-    expect(typeof plan._progress.completionPercentage).toBe('number');
+    expect(hydratedPlan._progress).toBeDefined();
+    expect(typeof hydratedPlan._progress.totalTasks).toBe('number');
+    expect(typeof hydratedPlan._progress.completedTasks).toBe('number');
+    expect(typeof hydratedPlan._progress.completionPercentage).toBe('number');
   });
 
   test('GET /api/plans/:id/progress returns progress metrics', async ({ page }) => {
-    const listResponse = await page.request.get('/api/plans');
-    const plans = await listResponse.json();
+    const plan = await seedPlan(page);
 
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
-
-    const response = await page.request.get(`/api/plans/${plans[0].id}/progress`);
+    const response = await page.request.get(`/api/plans/${plan.id}/progress`);
     expect(response.ok()).toBe(true);
     const progress = await response.json();
 
@@ -103,15 +138,9 @@ test.describe('TB24: Plan List with Progress', () => {
   });
 
   test('GET /api/plans/:id/tasks returns tasks in plan', async ({ page }) => {
-    const listResponse = await page.request.get('/api/plans');
-    const plans = await listResponse.json();
+    const plan = await seedPlan(page);
 
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
-
-    const response = await page.request.get(`/api/plans/${plans[0].id}/tasks`);
+    const response = await page.request.get(`/api/plans/${plan.id}/tasks`);
     expect(response.ok()).toBe(true);
     const tasks = await response.json();
 
@@ -128,12 +157,12 @@ test.describe('TB24: Plan List with Progress', () => {
   test('POST /api/plans creates a new plan', async ({ page }) => {
     const newPlan = {
       title: `Test Plan ${Date.now()}`,
-      createdBy: 'test-user',
+      createdBy: 'el-0000',
       status: 'draft',
       tags: ['test'],
     };
 
-    const response = await page.request.post('/api/plans', {
+    const response = await createPlan(page, {
       data: newPlan,
     });
 
@@ -150,23 +179,23 @@ test.describe('TB24: Plan List with Progress', () => {
   test('POST /api/plans validates required fields', async ({ page }) => {
     // Missing title
     const response1 = await page.request.post('/api/plans', {
-      data: { createdBy: 'test-user' },
+      data: { createdBy: 'el-0000', initialTask: { title: 'Initial task', priority: 3 } },
     });
     expect(response1.status()).toBe(400);
 
     // Missing createdBy
     const response2 = await page.request.post('/api/plans', {
-      data: { title: 'Test Plan' },
+      data: { title: 'Test Plan', initialTask: { title: 'Initial task', priority: 3 } },
     });
     expect(response2.status()).toBe(400);
   });
 
   test('PATCH /api/plans/:id updates a plan', async ({ page }) => {
     // Create a plan to update
-    const createResponse = await page.request.post('/api/plans', {
+    const createResponse = await createPlan(page, {
       data: {
         title: `Update Test Plan ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'draft',
       },
     });
@@ -186,15 +215,9 @@ test.describe('TB24: Plan List with Progress', () => {
   });
 
   test('PATCH /api/plans/:id validates status values', async ({ page }) => {
-    const listResponse = await page.request.get('/api/plans');
-    const plans = await listResponse.json();
+    const plan = await seedPlan(page);
 
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
-
-    const response = await page.request.patch(`/api/plans/${plans[0].id}`, {
+    const response = await page.request.patch(`/api/plans/${plan.id}`, {
       data: { status: 'invalid_status' },
     });
 
@@ -247,12 +270,7 @@ test.describe('TB24: Plan List with Progress', () => {
     // Seed a plan rather than branching on an earlier GET /api/plans snapshot:
     // other specs create plans in parallel, so an empty snapshot can be stale by
     // the time the page loads.
-    const title = `TB24 Listed Plan ${Date.now()}`;
-    const createResponse = await page.request.post('/api/plans', {
-      data: { title, createdBy: 'el-0000', initialTask: { title: `${title} task`, priority: 3 } },
-    });
-    expect(createResponse.ok(), await createResponse.text()).toBe(true);
-    const plan = await createResponse.json();
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
@@ -264,21 +282,14 @@ test.describe('TB24: Plan List with Progress', () => {
   });
 
   test('plans list shows plan count', async ({ page }) => {
-    // The e2e database starts without plans, so seed one (TB121: plans need an initial task).
-    // It is not deleted: parallel tests may have snapshotted it from GET /api/plans.
-    const title = `TB24 Count Plan ${Date.now()}`;
-    const createResponse = await page.request.post('/api/plans', {
-      data: { title, createdBy: 'el-0000', initialTask: { title: `${title} task`, priority: 3 } },
-    });
-    expect(createResponse.ok(), await createResponse.text()).toBe(true);
-    const plan = await createResponse.json();
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
     await expect(page.getByTestId(`plan-item-${plan.id}`)).toBeVisible();
 
-    // Header count matches the rendered rows. Other specs create plans in
-    // parallel, so compare against the list rather than an earlier API snapshot.
+    // Header count matches the rendered rows. Other specs create and delete plans
+    // in parallel, so compare against the list rather than an earlier API snapshot.
     const rows = page.locator('[data-testid="plans-list"] > [data-testid^="plan-item-"]');
     await expect(async () => {
       const rowCount = await rows.count();
@@ -288,80 +299,56 @@ test.describe('TB24: Plan List with Progress', () => {
   });
 
   test('clicking plan opens detail panel', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
 
     // Detail panel should appear
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
   });
 
   test('plan detail panel shows plan title', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     // Check title is displayed
-    await expect(page.getByTestId('plan-detail-title')).toContainText(plans[0].title);
+    await expect(page.getByTestId('plan-detail-title')).toContainText(plan.title);
   });
 
   test('plan detail panel shows status badge', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     // Check status badge is displayed in the detail panel
     await expect(
-      page.getByTestId('plan-detail-panel').getByTestId(`status-badge-${plans[0].status}`)
+      page.getByTestId('plan-detail-panel').getByTestId(`status-badge-${plan.status}`)
     ).toBeVisible();
   });
 
   test('plan detail panel shows progress ring (TB86)', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     // Check progress ring is displayed instead of progress bar (TB86)
@@ -369,19 +356,13 @@ test.describe('TB24: Plan List with Progress', () => {
   });
 
   test('plan detail panel shows task status summary', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     // Check task status summary is displayed
@@ -389,19 +370,13 @@ test.describe('TB24: Plan List with Progress', () => {
   });
 
   test('plan detail panel close button works', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     // Click close button
@@ -435,10 +410,10 @@ test.describe('TB47: Edit Plan', () => {
 
   test('POST /api/plans/:id/tasks adds task to plan', async ({ page }) => {
     // Create a plan
-    const planResponse = await page.request.post('/api/plans', {
+    const planResponse = await createPlan(page, {
       data: {
         title: `Test Plan ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'draft',
       },
     });
@@ -446,10 +421,10 @@ test.describe('TB47: Edit Plan', () => {
     const plan = await planResponse.json();
 
     // Create a task
-    const taskResponse = await page.request.post('/api/tasks', {
+    const taskResponse = await createTask(page, {
       data: {
         title: `Test Task ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'open',
         priority: 3,
       },
@@ -476,10 +451,10 @@ test.describe('TB47: Edit Plan', () => {
 
   test('POST /api/plans/:id/tasks returns 400 for missing taskId', async ({ page }) => {
     // Create a plan first
-    const planResponse = await page.request.post('/api/plans', {
+    const planResponse = await createPlan(page, {
       data: {
         title: `Test Plan ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
       },
     });
     const plan = await planResponse.json();
@@ -494,19 +469,19 @@ test.describe('TB47: Edit Plan', () => {
 
   test('DELETE /api/plans/:id/tasks/:taskId removes task from plan', async ({ page }) => {
     // Create a plan
-    const planResponse = await page.request.post('/api/plans', {
+    const planResponse = await createPlan(page, {
       data: {
         title: `Test Plan ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
       },
     });
     const plan = await planResponse.json();
 
     // Create a task
-    const taskResponse = await page.request.post('/api/tasks', {
+    const taskResponse = await createTask(page, {
       data: {
         title: `Test Task ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'open',
         priority: 3,
       },
@@ -532,19 +507,19 @@ test.describe('TB47: Edit Plan', () => {
 
   test('DELETE /api/plans/:id/tasks/:taskId returns 404 if task not in plan', async ({ page }) => {
     // Create a plan
-    const planResponse = await page.request.post('/api/plans', {
+    const planResponse = await createPlan(page, {
       data: {
         title: `Test Plan ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
       },
     });
     const plan = await planResponse.json();
 
     // Create a task but don't add it to the plan
-    const taskResponse = await page.request.post('/api/tasks', {
+    const taskResponse = await createTask(page, {
       data: {
         title: `Test Task ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'open',
         priority: 3,
       },
@@ -561,19 +536,13 @@ test.describe('TB47: Edit Plan', () => {
   // ============================================================================
 
   test('plan detail panel shows edit button on hover', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     // Hover over title area to reveal edit button
@@ -582,19 +551,13 @@ test.describe('TB47: Edit Plan', () => {
   });
 
   test('clicking edit button shows title input', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     // Click edit button
@@ -609,10 +572,10 @@ test.describe('TB47: Edit Plan', () => {
 
   test('editing title and saving updates the plan', async ({ page }) => {
     // Create a plan to edit
-    const createResponse = await page.request.post('/api/plans', {
+    const createResponse = await createPlan(page, {
       data: {
         title: `Original Title ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
       },
     });
     const plan = await createResponse.json();
@@ -638,19 +601,13 @@ test.describe('TB47: Edit Plan', () => {
   });
 
   test('pressing Escape cancels title edit', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     const originalTitle = await page.getByTestId('plan-detail-title').textContent();
@@ -674,10 +631,10 @@ test.describe('TB47: Edit Plan', () => {
 
   test('draft plan shows Activate button', async ({ page }) => {
     // Create a draft plan
-    const createResponse = await page.request.post('/api/plans', {
+    const createResponse = await createPlan(page, {
       data: {
         title: `Draft Plan ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'draft',
       },
     });
@@ -697,10 +654,10 @@ test.describe('TB47: Edit Plan', () => {
 
   test('clicking Activate changes status to active', async ({ page }) => {
     // Create a draft plan
-    const createResponse = await page.request.post('/api/plans', {
+    const createResponse = await createPlan(page, {
       data: {
         title: `Draft Plan ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'draft',
       },
     });
@@ -723,10 +680,10 @@ test.describe('TB47: Edit Plan', () => {
 
   test('active plan shows Complete and Cancel buttons', async ({ page }) => {
     // Create an active plan
-    const createResponse = await page.request.post('/api/plans', {
+    const createResponse = await createPlan(page, {
       data: {
         title: `Active Plan ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'active',
       },
     });
@@ -749,19 +706,13 @@ test.describe('TB47: Edit Plan', () => {
   // ============================================================================
 
   test('plan detail panel shows Add Task button', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     // Add Task button should be visible
@@ -769,19 +720,13 @@ test.describe('TB47: Edit Plan', () => {
   });
 
   test('clicking Add Task opens task picker modal', async ({ page }) => {
-    const response = await page.request.get('/api/plans');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     // Click Add Task button
@@ -794,10 +739,10 @@ test.describe('TB47: Edit Plan', () => {
 
   test('task picker shows search input and loads', async ({ page }) => {
     // Create a plan
-    const planResponse = await page.request.post('/api/plans', {
+    const planResponse = await createPlan(page, {
       data: {
         title: `Test Plan ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
       },
     });
     const plan = await planResponse.json();
@@ -833,19 +778,19 @@ test.describe('TB47: Edit Plan', () => {
     // in "clicking Add Task opens task picker modal" and API is tested separately.
 
     // Create a plan
-    const planResponse = await page.request.post('/api/plans', {
+    const planResponse = await createPlan(page, {
       data: {
         title: `Test Plan ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
       },
     });
     const plan = await planResponse.json();
 
     // Create a task
-    const taskResponse = await page.request.post('/api/tasks', {
+    const taskResponse = await createTask(page, {
       data: {
         title: `API Test Task ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'open',
         priority: 3,
       },
@@ -876,18 +821,18 @@ test.describe('TB47: Edit Plan', () => {
 
   test('tasks in plan show remove button on hover', async ({ page }) => {
     // Create a plan with a task
-    const planResponse = await page.request.post('/api/plans', {
+    const planResponse = await createPlan(page, {
       data: {
         title: `Test Plan ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
       },
     });
     const plan = await planResponse.json();
 
-    const taskResponse = await page.request.post('/api/tasks', {
+    const taskResponse = await createTask(page, {
       data: {
         title: `Test Task ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'open',
         priority: 3,
       },
@@ -913,18 +858,18 @@ test.describe('TB47: Edit Plan', () => {
 
   test('clicking remove button twice removes task from plan', async ({ page }) => {
     // Create a plan with a task
-    const planResponse = await page.request.post('/api/plans', {
+    const planResponse = await createPlan(page, {
       data: {
         title: `Test Plan ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
       },
     });
     const plan = await planResponse.json();
 
-    const taskResponse = await page.request.post('/api/tasks', {
+    const taskResponse = await createTask(page, {
       data: {
         title: `Test Task ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'open',
         priority: 3,
       },
@@ -967,10 +912,12 @@ test.describe('TB47: Edit Plan', () => {
 test.describe('TB86: Plan Visual Progress Indicator', () => {
   // API Tests
   test('GET /api/plans with hydrate.progress returns plans with progress', async ({ page }) => {
+    const seededPlan = await seedPlan(page);
     const response = await page.request.get('/api/plans?hydrate.progress=true');
     expect(response.ok()).toBe(true);
     const plans = await response.json();
     expect(Array.isArray(plans)).toBe(true);
+    expect(plans.some((plan: { id: string }) => plan.id === seededPlan.id)).toBe(true);
 
     // Each plan should have _progress field
     for (const plan of plans) {
@@ -984,77 +931,42 @@ test.describe('TB86: Plan Visual Progress Indicator', () => {
   });
 
   test('GET /api/plans without hydrate.progress does not include progress', async ({ page }) => {
+    const plan = await seedPlan(page);
     const response = await page.request.get('/api/plans');
     expect(response.ok()).toBe(true);
     const plans = await response.json();
 
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
-
     // Plans should NOT have _progress field
-    expect(plans[0]._progress).toBeUndefined();
+    expect(plans.find((item: { id: string }) => item.id === plan.id)?._progress).toBeUndefined();
   });
 
   // UI Tests - Plan List Progress Ring
   test('plan list item shows mini progress ring', async ({ page }) => {
-    const response = await page.request.get('/api/plans?hydrate.progress=true');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
     await expect(page.getByTestId('plans-list')).toBeVisible({ timeout: 5000 });
 
-    // Find plans with and without tasks
-    const planWithTasks = plans.find((p: { _progress: { totalTasks: number } }) => p._progress?.totalTasks > 0);
-    const planWithoutTasks = plans.find((p: { _progress: { totalTasks: number } }) => p._progress?.totalTasks === 0);
-
-    // At least one type of indicator should be visible
-    let foundIndicator = false;
-
-    if (planWithTasks) {
-      // Plan with tasks should show progress ring
-      await expect(page.getByTestId(`plan-progress-${planWithTasks.id}`)).toBeVisible();
-      foundIndicator = true;
-    }
-
-    if (planWithoutTasks) {
-      // Plan without tasks should show empty indicator
-      await expect(page.getByTestId(`plan-progress-empty-${planWithoutTasks.id}`)).toBeVisible();
-      foundIndicator = true;
-    }
-
-    // If no specific plans found, check that at least the first plan has some kind of progress indicator
-    if (!foundIndicator) {
-      const firstPlan = plans[0];
-      const progressRingVisible = await page.getByTestId(`plan-progress-${firstPlan.id}`).isVisible().catch(() => false);
-      const emptyIndicatorVisible = await page.getByTestId(`plan-progress-empty-${firstPlan.id}`).isVisible().catch(() => false);
-      expect(progressRingVisible || emptyIndicatorVisible).toBe(true);
-    }
+    await expect(page.getByTestId(`plan-progress-${plan.id}`)).toBeVisible();
   });
 
   test('mini progress ring shows correct percentage', async ({ page }) => {
     // Create a plan with tasks to verify percentage display
-    const createPlanResponse = await page.request.post('/api/plans', {
+    const createPlanResponse = await createPlan(page, {
       data: {
         title: `Progress Ring Test ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'draft',
       },
     });
     const plan = await createPlanResponse.json();
 
     // Create a task
-    const createTaskResponse = await page.request.post('/api/tasks', {
+    const createTaskResponse = await createTask(page, {
       data: {
         title: `Task for Progress Ring ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'open',
       },
     });
@@ -1077,19 +989,13 @@ test.describe('TB86: Plan Visual Progress Indicator', () => {
 
   // UI Tests - Plan Detail Progress Ring
   test('plan detail panel shows large progress ring with breakdown', async ({ page }) => {
-    const response = await page.request.get('/api/plans?hydrate.progress=true');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     // Check progress ring with breakdown is displayed
@@ -1101,38 +1007,26 @@ test.describe('TB86: Plan Visual Progress Indicator', () => {
 
   test('progress ring breakdown shows correct task counts', async ({ page }) => {
     // Create a plan with known task counts
-    const createPlanResponse = await page.request.post('/api/plans', {
+    const createPlanResponse = await createPlan(page, {
       data: {
         title: `Breakdown Test ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'active',
       },
     });
     const plan = await createPlanResponse.json();
 
-    // Create and add 2 tasks - 1 completed, 1 open
-    const task1Response = await page.request.post('/api/tasks', {
+    // The initial task is open; add one completed task.
+    const task1Response = await createTask(page, {
       data: {
         title: `Completed Task ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'closed',
       },
     });
     const task1 = await task1Response.json();
     await page.request.post(`/api/plans/${plan.id}/tasks`, {
       data: { taskId: task1.id },
-    });
-
-    const task2Response = await page.request.post('/api/tasks', {
-      data: {
-        title: `Open Task ${Date.now()}`,
-        createdBy: 'test-user',
-        status: 'open',
-      },
-    });
-    const task2 = await task2Response.json();
-    await page.request.post(`/api/plans/${plan.id}/tasks`, {
-      data: { taskId: task2.id },
     });
 
     await page.goto('/plans');
@@ -1149,19 +1043,13 @@ test.describe('TB86: Plan Visual Progress Indicator', () => {
 
   test('progress ring color changes based on percentage', async ({ page }) => {
     // Test that progress ring has correct status attribute based on percentage
-    const response = await page.request.get('/api/plans?hydrate.progress=true');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     // Check that progress ring has a status attribute (healthy, at-risk, or behind)
@@ -1173,19 +1061,19 @@ test.describe('TB86: Plan Visual Progress Indicator', () => {
 
   test('progress ring updates when task is completed', async ({ page }) => {
     // Create a plan with an open task
-    const createPlanResponse = await page.request.post('/api/plans', {
+    const createPlanResponse = await createPlan(page, {
       data: {
         title: `Update Test ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'active',
       },
     });
     const plan = await createPlanResponse.json();
 
-    const createTaskResponse = await page.request.post('/api/tasks', {
+    const createTaskResponse = await createTask(page, {
       data: {
         title: `Task to Complete ${Date.now()}`,
-        createdBy: 'test-user',
+        createdBy: 'el-0000',
         status: 'open',
       },
     });
@@ -1206,7 +1094,10 @@ test.describe('TB86: Plan Visual Progress Indicator', () => {
     const progressRing = page.getByTestId('plan-detail-progress-ring');
     await expect(progressRing).toHaveAttribute('data-percentage', '0');
 
-    // Complete the task via API
+    // Complete both tasks via API
+    await page.request.patch(`/api/tasks/${plan.initialTask.id}`, {
+      data: { status: 'closed' },
+    });
     await page.request.patch(`/api/tasks/${task.id}`, {
       data: { status: 'closed' },
     });
@@ -1225,19 +1116,13 @@ test.describe('TB86: Plan Visual Progress Indicator', () => {
   });
 
   test('task status summary is still visible alongside progress ring', async ({ page }) => {
-    const response = await page.request.get('/api/plans?hydrate.progress=true');
-    const plans = await response.json();
-
-    if (plans.length === 0) {
-      test.skip();
-      return;
-    }
+    const plan = await seedPlan(page);
 
     await page.goto('/plans');
     await expect(page.getByTestId('plans-page')).toBeVisible({ timeout: 10000 });
 
     // Click on first plan
-    await page.getByTestId(`plan-item-${plans[0].id}`).click();
+    await page.getByTestId(`plan-item-${plan.id}`).click();
     await expect(page.getByTestId('plan-detail-panel')).toBeVisible({ timeout: 5000 });
 
     // Both progress ring and task status summary should be visible
