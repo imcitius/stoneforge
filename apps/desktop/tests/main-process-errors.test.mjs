@@ -144,7 +144,7 @@ test('every check script that launches Electron traps main-process exceptions af
     if (!noElectron.has(name)) launching.push(name);
   }
   assert.deepEqual(launching.sort(), ['check-app.mjs', 'check-attention.mjs', 'check-clipboard.mjs',
-    'check-getting-started.mjs', 'check-launch-services.mjs', 'check-tabs.mjs']);
+    'check-getting-started.mjs', 'check-identity.mjs', 'check-launch-services.mjs', 'check-tabs.mjs']);
   // Negative controls: the same scan rejects each trap element removed from a real check.
   const tabs = await readFile(join(desktop, 'scripts/check-tabs.mjs'), 'utf8');
   assert.match(trapViolations('check-tabs.mjs', tabs.replace('  await mainErrors.install(electron);\n', '')).join('\n'), /without an immediately following mainErrors\.install/);

@@ -14,14 +14,17 @@ import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
+import { defaultApp, appExecutable } from './app-identity.mjs';
 import { mainProcessErrors } from './main-process-errors.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const { _electron } = createRequire(join(root, 'apps/smithy-web/package.json'))('playwright');
-const bundle = resolve(process.env.DESKTOP_APP ?? join(root, 'apps/desktop/dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.app'));
+const bundle = defaultApp(join(root, 'apps/desktop'));
 const resources = join(bundle, 'Contents/Resources');
 const node = join(resources, 'runtime/node');
 const cli = join(resources, 'backend/dist/bin/sf.js');
+// Window titles use the product name: "Stoneforge Desktop" or "Stoneforge Desktop Dev" (el-4fxwb9).
+const productName = JSON.parse(await readFile(join(resources, 'app/build-info.json'), 'utf8')).productName ?? 'Stoneforge Desktop';
 // Registered roots are canonical (the backend reports its realpath, e.g. /private/var/...).
 const temp = await realpath(await mkdtemp(join(tmpdir(), 'stoneforge-tabs-')));
 const appData = join(temp, 'app-data');
@@ -38,7 +41,7 @@ const names = ['Atlas', 'Borealis', 'Cedar проект', 'Delta', 'Ember', 'Fjo
   'Harbor with a very long project name that must be truncated', 'Iris', 'Juniper'];
 
 async function launch() {
-  electron = await _electron.launch({ executablePath: join(bundle, 'Contents/MacOS/Stoneforge Desktop'), args: [],
+  electron = await _electron.launch({ executablePath: appExecutable(bundle), args: [],
     env: { ...env, PATH: '/usr/bin:/bin:/usr/sbin:/sbin', STONEFORGE_DESKTOP_TEST_DATA: appData }, timeout: 30_000 });
   await mainErrors.install(electron);
   page = await electron.firstWindow();
@@ -252,7 +255,7 @@ try {
   await tabOf(0).click(); await waitActive(0, 'stopped');
   await staysState(0, 'stopped');
   layout = await expectLayout('Atlas selected, stopped', 0);
-  assert.equal(layout.native.title, 'Atlas — Stoneforge Desktop');
+  assert.equal(layout.native.title, `Atlas — ${productName}`);
   assert.equal(layout.native.views.length, 0, 'Selection creates no project view');
   assert.deepEqual(await starts(), ids.map(() => 0), 'Selecting does not start a backend');
   assert.match(layout.shell.status, /Atlas is stopped/);

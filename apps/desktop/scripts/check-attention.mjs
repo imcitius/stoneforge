@@ -10,11 +10,12 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
+import { defaultApp, appExecutable } from './app-identity.mjs';
 import { mainProcessErrors } from './main-process-errors.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(join(root, 'apps/smithy-web/package.json'));
 const { _electron } = require('playwright');
-const bundle = resolve(process.env.DESKTOP_APP ?? join(root, 'apps/desktop/dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.app'));
+const bundle = defaultApp(join(root, 'apps/desktop'));
 const resources = join(bundle, 'Contents/Resources');
 const node = join(resources, 'runtime/node'), cli = join(resources, 'backend/dist/bin/sf.js');
 const temp = await mkdtemp(join(tmpdir(), 'stoneforge-attention-'));
@@ -42,7 +43,7 @@ try {
   // Run the actual bundled sf through the provider's normal environment and
   // wait for the start route to finish publishing its session before signaling.
   await writeFile(fake, '#!/bin/sh\nif [ "$1" = "--version" ]; then echo "fixture"; exit 0; fi\nwhile [ ! -f "'+temp+'/release" ]; do sleep 0.1; done\nsf agent await-input > "'+temp+'/signal.log" 2>&1 || exit 42\nprintf "Какой вариант выбрать?\\n"\nIFS= read -r answer\nprintf "%s\\n" "$answer" > "'+temp+'/answer.log"\nwhile :; do sleep 1; done\n', {mode:0o755});
-  electron=await _electron.launch({executablePath:join(bundle,'Contents/MacOS/Stoneforge Desktop'),args:names.map(name=>'--project='+join(temp,name)),env:{...env,PATH:'/usr/bin:/bin:/usr/sbin:/sbin',STONEFORGE_DESKTOP_TEST_DATA:join(temp,'app-data')},timeout:30_000});
+  electron=await _electron.launch({executablePath:appExecutable(bundle),args:names.map(name=>'--project='+join(temp,name)),env:{...env,PATH:'/usr/bin:/bin:/usr/sbin:/sbin',STONEFORGE_DESKTOP_TEST_DATA:join(temp,'app-data')},timeout:30_000});
   await mainErrors.install(electron);
   const page=await electron.firstWindow();
   await until(async()=>JSON.stringify(await page.locator('[role="tab"]').evaluateAll(tabs=>tabs.map(tab=>tab.dataset.state)))===JSON.stringify(['ready','ready']),'two ready projects');

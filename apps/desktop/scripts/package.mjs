@@ -1,6 +1,7 @@
 import { collectBuildInfo } from './build-info.mjs';
 import { resolveReleaseVersion, assertReleaseTree, gitHead, RELEASE_ARCH } from './release.mjs';
 import { deployBackend } from './deploy-backend.mjs';
+import { resolveIdentity, packagedAppPath, IDENTITIES, signApp, bundleIdentifier, plistValue } from './app-identity.mjs';
 import { packager } from '@electron/packager';
 import { cp, mkdir, rm, writeFile, chmod, readdir, readlink } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -19,7 +20,13 @@ const fail = (message) => { console.error(`package:mac: ${message}`); process.ex
 let releaseVersion;
 try { releaseVersion = resolveReleaseVersion(process.argv.slice(2), process.env); } catch (error) { fail(error.message); }
 const version = releaseVersion ?? require('../package.json').version;
-const build = collectBuildInfo(root, version);
+// Identity (bundle ID, product name -> userData and single-instance lock): release builds are
+// production; every other package is dev unless --production-identity is passed (an update
+// candidate for the installed app, which must keep its userData). See app-identity.mjs.
+let identity;
+try { identity = resolveIdentity({ release: !!releaseVersion, argv: process.argv.slice(2), env: process.env }); } catch (error) { fail(error.message); }
+const build = { ...collectBuildInfo(root, version), identity: identity.name, bundleId: identity.bundleId, productName: identity.productName };
+console.log(`App identity: ${identity.name} (${identity.bundleId}, "${identity.productName}")`);
 if (releaseVersion) {
   if (process.arch !== RELEASE_ARCH) fail(`Release builds are ${RELEASE_ARCH} only; this Node runs on ${process.arch}`);
   try { assertReleaseTree(build, gitHead(root)); } catch (error) { fail(error.message); }
@@ -38,7 +45,7 @@ for (const name of ['main.js', 'socket-workaround.js', 'manager.js', 'attention.
 }
 // The discovery module has only Node built-ins; copy it without pulling SDK/native code into Electron.
 await cp(join(root, 'packages/quarry/dist/cli/server-discovery.js'), join(bundle, 'external.js'));
-await writeFile(join(bundle, 'package.json'), JSON.stringify({ name: 'stoneforge-desktop', productName: 'Stoneforge Desktop', version, type: 'module', main: 'main.js' }));
+await writeFile(join(bundle, 'package.json'), JSON.stringify({ name: 'stoneforge-desktop', productName: identity.productName, version, type: 'module', main: 'main.js' }));
 await writeFile(join(bundle, 'build-info.json'), JSON.stringify(build, null, 2) + '\n');
 // Build the UI immediately before deployment so a cached SDK build cannot ship stale assets.
 execFileSync('pnpm', ['--filter', '@stoneforge/smithy-web', 'build:web'], { cwd: root, stdio: 'inherit' });
@@ -56,10 +63,14 @@ await mkdir(join(resources, 'runtime'));
 await cp(require.resolve('node/bin/node'), join(resources, 'runtime/node'));
 await writeFile(join(resources, 'runtime/sf'), '#!/bin/sh\nSCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexec "$SCRIPT_DIR/node" "$SCRIPT_DIR/../backend/dist/bin/sf.js" "$@"\n');
 await chmod(join(resources, 'runtime/sf'), 0o755);
+// Only the latest package stays in dist/mac, so check scripts cannot pick a stale other identity.
+for (const other of Object.values(IDENTITIES)) {
+  if (other !== identity) await rm(dirname(packagedAppPath(desktop, other)), { recursive: true, force: true });
+}
 const paths = await packager({
-  dir: bundle, out: join(desktop, 'dist/mac'), name: 'Stoneforge Desktop',
+  dir: bundle, out: join(desktop, 'dist/mac'), name: identity.productName,
   platform: 'darwin', arch: process.arch, electronVersion: '44.4.5',
-  appBundleId: 'ai.stoneforge.desktop', appCategoryType: 'public.app-category.developer-tools',
+  appBundleId: identity.bundleId, appCategoryType: 'public.app-category.developer-tools',
   asar: false, prune: false, overwrite: true,
   // Info.plist CFBundleShortVersionString/CFBundleVersion. Local builds keep packager's
   // default (the staged package.json version), so their behavior is unchanged.
@@ -68,7 +79,7 @@ const paths = await packager({
 // packager's extraResource copier turns relative pnpm symlinks into absolute
 // staging paths. Copy these resources verbatim so the app remains relocatable.
 for (const output of paths) {
-  const appPath = join(output, 'Stoneforge Desktop.app');
+  const appPath = join(output, `${identity.productName}.app`);
   const destination = join(appPath, 'Contents/Resources');
   await cp(join(resources, 'backend'), join(destination, 'backend'), { recursive: true, verbatimSymlinks: true });
   await cp(join(resources, 'runtime'), join(destination, 'runtime'), { recursive: true, verbatimSymlinks: true });
@@ -85,8 +96,9 @@ for (const output of paths) {
   execFileSync(join(destination, 'runtime/node'), [join(desktop, 'scripts/check-pty.mjs'), destination], { stdio: 'inherit' });
   // UNUserNotificationCenter requires a signed final app identity, including
   // its Info.plist. Local ad-hoc signing needs no Developer ID or account changes.
-  execFileSync('/usr/bin/codesign', ['--force', '--deep', '--sign', '-', '--identifier', 'ai.stoneforge.desktop', appPath], { stdio: 'inherit' });
-  execFileSync('/usr/bin/codesign', ['--verify', '--deep', '--strict', appPath], { stdio: 'inherit' });
+  signApp(appPath, identity.bundleId);
+  if (bundleIdentifier(appPath) !== identity.bundleId) fail(`Info.plist CFBundleIdentifier is ${bundleIdentifier(appPath)}, expected ${identity.bundleId}`);
+  if (plistValue(appPath, 'CFBundleName') !== identity.productName) fail(`Info.plist CFBundleName is ${plistValue(appPath, 'CFBundleName')}, expected ${identity.productName}`);
   if (releaseVersion) {
     const plist = join(appPath, 'Contents/Info.plist');
     for (const key of ['CFBundleShortVersionString', 'CFBundleVersion']) {

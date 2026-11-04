@@ -27,8 +27,10 @@ pnpm --filter @stoneforge/smithy... build
 pnpm --filter @stoneforge/smithy-web build:web
 pnpm --filter @stoneforge/desktop build
 pnpm --filter @stoneforge/desktop package:mac
-open 'apps/desktop/dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.app'
+open 'apps/desktop/dist/mac/Stoneforge Desktop Dev-darwin-arm64/Stoneforge Desktop Dev.app'
 ```
+
+Local packages are **dev** builds: see [App identity](#app-identity-dev-vs-release).
 
 Packaging rebuilds the web UI and builds/checks native SQLite against the bundled Node ABI. Packaging also repairs the deployed PTY helper permissions and verifies a real
 PTY spawn/output/exit inside the final app, without calling an agent provider. Native files
@@ -39,6 +41,65 @@ pnpm 8.15.5 otherwise writes its root `.modules.yaml` two directories above the
 checkout (`scripts/deploy-backend.mjs`, regression `tests/deploy-backend.test.mjs`). Packaging applies and verifies a local ad-hoc code signature after assembling the
 final bundle, including its notification identity; external
 distribution and notarization are a later step. Intel builds are not verified.
+
+### App identity (dev vs release)
+
+macOS keys privacy (TCC) decisions such as *Files and Folders > Desktop* by bundle ID,
+and Electron derives `userData`, which holds the project registry and the single-instance
+lock, from the product name. Until el-4fxwb9 every package, packaged-check copy and
+release used `ai.stoneforge.desktop` / "Stoneforge Desktop" with different ad-hoc
+signatures. On 2026-11-04 a TCC decision on a re-signed test copy revoked the installed
+app's Desktop access (every agent under it got `EPERM` on `~/Desktop` until the Human
+re-enabled it), and a downloaded release could not start next to the installed app
+(its launch was handed to the running one via `second-instance`).
+
+| Build | Bundle ID | Product / app name | Output |
+|-------|-----------|--------------------|--------|
+| `package:mac` (default), packaged-check builds, test/mutant copies | `ai.stoneforge.desktop.dev` | Stoneforge Desktop Dev | `dist/mac/Stoneforge Desktop Dev-darwin-arm64/Stoneforge Desktop Dev.app` |
+| Release (`--version` / `STONEFORGE_RELEASE_VERSION`, `desktop-release.yml`) | `ai.stoneforge.desktop` | Stoneforge Desktop | `dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.app` |
+| Installed-app update candidate (`--production-identity` or `STONEFORGE_DESKTOP_IDENTITY=production`) | `ai.stoneforge.desktop` | Stoneforge Desktop | as release |
+
+- A dev package has its own TCC entries, its own default `userData`
+  (`~/Library/Application Support/Stoneforge Desktop Dev`, so its own project registry
+  and lock) and runs at the same time as the installed app. Its build label ends in
+  ` · dev`; the label tooltip and About panel show the bundle ID; window titles say
+  "Stoneforge Desktop Dev". `build-info.json` records `identity`, `bundleId`, `productName`.
+- `package:mac` keeps only the latest identity's output in `dist/mac`. Check scripts
+  use `DESKTOP_APP`, else that output, and read the executable from `Info.plist`.
+- Release builds are always production (`STONEFORGE_DESKTOP_IDENTITY=dev` with a release
+  version is rejected); `release-artifacts.mjs` and `ci-release.sh verify` reject any
+  other bundle ID.
+- **An update candidate for the installed app must use `--production-identity`**: a
+  dev-identity build would open a different `userData` (empty project registry) and lose
+  the installed app's TCC grants. It shares everything with the installed app, so run its
+  GUI checks only as the update procedure allows (below).
+- **Test or mutant copies** (crash/mutation controls): never re-sign a copy with the
+  production ID. Make the copy with
+  `node apps/desktop/scripts/app-identity.mjs copy-dev SOURCE.app DEST.app` (or
+  `retarget-dev COPY.app` on an existing copy) *before* launching it. It rewrites the
+  bundle and helper IDs, display name, Electron product name and build-info to the dev
+  identity and ad-hoc re-signs with the dev identifier; `CFBundleName`, helper and
+  executable names stay (Electron finds `<CFBundleName> Helper.app`). It refuses paths in
+  `/Applications` or `~/Applications`. `app-identity.mjs show APP` prints an app's identity.
+
+**Production-identity GUI checks** (release smoke in `release-artifacts.mjs`,
+`ci-release-local.sh`, final verification of an update candidate) still run an app with
+the installed app's bundle ID. They isolate `userData` with `STONEFORGE_DESKTOP_TEST_DATA`
+(so no lock hand-off), but TCC state is shared: a privacy prompt or decision for that copy
+can change the installed app's grants. Run them in GitHub Actions or on a Mac where the
+installed app does not host agents; on a Mac where it does, only with the Director's/Human's
+explicit acceptance of that risk, and keep the copy and its projects outside `~/Desktop`,
+`~/Documents` and `~/Downloads`. Never answer a privacy prompt for such a copy; stop and report.
+For a candidate, run the GUI checks on a dev-identity build of the same commit and limit the
+production-identity artifact to non-GUI checks (manifest, codesign, plist) unless that risk
+is accepted.
+
+`scripts/check-identity.mjs` (dev apps only; refuses production ones) launches the app with
+its real default `userData`, requires it to keep its window while any production copy runs,
+and as a control requires a second launch of the same dev app to hand off and exit.
+Run GUI checks on a copy outside `~/Desktop` (for example `ditto` the package to
+`/tmp/…` and set `DESKTOP_APP`): an app launched through LaunchServices is its own TCC
+responsible process, and the checkout may live in a protected folder.
 
 ### Release packaging (version, zip, dmg, checksums)
 
@@ -406,6 +467,7 @@ node apps/desktop/scripts/check-launch-services.mjs
 node apps/desktop/scripts/check-tabs.mjs
 node apps/desktop/scripts/check-getting-started.mjs
 node apps/desktop/scripts/check-attention.mjs
+node apps/desktop/scripts/check-identity.mjs   # dev packages only
 ```
 
 `tests/daemon-lifecycle.test.mjs` exercises real managed and adopted servers: default

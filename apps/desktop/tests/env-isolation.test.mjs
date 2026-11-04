@@ -60,7 +60,7 @@ test('every Desktop check script that launches the packaged app passes a fixture
   const launches = [];
   for (const { path, source } of files) {
     const open = calls(source, "execFileSync('/usr/bin/open'");
-    const electron = calls(source, '_electron.launch(').filter(call => call.includes('Contents/MacOS/Stoneforge Desktop'));
+    const electron = calls(source, '_electron.launch(').filter(call => call.includes('appExecutable(') || call.includes('Contents/MacOS/'));
     for (const call of open) {
       // Options follow the argv array; `--env` entries inside the array do not count.
       const options = call.slice(call.lastIndexOf(']') + 1);

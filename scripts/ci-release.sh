@@ -194,9 +194,12 @@ cmd_verify() {
     [ "$(build_info "$app" version)" = "$VERSION" ] || die "$app build-info version != $VERSION"
     [ "$(/usr/bin/plutil -extract CFBundleShortVersionString raw -o - "$app/Contents/Info.plist")" = "$VERSION" ] \
       || die "$app CFBundleShortVersionString != $VERSION"
+    # Releases keep the installed app's identity; dev/test packages are ai.stoneforge.desktop.dev.
+    [ "$(/usr/bin/plutil -extract CFBundleIdentifier raw -o - "$app/Contents/Info.plist")" = ai.stoneforge.desktop ] \
+      || die "$app CFBundleIdentifier is not ai.stoneforge.desktop"
     [ "$(/usr/bin/lipo -archs "$app/Contents/MacOS/Stoneforge Desktop")" = arm64 ] || die "$app is not arm64-only"
     /usr/bin/codesign --verify --deep --strict "$app" || die "codesign --verify failed for $app"
-    log "verified $app: commit $commit, dirty=false, release=true, version $VERSION, arm64, codesign OK"
+    log "verified $app: commit $commit, dirty=false, release=true, version $VERSION, ai.stoneforge.desktop, arm64, codesign OK"
   done
   assert_clean_head
 }

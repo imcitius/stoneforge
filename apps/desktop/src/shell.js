@@ -162,9 +162,10 @@ function render(next) {
   state = next;
   document.body.classList.toggle('fullscreen', !!state.fullscreen);
   if (state.build) {
-    const { version, commit, branch, dirty, builtAt } = state.build;
-    $('build').textContent = `v${version} · ${commit.slice(0, 12)}${dirty ? ' (modified)' : ''}`;
-    $('build').title = `Commit: ${commit}\nBranch: ${branch}\nBuilt: ${builtAt ?? 'unknown'}`;
+    const { version, commit, branch, dirty, builtAt, identity, bundleId } = state.build;
+    // Dev/test packages have their own bundle ID and userData; mark them so they are never mistaken for the installed app.
+    $('build').textContent = `v${version} · ${commit.slice(0, 12)}${dirty ? ' (modified)' : ''}${identity === 'dev' ? ' · dev' : ''}`;
+    $('build').title = `Commit: ${commit}\nBranch: ${branch}\nBuilt: ${builtAt ?? 'unknown'}${bundleId ? `\nBundle ID: ${bundleId}` : ''}`;
   }
   for (const id of ['add', 'add-empty']) $(id).disabled = adding || !!state.progress;
   $('add-progress').hidden = !adding && !state.progress;

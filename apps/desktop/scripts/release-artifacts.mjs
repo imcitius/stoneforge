@@ -17,6 +17,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { artifactNames, formatChecksums, resolveReleaseVersion, RELEASE_ARCH } from './release.mjs';
+import { IDENTITIES, appExecutable } from './app-identity.mjs';
 
 const desktop = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const APP_NAME = 'Stoneforge Desktop.app';
@@ -50,7 +51,12 @@ const plistValue = (path, key) => run('/usr/bin/plutil', ['-extract', key, 'raw'
 for (const key of ['CFBundleShortVersionString', 'CFBundleVersion']) {
   if (plistValue(plist, key) !== version) fail(`Info.plist ${key} is ${plistValue(plist, key)}, expected ${version}`);
 }
-const executable = join(app, 'Contents/MacOS/Stoneforge Desktop');
+// Releases keep the installed app's identity; dev/test packages use ai.stoneforge.desktop.dev (el-4fxwb9).
+const production = IDENTITIES.production;
+if (plistValue(plist, 'CFBundleIdentifier') !== production.bundleId) fail(`Info.plist CFBundleIdentifier is ${plistValue(plist, 'CFBundleIdentifier')}, expected ${production.bundleId}`);
+if (build.identity !== undefined && build.identity !== production.name) fail(`build-info identity is ${build.identity}, expected ${production.name}`);
+const executable = appExecutable(app);
+if (executable !== join(app, 'Contents/MacOS', production.productName)) fail(`Main executable is ${executable}, expected ${production.productName}`);
 const archs = run('/usr/bin/lipo', ['-archs', executable]).trim();
 if (archs !== RELEASE_ARCH) fail(`Main executable architectures are "${archs}", expected ${RELEASE_ARCH} only`);
 
@@ -119,6 +125,7 @@ try {
     const packaged = JSON.parse(await readFile(join(path, 'Contents/Resources/app/build-info.json'), 'utf8'));
     if (packaged.version !== version || packaged.commit !== build.commit) throw new Error(`${label} app build-info does not match the source app`);
     if (plistValue(join(path, 'Contents/Info.plist'), 'CFBundleShortVersionString') !== version) throw new Error(`${label} app Info.plist version mismatch`);
+    if (plistValue(join(path, 'Contents/Info.plist'), 'CFBundleIdentifier') !== production.bundleId) throw new Error(`${label} app bundle ID is not ${production.bundleId}`);
   }
   run('/usr/bin/hdiutil', ['detach', mountpoint]);
   mountpoint = undefined;

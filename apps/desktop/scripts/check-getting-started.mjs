@@ -13,11 +13,12 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
+import { defaultApp, appExecutable } from './app-identity.mjs';
 import { mainProcessErrors } from './main-process-errors.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const { _electron } = createRequire(join(root, 'apps/smithy-web/package.json'))('playwright');
-const bundle = resolve(process.env.DESKTOP_APP ?? join(root, 'apps/desktop/dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.app'));
+const bundle = defaultApp(join(root, 'apps/desktop'));
 const resources = join(bundle, 'Contents/Resources');
 const node = join(resources, 'runtime/node');
 const cli = join(resources, 'backend/dist/bin/sf.js');
@@ -33,7 +34,7 @@ const errors = [];
 let electron, shell;
 
 async function launch(args = []) {
-  electron = await _electron.launch({ executablePath: join(bundle, 'Contents/MacOS/Stoneforge Desktop'), args,
+  electron = await _electron.launch({ executablePath: appExecutable(bundle), args,
     env: { ...env, PATH: '/usr/bin:/bin:/usr/sbin:/sbin', STONEFORGE_DESKTOP_TEST_DATA: appData }, timeout: 30_000 });
   await mainErrors.install(electron);
   // Answer the real Restart/"Stop and quit" confirmations in every launched process

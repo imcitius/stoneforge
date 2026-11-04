@@ -14,13 +14,18 @@ import { dropVisibilityListenersOnClose } from './window-guards.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
-const build: { version: string; commit: string; branch: string; dirty: boolean; builtAt?: string } = (() => {
+type BuildInfo = { version: string; commit: string; branch: string; dirty: boolean; builtAt?: string;
+  /** Packaged app identity (scripts/app-identity.mjs); absent in builds before el-4fxwb9 and in source runs. */
+  identity?: 'production' | 'dev'; bundleId?: string; productName?: string };
+const build: BuildInfo = (() => {
   try { return JSON.parse(readFileSync(join(here, 'build-info.json'), 'utf8')); }
   catch { return { version: app.getVersion(), commit: 'unknown', branch: 'unknown', dirty: false }; }
 })();
 const root = app.isPackaged ? process.resourcesPath : resolve(here, '../../..');
 const backend = app.isPackaged ? join(root, 'backend') : join(root, 'packages/smithy');
 const nodePath = app.isPackaged ? join(root, 'runtime/node') : require.resolve('node/bin/node');
+/** "Stoneforge Desktop" (release/installed identity) or "Stoneforge Desktop Dev" (dev/test packages). */
+const productName = build.productName ?? 'Stoneforge Desktop';
 if (process.env.STONEFORGE_DESKTOP_TEST_DATA) app.setPath('userData', process.env.STONEFORGE_DESKTOP_TEST_DATA);
 let manager: ProjectManager;
 let attentionMonitor: AttentionMonitor;
@@ -65,7 +70,7 @@ function update(): void {
   const active = lifecycle.active;
   const project = active ? manager.projects.get(active) : undefined;
   // The title bar shows tabs instead of a title; keep the window name for Mission Control and the Window menu.
-  window.setTitle(project ? `${project.name} — Stoneforge Desktop` : 'Stoneforge Desktop');
+  window.setTitle(project ? `${project.name} — ${productName}` : productName);
   window.webContents.send('desktop:state', snapshot());
 }
 function layout(): void {
@@ -267,7 +272,7 @@ async function boot(): Promise<void> {
   preferences = await loadPreferences(app.getPath('userData'));
   window = new BrowserWindow({
     width: 1440, height: 940, minWidth: 960, minHeight: 640,
-    title: 'Stoneforge Desktop', backgroundColor: '#0f172a',
+    title: productName, backgroundColor: '#0f172a',
     // The shell's tab strip is the title bar; traffic lights are centred in its 38px height.
     titleBarStyle: 'hidden', trafficLightPosition: { x: 13, y: 12 },
     webPreferences: { preload: join(here, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
@@ -388,9 +393,9 @@ async function boot(): Promise<void> {
       return snapshot();
     }
   });
-  app.setAboutPanelOptions({ applicationName: 'Stoneforge Desktop', applicationVersion: build.version,
+  app.setAboutPanelOptions({ applicationName: productName, applicationVersion: build.version,
     version: `${build.commit.slice(0, 12)}${build.dirty ? ' (modified)' : ''}`,
-    credits: `Branch: ${build.branch}\nBuilt: ${build.builtAt ?? 'unknown'}` });
+    credits: `Branch: ${build.branch}\nBuilt: ${build.builtAt ?? 'unknown'}${build.bundleId ? `\nBundle ID: ${build.bundleId} (${build.identity})` : ''}` });
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     { label: 'Stoneforge', submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'hide' }, { role: 'quit' }] },
     { role: 'editMenu' },

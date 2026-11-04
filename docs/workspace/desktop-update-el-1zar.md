@@ -148,6 +148,20 @@ provider calls, billing verification or guessed counters/costs were introduced.
 
 ## Proposed update runbook — do not execute without separate Human approval
 
+### App identity of candidates (el-4fxwb9, 2026-11-04)
+
+Since el-4fxwb9, `package:mac` without a release version builds a **dev** app
+(`ai.stoneforge.desktop.dev`, "Stoneforge Desktop Dev", own `userData` and lock). An
+installed-app candidate must be built with `--production-identity` (or as a release):
+a dev build would open an empty project registry and lose the installed app's TCC
+grants. Confirm `node apps/desktop/scripts/app-identity.mjs show APP` reports
+`ai.stoneforge.desktop` / `production` before installing. That candidate shares TCC
+state with the installed app: run GUI checks on a dev build of the same commit, and
+run production-identity GUI checks of the exact candidate only with explicit acceptance
+of the TCC risk, with the app outside protected folders, never answering a privacy
+prompt. Mutant/crash-control copies must be made with `app-identity.mjs copy-dev`.
+Details: `apps/desktop/README.md` → *App identity (dev vs release)*.
+
 
 ### 1. Review and inventory, before approval
 

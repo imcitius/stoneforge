@@ -12,12 +12,13 @@ import { createRequire } from 'node:module';
 import { spawn, execFileSync } from 'node:child_process';
 import { findExternalServer } from '../../../packages/quarry/dist/cli/server-discovery.js';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
+import { defaultApp, appExecutable, bundleIdentifier } from './app-identity.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(join(root, 'apps/smithy-web/package.json'));
 const { _electron } = require('playwright');
 const desktopRequire = createRequire(new URL('../package.json', import.meta.url));
 const { Terminal } = desktopRequire('@xterm/headless');
-const bundle = resolve(process.env.DESKTOP_APP ?? join(root, 'apps/desktop/dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.app'));
+const bundle = defaultApp(join(root, 'apps/desktop'));
 const resources = join(bundle, 'Contents/Resources');
 const node = join(resources, 'runtime/node');
 const cli = join(resources, 'backend/dist/bin/sf.js');
@@ -39,7 +40,7 @@ try {
   await mkdir(join(a, '.stoneforge/prompts'), { recursive: true });
   await writeFile(join(a, '.stoneforge/prompts/director.md'), 'Temporary test workspace. Do not use tools or modify files. Answer the requested conversation only.');
   for (const name of ['Borealis', 'Cedar']) await cp(a, join(temp, name), { recursive: true });
-  electron = await _electron.launch({ executablePath: join(bundle, 'Contents/MacOS/Stoneforge Desktop'),
+  electron = await _electron.launch({ executablePath: appExecutable(bundle),
     args: ['Atlas', 'Borealis', 'Cedar'].map((name) => '--project=' + join(temp, name)),
     env: { ...env, PATH: '/usr/bin:/bin:/usr/sbin:/sbin', STONEFORGE_DESKTOP_TEST_DATA: join(temp, 'app-data') },
     timeout: 30_000,
@@ -52,6 +53,13 @@ try {
   // The project-toolbar build label shows the packaged (release or package.json) version.
   assert((await page.locator('#build').textContent()).startsWith(`v${expectedBuild.version} · `));
   assert((await page.locator('#build').getAttribute('title')).includes(expectedBuild.builtAt));
+  // App identity (el-4fxwb9): Info.plist, Electron's name/userData and the build label agree with build-info.
+  // Builds before el-4fxwb9 have no identity fields and are production.
+  const identity = { identity: expectedBuild.identity ?? 'production', bundleId: expectedBuild.bundleId ?? 'ai.stoneforge.desktop', productName: expectedBuild.productName ?? 'Stoneforge Desktop' };
+  assert.equal(bundleIdentifier(bundle), identity.bundleId, 'Info.plist CFBundleIdentifier matches build-info');
+  assert.equal(await electron.evaluate(({ app }) => app.getName()), identity.productName, 'Electron app name (default userData) matches build-info');
+  assert.equal((await page.locator('#build').textContent()).endsWith(' · dev'), identity.identity === 'dev', 'Build label marks dev packages');
+  console.log(`App identity: ${identity.identity} ${identity.bundleId} "${identity.productName}"`);
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.locator('[role="tab"]').filter({ hasText: 'Cedar' }).waitFor({ timeout: 30_000 });

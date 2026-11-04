@@ -6,9 +6,11 @@ import { tmpdir } from 'node:os';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
+import { defaultApp, appExecutable } from './app-identity.mjs';
 import { mainProcessErrors, inspectMainProcess } from './main-process-errors.mjs';
 const desktop = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const bundle = resolve(process.env.DESKTOP_APP ?? join(desktop, 'dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.app'));
+const bundle = defaultApp(desktop);
+const executable = appExecutable(bundle);
 const resources = join(bundle, 'Contents/Resources');
 const temp = await mkdtemp(join(tmpdir(), 'stoneforge-launch-'));
 const workspace = join(temp, 'Проект with spaces'); await mkdir(workspace);
@@ -32,7 +34,7 @@ const launchLog = async () => `\n--- app stderr.log ---\n${await readFile(stderr
 let backendPid, appPid;
 const launchedApp = () => {
   const processes = execFileSync('/bin/ps', ['-axo', 'pid=,command='], { encoding: 'utf8' }).split('\n');
-  const main = processes.find((line) => line.includes(join(bundle, 'Contents/MacOS/Stoneforge Desktop')) && line.includes(`--project=${workspace}`));
+  const main = processes.find((line) => line.includes(executable) && line.includes(`--project=${workspace}`));
   return main ? Number(main.trim().split(/\s+/, 1)[0]) : undefined;
 };
 try {
@@ -46,7 +48,7 @@ try {
       backendPid = JSON.parse(await readFile(join(workspace, '.stoneforge/server.lock/owner.json'), 'utf8')).pid;
       appPid = Number(execFileSync('/bin/ps', ['-o', 'ppid=', '-p', String(backendPid)], { encoding: 'utf8' }).trim());
       const command = execFileSync('/bin/ps', ['-o', 'command=', '-p', String(appPid)], { encoding: 'utf8' }).trim();
-      assert(command.startsWith(join(bundle, 'Contents/MacOS/Stoneforge Desktop')), command);
+      assert(command.startsWith(executable), command);
       break;
     } catch { await pause(200); }
   }

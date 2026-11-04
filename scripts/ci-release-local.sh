@@ -17,6 +17,12 @@
 # first on PATH, pnpm 8.15.5, gh. Uncommitted changes in this checkout are NOT
 # included. The release files and notes are copied to an evidence directory
 # under $TMPDIR (printed at the end); the clone is removed unless --keep.
+#
+# TCC risk (el-4fxwb9): the check-app smoke launches the release app, which has the
+# installed app's bundle ID ai.stoneforge.desktop. userData is isolated, but macOS
+# privacy (TCC) state is shared, so a privacy prompt/decision for this copy can change
+# the installed app's grants. Do not run this on a Mac where the installed app hosts
+# agents unless that risk is explicitly accepted; never answer a privacy prompt for it.
 set -euo pipefail
 
 SOURCE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -27,7 +33,7 @@ while [ $# -gt 0 ]; do
     --version) TAG=${2:?--version requires a value}; shift 2 ;;
     --version=*) TAG=${1#--version=}; shift ;;
     --keep) KEEP=true; shift ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
