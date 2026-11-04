@@ -473,7 +473,7 @@ node apps/desktop/scripts/check-app.mjs
 node apps/desktop/scripts/check-launch-services.mjs
 node apps/desktop/scripts/check-tabs.mjs
 node apps/desktop/scripts/check-getting-started.mjs
-node apps/desktop/scripts/check-attention.mjs
+node apps/desktop/scripts/check-attention.mjs   # dev package from an agent session: DESKTOP_ATTENTION_LAUNCH=launchservices
 node apps/desktop/scripts/check-identity.mjs   # dev packages only
 ```
 
@@ -539,9 +539,70 @@ in one (explicit daemon stop), requires its tab to show `paused`, then runs the 
 status, exactly one native notification (also in macOS history), that the click
 callback selects the project, and that a human WebSocket reply clears the session
 attention and returns the tab to `paused`. A timed-out tab wait reports the observed
-`data-status`. `check-launch-services.mjs` launches through macOS LaunchServices with
+`data-status`. The delivered-history step needs notification authorization for the
+app macOS attributes the request to (next paragraph). `check-launch-services.mjs` launches through macOS LaunchServices with
 a minimal PATH and a Unicode workspace path, and checks parent-loss cleanup.
 Both use temporary fixtures and a separate app-data directory.
+
+**Notification authorization** (el-3q8efw). macOS adds a notification to Notification Center
+history only if notifications are authorized for the app that macOS attributes the request to.
+On 2026-11-04 the first `check-attention` runs on the dev identity `ai.stoneforge.desktop.dev`
+(el-4fxwb9, el-wyqc39, el-3ycnq7) timed out at "macOS delivered history": no prompt appeared and
+System Settings > Notifications listed only "Stoneforge Desktop", not "Stoneforge Desktop Dev".
+Registering the package with `lsregister -f` did **not** change that. By default the check lets
+Playwright start the app executable as its own child. Started from an agent session, that child
+belongs to the installed Stoneforge Desktop: crash reports of such launches name it as
+"Responsible Process" (coalition `ai.stoneforge.desktop`), and the child inherits
+`__CFBundleIdentifier=ai.stoneforge.desktop`. macOS therefore attributes the notification request
+to the installed app, not to the dev identity, so the dev identity never gets an entry to allow.
+
+- `DESKTOP_ATTENTION_LAUNCH=launchservices node apps/desktop/scripts/check-attention.mjs`
+  launches the package through LaunchServices instead (`scripts/launch-services-launcher.mjs`):
+  Playwright runs a temporary wrapper that calls `/usr/bin/open -n -W` with the check's
+  variables (`--env`), the app's arguments and its stdout/stderr redirected to files. The wrapper
+  relays those files, so Playwright connects to the inspector and DevTools endpoints as with a
+  direct launch. launchd starts the app (parent pid 1) as its own responsible process with
+  `__CFBundleIdentifier` set to its own bundle ID. The wrapper exits with the app; if it is
+  terminated, it kills its own instance (matched by executable and `--project=` arguments), and
+  check-attention does the same in its cleanup.
+- One-time bootstrap per identity and Mac: the first LaunchServices run makes the dev app's own
+  notification request, so macOS can show its "allow notifications" prompt. A person at the Mac
+  clicks Allow (agents never answer privacy prompts) and checks that **Stoneforge Desktop Dev** is
+  allowed in System Settings > Notifications. A run that was waiting on that prompt can still miss
+  the history step; run it once more and report it as the permission bootstrap. Check the
+  identity first with `node apps/desktop/scripts/app-identity.mjs show APP`; never launch a
+  production-identity copy for this.
+- Direct launches now set `__CFBundleIdentifier` to the bundle ID under test (as LaunchServices
+  does). They still inherit the responsible app, so do not rely on that alone.
+- Status: the investigation was done without prompts and without starting the dev package. The
+  LaunchServices launch itself (environment, Unicode arguments, stderr relay, exit, cleanup) was
+  smoke-tested on 2026-11-04 with a throwaway non-Electron bundle; `check-launch-services.mjs`
+  already drives the real package through `open` with `--inspect=0`. That a LaunchServices-launched
+  dev package gets its prompt, entry and delivered history has **not** been observed yet: it needs
+  the person-attended bootstrap above. Record the first such run in reference el-1uyc.
+
+`check-attention` records its launch mode and the likely responsible app (`evidence.launch`): the
+nearest app bundle among its own process ancestors, read with `ps`, because `launchctl procinfo`
+needs root. It launches the app with `ELECTRON_DEBUG_NOTIFICATIONS=1` and
+`ELECTRON_ENABLE_LOGGING=1`, so Electron 44 logs its own authorization request result
+(`Notification authorization granted: 0|1` or `Error requesting notification authorization: …`)
+to stderr. It also records the attention notification's `show` (macOS accepted the request) and
+`failed` events (for example "Notifications are not allowed for this application").
+`scripts/notification-authorization.mjs` classifies them. A refusal (`granted: 0`, an
+authorization error or a `failed` event) fails at once with "Notifications are not authorized for
+<bundle ID> (<name>)", the reason and what makes authorization work. Reported authorization keeps
+the unchanged requirement (the notice in `Notification.getHistory()` within 30 s, plain timeout
+otherwise). Without any answer the check still waits the full 30 s. The timeout then reports
+unconfirmed authorization; for a direct launch under another app (for example the installed
+Stoneforge Desktop, pid and bundle ID included) it names that app as the responsible process and
+asks for a rerun with `DESKTOP_ATTENTION_LAUNCH=launchservices` and the bootstrap above. It does
+not present `lsregister -f` as a fix. The check itself does not request or answer anything
+beyond the app's normal notification. The log line formats come from Electron 44's
+`notification_presenter_mac.mm`/`cocoa_notification.mm`; they were not observed on an
+unauthorized identity, because that would require a real prompt.
+`tests/notification-authorization.test.mjs` covers the classification, the responsible-app
+detection, the messages and the wrapper arguments with fixed inputs (no app launch, no `open`, no
+prompts).
 
 Main-process exceptions (el-64nnhq, el-5n2sf4): every check that launches Electron —
 `check-app`, `check-tabs`, `check-attention`, `check-getting-started`, `check-clipboard`

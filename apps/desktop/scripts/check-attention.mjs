@@ -10,7 +10,9 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
-import { defaultApp, appExecutable } from './app-identity.mjs';
+import { defaultApp, appExecutable, bundleIdentifier, plistValue, IDENTITIES } from './app-identity.mjs';
+import { NOTIFICATION_DEBUG_ENV, authorizationLog, notAuthorizedError, historyTimeoutMessage, launchContext } from './notification-authorization.mjs';
+import { launchMode, writeLaunchServicesWrapper, killLaunched } from './launch-services-launcher.mjs';
 import { mainProcessErrors } from './main-process-errors.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(join(root, 'apps/smithy-web/package.json'));
@@ -25,6 +27,9 @@ let electron;
 // A main-process exception must fail this check, not hang it behind Electron's modal error box.
 const mainErrors = mainProcessErrors(join(temp, 'main-process-errors.jsonl'));
 const evidence = { bundle, temp, checks: [] };
+// Electron's notification authorization result, read from the app's stderr (el-3q8efw).
+const authLog = authorizationLog();
+let context, launchedExecutable;
 // `observe` (optional) describes the actual state when the wait times out.
 async function until(fn, label, timeout=30_000, observe) {
   const deadline=Date.now()+timeout;
@@ -34,6 +39,14 @@ async function until(fn, label, timeout=30_000, observe) {
 }
 try {
   execFileSync('/usr/bin/codesign', ['--verify','--deep','--strict',bundle]);
+  const bundleId=bundleIdentifier(bundle);
+  const describe=app=>{ const id=bundleIdentifier(app); return {bundleId:id,productName:Object.values(IDENTITIES).find(i=>i.bundleId===id)?.productName ?? plistValue(app,'CFBundleName')}; };
+  const identity={app:bundle,...describe(bundle)};
+  evidence.identity=identity;
+  // Who owns the app's notification request (el-3q8efw): a direct launch inherits the check's
+  // responsible app; DESKTOP_ATTENTION_LAUNCH=launchservices starts the app as its own.
+  context=launchContext({mode:launchMode(),describe});
+  evidence.launch=context;
   const names=['Ожидает ответа','Другой проект'];
   for (const name of names) {
     const cwd=join(temp,name); await mkdir(cwd);
@@ -43,8 +56,17 @@ try {
   // Run the actual bundled sf through the provider's normal environment and
   // wait for the start route to finish publishing its session before signaling.
   await writeFile(fake, '#!/bin/sh\nif [ "$1" = "--version" ]; then echo "fixture"; exit 0; fi\nwhile [ ! -f "'+temp+'/release" ]; do sleep 0.1; done\nsf agent await-input > "'+temp+'/signal.log" 2>&1 || exit 42\nprintf "Какой вариант выбрать?\\n"\nIFS= read -r answer\nprintf "%s\\n" "$answer" > "'+temp+'/answer.log"\nwhile :; do sleep 1; done\n', {mode:0o755});
-  electron=await _electron.launch({executablePath:appExecutable(bundle),args:names.map(name=>'--project='+join(temp,name)),env:{...env,PATH:'/usr/bin:/bin:/usr/sbin:/sbin',STONEFORGE_DESKTOP_TEST_DATA:join(temp,'app-data')},timeout:30_000});
+  const args=names.map(name=>'--project='+join(temp,name));
+  // Direct launches inherit the agent session's __CFBundleIdentifier (the installed app's ID);
+  // give the app its own, as LaunchServices does. Listed variables are passed to `open --env`.
+  const appEnv={...NOTIFICATION_DEBUG_ENV,PATH:'/usr/bin:/bin:/usr/sbin:/sbin',STONEFORGE_DESKTOP_TEST_DATA:join(temp,'app-data'),__CFBundleIdentifier:bundleId};
+  launchedExecutable=appExecutable(bundle);
+  const executablePath=context.mode==='launchservices'
+    ? writeLaunchServicesWrapper({dir:temp,bundle,executable:launchedExecutable,forwardEnv:Object.keys(appEnv)})
+    : launchedExecutable;
+  electron=await _electron.launch({executablePath,args,env:{...env,...appEnv},timeout:30_000});
   await mainErrors.install(electron);
+  authLog.attach(electron.process());
   const page=await electron.firstWindow();
   await until(async()=>JSON.stringify(await page.locator('[role="tab"]').evaluateAll(tabs=>tabs.map(tab=>tab.dataset.state)))===JSON.stringify(['ready','ready']),'two ready projects');
   const run=(id,script)=>electron.evaluate(async({webContents},{id,script})=>webContents.fromId(id).executeJavaScript(script),{id,script});
@@ -60,9 +82,15 @@ try {
   const view=views[index>=0?index:identities.findIndex(i=>i.projectId===projectId)];
   assert(view,'Waiting project renderer');
   await electron.evaluate(({Notification})=>{
-    globalThis.__attentionNotices=[];
+    globalThis.__attentionNotices=[]; globalThis.__attentionFailures=[]; globalThis.__attentionShown=0;
     const show=Notification.prototype.show;
-    Notification.prototype.show=function(...args) { globalThis.__attentionNotices.push(this); return show.apply(this,args); };
+    Notification.prototype.show=function(...args) {
+      globalThis.__attentionNotices.push(this);
+      // macOS outcome of the request: 'show' = accepted, 'failed' = rejected (e.g. not authorized).
+      this.on('show',()=>{ globalThis.__attentionShown++; });
+      this.on('failed',(_event,error)=>{ globalThis.__attentionFailures.push(String(error)); });
+      return show.apply(this,args);
+    };
   });
   await run(view.id,`(async()=>{
     await fetch('/api/daemon/stop',{method:'POST'});
@@ -93,7 +121,19 @@ try {
   assert.match(evidence.signal,/Waiting for human input/);
   await until(async()=>await waitingTab().getAttribute('data-status')==='attention','tab attention badge',30_000,tabStatus);
   await until(async()=>electron.evaluate(()=>globalThis.__attentionNotices.length===1),'native notification emitted');
-  await until(async()=>electron.evaluate(async({Notification})=>(await Notification.getHistory()).some(n=>n.title==='Нужен ваш ответ — Ожидает ответа')),'macOS delivered history');
+  // Delivered history is still required within the same 30 s. A definite refusal of notification
+  // authorization for this identity fails at once with the one-time setup instead of a bare timeout.
+  const notificationObservations=async()=>({...await electron.evaluate(()=>({failures:[...globalThis.__attentionFailures],shown:globalThis.__attentionShown>0})),authorization:authLog.result()});
+  for(const deadline=Date.now()+30_000;;) {
+    if(await electron.evaluate(async({Notification})=>(await Notification.getHistory()).some(n=>n.title==='Нужен ваш ответ — Ожидает ответа'))) break;
+    const observed=await notificationObservations();
+    evidence.notificationAuthorization=observed;
+    const refused=notAuthorizedError(identity,observed,context);
+    if(refused) throw refused;
+    if(Date.now()>=deadline) throw new Error('Timed out: '+historyTimeoutMessage(identity,observed,context));
+    await pause(200);
+  }
+  evidence.notificationAuthorization=await notificationObservations();
   evidence.history=await electron.evaluate(async({Notification})=>(await Notification.getHistory()).filter(n=>n.title==='Нужен ваш ответ — Ожидает ответа').map(n=>({id:n.id,title:n.title,body:n.body})));
   evidence.checks.push('Bundled sf command, authenticated backend, inactive project, hidden window, tab attention badge, native macOS delivery');
   await pause(6500);
@@ -122,6 +162,8 @@ try {
     }).catch(()=>{});
     await pause(2000);
   }
+  // A LaunchServices launch is not Playwright's child: make sure this run's instance is gone.
+  if(context?.mode==='launchservices' && launchedExecutable) { try { killLaunched(launchedExecutable,['--project='+temp]); } catch {} }
   await writeFile(join(temp,'attention-observations.json'),JSON.stringify(evidence,null,2)+'\n');
   console.log('Fixture retained: '+temp);
 }
