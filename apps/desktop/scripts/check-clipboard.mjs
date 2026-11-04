@@ -8,6 +8,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { ProjectManager } from '../dist/manager.js';
 import { mainProcessErrors } from './main-process-errors.mjs';
+import { saveClipboard, restoreClipboard } from './clipboard-snapshot.mjs';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const require = createRequire(join(root, 'apps/smithy-web/package.json'));
 const { _electron } = require('playwright');
@@ -26,11 +27,19 @@ try {
   electron = await _electron.launch({ executablePath: desktopRequire('electron'), args: [join(temp, 'main.cjs')], env });
   await mainErrors.install(electron);
   const page = await electron.firstWindow();
-  await electron.evaluate(async ({clipboard, ClipboardItem}) => {
-    globalThis.__savedClipboard = await Promise.all((await clipboard.read()).map(async item =>
-      new ClipboardItem(Object.fromEntries(await Promise.all(item.types.map(async type => [type, await item.getType(type)]))))));
-  });
+  // Items without MIME types (e.g. an empty pasteboard) are skipped; see clipboard-snapshot.mjs.
+  await electron.evaluate(saveClipboard);
   saved = true;
+  // Regression: an empty clipboard reads back as one item with no MIME types,
+  // which the save step must tolerate and restore by clearing.
+  await electron.evaluate(({clipboard}) => clipboard.clear());
+  assert.ok((await electron.evaluate(async ({clipboard}) => (await clipboard.read()).map(item => item.types.length))).includes(0),
+    'precondition: a cleared clipboard exposes an item with no MIME types');
+  assert.deepEqual(await electron.evaluate(saveClipboard, '__emptyClipboard'), {saved:0, skipped:1});
+  await electron.evaluate(({clipboard}, text) => clipboard.writeText(text), sample);
+  assert.deepEqual(await electron.evaluate(restoreClipboard, '__emptyClipboard'), {restored:0});
+  assert.equal(await electron.evaluate(({clipboard}) => clipboard.readText()), '', 'restoring an empty snapshot clears the clipboard');
+  console.log('Empty clipboard (item without MIME types): saved without error, restored by clearing');
   await page.waitForFunction(() => window.term?.buffer.active.getLine(0)?.translateToString(true).includes('готов'));
   const bounds = await page.locator('.xterm-screen').boundingBox();
   const cell = await page.evaluate(() => window.term._core._renderService.dimensions.css.cell);
@@ -83,9 +92,7 @@ try {
   await mainErrors.rethrow(error);
 } finally {
   try {
-    if (electron && saved) await electron.evaluate(async ({clipboard}) => {
-      await clipboard.write(globalThis.__savedClipboard);
-    });
+    if (electron && saved) await electron.evaluate(restoreClipboard);
   } finally { if (electron) await electron.close(); }
   await rm(temp, {recursive:true,force:true});
 }

@@ -375,7 +375,10 @@ macOS `pbcopy` from interpreting Cyrillic UTF-8 as MacRoman. It affects newly
 started managed backends and their sessions; adopted servers keep their environment.
 The native regression `node apps/desktop/scripts/check-clipboard.mjs` checks mouse
 selection/Cmd+C in xterm and the macOS helper path; it temporarily uses and restores
-the system clipboard, so run it without concurrent clipboard activity.
+the system clipboard, so run it without concurrent clipboard activity. Clipboard
+items without MIME types (an empty pasteboard reads back as one) carry no data and
+are skipped when saving; if nothing restorable was saved, the check clears the
+clipboard on exit instead of leaving its sample text (`scripts/clipboard-snapshot.mjs`).
 Explicitly overriding agent environment or using another CLI version is outside
 this routing guarantee; this is not an OS sandbox.
 HTTP, SSE and all WebSocket upgrades require the project and instance identity.
