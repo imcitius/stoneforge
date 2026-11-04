@@ -53,7 +53,7 @@ An interrupted run is incomplete and must never count as acceptance.
 | `node --test scripts/check-merge.test.mjs` | Runtime/native preflight fixtures and failure-before-steps checks; failure propagation, including first/middle/last failure, missing executable, signal and worker environment isolation; every `requiredBunTests` contract suite is present as its own `bun test ./<file>` step, and a missing one fails closed. |
 | `pnpm typecheck --force` | All workspace packages that declare `typecheck`, including shared routes/UI, web/server apps and Desktop; Turbo also builds their dependencies. |
 | `pnpm --filter @stoneforge/desktop build` | Fresh Desktop JavaScript and shell resources; backend SDK builds were prerequisites of Desktop typecheck. |
-| `bun test ./<file>` for every `*.bun.test.ts` under `packages/{core,storage,quarry,smithy}/src` | Core types/config/errors, real Bun SQLite/schema, Quarry API/CLI/dependencies/sync and Smithy orchestration/runtime/providers/Git/repository routing. Each file runs in its own process so Bun module mocks cannot leak into other files. `requiredBunTests` in `scripts/check-merge.mjs` names contract suites that must stay discovered (currently `packages/smithy/src/server/daemon-lifecycle.bun.test.ts`, the daemon start/stop/auto-start preference contract); if one is moved, renamed or deleted, `mergeChecks()` throws and the gate (and `check:ci`) fails before any step runs. |
+| `bun test ./<file>` for every `*.bun.test.ts` under `packages/{core,storage,quarry,smithy}/src` | Core types/config/errors, real Bun SQLite/schema, Quarry API/CLI/dependencies/sync, the shared document routes (`@stoneforge/shared-routes`, tested from Quarry; see [Shared route tests](#shared-route-tests-el-4m2lvj)) and Smithy orchestration/runtime/providers/Git/repository routing. Each file runs in its own process so Bun module mocks cannot leak into other files. `requiredBunTests` in `scripts/check-merge.mjs` names contract suites that must stay discovered (currently `packages/smithy/src/server/daemon-lifecycle.bun.test.ts`, the daemon start/stop/auto-start preference contract); if one is moved, renamed or deleted, `mergeChecks()` throws and the gate (and `check:ci`) fails before any step runs. |
 | `pnpm --filter @stoneforge/smithy test:node` | Existing Vitest config: Node routes, permissions, stewardship/merge/worker lifecycle and a real PTY fixture using a fake provider executable. |
 | `pnpm --filter @stoneforge/desktop ensure-electron` | Installs the pinned development Electron binary once and verifies it before the Desktop Node tests (el-2r3sey; see [Electron binary](#electron-binary-el-2r3sey)). Under a lock it compares every file in `node_modules/electron/dist` with the checksum-verified release zip (size, symlinks), removes and reinstalls an incomplete dist with Electron's own `install.js`, stores the verified sizes in `dist/.stoneforge-verified.json` for later runs, and on macOS starts the binary as Node. |
 | `pnpm --filter @stoneforge/desktop test` | All Desktop Node tests (the script repeats the `ensure-electron` check, a ~0.1 s manifest check once installed): four backend tests covering workspace initialization, external-server adoption, multi-project HTTP/WS identity/isolation/restart and real CLI multi-repository registration/binding/merge after restart, plus two Logs bounds/escaping tests, two sidebar preference/view-bounds tests, five director-attention notification tests, a UTF-8 locale test and the pinned-Electron socket-workaround tests. Uses real temporary Git repositories and Node SQLite. |
@@ -109,6 +109,46 @@ from child environments so fixtures do not inherit a worker's shared project,
 actor or server. The invoking shell and installed application are unchanged.
 `RUN_INTEGRATION_TESTS=false` keeps live provider tests opt-in.
 
+## Shared route tests (el-4m2lvj)
+
+2026-11-04. `bun test src` in `packages/shared-routes` failed from a fresh
+`pnpm install --frozen-lockfile`: `Cannot find module '@stoneforge/quarry' from
+…/packages/shared-routes/src/documents.test.ts` (0 pass, 1 fail, 1 error). That was
+the package's only test file, and no gate step ran it. It built a real `QuarryAPI` and
+`InboxService` to drive `createDocumentRoutes`, but shared-routes declares only core,
+storage and hono: `quarry` depends on `shared-routes`, and `shared-routes/src/types.ts`
+uses duck-typed interfaces precisely to avoid the reverse edge. Adding quarry as a
+shared-routes dev dependency would create a workspace cycle.
+
+The file moved, unchanged apart from its imports, to
+`packages/quarry/src/server/shared-document-routes.bun.test.ts`: `bun:test` instead
+of `vitest` (it already ran only under Bun), `createDocumentRoutes` from
+`@stoneforge/shared-routes` (Bun resolves its `bun` export condition to `src/`, so
+the test exercises current route source, not `dist`), and Quarry API/inbox from
+relative Quarry sources. Quarry's Bun discovery picks it up, so it is a gate step in
+both `check:merge` and `check:ci` (same `mergeChecks()` list); the gate grows by one
+step. It is in-memory SQLite only (63 tests, about 0.2 s), no network or processes.
+
+Evidence: moved file 63/63 pass; mutation control (`hasMore: true` in the comment
+list route of `packages/shared-routes/src/documents.ts`) failed 2 tests, then reverted.
+One pinned Node 22.23.3 foreground `pnpm check:merge` on `c6e68b2d`: **215 checks,
+0 failed, exit 0, 356.05 s**; the new step ran in 0.18 s. `check:ci` was not run
+separately (it executes the same `mergeChecks()` list).
+
+Network-guard sweep of the Smithy suites (same day, from the worktree root, pinned
+Node 22.23.3, inherited `STONEFORGE_*`/`SF_*`/`ORCHESTRATOR_URL` removed,
+`RUN_INTEGRATION_TESTS=false`). Each process ran under `sandbox-exec` with all
+non-loopback outbound IP denied (`curl https://api.github.com` fails inside it) plus a
+preloaded guard that records and refuses non-loopback `fetch`, `net.Socket#connect`
+and `http(s).request/get` (controls: both refused under Bun and Node). All 77 Smithy
+`*.bun.test.ts` files, one `bun test --preload <guard> ./<file>` process each as in the
+gate: 77/77 exit 0, 2,129 pass / 6 skip / 0 fail, guard loaded in 77/77, **0 outbound
+attempts**. `pnpm --filter @stoneforge/smithy test:node` with the guard in
+`NODE_OPTIONS`: 23 files, 417/417 pass, exit 0, guard loaded in 24 processes, **0
+outbound attempts**. No Smithy test was found making a real external request, so none
+was changed. Limits: the in-process guard sees only those APIs; anything else would
+have been refused by the sandbox and shown as a failure, and none failed.
+
 ## Explicit exclusions
 
 - Existing `test.skip` / conditional skips remain visible in runner output.
@@ -121,6 +161,9 @@ actor or server. The invoking shell and installed application are unchanged.
   the installed app or restart user sessions as part of this gate.
 - No paid/live Codex, Claude, OpenCode or external-service authentication/API
   validation. Provider unit tests use mocks/fixtures. Live checks remain explicit.
+- `packages/shared-routes` has no test suite or `test` script of its own (its route
+  tests live in the packages that depend on it; see
+  [Shared route tests](#shared-route-tests-el-4m2lvj)).
 - No Playwright frontend suites, standalone `apps/smithy-server` Bun suite (dev entry only; it has no Vitest suite),
   docs/website builds, browser `sql.js` backend or cross-platform coverage.
   `smithy-next`, docs and website do not declare `typecheck`; the root command

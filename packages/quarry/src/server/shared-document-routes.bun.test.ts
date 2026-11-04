@@ -1,9 +1,20 @@
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+/**
+ * Shared document route tests (comments, versions, library links, ...).
+ *
+ * These exercise `createDocumentRoutes` from @stoneforge/shared-routes against a
+ * real Quarry API and in-memory SQLite. They live in quarry rather than
+ * shared-routes because quarry depends on shared-routes, not the reverse: a
+ * shared-routes test importing @stoneforge/quarry would invert the package
+ * layering (and could not resolve, since shared-routes does not declare it).
+ * Moved from packages/shared-routes/src/documents.test.ts (el-4m2lvj).
+ */
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { createStorage, initializeSchema } from '@stoneforge/storage';
 import type { StorageBackend } from '@stoneforge/storage';
-import { createQuarryAPI, InboxService } from '@stoneforge/quarry';
-import type { QuarryAPI } from '@stoneforge/quarry';
-import { createDocumentRoutes } from './documents.js';
+import { createDocumentRoutes } from '@stoneforge/shared-routes';
+import { createQuarryAPI } from '../api/quarry-api.js';
+import type { QuarryAPI } from '../api/types.js';
+import { InboxService } from '../services/inbox.js';
 import {
   createDocument,
   createEntity,
