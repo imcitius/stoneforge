@@ -478,6 +478,102 @@ describe('DispatchDaemon Integration', () => {
       });
     });
 
+    describe('el-ilbdj7: pending reviews during a merge freeze (all merge stewards disabled)', () => {
+      const calls = () => (sessionManager.messageSession as ReturnType<typeof mock>).mock.calls as Array<[string, { content: string }]>;
+      async function setDisabled(agent: AgentEntity, disabled: boolean) {
+        const current = (await agentRegistry.getAgent(agent.id as unknown as EntityId))!;
+        await api.update(agent.id, { metadata: { ...current.metadata, agent: { ...current.metadata.agent, disabled } } });
+      }
+      async function pendingReview(title: string): Promise<Task> {
+        const task = await createTestTask(title);
+        await api.update(task.id, { status: TaskStatus.REVIEW, metadata: updateOrchestratorTaskMeta(undefined, { mergeStatus: 'pending', owningDirector: asDirectorId() }) });
+        return task;
+      }
+
+      test('all merge stewards disabled: one notice per change of the parked set, otherwise quiet', async () => {
+        const writes: Array<[string, string, string, Record<string, unknown> | undefined]> = [];
+        daemon = new DispatchDaemonImpl(api, agentRegistry, sessionManager, dispatchService, worktreeManager, taskAssignment,
+          stewardScheduler, inboxService, { ensureTargetBranchExists: mockEnsureTargetBranchExists, workerAvailabilityPollEnabled: false,
+            orphanRecoveryEnabled: false, stewardTriggerPollEnabled: false, workflowTaskPollEnabled: false },
+          undefined, undefined, { write: (level: string, category: string, message: string, meta?: Record<string, unknown>) => { writes.push([level, category, message, meta]); } } as never);
+        const pollIt = () => (daemon as unknown as { runPollCycle(): Promise<void> }).runPollCycle();
+        const first = await agentRegistry.registerSteward({ name: 'merge-steward-1', stewardFocus: 'merge', createdBy: systemEntity });
+        const second = await agentRegistry.registerSteward({ name: 'merge-steward-2', stewardFocus: 'merge', createdBy: systemEntity });
+        await setDisabled(first, true);
+        await setDisabled(second, true);
+        const review = await pendingReview('Frozen merge');
+        await pollIt();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+        const notice = calls()[0][1].content;
+        expect(notice).toContain(`Every registered merge steward is disabled (parked), so these pending reviews are not merged: ${review.id}.`);
+        expect(notice).not.toContain('Actionable work remains');
+        // The freeze persists: no repeated wake, the quiet state is logged once.
+        for (let i = 0; i < 4; i++) {
+          now += 600_000;
+          await pollIt();
+        }
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+        const quiet = writes.filter(([, , message]) => message.includes('Director watchdog quiet'));
+        expect(quiet).toHaveLength(1);
+        expect(JSON.stringify(quiet[0][3])).toContain('steward-parked');
+        // A changed set of frozen reviews is reported once more.
+        const another = await pendingReview('Another frozen merge');
+        await pollIt();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(2);
+        expect(calls()[1][1].content).toContain(another.id);
+        now += 600_000;
+        await pollIt();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(2);
+      });
+
+      test('parked reviews are listed under No action needed when other work wakes the director', async () => {
+        const steward = await agentRegistry.registerSteward({ name: 'merge-steward', stewardFocus: 'merge', createdBy: systemEntity });
+        await setDisabled(steward, true);
+        const review = await pendingReview('Frozen merge');
+        await poll();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+        const ready = await createTestTask('Needs planning');
+        now += 120_001;
+        await poll();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(2);
+        const content = calls()[1][1].content;
+        expect(content).toContain(`Actionable work remains: ${ready.id}.`);
+        expect(content).toContain(`${review.id} (all merge stewards disabled)`);
+        expect(content).not.toContain('Every registered merge steward is disabled');
+      });
+
+      test('one merge steward re-enabled: pending reviews are actionable again', async () => {
+        const first = await agentRegistry.registerSteward({ name: 'merge-steward-1', stewardFocus: 'merge', createdBy: systemEntity });
+        const second = await agentRegistry.registerSteward({ name: 'merge-steward-2', stewardFocus: 'merge', createdBy: systemEntity });
+        await setDisabled(first, true);
+        await setDisabled(second, true);
+        const review = await pendingReview('Frozen merge');
+        await poll();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+        // Re-enabled and free, yet the review is still pending: stuck for another reason.
+        await setDisabled(second, false);
+        now += 120_001;
+        await poll();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(2);
+        expect(calls()[1][1].content).toContain(`Actionable work remains: ${review.id}.`);
+      });
+
+      test('no merge steward registered at all: pending reviews stay actionable', async () => {
+        // Negative control: a disabled non-merge steward is not a parked merge steward.
+        const docs = await agentRegistry.registerSteward({ name: 'docs-steward', stewardFocus: 'docs', createdBy: systemEntity });
+        await setDisabled(docs, true);
+        const review = await pendingReview('No merger');
+        await poll();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+        const content = calls()[0][1].content;
+        expect(content).toContain(`Actionable work remains: ${review.id}.`);
+        expect(content).not.toContain('disabled (parked)');
+        now += 600_000;
+        await poll();
+        expect(sessionManager.messageSession).toHaveBeenCalledTimes(1);
+      });
+    });
+
     test('wakes for pending merges without open tasks', async () => {
       const task = await createTestTask('Awaiting merge');
       await api.update(task.id, { status: TaskStatus.REVIEW, metadata: updateOrchestratorTaskMeta(undefined, { mergeStatus: 'pending', owningDirector: asDirectorId() }) });

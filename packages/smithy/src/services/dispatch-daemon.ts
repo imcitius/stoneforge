@@ -639,11 +639,15 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   private lastWakeAt?: number;
   private manualSleepUntil?: number;
   private dispatchAgents: AgentEntity[] = [];
+  /** All registered agents, including disabled (parked) ones, from the current poll cycle. */
+  private registeredAgents: AgentEntity[] = [];
   private readonly directorWakeAttempts = new Map<string, number>();
   /** Signature of the last delivered watchdog wake per director session. */
   private readonly directorWakeSignatures = new Map<string, string>();
   /** Last logged "quiet" (capacity/limit only) state per director session. */
   private readonly directorQuietSignatures = new Map<string, string>();
+  /** Set of pending reviews already reported as waiting for parked merge stewards, per director session. */
+  private readonly directorParkedNotices = new Map<string, string>();
 
   /**
    * Tracks inbox item IDs that are currently being forwarded to persistent agents.
@@ -2374,7 +2378,8 @@ export class DispatchDaemonImpl implements DispatchDaemon {
     try {
       // Check if dispatch is paused due to rate limiting.
       // When paused, skip dispatch-related polls but still run non-dispatch work.
-      this.dispatchAgents = (await this.agentRegistry.listAgents()).filter(agent => !isAgentDisabled(agent));
+      this.registeredAgents = await this.agentRegistry.listAgents();
+      this.dispatchAgents = this.registeredAgents.filter(agent => !isAgentDisabled(agent));
       const allLimited = this.isDispatchPaused();
 
       if (allLimited) {
@@ -2517,11 +2522,15 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    * executors do not wake the Director; the daemon dispatches them itself when
    * a slot frees or the limit resets. A wake for an unchanged set of actionable
    * tasks with unchanged limits is delivered once per director session.
+   *
+   * Pending reviews while every registered merge steward is disabled (a
+   * deliberate merge freeze) are a wait too, but the Director is told once per
+   * change of that set, so a forgotten freeze is still noticed.
    */
   private async pollDirectorWatchdog(): Promise<void> {
     const directors = this.dispatchAgents.filter(agent => getAgentMetadata(agent)?.agentRole === 'director');
     const sessionIds = new Set(directors.map(agent => this.sessionManager.getActiveSession(asEntityId(agent.id))?.id));
-    for (const map of [this.directorWakeAttempts, this.directorWakeSignatures, this.directorQuietSignatures]) {
+    for (const map of [this.directorWakeAttempts, this.directorWakeSignatures, this.directorQuietSignatures, this.directorParkedNotices]) {
       for (const id of map.keys()) {
         if (!sessionIds.has(id)) map.delete(id);
       }
@@ -2590,22 +2599,27 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       if (!session || session.status !== 'running') continue;
       const actionable = tasks.filter(task => !waits.has(task.id));
       const waiting = tasks.map(task => waits.get(task.id)).filter((wait): wait is WatchdogWait => wait !== undefined);
-      if (!actionable.length) {
+      const parked = waiting.filter(wait => wait.kind === 'steward-parked').map(wait => wait.taskId);
+      const parkedSignature = parked.length ? watchdogSignature(parked, []) : undefined;
+      if (!parkedSignature) this.directorParkedNotices.delete(session.id);
+      const parkedNotice = parkedSignature !== undefined && this.directorParkedNotices.get(session.id) !== parkedSignature;
+      if (!actionable.length && !parkedNotice) {
         // Nothing for the Director to do: the daemon proceeds by itself.
         this.directorWakeSignatures.delete(session.id);
         const quiet = watchdogSignature(waiting.map(wait => `${wait.taskId}:${wait.kind}:${wait.resetsAt ?? ''}`), []);
         if (this.directorQuietSignatures.get(session.id) !== quiet) {
           this.directorQuietSignatures.set(session.id, quiet);
           const summary = waiting.slice(0, 10).map(describeWatchdogWait).join(', ');
-          logger.info(`Director watchdog: not waking ${director.name}; tasks wait only for executor capacity or provider limits: ${summary}`);
-          this.operationLog?.write('info', 'dispatch', `Director watchdog quiet for ${director.name}: tasks wait only for executor capacity or provider limits`, {
+          logger.info(`Director watchdog: not waking ${director.name}; tasks wait only for executor capacity, provider limits or parked merge stewards: ${summary}`);
+          this.operationLog?.write('info', 'dispatch', `Director watchdog quiet for ${director.name}: tasks wait only for executor capacity, provider limits or parked merge stewards`, {
             agentId: director.id, sessionId: session.id, waiting: waiting.map(wait => ({ ...wait })),
           });
         }
         continue;
       }
       this.directorQuietSignatures.delete(session.id);
-      const signature = watchdogSignature(actionable.map(task => task.id), limitState);
+      // The parked set is part of the signature: a change of it is reported again.
+      const signature = watchdogSignature(actionable.map(task => task.id), [...limitState, `parked:${parkedSignature ?? ''}`]);
       // The same actionable set with unchanged limits was already delivered.
       if (this.directorWakeSignatures.get(session.id) === signature) continue;
       const now = Date.now();
@@ -2618,25 +2632,33 @@ export class DispatchDaemonImpl implements DispatchDaemon {
       // Reserve before awaiting delivery, including failed deliveries, to avoid retry storms.
       this.directorWakeAttempts.set(session.id, now);
       const orphanedHere = orphaned.filter(task => actionable.some(owned => owned.id === task.id)).map(task => task.id);
-      const result = await this.sessionManager.messageSession(session.id, {
-        content: `[Orchestration watchdog] Actionable work remains: ${actionable.slice(0, 10).map(task => task.id).join(', ')}. ` +
+      const parkedNote = parkedNotice
+        ? `Every registered merge steward is disabled (parked), so these pending reviews are not merged: ${parked.slice(0, 10).join(', ')}. ` +
+          'During a deliberate merge freeze no action is needed; re-enable a merge steward to resume merges. ' +
+          'This notice is not repeated until that set of reviews changes. '
+        : '';
+      const content = !actionable.length ? `[Orchestration watchdog] ${parkedNote}` :
+        `[Orchestration watchdog] Actionable work remains: ${actionable.slice(0, 10).map(task => task.id).join(', ')}. ` + parkedNote +
           'Check current task, inbox and merge state and continue the next authorized action. ' +
           `Assigned tasks without a live executor: ${orphanedHere.join(', ') || 'none'}. ` +
           'Inspect their last session outcome; do not keep waiting for a message from an exited worker. ' +
           'Respect explicit worker parking and project dispatch rules when deciding how to resume. ' +
           (waiting.length
-            ? `No action needed (the daemon dispatches them when capacity frees or the limit resets): ${waiting.slice(0, 10).map(describeWatchdogWait).join(', ')}. `
+            ? 'No action needed (the daemon dispatches them when capacity frees, the limit resets or a parked merge steward is re-enabled): ' +
+              `${waiting.slice(0, 10).map(describeWatchdogWait).join(', ')}. `
             : '') +
           'Provider limits are independent; do not infer a current limit from old session failures. ' +
           'Do not sleep or schedule retries yourself. The daemon will retry after confirmed limits expire. ' +
           'If human input or another concrete blocker prevents progress, record it on the task. ' +
-          'This reminder is not repeated until the set of actionable tasks or the provider limits change.',
-      });
+          'This reminder is not repeated until the set of actionable tasks or the provider limits change.';
+      const result = await this.sessionManager.messageSession(session.id, { content });
       if (!result.success) logger.warn(`Director watchdog delivery failed for ${director.id}: ${result.error}`);
       else {
         this.directorWakeSignatures.set(session.id, signature);
-        logger.info(`Woke idle director ${director.id}; tasks: ${actionable.map(task => task.id).join(', ')}`);
-        this.operationLog?.write('info', 'dispatch', `Woke idle director ${director.name}`, { agentId: director.id, sessionId: session.id, taskIds: actionable.map(task => task.id) });
+        if (parkedSignature) this.directorParkedNotices.set(session.id, parkedSignature);
+        const notified = [...actionable.map(task => task.id), ...(parkedNotice ? parked : [])];
+        logger.info(`Woke idle director ${director.id}; tasks: ${notified.join(', ')}`);
+        this.operationLog?.write('info', 'dispatch', `Woke idle director ${director.name}`, { agentId: director.id, sessionId: session.id, taskIds: notified });
       }
     }
   }
@@ -2645,11 +2667,15 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    * Why unassigned work for a role cannot start now, if the only reason is
    * capacity or a confirmed provider limit. Undefined when an eligible,
    * unlimited executor is free (the work is stuck for another reason) or when
-   * no eligible executor exists at all; both need the Director.
+   * no eligible executor exists at all; both need the Director. Merge stewards
+   * that are registered but all disabled are a deliberate park (merge freeze).
    */
   private async executorWait(kind: 'worker' | 'merge-steward'): Promise<Omit<WatchdogWait, 'taskId'> | undefined> {
     const executors = this.dispatchAgents.filter(agent => isExecutorOfKind(agent, kind));
-    if (!executors.length) return undefined;
+    if (!executors.length) {
+      const parked = kind === 'merge-steward' && this.registeredAgents.some(agent => isExecutorOfKind(agent, kind) && isAgentDisabled(agent));
+      return parked ? { kind: 'steward-parked' } : undefined;
+    }
     const freeLimited: AgentEntity[] = [];
     let freeUnlimited = 0;
     for (const agent of executors) {

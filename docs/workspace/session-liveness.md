@@ -91,10 +91,13 @@ obstacle is:
 - ready and unassigned, and no eligible ephemeral worker is free (busy session,
   assigned task, unread inbox, pool full) → `worker-capacity`;
 - pending merge, unassigned, every merge steward busy → `steward-capacity`;
+- pending merge, unassigned, merge stewards registered but **all disabled**
+  (deliberate merge freeze via `sf agent disable`) → `steward-parked` (el-ilbdj7);
 - the only free eligible executors are provider-limited, or an orphaned task's
   (non-parked) executor is limited → `provider-limit` with the soonest reset time.
 
-Still actionable (wake): no eligible executor exists at all, a free unlimited
+Still actionable (wake): no eligible executor exists at all (for reviews: no merge
+steward registered, even if other stewards are), a free unlimited
 executor exists but the task stayed ready, parked/disabled executors, orphaned work
 of an unlimited executor, and conflict/test_failed/failed merges.
 
@@ -106,6 +109,13 @@ of an unlimited executor, and conflict/test_failed/failed merges.
   + current provider limits/manual sleep). An unchanged signature is not re-sent;
   a changed task set or limit wakes again (existing idle/human-input/2-min spacing
   still applies). An empty actionable set clears the signature.
+- `steward-parked` reviews are quiet, but the Director gets **one** notice per
+  change of that set ("Every registered merge steward is disabled (parked) ...";
+  same idle/human-input/2-min gating), so a forgotten freeze is still noticed.
+  The parked set is part of the wake signature; while unchanged, polls only log the
+  quiet state, and other wakes list those reviews under "No action needed"
+  (`(all merge stewards disabled)`). Re-enabling a free merge steward makes them
+  actionable again (normal behaviour).
 
 ### 4. Orphan resume back-off (el-55qcdj; added after the steward el-5qra review)
 

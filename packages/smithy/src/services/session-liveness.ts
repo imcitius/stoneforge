@@ -171,10 +171,13 @@ export function buildInterruptedResumePrompt(ctx: InterruptedResumeContext): str
 // Director watchdog
 // ----------------------------------------------------------------------------
 
-/** Why a task does not need the Director: only executor capacity or a confirmed provider limit blocks it. */
+/**
+ * Why a task does not need the Director: only executor capacity, a confirmed
+ * provider limit or deliberately parked (disabled) merge stewards block it.
+ */
 export interface WatchdogWait {
   readonly taskId: string;
-  readonly kind: 'worker-capacity' | 'steward-capacity' | 'provider-limit';
+  readonly kind: 'worker-capacity' | 'steward-capacity' | 'steward-parked' | 'provider-limit';
   /** ISO timestamp of the soonest reset of the limit that blocks the eligible executors. */
   readonly resetsAt?: string;
 }
@@ -183,6 +186,7 @@ export function describeWatchdogWait(wait: WatchdogWait): string {
   switch (wait.kind) {
     case 'worker-capacity': return `${wait.taskId} (all eligible workers busy)`;
     case 'steward-capacity': return `${wait.taskId} (all merge stewards busy)`;
+    case 'steward-parked': return `${wait.taskId} (all merge stewards disabled)`;
     case 'provider-limit': return `${wait.taskId} (provider limit${wait.resetsAt ? `, resets ${wait.resetsAt}` : ''})`;
   }
 }
