@@ -288,7 +288,10 @@ the Logs viewer shows a snapshot of the last 10,000 characters from the current 
 It opens in a separate child window above the project dashboard, sized to the
 owner display’s available work area (at most 800 × 560 including native chrome).
 Long lines wrap and the log region scrolls while Close stays visible. Close, Esc,
-and the native window close action return focus to the owner. Reopening takes a
+and the native window close action return focus to the owner (explicitly: AppKit
+alone would make the frontmost other app window key, e.g. detached DevTools). A
+viewer closed while the user is already in another window or the project dashboard
+leaves that focus alone. Reopening takes a
 fresh snapshot; an empty run shows “No logs yet”. Log text cannot execute HTML or
 scripts, and the viewer exposes no Node or desktop command bridge.
 
@@ -413,7 +416,24 @@ packaged Electron views, HTTP/WS/SSE authentication, isolated storage and projec
 switching. Its Logs regression injects snapshots into only the temporary manager,
 constrains the reported work area to 600px, and checks actual wheel/keyboard
 scrolling, long lines, empty logs, Close/Esc/native close, focus, reopening, and
-the child window above an open project. It retains viewer PNGs and
+the child window above an open project. Focus is asserted on native windows and
+the focused native web contents, because Playwright emulates page focus
+(`document.hasFocus()` stays true). With only the owner behind the viewer, AppKit
+returns key status to the owner by itself, so the check also orders a test-only
+window above the owner while the viewer is key (removing the explicit `owner.focus()`
+in `logs-window.ts` then fails: that window becomes key), and closes viewers in the
+background after focus moved to that window or to the project dashboard (restoring
+unconditionally then fails: focus is pulled back). Native key status is polled
+against one 10 s deadline rather than awaited as a `focus` event, which AppKit/Electron
+can make without emitting to a listener added afterwards; nothing is retried. A cleanup
+error after a failure is reported without masking the failing step. The test-only window
+is closed with `close()` and awaited to `closed` (never `destroy()` while shown), and
+focus/visibility calls in the check and in `logs-window.ts` skip destroyed windows.
+`check-app.mjs` traps uncaught main-process exceptions (`scripts/main-process-errors.mjs`):
+instead of Electron's modal “A JavaScript error occurred in the main process” box, which
+blocks the app and hangs the check, the error is written to `main-process-errors.jsonl`
+in the fixture directory and stderr, the app exits with 70 and the check fails with that
+error. It retains viewer PNGs and
 `logs-observations.json`; `logs-native-desktop.png` captures native z-order when
 macOS screen capture permission is available. The work-area override is test-side;
 it does not change the host display configuration. `check-tabs.mjs` launches the packaged app with fresh userData,

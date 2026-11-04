@@ -27,6 +27,7 @@ export async function checkLogs(electron, page, resources, temp) {
     owner.setMinimumSize(600, 300);
     owner.setBounds({ x: area.x, y: area.y, width: Math.min(1200, area.width), height: area.height });
     owner.show(); owner.focus();
+    globalThis.__logsOwner = owner.id;
     return saved;
   }, managerURL);
   const errors = [];
@@ -62,17 +63,25 @@ export async function checkLogs(electron, page, resources, temp) {
     return `${expected}; frontmost app ${JSON.stringify(front)}, test app pid ${native.appPid}` +
       `${front.pid === native.appPid ? '' : ' (test app is NOT active)'}; windows ${JSON.stringify(native.windows)}; shell ${JSON.stringify(shell)}`;
   };
-  const nativeFocus = async (child) => {
-    const settled = await electron.evaluate(async ({ BrowserWindow }, child) => {
-      const window = BrowserWindow.getAllWindows().find(window => !!window.getParentWindow() === child);
-      if (window.isFocused()) return true;
-      return new Promise((resolve) => {
-        const focused = () => { clearTimeout(timeout); resolve(true); };
-        const timeout = setTimeout(() => { window.off('focus', focused); resolve(false); }, 10_000);
-        window.once('focus', focused);
-      });
-    }, child);
-    if (!settled) throw new Error('Native focus did not settle: ' + await focusReport(`expected the ${child ? 'Logs viewer' : 'owner window'} to be focused`));
+  // Poll key status until a deadline instead of waiting for a 'focus' event: after a key window
+  // is destroyed, AppKit can make the owner key without Electron emitting 'focus' to a listener
+  // added later (el-64nnhq review: owner reported focused, event never seen). One wait, no retry.
+  const nativeFocus = async (target) => {
+    const settled = await electron.evaluate(({ BrowserWindow }, target) => new Promise((resolve) => {
+      const window = target === 'other' ? globalThis.__logsOther
+        : target ? BrowserWindow.getAllWindows().find(window => window.getParentWindow())
+          : BrowserWindow.fromId(globalThis.__logsOwner);
+      const deadline = Date.now() + 10_000;
+      const poll = () => {
+        if (!window || window.isDestroyed()) resolve(false);
+        else if (window.isFocused()) resolve(true);
+        else if (Date.now() > deadline) resolve(false);
+        else setTimeout(poll, 20);
+      };
+      poll();
+    }), target);
+    if (!settled) throw new Error('Native focus did not settle: ' + await focusReport(`expected the ${
+      target === 'other' ? 'other app window' : target ? 'Logs viewer' : 'owner window'} to be focused`));
   };
   const activateApp = async () => {
     const active = await electron.evaluate(async ({ app, BrowserWindow }) => {
@@ -87,6 +96,22 @@ export async function checkLogs(electron, page, resources, temp) {
     });
     if (!active) throw new Error('Could not activate the packaged app before a user action: ' + await focusReport('expected the test app to be active'));
   };
+  /** Which native web contents has keyboard focus: the shell, the visible project view, or other. */
+  const focusedContents = () => electron.evaluate(({ BrowserWindow, webContents }) => {
+    const owner = BrowserWindow.fromId(globalThis.__logsOwner), focused = webContents.getFocusedWebContents();
+    if (!owner || owner.isDestroyed()) return 'owner destroyed';
+    if (!focused || focused.isDestroyed()) return null;
+    if (focused === owner.webContents) return 'shell';
+    const view = owner.contentView.children.find(view => view !== owner.webContentsView && view.getVisible());
+    return view && focused === view.webContents ? 'project' : 'other';
+  });
+  // The test-only window is closed through the native close lifecycle and awaited to 'closed'
+  // (destroy() on a shown window is avoided; el-64nnhq crash addendum). once() removes the listener.
+  const closeOther = () => electron.evaluate(() => new Promise((resolve) => {
+    const other = globalThis.__logsOther; delete globalThis.__logsOther;
+    if (!other || other.isDestroyed()) return resolve();
+    other.once('closed', () => resolve()); other.close();
+  }));
   // Logs opens from the active tab's ⋯ project menu (the toolbar buttons were removed).
   const restorePopup = await recordPopups(electron);
   const open = async () => {
@@ -145,14 +170,22 @@ export async function checkLogs(electron, page, resources, temp) {
     else if (method === 'escape') { await viewer.locator('pre').focus(); await closingKey(viewer, 'Escape'); }
     else {
       // BrowserWindow.close uses the native close lifecycle (unlike destroy).
-      await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getFocusedWindow().close());
+      await electron.evaluate(({ BrowserWindow }) => {
+        const viewer = BrowserWindow.getFocusedWindow();
+        if (!viewer || viewer.isDestroyed() || !viewer.getParentWindow()) throw new Error('The Logs viewer is not the key window');
+        viewer.close();
+      });
     }
     await closed;
     await nativeFocus(false);
+    // Playwright emulates page focus (document.hasFocus() stays true), so the focused native
+    // web contents is the evidence that keyboard focus is back in the shell.
+    assert.equal(await focusedContents(), 'shell');
     await page.waitForFunction(() => document.hasFocus() && document.activeElement?.id === 'tab-actions');
     assert.equal(await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 1);
     observations.push({ closedBy: method, ownerFocusRestored: true });
   };
+  let failure;
   try {
     await setLogs(fixture);
     const viewer = await open();
@@ -225,21 +258,94 @@ export async function checkLogs(electron, page, resources, temp) {
     assert.equal(await atlasLogs.locator('h1').textContent(), 'Atlas — Logs');
     assert.equal(await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 2);
     await close(atlasLogs, 'button');
+
+    // The explicit restoration in logs-window.ts is only observable when AppKit would not give
+    // key status back to the owner by itself: another app window (as detached DevTools would
+    // be) is ordered above the owner while the viewer is key. Without it, that window gets key.
+    const covered = await open();
+    // Consume this window's Playwright event so a later open() cannot pick it up as a viewer.
+    const otherPage = electron.waitForEvent('window');
+    await electron.evaluate(({ BrowserWindow }) => {
+      globalThis.__logsOther = new BrowserWindow({ width: 320, height: 200, title: 'Other app window', show: false });
+      void globalThis.__logsOther.loadURL('about:blank'); globalThis.__logsOther.showInactive();
+    });
+    await otherPage;
+    await nativeFocus(true);
+    const coveredClosed = covered.waitForEvent('close');
+    await activateApp(); await covered.locator('#close').click(); await coveredClosed;
+    await nativeFocus(false);
+    assert.equal(await focusedContents(), 'shell');
+    observations.push({ otherWindowAbove: true, ownerFocusRestored: true });
+
+    // Restoration applies only to a viewer that is key when it closes: if the user has moved to
+    // another window meanwhile, closing the viewer in the background must leave that window key.
+    // Read focus within the 'closed' emit, right after the product's own (earlier) listener.
+    const closeInBackground = () => electron.evaluate(({ BrowserWindow }) => new Promise((resolve) => {
+      const owner = BrowserWindow.fromId(globalThis.__logsOwner);
+      const viewer = BrowserWindow.getAllWindows().find(window => !window.isDestroyed() && window.getParentWindow());
+      if (!viewer || !owner || owner.isDestroyed()) return resolve({ viewer: !!viewer, owner: !!owner && !owner.isDestroyed() });
+      viewer.once('closed', () => {
+        const other = globalThis.__logsOther;
+        resolve(owner.isDestroyed() ? { owner: false } : { ownerFocused: owner.isFocused(), shellFocused: owner.webContents.isFocused(),
+          otherFocused: !!other && !other.isDestroyed() && other.isFocused() });
+      });
+      viewer.close();
+    }));
+    const behind = await open();
+    await electron.evaluate(() => { if (!globalThis.__logsOther?.isDestroyed()) globalThis.__logsOther?.focus(); });
+    await nativeFocus('other');
+    const behindClosed = behind.waitForEvent('close');
+    const afterBehindClose = await closeInBackground();
+    await behindClosed;
+    assert.deepEqual(afterBehindClose, { ownerFocused: false, shellFocused: false, otherFocused: true }, 'Background close kept the other window key');
+    await closeOther();
+    await electron.evaluate(({ BrowserWindow }) => {
+      const owner = BrowserWindow.fromId(globalThis.__logsOwner);
+      if (owner && !owner.isDestroyed()) owner.focus();
+    });
+    await nativeFocus(false);
+    observations.push({ closedBehindOtherWindow: true, otherWindowKept: true });
+
+    // The same for the owner's project dashboard: a background close does not move focus back
+    // to the shell that opened the viewer.
+    const background = await open();
+    await electron.evaluate(({ BrowserWindow }) => {
+      const owner = BrowserWindow.fromId(globalThis.__logsOwner);
+      owner.contentView.children.find(view => view !== owner.webContentsView && view.getVisible()).webContents.focus();
+    });
+    await nativeFocus(false);
+    assert.equal(await focusedContents(), 'project');
+    const backgroundClosed = background.waitForEvent('close');
+    const afterBackgroundClose = await closeInBackground();
+    await backgroundClosed;
+    assert.deepEqual(afterBackgroundClose, { ownerFocused: true, shellFocused: false, otherFocused: false }, 'Background close kept project focus');
+    assert.equal(await focusedContents(), 'project');
+    observations.push({ closedInBackground: true, projectFocusKept: true });
     await page.locator('[role="tab"]').filter({ hasText: 'Cedar' }).click();
     observations.push({ projectSwitchReplacesViewer: true });
     assert.deepEqual(errors, []);
-    console.log('Packaged Logs: 600px work area, text safety, scrolling, Close/Escape/native close, focus, reopening, child above project: passed');
+    console.log('Packaged Logs: 600px work area, text safety, scrolling, Close/Escape/native close, focus (another window above the owner, background close), reopening, child above project: passed');
+  } catch (error) {
+    failure = error; throw error;
   } finally {
-    await restorePopup();
+    // Observations first, and a cleanup failure (e.g. the app already gone) must not mask the
+    // step that failed.
     await writeFile(join(temp, 'logs-observations.json'), JSON.stringify({ area: original.area, observations, errors }, null, 2));
-    await electron.evaluate(async ({ BrowserWindow, screen }, { managerURL, original }) => {
-      const { ProjectManager } = process.getBuiltinModule('module').createRequire(managerURL)(process.getBuiltinModule('url').fileURLToPath(managerURL));
-      ProjectManager.prototype.list = globalThis.__logsList;
-      screen.getDisplayMatching = globalThis.__logsDisplay;
-      delete globalThis.__logsFixture;
-      for (const window of BrowserWindow.getAllWindows()) if (window.getParentWindow()) window.close();
-      const owner = BrowserWindow.getAllWindows()[0];
-      owner.setMinimumSize(...original.minimum); owner.setBounds(original.bounds);
-    }, { managerURL, original });
+    try {
+      await restorePopup();
+      await closeOther();
+      await electron.evaluate(async ({ BrowserWindow, screen }, { managerURL, original }) => {
+        const { ProjectManager } = process.getBuiltinModule('module').createRequire(managerURL)(process.getBuiltinModule('url').fileURLToPath(managerURL));
+        ProjectManager.prototype.list = globalThis.__logsList;
+        screen.getDisplayMatching = globalThis.__logsDisplay;
+        delete globalThis.__logsFixture;
+        for (const window of BrowserWindow.getAllWindows()) if (!window.isDestroyed() && window.getParentWindow()) window.close();
+        const owner = BrowserWindow.fromId(globalThis.__logsOwner);
+        if (owner && !owner.isDestroyed()) { owner.setMinimumSize(...original.minimum); owner.setBounds(original.bounds); }
+      }, { managerURL, original });
+    } catch (cleanup) {
+      if (!failure) throw cleanup;
+      console.error('Logs cleanup after the failure also failed: ' + cleanup.message);
+    }
   }
 }

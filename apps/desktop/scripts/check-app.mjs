@@ -1,6 +1,7 @@
 /** Packaged Electron smoke test. Uses temporary workspaces and real provider calls with --live. */
 import assert from 'node:assert/strict';
 import { checkLogs } from './check-logs.mjs';
+import { trapMainProcessErrors } from './main-process-errors.mjs';
 import { skipNewProjectOnboarding, checkDirectorStartFailure } from './check-onboarding.mjs';
 import { recordPopups, chooseTabAction } from './tab-menu.mjs';
 import { mkdtemp, mkdir, writeFile, cp, rm, access, readFile } from 'node:fs/promises';
@@ -25,6 +26,7 @@ const live = process.argv.includes('--live') || process.argv.includes('--claude-
 const providerNames = process.argv.includes('--claude-only') ? ['director'] : ['director', 'codex-director'];
 let electron;
 let externalFixture;
+let mainErrors;
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
   execFileSync(node, [join(root, 'apps/desktop/scripts/check-pty.mjs'), resources], { stdio: 'inherit' });
@@ -41,6 +43,8 @@ try {
     env: { ...env, PATH: '/usr/bin:/bin:/usr/sbin:/sbin', STONEFORGE_DESKTOP_TEST_DATA: join(temp, 'app-data') },
     timeout: 30_000,
   });
+  // A main-process exception must fail this check, not hang it behind Electron's modal error box.
+  mainErrors = await trapMainProcessErrors(electron, join(temp, 'main-process-errors.jsonl'));
   const page = await electron.firstWindow();
   const expectedBuild = JSON.parse(await readFile(join(resources, 'app/build-info.json'), 'utf8'));
   console.log('Packaged app:', bundle, JSON.stringify(expectedBuild));
@@ -273,7 +277,15 @@ try {
   }
   assert.deepEqual(errors, []);
   assert.equal(await taskPage.evaluate(() => window.__desktopOnboardingReturned), false, 'Completed tour must not return');
+  await mainErrors.assertNone();
   console.log(`Diagnostics and screenshot: ${temp}`);
+} catch (error) {
+  // The trapped exception exits the app; report it rather than the resulting closed target.
+  await mainErrors?.assertNone().catch((crash) => {
+    crash.message += `\n(the harness step then failed with: ${error.message.split('\n')[0]})`;
+    throw crash;
+  });
+  throw error;
 } finally {
   if (externalFixture && externalFixture.exitCode === null) externalFixture.kill('SIGTERM');
   if (electron) {
