@@ -201,7 +201,7 @@ for (const fail of [false, true]) {
   });
 }
 
-test('local delivery failure retains literal merge for recovery without changing target', async () => {
+test('local delivery failure reports literal merge, removes temp worktree, keeps target and source (el-43h9jy)', async () => {
   const { branch, worktree } = source();
   writeFileSync(path.join(repo, 'README'), 'user changes');
   const result = await mergeBranch({ workspaceRoot: repo, sourceBranch: branch, targetBranch: 'main', localOnly: true, commitMessage: message() });
@@ -209,8 +209,8 @@ test('local delivery failure retains literal merge for recovery without changing
   expectMessage(repo, result.commitHash!, message()); expectNoMarkers();
   expect(ref(repo, 'main')).toBe(initial); expect(ref(remote, 'main')).toBe(initial);
   expect(readFileSync(path.join(repo, 'README'), 'utf8')).toBe('user changes');
-  expect(existsSync(worktree)).toBe(true);
-  expect(git(repo, 'worktree', 'list', '--porcelain')).toContain('_merge-');
+  expect(existsSync(worktree)).toBe(true); expect(result.error).toContain(result.commitHash!);
+  expect(git(repo, 'worktree', 'list', '--porcelain')).not.toContain('_merge-');
 });
 
 test('push to different local destination fails post-push verification', async () => {

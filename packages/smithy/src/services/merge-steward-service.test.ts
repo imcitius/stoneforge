@@ -1636,10 +1636,11 @@ describe('MergeStewardService', () => {
         expect(result.error).toContain('merge failed');
         expect(execCalls.some(c => c.cmd.includes('push -- origin'))).toBe(false);
 
-        // No checkout of target branch should occur after worktree removal
+        // No checkout of target branch should occur after worktree removal;
+        // only the cleanup's own `git worktree prune` may follow (el-43h9jy).
         const worktreeRemoveIdx = execCalls.findIndex(c => c.cmd.includes('worktree remove'));
         expect(worktreeRemoveIdx).toBeGreaterThan(-1);
-        expect(execCalls.slice(worktreeRemoveIdx + 1)).toEqual([]);
+        expect(execCalls.slice(worktreeRemoveIdx + 1).map(c => c.cmd)).toEqual(['git worktree prune']);
         expect(execCalls.some(c => c.cmd.startsWith('git checkout '))).toBe(false);
       });
 

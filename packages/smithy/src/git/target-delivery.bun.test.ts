@@ -1,7 +1,7 @@
 /** Real repositories + CLI processes: target ancestry and delivery before bookkeeping. */
 import { beforeEach, afterEach, expect, test, setDefaultTimeout } from 'bun:test';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, realpathSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, realpathSync, readdirSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createStorage, initializeSchema, type StorageBackend } from '@stoneforge/storage';
@@ -146,6 +146,8 @@ test('remote merge refuses unpublished target history; --local preserves it and 
   expect(closed.status).toBe('closed');
   expect(closed.metadata.orchestrator).toMatchObject({ mergeStatus: 'merged', mergeCommitHash: git(repo, 'rev-parse', 'master') });
   expect(existsSync(worktree.path)).toBe(false);
+  expect(git(repo, 'worktree', 'list', '--porcelain')).not.toContain('_merge-');
+  expect(tempMergeDirs()).toEqual([]);
 });
 
 test('failed local delivery keeps task in review, branch/worktree and target contents intact', async () => {
@@ -158,7 +160,59 @@ test('failed local delivery keeps task in review, branch/worktree and target con
   expect((await api.get<Task>(task.id))?.status).toBe('review');
   expect((await api.get<Task>(task.id))?.metadata.orchestrator).not.toMatchObject({ mergeStatus: 'merged' });
   expect(existsSync(worktree.path)).toBe(true); expect(git(repo, 'rev-parse', worktree.branch)).toBeTruthy();
-  expect(git(repo, 'worktree', 'list', '--porcelain')).toContain('_merge-');
+  // el-43h9jy: the refused delivery no longer leaves its temporary merge worktree registered.
+  expect(git(repo, 'worktree', 'list', '--porcelain')).not.toContain('_merge-');
+  expect(tempMergeDirs()).toEqual([]);
+});
+
+/** Temporary `_merge-*` directories left under the repository's worktree dir. */
+function tempMergeDirs() {
+  const dir = path.join(repo, '.stoneforge/.worktrees');
+  return existsSync(dir) ? readdirSync(dir).filter(name => name.startsWith('_merge-')) : [];
+}
+/** Shared post-commit hook that only acts inside the temporary merge worktree. */
+function mergeWorktreeHook(body: string) {
+  const hook = path.join(repo, '.git/hooks/post-commit');
+  writeFileSync(hook, `#!/bin/sh\ncase "$PWD" in *_merge-*) ;; *) exit 0 ;; esac\n${body}\n`); chmodSync(hook, 0o755);
+}
+
+test('el-43h9jy: target advanced during local merge is refused and leaves no _merge worktree', async () => {
+  const { task, worktree } = await taskBranch(); const source = commit(worktree.path, 'TASK');
+  // Advance local master right after the squash commit, i.e. between the temp
+  // worktree checkout and delivery (same tree, so the main checkout stays clean).
+  mergeWorktreeHook([
+    'tree=$(git rev-parse "refs/heads/master^{tree}")',
+    'next=$(git commit-tree -p refs/heads/master -m advanced "$tree")',
+    'git update-ref refs/heads/master "$next"',
+  ].join('\n'));
+  const result = cli('task', 'merge', task.id, '--local');
+  const output = result.stdout + result.stderr;
+  expect(result.status, output).toBe(1);
+  expect(output).toContain(`Failed to merge task ${task.id}: Local delivery to master failed`);
+  const advanced = git(repo, 'rev-parse', 'master');
+  expect(advanced).not.toBe(initial); expect(git(repo, 'log', '-1', '--format=%s', 'master')).toBe('advanced');
+  expect(git(repo, 'rev-parse', 'master^')).toBe(initial);
+  expect(existsSync(path.join(repo, 'TASK'))).toBe(false);
+  const current = (await api.get<Task>(task.id))!;
+  expect(current.status).toBe('review'); expect(current.metadata.orchestrator).not.toMatchObject({ mergeStatus: 'merged' });
+  // Source task worktree/branch untouched; only the temp merge worktree is gone.
+  expect(existsSync(worktree.path)).toBe(true); expect(git(repo, 'rev-parse', worktree.branch)).toBe(source);
+  expect(git(repo, 'worktree', 'list', '--porcelain')).toContain(worktree.path);
+  expect(git(repo, 'worktree', 'list', '--porcelain')).not.toContain('_merge-');
+  expect(tempMergeDirs()).toEqual([]);
+});
+
+test('el-43h9jy: exception inside the temporary merge worktree still unregisters it', async () => {
+  const { worktree } = await taskBranch(); const source = commit(worktree.path, 'TASK');
+  // Remove the temp worktree directory mid-merge so later git calls in it throw
+  // (exception path). Preservation regression: cleanup must still unregister it.
+  mergeWorktreeHook('rm -rf "$PWD"');
+  const result = await mergeBranch({ workspaceRoot: repo, sourceBranch: worktree.branch, targetBranch: 'master', localOnly: true });
+  expect(result.success).toBe(false);
+  expect(git(repo, 'rev-parse', 'master')).toBe(initial);
+  expect(existsSync(worktree.path)).toBe(true); expect(git(repo, 'rev-parse', worktree.branch)).toBe(source);
+  expect(git(repo, 'worktree', 'list', '--porcelain')).not.toContain('_merge-');
+  expect(tempMergeDirs()).toEqual([]);
 });
 
 test('local delivery refuses non-fast-forward even when target is not checked out', async () => {

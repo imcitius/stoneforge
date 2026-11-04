@@ -456,7 +456,6 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
 
   let mergeResult: MergeBranchResult = { success: false, hasConflict: false, error: 'Merge did not complete' };
 
-  let preserveMergeWorktree = false;
   try {
     let commitHash: string;
 
@@ -522,10 +521,11 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
       try {
         await syncLocalBranchFromCommit(workspaceRoot, targetBranch, commitHash);
       } catch (error) {
-        preserveMergeWorktree = true;
+        // The squash commit is reproducible from the unchanged source branch, so
+        // the temporary worktree is removed (finally) rather than left registered.
         return {
           success: false, commitHash, hasConflict: false,
-          error: `Local delivery to ${targetBranch} failed: ${error instanceof Error ? error.message : error}. Merge retained at ${mergeDir}; source branch/worktree are unchanged.`,
+          error: `Local delivery to ${targetBranch} failed: ${error instanceof Error ? error.message : error}. Undelivered merge commit ${commitHash} was not applied; temporary merge worktree removed; source branch/worktree are unchanged.`,
         };
       }
     }
@@ -570,14 +570,10 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
       };
     }
   } finally {
-    // 7. Retain undelivered local merge commits for recovery; clean other temp worktrees
-    try {
-      if (!preserveMergeWorktree) await execFileAsync('git', ['worktree', 'remove', '--force', '--', mergeDir], {
-        cwd: workspaceRoot, encoding: 'utf8',
-      });
-    } catch {
-      // Ignore cleanup errors
-    }
+    // 7. Remove the temporary merge worktree on every path (success, refusal,
+    // conflict, exception). Only this detached temp worktree is touched; the
+    // source task branch/worktree are left as they are.
+    await removeTemporaryMergeWorktree(workspaceRoot, mergeDir);
   }
 
   // Remote delivery remains authoritative in the default mode.
@@ -586,6 +582,27 @@ export async function mergeBranch(options: MergeBranchOptions): Promise<MergeBra
   }
 
   return mergeResult;
+}
+
+/**
+ * Best-effort removal of a temporary `_merge-*` worktree: `git worktree remove
+ * --force` (argv form), then `git worktree prune` so a directory that is already
+ * gone (or could not be removed) does not stay registered.
+ */
+async function removeTemporaryMergeWorktree(workspaceRoot: string, mergeDir: string): Promise<void> {
+  try {
+    await execFileAsync('git', ['worktree', 'remove', '--force', '--', mergeDir], {
+      cwd: workspaceRoot, encoding: 'utf8',
+    });
+  } catch {
+    // Fall through to directory removal + prune
+    try { fs.rmSync(mergeDir, { recursive: true, force: true }); } catch { /* ignore */ }
+  }
+  try {
+    await execFileAsync('git', ['worktree', 'prune'], { cwd: workspaceRoot, encoding: 'utf8' });
+  } catch {
+    // Ignore cleanup errors
+  }
 }
 
 /**

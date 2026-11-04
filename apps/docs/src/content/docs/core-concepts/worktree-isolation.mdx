@@ -185,8 +185,9 @@ Git also protects colliding untracked files. With no origin, local delivery is a
 
 The task is marked merged and closed, and its source worktree is cleaned up, only
 after verification against the selected delivery target. A local delivery failure
-leaves the task open and source branch/worktree available; the error also identifies
-the retained temporary merge worktree. Resolve the cause before retrying. Do not use
+leaves the task open and source branch/worktree available; the temporary merge
+worktree is removed and pruned (the error names the undelivered merge commit, which
+is rebuilt from the source branch on retry). Resolve the cause before retrying. Do not use
 `merge-status --force` as a substitute for delivery.
 
 Before local review, use the corrected `sf task sync`, confirm the source contains
