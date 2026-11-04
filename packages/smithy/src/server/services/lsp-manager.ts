@@ -5,7 +5,7 @@
  * Spawns language servers on demand and manages their lifecycle.
  */
 
-import { spawn, execSync, type ChildProcess } from 'node:child_process';
+import { spawn, execFileSync, type ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createLogger } from '../../utils/logger.js';
@@ -54,11 +54,15 @@ interface RunningServer {
 }
 
 /**
- * Check if a command is available in PATH
+ * Check if a command is available in PATH.
+ *
+ * Runs `which` with the command name as a single argv element (no shell), so
+ * a name containing shell metacharacters is looked up literally and never
+ * executed. Exported for regression tests; `env` defaults to the process env.
  */
-async function commandExists(cmd: string): Promise<boolean> {
+export async function commandExists(cmd: string, env: NodeJS.ProcessEnv = process.env): Promise<boolean> {
   try {
-    execSync(`which ${cmd}`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
+    execFileSync('which', [cmd], { encoding: 'utf-8', timeout: 5000, stdio: 'pipe', env });
     return true;
   } catch {
     return false;
