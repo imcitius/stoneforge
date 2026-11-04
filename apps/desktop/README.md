@@ -33,7 +33,10 @@ open 'apps/desktop/dist/mac/Stoneforge Desktop-darwin-arm64/Stoneforge Desktop.a
 Packaging rebuilds the web UI and builds/checks native SQLite against the bundled Node ABI. Packaging also repairs the deployed PTY helper permissions and verifies a real
 PTY spawn/output/exit inside the final app, without calling an agent provider. Native files
 and the Node executable live outside ASAR. The bundle can be moved independently
-of the checkout. Packaging applies and verifies a local ad-hoc code signature after assembling the
+of the checkout. The backend `pnpm deploy` is staged in
+`packages/smithy/node_modules/.stoneforge-deploy` and then moved to `dist/stage`:
+pnpm 8.15.5 otherwise writes its root `.modules.yaml` two directories above the
+checkout (`scripts/deploy-backend.mjs`, regression `tests/deploy-backend.test.mjs`). Packaging applies and verifies a local ad-hoc code signature after assembling the
 final bundle, including its notification identity; external
 distribution and notarization are a later step. Intel builds are not verified.
 

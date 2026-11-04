@@ -1,5 +1,6 @@
 import { collectBuildInfo } from './build-info.mjs';
 import { resolveReleaseVersion, assertReleaseTree, gitHead, RELEASE_ARCH } from './release.mjs';
+import { deployBackend } from './deploy-backend.mjs';
 import { packager } from '@electron/packager';
 import { cp, mkdir, rm, writeFile, chmod, readdir, readlink } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -41,7 +42,8 @@ await writeFile(join(bundle, 'package.json'), JSON.stringify({ name: 'stoneforge
 await writeFile(join(bundle, 'build-info.json'), JSON.stringify(build, null, 2) + '\n');
 // Build the UI immediately before deployment so a cached SDK build cannot ship stale assets.
 execFileSync('pnpm', ['--filter', '@stoneforge/smithy-web', 'build:web'], { cwd: root, stdio: 'inherit' });
-execFileSync('pnpm', ['--filter', '@stoneforge/smithy', 'deploy', '--prod', join(resources, 'backend')], { cwd: root, stdio: 'inherit' });
+// Staged inside the checkout: plain `pnpm deploy` writes pnpm state above it (see deploy-backend.mjs).
+await deployBackend({ root, project: 'packages/smithy', filter: '@stoneforge/smithy', target: join(resources, 'backend') });
 // pnpm deploy can copy spawn-helper from its store without executable permissions.
 // Workspace postinstall hooks do not repair the deployed copy.
 execFileSync(require.resolve('node/bin/node'), [join(resources, 'backend/scripts/fix-node-pty-permissions.cjs')], { cwd: join(resources, 'backend'), stdio: 'inherit' });
