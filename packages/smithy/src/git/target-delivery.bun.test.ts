@@ -15,11 +15,14 @@ import type { TaskAssignmentService } from '../services/task-assignment-service.
 import type { DispatchService } from '../services/dispatch-service.js';
 import { createLocalMergeProvider } from '../services/merge-request-provider.js';
 import type { AgentRegistry } from '../services/agent-registry.js';
+import { startSessionServerFixture, type SessionServerFixture } from '../testing/session-server-fixture.js';
 
 setDefaultTimeout(30_000);
 const cliSource = path.resolve(import.meta.dir, '../bin/sf.ts');
 let root: string, repo: string, remote: string, initial: string;
 let storage: StorageBackend, api: QuarryAPI, repositories: ProjectRepositories;
+/** Cleanup asks the workspace server for live sessions (el-2mlwrb); none reported here. */
+let sessionServer: SessionServerFixture | undefined;
 const git = (cwd: string, ...args: string[]) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 function commit(cwd: string, file: string, content = file) {
   writeFileSync(path.join(cwd, file), content);
@@ -29,7 +32,7 @@ function commit(cwd: string, file: string, content = file) {
 function cli(...args: string[]) {
   const executable = process.env.SF_TEST_CLI ?? process.execPath;
   return spawnSync(executable, [...(process.env.SF_TEST_CLI ? [] : [cliSource]), ...args, '--json'], {
-    cwd: root, encoding: 'utf8', env: { ...process.env, STONEFORGE_ROOT: root }, timeout: 20_000,
+    cwd: root, encoding: 'utf8', env: { ...process.env, STONEFORGE_ROOT: root, STONEFORGE_SESSION_ID: '', ...sessionServer?.env }, timeout: 20_000,
   });
 }
 async function taskBranch(base = 'master') {
@@ -52,7 +55,10 @@ beforeEach(async () => {
   repositories = new ProjectRepositories(root, api);
   await repositories.add({ id: 'core', path: repo, targetBranch: 'master' });
 });
-afterEach(() => { storage.close(); rmSync(root, { recursive: true, force: true }); });
+afterEach(async () => {
+  await sessionServer?.close(); sessionServer = undefined;
+  storage.close(); rmSync(root, { recursive: true, force: true });
+});
 
 for (const state of ['equal', 'local-ahead', 'remote-ahead', 'offline', 'no-remote', 'explicit-target'] as const) {
   test(`worktree + read-only worktree use complete target: ${state}`, async () => {
@@ -127,6 +133,7 @@ test('remote merge refuses unpublished target history; --local preserves it and 
   const refused = cli('task', 'merge', task.id);
   expect(refused.status).not.toBe(0); expect(refused.stdout + refused.stderr).toContain('Refusing to publish');
   expect((await api.get<Task>(task.id))?.status).toBe('review'); expect(existsSync(worktree.path)).toBe(true);
+  sessionServer = await startSessionServerFixture(root);
   const result = cli('task', 'merge', task.id, '--local');
   expect(result.status, result.stdout + result.stderr).toBe(0);
   expect(git(repo, 'merge-base', '--is-ancestor', local, 'master')).toBe('');

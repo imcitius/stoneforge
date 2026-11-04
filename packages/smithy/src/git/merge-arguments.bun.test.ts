@@ -9,11 +9,14 @@ import { createQuarryAPI, type QuarryAPI } from '@stoneforge/quarry';
 import { createTask, type Task, type EntityId } from '@stoneforge/core';
 import { ProjectRepositories } from './project-repositories.js';
 import { mergeBranch, ensureTargetBranchExists, hasRemote } from './merge.js';
+import { startSessionServerFixture, type SessionServerFixture } from '../testing/session-server-fixture.js';
 
 setDefaultTimeout(30_000);
 const cliSource = path.resolve(import.meta.dir, '../bin/sf.ts');
 let root: string, repo: string, remote: string, initial: string;
 let storage: StorageBackend | undefined;
+/** Cleanup asks the workspace server for live sessions (el-2mlwrb); none reported here. */
+let sessionServer: SessionServerFixture | undefined;
 const git = (cwd: string, ...args: string[]) => execFileSync('git', args, {
   cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -47,7 +50,7 @@ function cli(...args: string[]) { return cliAt(root, ...args); }
 function cliAt(cwd: string, ...args: string[]) {
   const executable = process.env.SF_TEST_CLI ?? process.execPath;
   return spawnSync(executable, [...(process.env.SF_TEST_CLI ? [] : [cliSource]), ...args, '--json'], {
-    cwd, encoding: 'utf8', env: { ...process.env, STONEFORGE_ROOT: root }, timeout: 20_000,
+    cwd, encoding: 'utf8', env: { ...process.env, STONEFORGE_ROOT: root, STONEFORGE_SESSION_ID: '', ...sessionServer?.env }, timeout: 20_000,
   });
 }
 async function project(): Promise<QuarryAPI> {
@@ -68,7 +71,8 @@ beforeEach(() => {
   git(root, 'clone', '--bare', '--', repo, remote);
   git(repo, 'remote', 'add', 'origin', remote); git(repo, 'fetch', 'origin');
 });
-afterEach(() => {
+afterEach(async () => {
+  await sessionServer?.close(); sessionServer = undefined;
   storage?.close(); storage = undefined;
   rmSync(root, { recursive: true, force: true });
 });
@@ -160,6 +164,7 @@ for (const localOnly of [true, false]) {
     let task = await api.create<Task>(raw as unknown as Parameters<QuarryAPI['create']>[0]);
     task = await api.update<Task>(task.id, { status: 'in_progress' });
     task = await api.update<Task>(task.id, { status: 'review', metadata: { orchestrator: { repositoryId: 'core', targetBranch: 'main', branch, worktree, mergeStatus: 'pending' } } });
+    sessionServer = await startSessionServerFixture(root);
     const result = cli('task', 'merge', task.id, ...(localOnly ? ['--local'] : []));
     expect(result.status, result.stdout + result.stderr).toBe(0);
     expectMessage(repo, ref(repo, 'main'), `${task.title} (${task.id})`);
@@ -179,6 +184,7 @@ for (const fail of [false, true]) {
     const branch = `feature/$(touch\${IFS}${root}/branch-marker)`;
     const { worktree } = source(branch, path.join(root, 'source space "quoted"'));
     git(repo, 'push', '--', 'origin', branch);
+    sessionServer = await startSessionServerFixture(root);
     const result = cliAt(worktree, 'merge', '--branch', fail ? `missing/${branch}` : branch, '--message', message(), '--cleanup');
     expect(result.status === 0, result.stdout + result.stderr).toBe(!fail);
     if (!fail) {

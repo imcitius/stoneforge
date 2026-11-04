@@ -5,7 +5,7 @@
  * default (`remote`) delivery keeps publishing task branches.
  */
 import { beforeEach, afterEach, expect, test, setDefaultTimeout } from 'bun:test';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFile, execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -27,6 +27,7 @@ import type { StewardScheduler } from '../services/steward-scheduler.js';
 import type { SessionManager } from '../runtime/session-manager.js';
 import { getOrchestratorTaskMeta } from '../types/task-meta.js';
 import { applyDeliveryBlocks, loadRolePrompt, renderPromptTemplate } from '../prompts/index.js';
+import { startSessionServerFixture } from '../testing/session-server-fixture.js';
 
 setDefaultTimeout(30_000);
 const cliSource = path.resolve(import.meta.dir, '../bin/sf.ts');
@@ -47,6 +48,25 @@ function cliWithEnv(env: Record<string, string>, ...args: string[]) {
   return spawnSync(executable, [...(process.env.SF_TEST_CLI ? [] : [cliSource]), ...args, '--json'], {
     cwd: root, encoding: 'utf8', env: { ...process.env, STONEFORGE_ROOT: root, ...env }, timeout: 20_000,
   });
+}
+/**
+ * `sf task merge` asks the workspace server for live sessions before removing
+ * the task worktree (el-2mlwrb). Run the CLI asynchronously against a fixture
+ * server that reports no other session, so the full cleanup path runs.
+ */
+async function cliWithSessionServer(env: Record<string, string>, ...args: string[]) {
+  const server = await startSessionServerFixture(root);
+  try {
+    const executable = process.env.SF_TEST_CLI ?? process.execPath;
+    return await new Promise<{ status: number; stdout: string; stderr: string }>((resolve) => {
+      execFile(executable, [...(process.env.SF_TEST_CLI ? [] : [cliSource]), ...args, '--json'], {
+        cwd: root, encoding: 'utf8', timeout: 20_000,
+        env: { ...process.env, STONEFORGE_ROOT: root, STONEFORGE_SESSION_ID: '', ...server.env, ...env },
+      }, (error, stdout, stderr) => resolve({ status: error ? (typeof error.code === 'number' ? error.code : 1) : 0, stdout, stderr }));
+    });
+  } finally {
+    await server.close();
+  }
 }
 /** A task with a real worktree/branch, owned by a live worker session. */
 async function workerTask(status: TaskStatus = TaskStatus.IN_PROGRESS) {
@@ -368,7 +388,7 @@ test('sf task merge with remote delivery runs the final refresh as literal git f
   const { task, worktree } = await workerTask(TaskStatus.REVIEW);
   commit(worktree.path, 'TASK');
   const wrapper = gitWrapper();
-  const result = cliWithEnv(wrapper.env, 'task', 'merge', task.id);
+  const result = await cliWithSessionServer(wrapper.env, 'task', 'merge', task.id);
   expect(result.status, result.stdout + result.stderr).toBe(0);
 
   const calls = wrapper.calls();
@@ -388,7 +408,7 @@ test('sf task merge keeps a verified remote delivery merged when the final git f
   const { task, worktree } = await workerTask(TaskStatus.REVIEW);
   commit(worktree.path, 'TASK');
   const wrapper = gitWrapper(true);
-  const result = cliWithEnv(wrapper.env, 'task', 'merge', task.id);
+  const result = await cliWithSessionServer(wrapper.env, 'task', 'merge', task.id);
   expect(result.status, result.stdout + result.stderr).toBe(0);
 
   const calls = wrapper.calls();
@@ -406,7 +426,7 @@ test('sf task merge with local delivery never fetches or pushes', async () => {
   commit(worktree.path, 'TASK');
   const before = remoteRefs();
   const wrapper = gitWrapper();
-  const result = cliWithEnv(wrapper.env, 'task', 'merge', task.id);
+  const result = await cliWithSessionServer(wrapper.env, 'task', 'merge', task.id);
   expect(result.status, result.stdout + result.stderr).toBe(0);
   const calls = wrapper.calls();
   expect(calls.some((c) => argvIs(c.argv, 'branch', '-D', '--', worktree.branch))).toBe(true);

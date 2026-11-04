@@ -468,6 +468,21 @@ describe('SessionManager', () => {
       );
     });
 
+    test('starting headless session blocks another start or resume for the same agent', async () => {
+      const originalSpawn = spawner.spawn.bind(spawner);
+      spawner.spawn = async (...args) => {
+        const result = await originalSpawn(...args);
+        const starting = { ...result.session, status: 'starting' as const };
+        spawner._mockSessions.set(starting.id, starting);
+        return { ...result, session: starting };
+      };
+      const first = await sessionManager.startSession(testAgentId);
+      expect(first.session.status).toBe('starting');
+      await expect(sessionManager.startSession(testAgentId)).rejects.toThrow('already has an active session');
+      await expect(sessionManager.resumeSession(testAgentId, { providerSessionId: 'prior' })).rejects.toThrow('already has an active session');
+      expect(sessionManager.listSessions({ status: ['starting', 'running'] }).map(session => session.id)).toEqual([first.session.id]);
+    });
+
     test('applies start options correctly', async () => {
       const options: StartSessionOptions = {
         workingDirectory: '/custom/path',

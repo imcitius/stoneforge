@@ -170,51 +170,68 @@ async function mergeHandler(
       });
 
       // 8. Cleanup if requested
+      let cleanupRetained: string | undefined;
       if (options.cleanup) {
-        // Find and remove the source worktree (the cwd if it's a worktree)
+        // Find the source worktree (the cwd if it's a linked worktree). Another
+        // live session may still use it; that session's work must not lose its
+        // directory. The caller's own session (STONEFORGE_SESSION_ID) is excluded
+        // and the worktree is kept when live sessions cannot be determined.
+        let sourceWorktree: string | undefined;
         try {
-          // Try to remove the current worktree
           const { stdout: worktreeList } = await execGit(['worktree', 'list', '--porcelain'], {
             cwd: workspaceRoot,
           });
-
-          // Find worktree entry matching cwd
-          const entries = worktreeList.split('\n\n');
-          for (const entry of entries) {
+          for (const entry of worktreeList.split('\n\n')) {
             const lines = entry.split('\n');
             const worktreeLine = lines.find(l => l.startsWith('worktree '));
-            if (worktreeLine) {
-              const wtPath = worktreeLine.replace('worktree ', '');
-              if (wtPath === cwd || cwd.startsWith(wtPath + '/')) {
-                // Don't remove the main worktree
-                const isBare = lines.some(l => l === 'bare');
-                const branchLine = lines.find(l => l.startsWith('branch '));
-                if (!isBare && branchLine) {
-                  await execGit(['worktree', 'remove', '--force', '--', wtPath], {
-                    cwd: workspaceRoot,
-                  });
-                }
-                break;
-              }
+            if (!worktreeLine) continue;
+            const wtPath = worktreeLine.replace('worktree ', '');
+            if (wtPath === cwd || cwd.startsWith(wtPath + '/')) {
+              // Don't remove the main worktree
+              const isBare = lines.some(l => l === 'bare');
+              const branchLine = lines.find(l => l.startsWith('branch '));
+              if (!isBare && branchLine) sourceWorktree = wtPath;
+              break;
             }
           }
         } catch {
-          // Ignore worktree removal errors
+          // Ignore worktree listing errors
         }
 
-        // Delete source branch locally and (unless local delivery) remotely
-        try {
-          await execGit(['branch', '-D', '--', sourceBranch], { cwd: workspaceRoot });
-        } catch {
-          // Branch may not exist locally
+        if (sourceWorktree) {
+          const { decideWorktreeCleanup } = await import('../worktree-cleanup-guard.js');
+          const decision = await decideWorktreeCleanup({
+            worktreePath: sourceWorktree,
+            base: workspaceRoot,
+            callerSessionId: process.env.STONEFORGE_SESSION_ID,
+          });
+          if (decision.remove) {
+            try {
+              await execGit(['worktree', 'remove', '--force', '--', sourceWorktree], { cwd: workspaceRoot });
+            } catch {
+              // Ignore worktree removal errors
+            }
+          } else {
+            cleanupRetained = decision.message;
+          }
         }
-        if (!localDelivery) {
+
+        // Delete source branch locally and (unless local delivery) remotely,
+        // unless a retained worktree still has it checked out.
+        if (!cleanupRetained) {
           try {
-            await execGit(['push', '--delete', '--', 'origin', sourceBranch], {
-              cwd: workspaceRoot,
-            });
+            await execGit(['branch', '-D', '--', sourceBranch], { cwd: workspaceRoot });
           } catch {
-            // Branch may not exist on remote
+            // Branch may not exist locally
+          }
+          if (!localDelivery) {
+            try {
+              await execGit(['push', '--delete', '--', 'origin', sourceBranch], {
+                cwd: workspaceRoot,
+              });
+            } catch {
+              // Branch may not exist on remote
+            }
           }
         }
       }
@@ -228,6 +245,7 @@ async function mergeHandler(
           commitHash,
           commitMessage,
           cleanup: options.cleanup ?? false,
+          ...(cleanupRetained ? { cleanupRetained } : {}),
         });
       }
 
@@ -241,7 +259,7 @@ async function mergeHandler(
         `  Message: ${commitMessage}`,
       ];
       if (options.cleanup) {
-        lines.push('  Cleanup: source branch and worktree removed');
+        lines.push(cleanupRetained ? `  Cleanup: ${cleanupRetained}` : '  Cleanup: source branch and worktree removed');
       }
 
       return success(
@@ -291,7 +309,8 @@ This command:
 3. Squash-merges the source branch into it
 4. Commits and pushes to origin
 5. Cleans up the temporary worktree
-6. Optionally removes the source branch and worktree (--cleanup)
+6. Optionally removes the source branch and worktree (--cleanup); both are kept
+   when another live session uses the worktree or sessions cannot be determined
 
 Options:
   -b, --branch <name>     Source branch to merge (default: current branch)

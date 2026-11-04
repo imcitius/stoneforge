@@ -49,6 +49,8 @@ import type { AgentRegistry } from './agent-registry.js';
 import { createLogger } from '../utils/logger.js';
 import { ProjectNodeError, projectNodeEnvironment, resolveProjectNode } from '../runtime/project-node.js';
 import type { OperationLogService } from './operation-log-service.js';
+import type { SessionManager } from '../runtime/session-manager.js';
+import { LIVE_SESSION_STATUSES, findOtherLiveSessionInWorktree } from '../runtime/worktree-session-use.js';
 import type { MergeRequestProvider } from './merge-request-provider.js';
 
 const logger = createLogger('merge-steward');
@@ -422,6 +424,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
   private readonly worktreeManager: WorktreeManager | undefined;
   private readonly agentRegistry: AgentRegistry;
   private readonly operationLog: OperationLogService | undefined;
+  private readonly sessionManager: SessionManager | undefined;
   private targetBranch: string | undefined;
 
   constructor(
@@ -431,7 +434,8 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     agentRegistry: AgentRegistry,
     config: MergeStewardConfig,
     worktreeManager?: WorktreeManager,
-    operationLog?: OperationLogService
+    operationLog?: OperationLogService,
+    sessionManager?: SessionManager
   ) {
     this.api = api;
     this.taskAssignment = taskAssignment;
@@ -439,6 +443,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     this.agentRegistry = agentRegistry;
     this.worktreeManager = worktreeManager;
     this.operationLog = operationLog;
+    this.sessionManager = sessionManager;
     this.config = {
       ...DEFAULT_CONFIG,
       ...config,
@@ -465,7 +470,7 @@ export class MergeStewardServiceImpl implements MergeStewardService {
       projectNodePath: repo.nodePath,
       repositoryId: repo.id,
       delivery: repo.delivery ?? 'remote',
-    }, manager, this.operationLog);
+    }, manager, this.operationLog, this.sessionManager);
   }
 
   // ----------------------------------------
@@ -1072,6 +1077,17 @@ export class MergeStewardServiceImpl implements MergeStewardService {
     }
 
     try {
+      // A merge may finish while a second session still uses the same task
+      // worktree. The latest recorded task session is the caller; any other
+      // live session there must finish before the worktree can be removed.
+      const currentSessionId = orchestratorMeta.sessionHistory?.at(-1)?.sessionId;
+      const otherSession = this.sessionManager && findOtherLiveSessionInWorktree(
+        this.sessionManager.listSessions({ status: [...LIVE_SESSION_STATUSES] }),
+        orchestratorMeta.worktree, this.config.workspaceRoot, currentSessionId);
+      if (otherSession) {
+        logger.warn(`Retaining worktree for task ${taskId}: live session ${otherSession.id} still uses it`);
+        return false;
+      }
       // Only attempt remote branch deletion when a remote actually exists
       const remoteExists = await this.hasDeliveryRemote();
       await this.worktreeManager.removeWorktree(orchestratorMeta.worktree, {
@@ -1543,7 +1559,8 @@ export function createMergeStewardService(
   agentRegistry: AgentRegistry,
   config: MergeStewardConfig,
   worktreeManager?: WorktreeManager,
-  operationLog?: OperationLogService
+  operationLog?: OperationLogService,
+  sessionManager?: SessionManager
 ): MergeStewardService {
   return new MergeStewardServiceImpl(
     api,
@@ -1552,6 +1569,7 @@ export function createMergeStewardService(
     agentRegistry,
     config,
     worktreeManager,
-    operationLog
+    operationLog,
+    sessionManager
   );
 }

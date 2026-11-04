@@ -1595,6 +1595,28 @@ describe('recoverOrphanedAssignments - merge steward recovery', () => {
     expect(updatedMeta?.sessionId).not.toBe('stale-steward-session');
   });
 
+  test('REGRESSION el-2mlwrb: failed steward resume keeps the task session when the steward became live meanwhile', async () => {
+    const steward = await createTestSteward('resume-fail-live-steward');
+    const stewardId = steward.id as unknown as EntityId;
+
+    const task = await createOrphanedStewardTask('Review task resumed elsewhere', stewardId, {
+      sessionId: 'previous-steward-session',
+      worktree: '/worktrees/worker/task',
+    });
+
+    // The resume fails, but by then another path has started this steward.
+    (sessionManager.resumeSession as ReturnType<typeof mock>).mockImplementation(async () => {
+      await sessionManager.startSession(stewardId, {});
+      throw new Error('Session not found: previous-steward-session');
+    });
+
+    await daemon.recoverOrphanedAssignments();
+
+    expect(sessionManager.startSession).toHaveBeenCalledTimes(1);
+    const updatedMeta = getOrchestratorTaskMeta((await api.get<Task>(task.id))!.metadata as Record<string, unknown>);
+    expect(updatedMeta?.sessionId).toBe('previous-steward-session');
+  });
+
   test('skips steward tasks with terminal mergeStatus (test_failed/failed/conflict)', async () => {
     // This test ensures the fix for the infinite retry loop:
     // Tasks with mergeStatus test_failed, failed, or conflict should NOT be recovered

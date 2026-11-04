@@ -350,3 +350,106 @@ Verification on the source branch: the focused liveness suite passed **21/21**,
 Smithy typecheck passed, and one foreground `pnpm check:merge` under pinned
 Node **22.23.3** passed **204/204** in **465.19s**. No raw logs or local machine
 paths are committed.
+
+## Concurrent merge steward sessions and worktree cleanup — el-2mlwrb
+
+The installed d58bd815 daemon spawned two el-218u sessions for review el-3klk89.
+The first merged the task; cleanup removed its worktree while the second session
+was running a merge gate. That gate's failures were invalid because its worktree
+disappeared during the run. The installed daemon is older than the source
+session-record compare-and-swap guard (el-52oa7i); this source change does not
+update the installed daemon.
+
+The source session manager already serializes starts in progress for one agent,
+and the task session-record guard stops a spawned session that loses a concurrent
+claim. A remaining gap allowed a second start after the first start returned but
+while its status was still `starting`: the manager's existing-session check only
+rejected `running`. Both start and resume now reject `starting` as well. The merge
+steward spawn path also checks the live session immediately before sync/spawn,
+after the daemon's earlier availability check.
+
+Merge cleanup now queries live `starting`, `running`, and `terminating` sessions
+and retains the task worktree if another session uses its path. The latest
+recorded task session is allowed to complete its own merge cleanup. The service
+receives the live session manager in the server's normal service wiring, including
+repository-scoped instances. A deferred cleanup returns `false`; the merged task
+remains merged and an operator can retry cleanup after the other session exits.
+
+Regression coverage: a `starting` headless session rejects another start and
+resume for the same agent; a second stale merge-steward dispatch makes no task
+or session change; cleanup retains a shared worktree while a second session is
+live and removes it after that session ends. Focused Bun **135/135**, Smithy Node
+**402/402**, and Smithy typecheck passed on the first worker commit; its
+`pnpm check:merge` passed **212/212**.
+
+### CLI merge cleanup (steward review follow-up)
+
+Steward review found the guard above covered only `MergeStewardService`
+(scheduler `processAllPending` and PR-merged polling). Agent merge stewards in this
+workspace merge with the CLI, `sf task merge <id> --local`, which then ran an
+unconditional `git worktree remove --force` on the task worktree; `sf merge
+--cleanup` did the same for its source worktree. That CLI path is how session
+83b6d1be removed the worktree under 433aed6e. The CLI runs in its own process
+without a SessionManager.
+
+Guarded merge cleanup paths now:
+
+| Path | Liveness source | Caller excluded |
+|------|-----------------|-----------------|
+| `MergeStewardService.cleanupAfterMerge` (server) | in-process SessionManager | latest task `sessionHistory` entry |
+| `sf task merge` (CLI) | workspace server `GET /api/sessions` | `STONEFORGE_SESSION_ID` |
+| `sf merge --cleanup` (CLI) | workspace server `GET /api/sessions` | `STONEFORGE_SESSION_ID` |
+
+All three share one rule (`runtime/worktree-session-use.ts`): a `starting`,
+`running` or `terminating` session uses a worktree when its recorded worktree or
+working directory is that worktree or a directory inside it (paths canonicalized,
+relative paths resolved against the project root). The CLI reaches the server the
+same way as other CLI server calls (Desktop connection descriptor with identity
+check, or the discovered external server; otherwise the configured URL), with a
+5 s timeout.
+
+- **Another live session uses the worktree:** the merge, delivery verification and
+  task close are unchanged and succeed. The worktree and the local source branch
+  are kept (`sf merge` also keeps the remote branch). Text output adds `Worktree
+  retained: live session <id> (agent <id>) still uses it` with the manual
+  `git worktree remove` command; JSON output adds `worktreeCleanup` (`removed:
+  false`, `retainedReason: in-use`, `sessionId`) or, for `sf merge`,
+  `cleanupRetained`.
+- **Liveness cannot be determined** (no server owns the workspace, request error,
+  malformed response): fail-safe, same as above with `retainedReason: unknown`.
+  This includes running the CLI with no server at all; such worktrees must be
+  removed by hand or by a later cleanup.
+- **No other live session** (only the caller, or sessions elsewhere/ended): the
+  worktree and branch are removed as before.
+
+Also: when a failed orphan steward resume finds the steward already live
+(started by another path meanwhile), recovery now keeps the task's `sessionId`
+and does not spawn, instead of clearing it first.
+
+Limits: a session the server does not track (a process that outlived a server
+restart, a manually started agent) is invisible to every guard. The caller is
+identified only by `STONEFORGE_SESSION_ID`; an operator running the CLI without
+it is treated as a non-session caller, so any live session in the worktree keeps
+it. The installed d58bd815 Desktop/CLI is unchanged until an explicit update.
+
+Regression coverage (`cli/worktree-cleanup-guard.bun.test.ts`, real Git, SQLite,
+CLI subprocess and a Desktop-style session server fixture): `sf task merge` keeps
+worktree and branch while another live session uses it, removes both when only
+the caller is live, keeps them when no server is reachable; `sf merge --cleanup`
+keeps/removes likewise; decision unit cases (subdirectory, caller, ended,
+suspended, relative path, unknown). Negative control: with the previous CLI code
+the four retention/query assertions fail. Existing CLI tests that assert cleanup
+(`local-delivery`, `merge-arguments`, `target-delivery`) now run against the fixture
+server (a child process, so `spawnSync` CLI calls still work), which reports no
+other session. Daemon recovery regression in
+`dispatch-daemon.bun.test.ts` (fails without the fix).
+
+Verification of the follow-up (code commit `20f3345a`, synced with local master
+`afd736b5`): pinned Node **22.23.3**, foreground `pnpm check:merge` **213/213**,
+exit 0, 381.22s. An earlier run on the first follow-up commit failed 2 checks
+(`merge-arguments`, `target-delivery`: they asserted removal with no server, now
+the fail-safe retain case) and led to the fixture change in `20f3345a`.
+Focused: new guard suite 10/10, local-delivery 24/24, merge-arguments 15/15,
+target-delivery 26/26, dispatch-daemon, spawn-session-record and session-manager
+Bun suites, merge-steward-service Vitest 76/76, Smithy typecheck. Independent
+steward review pending; installed Desktop unchanged.

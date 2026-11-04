@@ -3398,6 +3398,11 @@ export class DispatchDaemonImpl implements DispatchDaemon {
           error
         );
 
+        // A live session of this steward (started elsewhere while the resume
+        // was attempted) already owns the review; keep the task's session
+        // record and do not start another one.
+        if (this.sessionManager.getActiveSession(stewardId)) return;
+
         // Clear stale session ID so next recovery cycle doesn't try to resume again.
         // The fresh spawn decides on the cleared snapshot; its record still
         // requires the lifecycle state this recovery started from.
@@ -4214,6 +4219,9 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   private async spawnMergeStewardForTask(steward: AgentEntity, task: Task): Promise<void> {
     const worktreeManager = await taskWorktreeManager(this.worktreeManager, task);
     const stewardId = asEntityId(steward.id);
+    // The poll's availability snapshot can be stale by the time this path runs.
+    // Do not sync or spawn into a worktree already used by this steward.
+    if (this.sessionManager.getActiveSession(stewardId)) return;
     const meta = getAgentMetadata(steward) as StewardMetadata | undefined;
     const stewardFocus = meta?.stewardFocus ?? 'merge';
 

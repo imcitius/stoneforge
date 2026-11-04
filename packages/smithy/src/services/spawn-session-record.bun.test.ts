@@ -386,6 +386,18 @@ describe('daemon merge steward spawn record', () => {
     expect(alive()).toEqual(['internal-2']);
   });
 
+  test('REGRESSION: a second dispatch for the same live steward does not sync or spawn', async () => {
+    const s = await services();
+    const stale = await reviewTask(s);
+    await s.daemon.spawnMergeStewardForTask(mergeSteward, stale);
+    const claimed = await read();
+    const priorEvents = events();
+    await s.daemon.spawnMergeStewardForTask(mergeSteward, stale);
+    expect(alive()).toEqual(['internal-2']);
+    expect(await read()).toEqual(claimed);
+    expect(events()).toEqual(priorEvents);
+  });
+
   test('REGRESSION: orphan steward resume — merge after the spawn is not overwritten; session stopped', async () => {
     const s = await services();
     await reviewTask(s);

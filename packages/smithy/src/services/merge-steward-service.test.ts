@@ -18,6 +18,7 @@ import type { TaskAssignmentService, TaskAssignment } from './task-assignment-se
 import type { DispatchService } from './dispatch-service.js';
 import type { WorktreeManager, WorktreeInfo } from '../git/worktree-manager.js';
 import type { AgentRegistry } from './agent-registry.js';
+import type { SessionManager } from '../runtime/session-manager.js';
 
 import {
   MergeStewardServiceImpl,
@@ -749,6 +750,30 @@ describe('MergeStewardService', () => {
   // ----------------------------------------
 
   describe('cleanupAfterMerge', () => {
+    it('retains a worktree used by another live session, then removes it after that session ends', async () => {
+      const base = createMockTask();
+      const orchestrator = (base.metadata as { orchestrator: Record<string, unknown> }).orchestrator;
+      const mockTask = createMockTask({ metadata: {
+        orchestrator: { ...orchestrator, sessionHistory: [{ sessionId: 'current', agentId: 'steward-1', agentName: 'steward-1', agentRole: 'steward', startedAt: createTimestamp() }] },
+      } });
+      (api.get as MockInstance).mockResolvedValue(mockTask);
+      const worktree = '/project/.stoneforge/.worktrees/worker-alice-implement-feature-x';
+      const listSessions = vi.fn().mockReturnValue([
+        { id: 'current', status: 'running', worktree },
+        { id: 'second', status: 'starting', workingDirectory: worktree },
+      ]);
+      const guarded = createMergeStewardService(api, taskAssignment, dispatchService, agentRegistry,
+        config, worktreeManager, undefined, { listSessions } as unknown as SessionManager);
+
+      expect(await guarded.cleanupAfterMerge(mockTask.id)).toBe(false);
+      expect(worktreeManager.removeWorktree).not.toHaveBeenCalled();
+
+      listSessions.mockReturnValue([{ id: 'current', status: 'running', worktree }]);
+      (worktreeManager.removeWorktree as MockInstance).mockResolvedValue(undefined);
+      expect(await guarded.cleanupAfterMerge(mockTask.id)).toBe(true);
+      expect(worktreeManager.removeWorktree).toHaveBeenCalledOnce();
+    });
+
     it('should cleanup worktree after merge', async () => {
       const mockTask = createMockTask();
       (api.get as MockInstance).mockResolvedValue(mockTask);

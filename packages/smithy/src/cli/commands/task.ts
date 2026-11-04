@@ -597,16 +597,39 @@ async function taskMergeHandler(
       if (!localDelivery) await execVerify('git', ['push', '--delete', '--', 'origin', sourceBranch], { cwd: workspaceRoot });
     } catch { /* branch may not exist on remote */ }
 
+    // Another live session (e.g. a second steward run of this review) may still
+    // use the task worktree; removing it would invalidate that run. The caller's
+    // own session is excluded. When liveness is unknown the worktree is kept.
     const worktreePath = orchestratorMeta?.worktree;
+    let worktreeCleanup: { removed: boolean; retainedReason?: string; sessionId?: string; message?: string } | undefined;
     if (worktreePath) {
-      try {
-        await execVerify('git', ['worktree', 'remove', '--force', '--', worktreePath], { cwd: workspaceRoot });
-      } catch { /* worktree may already be gone */ }
+      const { decideWorktreeCleanup } = await import('../worktree-cleanup-guard.js');
+      const decision = await decideWorktreeCleanup({
+        worktreePath,
+        base: repositories.root,
+        callerSessionId: process.env.STONEFORGE_SESSION_ID,
+      });
+      if (decision.remove) {
+        try {
+          await execVerify('git', ['worktree', 'remove', '--force', '--', worktreePath], { cwd: workspaceRoot });
+        } catch { /* worktree may already be gone */ }
+        worktreeCleanup = { removed: true };
+      } else {
+        worktreeCleanup = {
+          removed: false,
+          retainedReason: decision.reason,
+          ...(decision.reason === 'in-use' ? { sessionId: decision.sessionId } : {}),
+          message: decision.message,
+        };
+      }
     }
 
-    try {
-      await execVerify('git', ['branch', '-D', '--', sourceBranch], { cwd: workspaceRoot });
-    } catch { /* branch may not exist locally */ }
+    // The branch stays while a retained worktree has it checked out.
+    if (worktreeCleanup?.removed !== false) {
+      try {
+        await execVerify('git', ['branch', '-D', '--', sourceBranch], { cwd: workspaceRoot });
+      } catch { /* branch may not exist locally */ }
+    }
 
     // 6. Sync local target branch (best-effort, after all bookkeeping is done).
     // Literal executable + argv: a single command string would be treated by
@@ -624,6 +647,7 @@ async function taskMergeHandler(
         taskId,
         mergeStatus: 'merged',
         commitHash: mergeResult.commitHash,
+        ...(worktreeCleanup ? { worktreeCleanup } : {}),
       });
     }
 
@@ -640,8 +664,14 @@ async function taskMergeHandler(
     if (options.summary) {
       lines.push(`  Summary: ${options.summary.slice(0, 50)}${options.summary.length > 50 ? '...' : ''}`);
     }
+    if (worktreeCleanup?.message) lines.push(`  ${worktreeCleanup.message}`);
 
-    return success({ taskId, mergeStatus: 'merged', commitHash: mergeResult.commitHash }, lines.join('\n'));
+    return success({
+      taskId,
+      mergeStatus: 'merged',
+      commitHash: mergeResult.commitHash,
+      ...(worktreeCleanup ? { worktreeCleanup } : {}),
+    }, lines.join('\n'));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return failure(`Failed to merge task: ${message}`, ExitCode.GENERAL_ERROR);
@@ -661,7 +691,9 @@ This command:
 2. Squash-merges the branch into the target branch (auto-detected)
 3. Delivers and verifies on origin (default) or the local target (--local)
 4. Atomically sets merge status to "merged" and closes the task
-5. Cleans up the source branch and worktree (remote cleanup only in remote mode)
+5. Cleans up the source branch and worktree (remote cleanup only in remote mode).
+   The worktree and local branch are kept when another live session uses the
+   worktree, or when live sessions cannot be read from the workspace server.
 
 Arguments:
   task-id    Task identifier to merge

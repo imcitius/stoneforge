@@ -209,7 +209,9 @@ export async function initializeServices(options: ServicesOptions = {}): Promise
       requireApproval,
       mergeRequestProvider: requireApproval ? createGitHubMergeProvider() : undefined,
     },
-    worktreeManager
+    worktreeManager,
+    undefined,
+    sessionManager
   );
 
   const docsStewardService = createDocsStewardService({

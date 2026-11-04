@@ -597,7 +597,7 @@ export class SessionManagerImpl implements SessionManager {
     const existingSessionId = this.agentSessions.get(agentId);
     if (existingSessionId) {
       const existingSession = this.sessions.get(existingSessionId);
-      if (existingSession && existingSession.status === 'running') {
+      if (existingSession && (existingSession.status === 'running' || existingSession.status === 'starting')) {
         throw new Error(`Agent ${agentId} already has an active session: ${existingSessionId}`);
       }
     }
@@ -710,7 +710,7 @@ export class SessionManagerImpl implements SessionManager {
     const existingSessionId = this.agentSessions.get(agentId);
     if (existingSessionId) {
       const existingSession = this.sessions.get(existingSessionId);
-      if (existingSession && existingSession.status === 'running') {
+      if (existingSession && (existingSession.status === 'running' || existingSession.status === 'starting')) {
         throw new Error(`Agent ${agentId} already has an active session: ${existingSessionId}`);
       }
     }
