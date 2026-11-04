@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
+import { mainProcessErrors } from './main-process-errors.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(join(root, 'apps/smithy-web/package.json'));
 const { _electron } = require('playwright');
@@ -20,6 +21,8 @@ const temp = await mkdtemp(join(tmpdir(), 'stoneforge-attention-'));
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const env = fixtureEnv();
 let electron;
+// A main-process exception must fail this check, not hang it behind Electron's modal error box.
+const mainErrors = mainProcessErrors(join(temp, 'main-process-errors.jsonl'));
 const evidence = { bundle, temp, checks: [] };
 // `observe` (optional) describes the actual state when the wait times out.
 async function until(fn, label, timeout=30_000, observe) {
@@ -40,6 +43,7 @@ try {
   // wait for the start route to finish publishing its session before signaling.
   await writeFile(fake, '#!/bin/sh\nif [ "$1" = "--version" ]; then echo "fixture"; exit 0; fi\nwhile [ ! -f "'+temp+'/release" ]; do sleep 0.1; done\nsf agent await-input > "'+temp+'/signal.log" 2>&1 || exit 42\nprintf "Какой вариант выбрать?\\n"\nIFS= read -r answer\nprintf "%s\\n" "$answer" > "'+temp+'/answer.log"\nwhile :; do sleep 1; done\n', {mode:0o755});
   electron=await _electron.launch({executablePath:join(bundle,'Contents/MacOS/Stoneforge Desktop'),args:names.map(name=>'--project='+join(temp,name)),env:{...env,PATH:'/usr/bin:/bin:/usr/sbin:/sbin',STONEFORGE_DESKTOP_TEST_DATA:join(temp,'app-data')},timeout:30_000});
+  await mainErrors.install(electron);
   const page=await electron.firstWindow();
   await until(async()=>JSON.stringify(await page.locator('[role="tab"]').evaluateAll(tabs=>tabs.map(tab=>tab.dataset.state)))===JSON.stringify(['ready','ready']),'two ready projects');
   const run=(id,script)=>electron.evaluate(async({webContents},{id,script})=>webContents.fromId(id).executeJavaScript(script),{id,script});
@@ -104,7 +108,11 @@ try {
   assert.match(await readFile(join(temp,'answer.log'),'utf8'),/Первый вариант/);
   assert.deepEqual(await run(view.id,'window.__attention.errors'),[]);
   evidence.checks.push('Real PTY human reply clears session attention and tab badge back to the paused baseline');
+  await mainErrors.assertNone();
   console.log(JSON.stringify(evidence,null,2));
+} catch (error) {
+  // A trapped main-process exception exits the app; report it rather than the resulting closed target.
+  await mainErrors.rethrow(error);
 } finally {
   if(electron) {
     await electron.evaluate(async({Notification,app})=>{

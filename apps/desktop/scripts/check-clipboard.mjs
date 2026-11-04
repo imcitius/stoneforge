@@ -7,6 +7,7 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { ProjectManager } from '../dist/manager.js';
+import { mainProcessErrors } from './main-process-errors.mjs';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const require = createRequire(join(root, 'apps/smithy-web/package.json'));
 const { _electron } = require('playwright');
@@ -15,12 +16,15 @@ const temp = await mkdtemp(join(tmpdir(), 'stoneforge-clipboard-'));
 const sample = 'Работа опять стояла — отчёт готов. Ёж 🦔';
 let electron;
 let saved;
+// A main-process exception must fail this check, not hang it behind Electron's modal error box.
+const mainErrors = mainProcessErrors(join(temp, 'main-process-errors.jsonl'));
 try {
   await writeFile(join(temp, 'main.cjs'), `const {app,BrowserWindow,Menu}=require('electron'); app.whenReady().then(()=>{Menu.setApplicationMenu(Menu.buildFromTemplate([{role:'editMenu'}])); const w=new BrowserWindow({width:1200,height:400,webPreferences:{contextIsolation:true,nodeIntegration:false}}); w.loadFile(${JSON.stringify(join(temp, 'index.html'))});}); app.on('window-all-closed',()=>app.quit());`);
   const assets = resolve(root, 'apps/smithy-web/node_modules/@xterm/xterm');
   await writeFile(join(temp, 'index.html'), `<link rel="stylesheet" href="${pathToFileURL(join(assets, 'css/xterm.css'))}"><div id="term"></div><script src="${pathToFileURL(join(assets, 'lib/xterm.js'))}"></script><script>window.term=new Terminal({cols:100,rows:10,fontSize:16,allowProposedApi:true});term.open(document.getElementById('term'));window.inputs=[];term.onData(data=>window.inputs.push(data));term.write(${JSON.stringify(sample)});term.focus();</script>`);
   const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
   electron = await _electron.launch({ executablePath: desktopRequire('electron'), args: [join(temp, 'main.cjs')], env });
+  await mainErrors.install(electron);
   const page = await electron.firstWindow();
   await electron.evaluate(async ({clipboard, ClipboardItem}) => {
     globalThis.__savedClipboard = await Promise.all((await clipboard.read()).map(async item =>
@@ -73,6 +77,10 @@ try {
     for (const key of localeKeys) { if(original[key]===undefined) delete process.env[key]; else process.env[key]=original[key]; }
   }
   console.log('Native pbcopy: missing/C locale corrupts Unicode; Desktop environment preserves it');
+  await mainErrors.assertNone();
+} catch (error) {
+  // A trapped main-process exception exits the app; report it rather than the resulting closed target.
+  await mainErrors.rethrow(error);
 } finally {
   try {
     if (electron && saved) await electron.evaluate(async ({clipboard}) => {

@@ -10,6 +10,7 @@ import { loadPreferences, savePreferences, projectBounds, type Preferences } fro
 import { orderProjects, normalizeOrder, moveProject, projectStatus, tabShortcut, shortcutTarget, tabMenuModel, type LifecycleAction } from './tabs.js';
 import { ProjectLifecycle } from './lifecycle.js';
 import { AttentionMonitor } from './attention.js';
+import { dropVisibilityListenersOnClose } from './window-guards.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -33,24 +34,34 @@ let preferences: Preferences = { projectOrder: [] };
 const views = new Map<string, { view: WebContentsView; instance: Instance }>();
 const shellURL = pathToFileURL(join(here, 'shell.html')).href;
 
+// Every window, including Logs viewers: no visibility listener may run on a closed window.
+app.on('browser-window-created', (_event, created) => dropVisibilityListenersOnClose(created));
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
-  app.on('second-instance', () => { window?.show(); window?.focus(); });
+  app.on('second-instance', () => { const shown = liveWindow(); shown?.show(); shown?.focus(); });
   void app.whenReady().then(boot).catch(async (error) => {
     dialog.showErrorBox('Stoneforge could not start', String(error)); app.exit(1);
   });
 }
 
+/**
+ * The main window, unless it does not exist yet (boot) or was destroyed (quit closes it while
+ * backend, notification and dock events can still arrive). A call on a destroyed BrowserWindow
+ * throws "Object has been destroyed" in the main process, which Electron shows as a modal box.
+ */
+function liveWindow(): BrowserWindow | undefined {
+  return window && !window.isDestroyed() ? window : undefined;
+}
 /** Projects in tab order (saved user order first, then registry order). */
 function orderedProjects() { return orderProjects(manager.list(), preferences.projectOrder); }
 function snapshot() {
   return { projects: orderedProjects().map((project) => ({ ...project, status: projectStatus(project),
     running: manager.instances.has(project.id), pending: lifecycle?.pendingAction(project.id), actions: lifecycle?.actions(project.id) })),
     active: lifecycle?.active, progress, build,
-    fullscreen: !!window && !window.isDestroyed() && window.isFullScreen() };
+    fullscreen: !!liveWindow()?.isFullScreen() };
 }
 function update(): void {
-  if (!window || window.isDestroyed()) return;
+  if (!liveWindow()) return;
   const active = lifecycle.active;
   const project = active ? manager.projects.get(active) : undefined;
   // The title bar shows tabs instead of a title; keep the window name for Mission Control and the Window menu.
@@ -58,6 +69,7 @@ function update(): void {
   window.webContents.send('desktop:state', snapshot());
 }
 function layout(): void {
+  if (!liveWindow()) return;
   const [width, height] = window.getContentSize();
   for (const [id, { view }] of views) {
     view.setVisible(id === lifecycle.active && manager.projects.get(id)?.state === 'ready');
@@ -148,8 +160,8 @@ function dispose(id: string): void {
   const entry = views.get(id);
   if (!entry) return;
   views.delete(id);
-  window.contentView.removeChildView(entry.view);
-  entry.view.webContents.close();
+  liveWindow()?.contentView.removeChildView(entry.view);
+  if (!entry.view.webContents.isDestroyed()) entry.view.webContents.close();
 }
 /** Creates (or reuses) the dashboard view of a running instance. Never starts a backend. */
 async function attachView(id: string, instance: Instance): Promise<void> {
@@ -267,7 +279,7 @@ async function boot(): Promise<void> {
   window.on('enter-full-screen', update);
   window.on('leave-full-screen', update);
   window.on('close', (event) => { if (!quitting) { event.preventDefault(); window.hide(); } });
-  app.on('activate', () => window.show());
+  app.on('activate', () => liveWindow()?.show());
   app.on('before-quit', (event) => {
     if (quitting) return;
     event.preventDefault();
@@ -306,7 +318,7 @@ async function boot(): Promise<void> {
     notification.on('failed', (_event, error) => { attentionNotifications.delete(notification); console.warn('[desktop] Notification failed:', error); });
     notification.on('click', () => {
       attentionNotifications.delete(notification);
-      if (!manager.projects.has(notice.projectId)) return;
+      if (!manager.projects.has(notice.projectId) || !liveWindow()) return;
       window.show(); if (window.isMinimized()) window.restore(); window.focus();
       // Only shows the project (it is running: it has a waiting director); never starts one.
       void lifecycle.select(notice.projectId).catch(error => console.warn('[desktop] Could not open notification project:', error));

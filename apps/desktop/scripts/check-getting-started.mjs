@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
+import { mainProcessErrors } from './main-process-errors.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const { _electron } = createRequire(join(root, 'apps/smithy-web/package.json'))('playwright');
@@ -23,6 +24,8 @@ const cli = join(resources, 'backend/dist/bin/sf.js');
 // realpath: backends report canonical roots (/private/var on macOS).
 const temp = await realpath(await mkdtemp(join(tmpdir(), 'stoneforge-getting-started-')));
 const appData = join(temp, 'app-data');
+// A main-process exception must fail this check, not hang it behind Electron's modal error box.
+const mainErrors = mainProcessErrors(join(temp, 'main-process-errors.jsonl'));
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 const env = fixtureEnv();
 const observations = [];
@@ -32,6 +35,7 @@ let electron, shell;
 async function launch(args = []) {
   electron = await _electron.launch({ executablePath: join(bundle, 'Contents/MacOS/Stoneforge Desktop'), args,
     env: { ...env, PATH: '/usr/bin:/bin:/usr/sbin:/sbin', STONEFORGE_DESKTOP_TEST_DATA: appData }, timeout: 30_000 });
+  await mainErrors.install(electron);
   // Answer the real Restart/"Stop and quit" confirmations in every launched process
   // (a stub does not survive an app relaunch; an unanswered dialog hangs the check).
   await electron.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false }); });
@@ -189,7 +193,11 @@ try {
   assert.equal((await tourState(b.page)).status, 'dismissed');
   await quit();
   assert.deepEqual(errors, [], 'Page errors');
+  await mainErrors.assertNone();
   console.log('Packaged Getting Started: first visit, Skip/Escape persisted across project restart (new port) and app relaunch, per-project isolation, explicit Settings restart: passed');
+} catch (error) {
+  // A trapped main-process exception exits the app; report it rather than the resulting closed target.
+  await mainErrors.rethrow(error);
 } finally {
   await writeFile(join(temp, 'getting-started-observations.json'), JSON.stringify(observations, null, 2));
   if (electron) await electron.evaluate(({ app }) => app.exit(0)).catch(() => {});

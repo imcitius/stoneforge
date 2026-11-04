@@ -14,6 +14,7 @@ import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
+import { mainProcessErrors } from './main-process-errors.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const { _electron } = createRequire(join(root, 'apps/smithy-web/package.json'))('playwright');
@@ -24,6 +25,8 @@ const cli = join(resources, 'backend/dist/bin/sf.js');
 // Registered roots are canonical (the backend reports its realpath, e.g. /private/var/...).
 const temp = await realpath(await mkdtemp(join(tmpdir(), 'stoneforge-tabs-')));
 const appData = join(temp, 'app-data');
+// A main-process exception must fail this check, not hang it behind Electron's modal error box.
+const mainErrors = mainProcessErrors(join(temp, 'main-process-errors.jsonl'));
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 const env = fixtureEnv();
 const observations = [];
@@ -37,6 +40,7 @@ const names = ['Atlas', 'Borealis', 'Cedar проект', 'Delta', 'Ember', 'Fjo
 async function launch() {
   electron = await _electron.launch({ executablePath: join(bundle, 'Contents/MacOS/Stoneforge Desktop'), args: [],
     env: { ...env, PATH: '/usr/bin:/bin:/usr/sbin:/sbin', STONEFORGE_DESKTOP_TEST_DATA: appData }, timeout: 30_000 });
+  await mainErrors.install(electron);
   page = await electron.firstWindow();
   page.on('pageerror', (error) => errors.push(error.message));
   await page.waitForFunction(() => document.getElementById('build').textContent.startsWith('v'));
@@ -489,7 +493,11 @@ try {
   assert.deepEqual((await starts()).filter(Boolean), [], 'No backend start after relaunch');
   await quit();
   assert.deepEqual(errors, [], 'Shell page errors');
+  await mainErrors.assertNone();
   console.log('Packaged tabs: layout/title bar regions, status, truncation, overflow menu, ⌘1–⌘9/⌃Tab from shell and views, tablist keyboard, selection never starts (mouse/keyboard/⋯/relaunch), Start once, Stop only selected, Restart once, Remove, per-tab ⋯/right-click/Shift+F10 menu, drag reorder persistence, resize, no reloads: passed');
+} catch (error) {
+  // A trapped main-process exception exits the app; report it rather than the resulting closed target.
+  await mainErrors.rethrow(error);
 } finally {
   await writeFile(join(temp, 'tabs-observations.json'), JSON.stringify(observations, null, 2));
   if (electron) await electron.evaluate(({ app }) => app.exit(0)).catch(() => {});

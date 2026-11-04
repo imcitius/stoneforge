@@ -432,11 +432,7 @@ can make without emitting to a listener added afterwards; nothing is retried. A 
 error after a failure is reported without masking the failing step. The test-only window
 is closed with `close()` and awaited to `closed` (never `destroy()` while shown), and
 focus/visibility calls in the check and in `logs-window.ts` skip destroyed windows.
-`check-app.mjs` traps uncaught main-process exceptions (`scripts/main-process-errors.mjs`):
-instead of Electron's modal “A JavaScript error occurred in the main process” box, which
-blocks the app and hangs the check, the error is written to `main-process-errors.jsonl`
-in the fixture directory and stderr, the app exits with 70 and the check fails with that
-error. It retains viewer PNGs and
+`check-app.mjs` retains viewer PNGs and
 `logs-observations.json`; `logs-native-desktop.png` captures native z-order when
 macOS screen capture permission is available. The work-area override is test-side;
 it does not change the host display configuration. `check-tabs.mjs` launches the packaged app with fresh userData,
@@ -474,6 +470,37 @@ attention and returns the tab to `paused`. A timed-out tab wait reports the obse
 `data-status`. `check-launch-services.mjs` launches through macOS LaunchServices with
 a minimal PATH and a Unicode workspace path, and checks parent-loss cleanup.
 Both use temporary fixtures and a separate app-data directory.
+
+Main-process exceptions (el-64nnhq, el-5n2sf4): every check that launches Electron —
+`check-app`, `check-tabs`, `check-attention`, `check-getting-started`, `check-clipboard`
+(development Electron with a test main script; all after each Playwright launch) and `check-launch-services` (through the app's Node
+inspector: it passes `--inspect=0` and reads the inspector URL from the redirected
+stderr) — installs the trap in `scripts/main-process-errors.mjs`. Instead of Electron's
+modal “A JavaScript error occurred in the main process” box, which blocks the app and
+hangs the check, the error is written to `main-process-errors.jsonl` in the fixture
+directory and stderr, the app exits with 70 and the check fails with that error (named
+before the resulting closed-target step error). The report lists the last window
+show/hide/minimize/maximize/restore/close/closed/focus/blur events with window id, title
+and parent, marking events on destroyed windows. Exceptions before the trap is installed
+are not covered. `check-safeguards`, `check-terminal-color` and `check-pty` run only under
+the bundled Node (an uncaught exception exits non-zero by itself); `check-logs` and
+`check-onboarding` run inside `check-app`. `tests/main-process-errors.test.mjs` requires
+this for every `scripts/check-*.mjs` (new scripts must be classified) with negative
+controls, and tests the inspector path end to end. A packaged mutant that throws from a
+timer made all five GUI checks fail in 3–26 s with the trapped stack; without the trap a
+throwing Electron 44.4.5 main process was still blocked after 8 s.
+
+The el-64nnhq crash “TypeError: Object has been destroyed at BrowserWindow.visibilityChanged”
+reproduced once in packaged `check-app` (2026-11-04, right after a Logs viewer closed with a
+test window above the owner) and was trapped. That stack comes from Electron's own listener
+for a window's visibility events, which calls `isVisible()`; emitting such an event on a
+destroyed `BrowserWindow` reproduces it exactly. No Desktop or check code emits these events,
+so Electron delivered a native visibility event to the already closed viewer; standalone
+loops of the same close sequences did not reproduce it. `src/window-guards.ts` therefore
+removes a window's show/hide/minimize/maximize/restore listeners when it emits `closed`
+(installed for every window via `browser-window-created`); `tests/window-guards.test.mjs`
+shows the exact stack without the guard in real Electron and none with it. `main.ts`
+also skips main-window calls once that window is destroyed (quit).
 
 Environment isolation: a managed agent session exports `STONEFORGE_*`/`SF_*`
 routing variables (workspace root, database path, Desktop instance ID, entity ID).
