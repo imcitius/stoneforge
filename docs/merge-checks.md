@@ -55,7 +55,8 @@ An interrupted run is incomplete and must never count as acceptance.
 | `pnpm --filter @stoneforge/desktop build` | Fresh Desktop JavaScript and shell resources; backend SDK builds were prerequisites of Desktop typecheck. |
 | `bun test ./<file>` for every `*.bun.test.ts` under `packages/{core,storage,quarry,smithy}/src` | Core types/config/errors, real Bun SQLite/schema, Quarry API/CLI/dependencies/sync and Smithy orchestration/runtime/providers/Git/repository routing. Each file runs in its own process so Bun module mocks cannot leak into other files. `requiredBunTests` in `scripts/check-merge.mjs` names contract suites that must stay discovered (currently `packages/smithy/src/server/daemon-lifecycle.bun.test.ts`, the daemon start/stop/auto-start preference contract); if one is moved, renamed or deleted, `mergeChecks()` throws and the gate (and `check:ci`) fails before any step runs. |
 | `pnpm --filter @stoneforge/smithy test:node` | Existing Vitest config: Node routes, permissions, stewardship/merge/worker lifecycle and a real PTY fixture using a fake provider executable. |
-| `pnpm --filter @stoneforge/desktop test` | All Desktop Node tests: four backend tests covering workspace initialization, external-server adoption, multi-project HTTP/WS identity/isolation/restart and real CLI multi-repository registration/binding/merge after restart, plus two Logs bounds/escaping tests, two sidebar preference/view-bounds tests, five director-attention notification tests, a UTF-8 locale test and the pinned-Electron socket-workaround tests. Uses real temporary Git repositories and Node SQLite. |
+| `pnpm --filter @stoneforge/desktop ensure-electron` | Installs the pinned development Electron binary once and verifies it before the Desktop Node tests (el-2r3sey; see [Electron binary](#electron-binary-el-2r3sey)). Under a lock it compares every file in `node_modules/electron/dist` with the checksum-verified release zip (size, symlinks), removes and reinstalls an incomplete dist with Electron's own `install.js`, stores the verified sizes in `dist/.stoneforge-verified.json` for later runs, and on macOS starts the binary as Node. |
+| `pnpm --filter @stoneforge/desktop test` | All Desktop Node tests (the script repeats the `ensure-electron` check, a ~0.1 s manifest check once installed): four backend tests covering workspace initialization, external-server adoption, multi-project HTTP/WS identity/isolation/restart and real CLI multi-repository registration/binding/merge after restart, plus two Logs bounds/escaping tests, two sidebar preference/view-bounds tests, five director-attention notification tests, a UTF-8 locale test and the pinned-Electron socket-workaround tests. Uses real temporary Git repositories and Node SQLite. |
 
 The pricing test uses `bun:test`, so it is named `model-pricing.bun.test.ts`.
 The Quarry `piped-output.bun.test.ts` regression also rebuilds Quarry and Smithy
@@ -153,6 +154,8 @@ What differs on Linux (all visible in the logs, none hidden):
 | Desktop `external.test.mjs` adoption test | Skipped with reason | `findExternalServer` (`packages/quarry/src/cli/server-discovery.ts`) returns `undefined` off macOS and discovers servers with `/usr/sbin/lsof` and `/bin/ps`. Adoption is macOS-only product behaviour. |
 | Desktop `daemon-lifecycle.test.mjs` external and legacy restart variants (4 of 6) | Skipped with reason (el-58gvjo) | Each adopts a standalone `sf serve` found by the same macOS-only `findExternalServer`; off macOS discovery never succeeds, so they timed out at *external server ready*. The 2 managed variants still run on Linux; `check:merge` (macOS) runs all 6. |
 | Desktop `socket-workaround.test.mjs` Electron EINVAL test | Skipped (existing) | Injects a macOS-only socket error. |
+| Desktop `window-guards.test.mjs` real-Electron visibility test | Skipped (existing) | Launches a macOS `BrowserWindow`. |
+| `ensure-electron` step | Downloads and size-verifies the Linux Electron zip; does not start it | No Linux check launches Electron; Chromium's shared libraries may be missing on CI images. |
 | All other Desktop Node tests, Desktop build | Run | Plain Node/TypeScript, temporary Git repos and SQLite. |
 | `node-pty` | Compiled during install | 1.1.0 ships prebuilds only for darwin/win32. pnpm 8.15.5's bundled node-gyp 9.4.1 imports `distutils`, removed in Python 3.12 (the ubuntu-24.04 default), so CI pins Python 3.11 via `actions/setup-python`. |
 | `better-sqlite3` | Prebuilt Linux binary | Loaded by the preflight like on macOS. |
@@ -605,3 +608,37 @@ acceptance, not merge approval. Installed Desktop/live sessions/global Node were
 not changed. The approved installed d58bd815 operational CLI build-info and all
 four hashes from el-of6 were verified; the exact documented aggregate-hash command
 matched (an initial alternate Python ordering was not equivalent).
+
+## Electron binary (el-2r3sey)
+
+2026-11-04. Final verification el-2tepgf of master `af08d6be` in a fresh clone failed
+`Desktop Node backend integration` (91/93): `Error: failed to write …/electron/dist/
+Electron.app/…/Electron Framework: Input/output error (os error 5)` and `Electron failed to
+install correctly`. Cause: Electron 44 has no install script; `require('electron')`
+(`index.js`) runs `install.js` whenever `dist/<executable>` is missing, without a lock.
+`node --test` runs test files in parallel processes, and two of them
+(`socket-workaround.test.mjs`, `window-guards.test.mjs`) require `electron`, so a fresh
+checkout started two extractions into the same `dist`. The loser fails; the dist can be left
+with a truncated `Electron Framework` that `install.js` then accepts forever (it only checks
+that `dist/version`, `path.txt` and the executable exist). Development Electron from such a
+checkout dies in dyld (`segment '__TEXT' … extends beyond end of file`). Checkouts that already
+had a complete binary passed.
+
+Fix: `apps/desktop/scripts/ensure-electron.mjs` runs as its own gate step (so in both
+`check:merge` and `check:ci`) immediately before the Desktop tests, and at the start of the
+Desktop `test` and `dev` scripts. It is idempotent and repairs a truncated dist. The Desktop
+release workflow (`scripts/ci-release.sh`) runs no Desktop Node tests and launches no
+development Electron (`@electron/packager` extracts its own copy), so it needs no step.
+
+Evidence (macOS arm64, pinned Node 22.23.3, fresh `git clone` + `pnpm install
+--frozen-lockfile` + `pnpm build`, `node_modules/electron/dist` removed before each run):
+
+| Run | Result |
+| --- | --- |
+| Old code, Desktop step ×5 | 4/5 exit 1 (91/93, the two Electron tests), 1/5 pass; every run logged `Downloading Electron binary...` twice. Electron Framework left at 182110275 / 141301960 / 136647539 / 163515572 bytes (zip: 202847024). |
+| New `ensure-electron` on the truncated dist | Detected `182110275 bytes, expected 202847024`, reinstalled once, binary starts; second run 0.1 s from the stored manifest. |
+| New code, 3 fresh clones, each with an empty `electron_config_cache` | 3/3 exit 0, Desktop 99/99; `ensure-electron` installed once per clone (one zip in each cache), index.js `Downloading Electron binary...` 0 times; Electron Framework 202847024 bytes. |
+| Pinned Node 22.23.3 `pnpm check:merge`, fresh clone, empty `dist` | **214/214, exit 0**, 370.76 s; `Desktop Electron binary` installed in 2.92 s, Desktop step reused the stored manifest. |
+| Ubuntu 24.04 arm64 container (el-1caqsx image) from `git archive`: install / typecheck / build / `pnpm check:ci` | Exit 0/0/0/0; check:ci **214/214**, 180.58 s; Linux Electron zip installed once and verified (72 files), Desktop 90 pass / 9 skip / 0 fail. |
+| Unit tests `tests/ensure-electron.test.mjs` | 6/6: zip parsing, install once, truncated/missing/symlink/failed-install detection, 4 concurrent processes → one `install.js`. Mutations (no lock; no size check) fail 1 and 2 tests. |
+

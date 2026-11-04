@@ -8,9 +8,10 @@
   "scripts": {
     "build": "tsc && cp src/preload.cjs src/logs-preload.cjs src/shell.html src/shell.css src/shell.js src/tab-layout.js dist/ && node scripts/build-info.mjs",
     "typecheck": "tsc --noEmit",
-    "dev": "pnpm build && electron .",
+    "dev": "pnpm build && node scripts/ensure-electron.mjs && electron .",
     "package:mac": "node scripts/package.mjs",
-    "test": "node --test tests/*.test.mjs"
+    "ensure-electron": "node scripts/ensure-electron.mjs",
+    "test": "node scripts/ensure-electron.mjs && node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@stoneforge/smithy": "workspace:*",

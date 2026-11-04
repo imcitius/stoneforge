@@ -106,6 +106,9 @@ export function mergeChecks({ required = requiredBunTests } = {}) {
   if (missing.length) throw new Error(`Required gate tests not found: ${missing.join(', ')}`);
   checks.push(
     { name: 'Smithy Node/Vitest', command: 'pnpm', args: ['--filter', '@stoneforge/smithy', 'test:node'] },
+    // Install/verify the development Electron binary once, before the parallel `node --test`
+    // files can each start Electron's lazy, unlocked download into the same dist (el-2r3sey).
+    { name: 'Desktop Electron binary', command: 'pnpm', args: ['--filter', '@stoneforge/desktop', 'ensure-electron'] },
     { name: 'Desktop Node backend integration', command: 'pnpm', args: ['--filter', '@stoneforge/desktop', 'test'] },
   );
   return checks;

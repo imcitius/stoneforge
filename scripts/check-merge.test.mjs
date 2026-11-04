@@ -167,3 +167,16 @@ test('a missing required contract suite fails the step list closed', () => {
   assert.throws(() => mergeChecks({ required: ['packages/smithy/src/server/missing-contract.bun.test.ts'] }),
     /Required gate tests not found: packages\/smithy\/src\/server\/missing-contract\.bun\.test\.ts/);
 });
+
+test('the Electron binary is installed once, before the parallel Desktop Node tests (el-2r3sey)', () => {
+  const names = mergeChecks().map(check => check.name);
+  const ensure = names.indexOf('Desktop Electron binary');
+  assert(ensure >= 0, 'missing Desktop Electron binary step');
+  assert.equal(names[ensure + 1], 'Desktop Node backend integration');
+  assert.deepEqual(mergeChecks()[ensure].args, ['--filter', '@stoneforge/desktop', 'ensure-electron']);
+  const { scripts } = JSON.parse(readFileSync(new URL('../apps/desktop/package.json', import.meta.url), 'utf8'));
+  assert.equal(scripts['ensure-electron'], 'node scripts/ensure-electron.mjs');
+  // Standalone `pnpm --filter @stoneforge/desktop test` and `dev` are guarded too.
+  assert.match(scripts.test, /^node scripts\/ensure-electron\.mjs && node --test /);
+  assert.match(scripts.dev, /node scripts\/ensure-electron\.mjs && electron \.$/);
+});

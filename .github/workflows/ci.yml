@@ -9,8 +9,8 @@ name: CI
 # repository acceptance gate itself (scripts/check-merge.mjs, see
 # docs/merge-checks.md): the same Node/native preflight and the same step list -
 # gate regression tests, uncached typecheck, Desktop build, each *.bun.test.ts
-# in its own Bun process, Smithy's Vitest suite under Node and the Desktop Node
-# tests. No step is filtered. Two Desktop tests skip themselves off macOS and are
+# in its own Bun process, Smithy's Vitest suite under Node, a one-time Electron
+# binary install/verify (el-2r3sey) and the Desktop Node tests. No step is filtered. Two Desktop tests skip themselves off macOS and are
 # reported as skipped: external-server adoption (macOS-only lsof discovery) and
 # the Electron macOS EINVAL socket workaround. `pnpm check:merge` refuses
 # non-macOS hosts for that reason. See docs/merge-checks.md, "CI vs gate".

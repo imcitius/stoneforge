@@ -453,6 +453,13 @@ Provider accounts and their account limits remain shared.
 
 ## Verification
 
+`dev` and `test` first run `node scripts/ensure-electron.mjs` (also
+`pnpm --filter @stoneforge/desktop ensure-electron`): Electron 44 downloads its binary lazily
+on the first `require('electron')` without a lock, and parallel test files used to race into
+one `dist`, leaving a truncated `Electron Framework` (el-2r3sey). The script installs the
+binary once under a lock, verifies every file against the release zip and repairs an
+incomplete dist. See [docs/merge-checks.md](../../docs/merge-checks.md#electron-binary-el-2r3sey).
+
 For the routine source merge gate (including the Desktop backend tests), use
 [`pnpm check:merge`](../../docs/merge-checks.md). The packaged GUI and
 LaunchServices checks below remain separate acceptance checks for app artifacts.
