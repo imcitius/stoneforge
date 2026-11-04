@@ -18,13 +18,22 @@
  * @module
  */
 
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { detectTargetBranch } from '../git/merge.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+/**
+ * Runs Git with a literal argv (no shell). Paths, branch names, file names
+ * and commit messages are passed as separate arguments so shell
+ * metacharacters (`$(...)`, backticks, quotes, spaces) are never interpreted.
+ */
+function git(args: string[], cwd: string): Promise<{ stdout: string; stderr: string }> {
+  return execFileAsync('git', args, { cwd, encoding: 'utf8' });
+}
 const readFile = promisify(fs.readFile);
 const readdir = promisify(fs.readdir);
 
@@ -631,17 +640,16 @@ export class DocsStewardServiceImpl implements DocsStewardService {
 
     // Check if worktree already exists and clean up if so
     if (fs.existsSync(worktreePath)) {
-      await execAsync(`git worktree remove --force "${worktreePath}"`, {
-        cwd: this.config.workspaceRoot,
-      });
+      await git(['worktree', 'remove', '--force', '--', worktreePath], this.config.workspaceRoot);
     }
 
     // Check if branch exists
     let branchExists = false;
     try {
-      await execAsync(`git rev-parse --verify ${branchName}`, {
-        cwd: this.config.workspaceRoot,
-      });
+      await git(
+        ['rev-parse', '--verify', '--quiet', '--end-of-options', `refs/heads/${branchName}`],
+        this.config.workspaceRoot
+      );
       branchExists = true;
     } catch {
       branchExists = false;
@@ -649,13 +657,11 @@ export class DocsStewardServiceImpl implements DocsStewardService {
 
     // Create worktree with new or existing branch
     if (branchExists) {
-      await execAsync(`git worktree add "${worktreePath}" ${branchName}`, {
-        cwd: this.config.workspaceRoot,
-      });
+      await git(['worktree', 'add', '--', worktreePath, branchName], this.config.workspaceRoot);
     } else {
-      await execAsync(
-        `git worktree add -b ${branchName} "${worktreePath}" ${targetBranch}`,
-        { cwd: this.config.workspaceRoot }
+      await git(
+        ['worktree', 'add', '-b', branchName, '--', worktreePath, targetBranch],
+        this.config.workspaceRoot
       );
     }
 
@@ -673,17 +679,13 @@ export class DocsStewardServiceImpl implements DocsStewardService {
       throw new Error('No active session worktree');
     }
 
-    // Stage specified files
-    for (const file of files) {
-      await execAsync(`git add "${file}"`, {
-        cwd: this.sessionWorktreePath,
-      });
+    // Stage specified files (literal pathspecs after `--`)
+    if (files.length > 0) {
+      await git(['--literal-pathspecs', 'add', '--', ...files], this.sessionWorktreePath);
     }
 
-    // Commit
-    await execAsync(`git commit -m "${message.replace(/"/g, '\\"')}"`, {
-      cwd: this.sessionWorktreePath,
-    });
+    // Commit with the message passed verbatim as a single argument
+    await git(['commit', '-m', message], this.sessionWorktreePath);
   }
 
   async mergeAndCleanup(
@@ -724,18 +726,14 @@ export class DocsStewardServiceImpl implements DocsStewardService {
   async cleanupSession(worktreePath: string, branchName: string): Promise<void> {
     // Remove worktree
     try {
-      await execAsync(`git worktree remove --force "${worktreePath}"`, {
-        cwd: this.config.workspaceRoot,
-      });
+      await git(['worktree', 'remove', '--force', '--', worktreePath], this.config.workspaceRoot);
     } catch {
       // Ignore errors
     }
 
     // Delete local branch
     try {
-      await execAsync(`git branch -D ${branchName}`, {
-        cwd: this.config.workspaceRoot,
-      });
+      await git(['branch', '-D', '--', branchName], this.config.workspaceRoot);
     } catch {
       // Ignore errors
     }
