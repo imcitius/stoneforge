@@ -3,9 +3,13 @@
  *
  * Tests for provider registration, lookup, filtering by adapter type,
  * and factory functions (createProviderRegistry, createDefaultProviderRegistry).
+ *
+ * Hermetic: global fetch is stubbed for every test. Configured providers get
+ * canned 401 responses for their fake tokens (as the real APIs would return);
+ * any other request fails the test. No real network request is made.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import type {
   ExternalProvider,
   TaskSyncAdapter,
@@ -23,6 +27,99 @@ import {
   createDefaultProviderRegistry,
   createConfiguredProviderRegistry,
 } from './provider-registry.js';
+import { GitHubApiError } from './providers/github/index.js';
+import { LinearApiError } from './providers/linear/index.js';
+import { NotionApiError } from './providers/notion/index.js';
+
+// ============================================================================
+// Network Stub
+// ============================================================================
+
+interface RecordedRequest {
+  readonly url: string;
+  readonly method: string;
+  /** Request headers with lower-cased names */
+  readonly headers: Record<string, string>;
+}
+
+let originalFetch: typeof globalThis.fetch;
+/** Every request the code under test attempted, in order */
+let requests: RecordedRequest[];
+/** Requests to hosts without a canned response (always a test failure) */
+let unexpectedRequests: string[];
+
+function jsonResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+/**
+ * The authentication failure each provider API returns for an invalid token.
+ * Returns undefined for any host the tests do not expect to be contacted.
+ */
+function fakeTokenResponse(url: URL): Response | undefined {
+  switch (url.hostname) {
+    case 'api.github.com':
+      return jsonResponse(401, {
+        message: 'Bad credentials',
+        documentation_url: 'https://docs.github.com/rest',
+      });
+    case 'api.linear.app':
+      return jsonResponse(401, {
+        errors: [
+          { message: 'Authentication required', extensions: { code: 'AUTHENTICATION_ERROR' } },
+        ],
+      });
+    case 'api.notion.com':
+      return jsonResponse(401, {
+        object: 'error',
+        status: 401,
+        code: 'unauthorized',
+        message: 'API token is invalid.',
+      });
+    default:
+      return undefined;
+  }
+}
+
+beforeEach(() => {
+  originalFetch = globalThis.fetch;
+  requests = [];
+  unexpectedRequests = [];
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+    requests.push({
+      url: url.href,
+      method: init?.method ?? (input instanceof Request ? input.method : 'GET'),
+      headers: Object.fromEntries(headers.entries()),
+    });
+    const response = fakeTokenResponse(url);
+    if (!response) {
+      unexpectedRequests.push(url.href);
+      throw new TypeError(`Unexpected network request in hermetic test: ${url.href}`);
+    }
+    return response;
+  }) as unknown as typeof fetch;
+});
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+  expect(unexpectedRequests).toEqual([]);
+});
+
+/** Awaits a promise that must reject and returns the rejection reason. */
+async function rejectionOf(promise: Promise<unknown>): Promise<Error> {
+  try {
+    await promise;
+  } catch (error) {
+    expect(error).toBeInstanceOf(Error);
+    return error as Error;
+  }
+  throw new Error('Expected the promise to reject, but it resolved');
+}
 
 // ============================================================================
 // Test Helpers
@@ -254,27 +351,30 @@ describe('createDefaultProviderRegistry', () => {
     expect(github!.supportedAdapters).toContain('task');
   });
 
-  test('default GitHub provider is a placeholder that throws on adapter use', () => {
+  test('default GitHub provider is a placeholder that throws on adapter use', async () => {
     const registry = createDefaultProviderRegistry();
     const github = registry.get('github')!;
     const adapter = github.getTaskAdapter!();
-    expect(adapter.getIssue('owner/repo', '1')).rejects.toThrow(/not configured/);
+    await expect(adapter.getIssue('owner/repo', '1')).rejects.toThrow(/not configured/);
+    expect(requests).toEqual([]);
   });
 
-  test('default Linear provider is a placeholder that throws on adapter use', () => {
+  test('default Linear provider is a placeholder that throws on adapter use', async () => {
     const registry = createDefaultProviderRegistry();
     const linear = registry.get('linear')!;
     const adapter = linear.getTaskAdapter!();
-    expect(adapter.getIssue('team', '1')).rejects.toThrow(/not.*configured/);
+    await expect(adapter.getIssue('team', '1')).rejects.toThrow(/not.*configured/);
+    expect(requests).toEqual([]);
   });
 
-  test('default Notion provider is a placeholder that throws on adapter use', () => {
+  test('default Notion provider is a placeholder that throws on adapter use', async () => {
     const registry = createDefaultProviderRegistry();
     const notion = registry.get('notion')!;
     expect(notion).toBeDefined();
     expect(notion.supportedAdapters).toContain('document');
     const adapter = notion.getDocumentAdapter!();
-    expect(adapter.getPage('workspace', 'page-1')).rejects.toThrow(/not.*configured/i);
+    await expect(adapter.getPage('workspace', 'page-1')).rejects.toThrow(/not.*configured/i);
+    expect(requests).toEqual([]);
   });
 
   test('default Folder provider is ready to use (not a placeholder)', () => {
@@ -309,55 +409,76 @@ describe('createConfiguredProviderRegistry', () => {
     expect(registry.has('folder')).toBe(true);
   });
 
-  test('keeps placeholder when config has no token', () => {
+  test('keeps placeholder when config has no token', async () => {
     const registry = createConfiguredProviderRegistry([
       { provider: 'github' },
     ]);
     const github = registry.get('github')!;
-    // Placeholder adapter should throw on use
+    // Placeholder adapter should throw on use, without contacting GitHub
     const adapter = github.getTaskAdapter!();
-    expect(adapter.getIssue('owner/repo', '1')).rejects.toThrow(/not configured/);
+    await expect(adapter.getIssue('owner/repo', '1')).rejects.toThrow(/not configured/);
+    expect(requests).toEqual([]);
   });
 
-  test('replaces GitHub placeholder with configured provider when token is set', () => {
+  test('replaces GitHub placeholder with configured provider when token is set', async () => {
     const registry = createConfiguredProviderRegistry([
       { provider: 'github', token: 'ghp_test123', defaultProject: 'owner/repo' },
     ]);
     const github = registry.get('github')!;
     expect(github).toBeDefined();
     expect(github.name).toBe('github');
-    // A configured provider should NOT throw the placeholder message
-    // (it will throw a network error instead since the token is fake, but not "not configured")
+    // A configured provider calls the GitHub API with the token (not the placeholder);
+    // the fake token is rejected with GitHub's 401 response.
     const adapter = github.getTaskAdapter!();
-    expect(adapter.getIssue('owner/repo', '1')).rejects.not.toThrow(/not configured/);
+    const error = await rejectionOf(adapter.getIssue('owner/repo', '1'));
+    expect(error).toBeInstanceOf(GitHubApiError);
+    expect((error as GitHubApiError).status).toBe(401);
+    expect(error.message).toMatch(/Bad credentials/);
+    expect(error.message).not.toMatch(/not configured/);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].method).toBe('GET');
+    expect(requests[0].url).toBe('https://api.github.com/repos/owner/repo/issues/1');
+    expect(requests[0].headers.authorization).toBe('Bearer ghp_test123');
   });
 
-  test('replaces Linear placeholder with configured provider when token is set', () => {
+  test('replaces Linear placeholder with configured provider when token is set', async () => {
     const registry = createConfiguredProviderRegistry([
       { provider: 'linear', token: 'lin_api_test123' },
     ]);
     const linear = registry.get('linear')!;
     expect(linear).toBeDefined();
     expect(linear.name).toBe('linear');
-    // A configured provider should NOT throw the placeholder message
+    // A configured provider calls the Linear API with the key (not the placeholder);
+    // the fake key is rejected with Linear's 401 response.
     const adapter = linear.getTaskAdapter!();
-    expect(adapter.getIssue('team', '1')).rejects.not.toThrow(/not configured/);
+    const error = await rejectionOf(adapter.getIssue('team', '1'));
+    expect(error).toBeInstanceOf(LinearApiError);
+    expect((error as LinearApiError).status).toBe(401);
+    expect(error.message).toMatch(/Authentication required/);
+    expect(error.message).not.toMatch(/not.*configured/);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].method).toBe('POST');
+    expect(requests[0].url).toBe('https://api.linear.app/graphql');
+    expect(requests[0].headers.authorization).toBe('lin_api_test123');
   });
 
-  test('replaces only providers with tokens, keeps others as placeholders', () => {
+  test('replaces only providers with tokens, keeps others as placeholders', async () => {
     const registry = createConfiguredProviderRegistry([
       { provider: 'github', token: 'ghp_test123', defaultProject: 'owner/repo' },
       { provider: 'linear' }, // no token
     ]);
-    // GitHub should be configured (not placeholder)
+    // GitHub should be configured (not placeholder): it reaches the GitHub API
     const github = registry.get('github')!;
     const githubAdapter = github.getTaskAdapter!();
-    expect(githubAdapter.getIssue('owner/repo', '1')).rejects.not.toThrow(/not configured/);
+    const githubError = await rejectionOf(githubAdapter.getIssue('owner/repo', '1'));
+    expect(githubError).toBeInstanceOf(GitHubApiError);
+    expect(githubError.message).not.toMatch(/not configured/);
 
-    // Linear should still be placeholder
+    // Linear should still be placeholder: it throws without any request
     const linear = registry.get('linear')!;
     const linearAdapter = linear.getTaskAdapter!();
-    expect(linearAdapter.getIssue('team', '1')).rejects.toThrow(/not.*configured/);
+    await expect(linearAdapter.getIssue('team', '1')).rejects.toThrow(/not.*configured/);
+    expect(requests.map((r) => new URL(r.url).hostname)).toEqual(['api.github.com']);
   });
 
   test('ignores unknown provider names gracefully', () => {
@@ -381,7 +502,7 @@ describe('createConfiguredProviderRegistry', () => {
     expect(github.name).toBe('github');
   });
 
-  test('replaces Notion placeholder with configured provider when token is set', () => {
+  test('replaces Notion placeholder with configured provider when token is set', async () => {
     const registry = createConfiguredProviderRegistry([
       { provider: 'notion', token: 'ntn_test123' },
     ]);
@@ -389,9 +510,20 @@ describe('createConfiguredProviderRegistry', () => {
     expect(notion).toBeDefined();
     expect(notion.name).toBe('notion');
     expect(notion.supportedAdapters).toContain('document');
-    // Configured provider should NOT throw the placeholder message
+    // A configured provider calls the Notion API with the token (not the placeholder);
+    // the fake token is rejected with Notion's 401 response (not retried).
     const adapter = notion.getDocumentAdapter!();
-    expect(adapter.getPage('db-id', 'page-1')).rejects.not.toThrow(/not configured/);
+    const error = await rejectionOf(adapter.getPage('db-id', 'page-1'));
+    expect(error).toBeInstanceOf(NotionApiError);
+    expect((error as NotionApiError).status).toBe(401);
+    expect(error.message).toMatch(/API token is invalid/);
+    expect(error.message).not.toMatch(/not.*configured/i);
+    expect(requests.length).toBeGreaterThanOrEqual(1);
+    for (const request of requests) {
+      expect(new URL(request.url).hostname).toBe('api.notion.com');
+      expect(request.headers.authorization).toBe('Bearer ntn_test123');
+    }
+    expect(requests.map((r) => r.url)).toContain('https://api.notion.com/v1/pages/page-1');
   });
 
   test('folder provider is always available regardless of token', () => {
