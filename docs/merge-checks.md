@@ -62,10 +62,11 @@ The Quarry `piped-output.bun.test.ts` regression also rebuilds Quarry and Smithy
 and spawns their real Node CLI entrypoints with subprocess stdout/stderr pipes.
 It checks complete large Unicode JSON/plain output and error exit codes; see
 [CLI piped output](cli-piped-output.md) for the reproduction and exact coverage.
-Core, storage and quarry currently have **no Vitest tests**. Quarry exposes only
-its Bun `test` suite, and `test:all` runs that same suite; its empty `test:node`
-script was removed. Core and storage retain `test:node` scripts that report no
-tests. The package Vitest configs exclude Bun-only tests, built output and
+Core, storage and quarry currently have **no Vitest tests**. Each exposes only
+its Bun `test` suite, and `test:all` runs that same suite; their empty `test:node`
+scripts were removed (quarry in el-64gcb9, core and storage in el-5rh5gz) because
+Vitest exits 1 with "No test files found" when nothing matches. The package
+Vitest configs exclude Bun-only tests, built output and
 dependencies, but do not exclude managed worktree paths. Smithy uses both runners.
 `bun test` at the root,
 `bun test src` in Smithy and `pnpm test` are not substitutes for this gate: they
@@ -78,6 +79,12 @@ six tests successfully from the managed worktree both before and after the
 exclude change; current Vitest 4 collection did not reproduce the claimed
 worktree-wide exclusion. One pinned Node 22 foreground `pnpm check:merge` then
 passed 212/212 checks, exit 0 (493.68 seconds). Raw logs are outside the repo.
+
+For el-5rh5gz (2026-11-04), core and storage `test:node` likewise exited 1 with
+"No test files found" (zero files outside `*.bun.test.ts`; core has 25 Bun
+files, storage 3). After removing those scripts, core `test:all` ran 2,781 Bun
+tests (2,759 pass, 22 skip, 0 fail) and storage `test:all` ran 137 (all pass),
+both exit 0. Smithy is now the only backend package with a `test:node` script.
 
 The Smithy HTTP start/assignment/completion Bun suites exercise the served
 `packages/smithy/src/server/routes`. Until el-3klk89 they also re-ran each scenario

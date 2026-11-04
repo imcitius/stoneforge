@@ -63,8 +63,10 @@ it does not automatically run every runtime suite or every smoke check. A green
 `pnpm typecheck` is not evidence that behavior tests passed. Report actual commands,
 results and omissions, and distinguish pre-existing failures from regressions.
 
-- Core/storage/quarry/smithy and smithy-server: `test` currently uses Bun;
-  `test:node` uses Vitest under Node; `test:all` runs both. Select a package, e.g.
+- Core/storage/quarry/smithy and smithy-server: `test` currently uses Bun.
+  Only smithy also has `test:node` (Vitest under Node), and its `test:all` runs
+  both; core, storage, quarry and smithy-server have no Vitest-eligible files, so
+  their `test:all` runs only the Bun suite. Select a package, e.g.
   `pnpm --filter @stoneforge/smithy test:node`.
 - Target a Bun-only regression with `bun test path/to/file.bun.test.ts`.
   Inspect imports/config before choosing a runner. Vitest configurations exclude

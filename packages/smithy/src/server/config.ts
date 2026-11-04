@@ -5,7 +5,7 @@
  */
 
 import { resolve } from 'node:path';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createLogger } from '../utils/logger.js';
 
@@ -44,7 +44,7 @@ export function getClaudePath(): string {
   }
 
   try {
-    const result = execSync('which claude', { encoding: 'utf-8', timeout: 5000 });
+    const result = execFileSync('which', ['claude'], { encoding: 'utf-8', timeout: 5000 });
     const path = result.trim();
     if (path && existsSync(path)) {
       return path;
