@@ -74,6 +74,65 @@ export function bundleIdentifier(app) {
   return plistValue(app, 'CFBundleIdentifier');
 }
 
+/**
+ * Launch guard (el-3qg5my). Check scripts that start a packaged app refuse production-identity
+ * bundles: macOS keys TCC decisions by bundle ID, so a locally launched copy with the installed
+ * app's ID can change the installed app's privacy grants (the Desktop-folder EPERM of el-4fxwb9).
+ * Only the release path (scripts/ci-release.sh, on a GitHub runner) sets this opt-in to "1".
+ */
+export const ALLOW_PRODUCTION_IDENTITY_ENV = 'STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY';
+
+/**
+ * Whether a launch candidate has the production identity, from its Info.plist CFBundleIdentifier
+ * (`bundleId`, null when unreadable) and build-info.json (`buildInfo`, null when missing).
+ * Either source saying production is enough. An unreadable bundle ID and builds before el-4fxwb9
+ * (no `identity` field in build-info) count as production: they cannot be shown to differ.
+ */
+export function launchIdentity({ bundleId = null, buildInfo = null } = {}) {
+  const production = IDENTITIES.production;
+  const reasons = [];
+  if (!bundleId) reasons.push('its Info.plist bundle ID could not be read');
+  else if (bundleId === production.bundleId) reasons.push(`its bundle ID is ${production.bundleId}`);
+  if (!buildInfo || buildInfo.identity === undefined) reasons.push('its build-info.json has no identity (a build before el-4fxwb9)');
+  else if (buildInfo.identity === production.name || buildInfo.bundleId === production.bundleId) reasons.push('its build-info.json identity is production');
+  return { production: reasons.length > 0, bundleId: bundleId || buildInfo?.bundleId || production.bundleId, reasons };
+}
+
+/** Refusal message for launching `app`, or null when the launch is allowed. Pure; see launchIdentity. */
+export function launchRefusal({ app, bundleId = null, buildInfo = null, env = {} }) {
+  const identity = launchIdentity({ bundleId, buildInfo });
+  if (!identity.production) return null;
+  const optIn = env[ALLOW_PRODUCTION_IDENTITY_ENV];
+  if (optIn === '1') return null;
+  return [
+    `Refusing to launch ${app}: it has the production identity (bundle ID ${identity.bundleId}; ${identity.reasons.join('; ')}).`,
+    `macOS privacy (TCC) decisions are keyed by bundle ID, so launching it here can change the installed Stoneforge Desktop's grants (el-4fxwb9).`,
+    `Use a dev-identity build instead: a plain \`pnpm --filter @stoneforge/desktop package:mac\`, or \`node apps/desktop/scripts/app-identity.mjs copy-dev <app> <copy.app>\` and DESKTOP_APP=<copy.app>.`,
+    `Release verification only (scripts/ci-release.sh sets it): ${ALLOW_PRODUCTION_IDENTITY_ENV}=1` +
+      (optIn === undefined || optIn === '' ? '.' : ` (it is set to "${optIn}", which is not "1").`),
+  ].join('\n');
+}
+
+/** Read `app`'s identity and throw the launchRefusal message unless the launch is allowed. */
+export function assertLaunchAllowed(app, { env = process.env } = {}) {
+  let bundleId = null, buildInfo = null;
+  try { bundleId = bundleIdentifier(app); } catch { /* unreadable: counts as production */ }
+  try { buildInfo = JSON.parse(readFileSync(join(app, 'Contents/Resources/app/build-info.json'), 'utf8')); } catch { /* missing */ }
+  const refusal = launchRefusal({ app, bundleId, buildInfo, env });
+  if (refusal) throw new Error(refusal);
+  const identity = launchIdentity({ bundleId, buildInfo });
+  if (identity.production) console.warn(`[launch guard] launching production-identity app ${app} (${identity.bundleId}): ${ALLOW_PRODUCTION_IDENTITY_ENV}=1`);
+  return identity;
+}
+
+/** For check scripts: assertLaunchAllowed, printing the refusal and exiting 1 instead of throwing. */
+export function requireLaunchAllowed(app, options) {
+  try { return assertLaunchAllowed(app, options); } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+}
+
 /** Real path of the nearest existing ancestor plus the rest (/var -> /private/var even for new paths). */
 function canonical(path) {
   const parts = [];

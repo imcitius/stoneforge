@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
-import { defaultApp, appExecutable, bundleIdentifier, plistValue, IDENTITIES } from './app-identity.mjs';
+import { defaultApp, requireLaunchAllowed, appExecutable, bundleIdentifier, plistValue, IDENTITIES } from './app-identity.mjs';
 import { NOTIFICATION_DEBUG_ENV, authorizationLog, notAuthorizedError, historyTimeoutMessage, launchContext } from './notification-authorization.mjs';
 import { launchMode, writeLaunchServicesWrapper, killLaunched } from './launch-services-launcher.mjs';
 import { mainProcessErrors } from './main-process-errors.mjs';
@@ -18,6 +18,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(join(root, 'apps/smithy-web/package.json'));
 const { _electron } = require('playwright');
 const bundle = defaultApp(join(root, 'apps/desktop'));
+// Refuses production-identity apps unless STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1 (release only, el-3qg5my).
+requireLaunchAllowed(bundle);
 const resources = join(bundle, 'Contents/Resources');
 const node = join(resources, 'runtime/node'), cli = join(resources, 'backend/dist/bin/sf.js');
 const temp = await mkdtemp(join(tmpdir(), 'stoneforge-attention-'));

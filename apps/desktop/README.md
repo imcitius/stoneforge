@@ -82,9 +82,26 @@ re-enabled it), and a downloaded release could not start next to the installed a
   executable names stay (Electron finds `<CFBundleName> Helper.app`). It refuses paths in
   `/Applications` or `~/Applications`. `app-identity.mjs show APP` prints an app's identity.
 
+**Launch guard (el-3qg5my).** Every check script that launches a packaged app
+(`check-app`, which also runs `check-logs`/`check-onboarding` inside its launch,
+`check-attention`, `check-getting-started`, `check-launch-services`, `check-tabs` and
+`check-identity`) calls `requireLaunchAllowed()` from `scripts/app-identity.mjs` right after
+selecting the app and, for a production-identity app, prints the refusal (app path, bundle ID,
+how to get a dev copy, the opt-in) and exits 1 before creating fixtures or launching anything.
+An app counts as production when its `Info.plist` bundle ID is `ai.stoneforge.desktop` or
+unreadable, or its `build-info.json` says production or has no `identity` field (builds
+before el-4fxwb9). The only opt-in is `STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1`
+(exactly `1`); `scripts/ci-release.sh artifacts` sets it for the release smoke only, and
+the GitHub workflow does not set it globally. `check-identity` additionally requires a dev app
+even with the opt-in. `check-clipboard` launches the stock Electron binary, and
+`check-safeguards`, `check-pty` and `check-terminal-color` run only the app's bundled Node;
+they launch no packaged app and are not guarded. `scripts/ci-release-local.sh` runs
+`ci-release.sh artifacts` on this Mac, so it refuses to start unless the caller sets the
+opt-in, accepting the risk below.
+
 **Production-identity GUI checks** (release smoke in `release-artifacts.mjs`,
 `ci-release-local.sh`, final verification of an update candidate) still run an app with
-the installed app's bundle ID. They isolate `userData` with `STONEFORGE_DESKTOP_TEST_DATA`
+the installed app's bundle ID, and need `STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1`. They isolate `userData` with `STONEFORGE_DESKTOP_TEST_DATA`
 (so no lock hand-off), but TCC state is shared: a privacy prompt or decision for that copy
 can change the installed app's grants. Run them in GitHub Actions or on a Mac where the
 installed app does not host agents; on a Mac where it does, only with the Director's/Human's
@@ -205,6 +222,8 @@ Each step runs one subcommand of `scripts/ci-release.sh`:
    verifies `codesign --verify --deep --strict`, the complete inventory and version of
    the extracted zip and the mounted dmg, and runs the `check-app.mjs` GUI smoke on the
    extracted zip app (GitHub macOS runners have a graphical session; `--no-smoke` is not used).
+   This step alone sets `STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1`, because the
+   release app has the production identity the check scripts otherwise refuse.
 5. `verify`: independently checks exactly these three files, `shasum -c`, `hdiutil verify`,
    and for the packaged and the extracted app: build-info commit = `GITHUB_SHA`,
    `dirty=false`, `release=true`, version, arm64-only executable and codesign; the tree is
@@ -229,6 +248,9 @@ clone, and runs the same subcommands with the environment of a tag push, printin
 `gh release create` command instead of running it. It needs an unlocked graphical
 session, Node 22.23.3 first on `PATH`, pnpm 8.15.5 and an authenticated `gh` (used
 read-only for the existing-release check). Uncommitted changes are not included.
+Its `artifacts` step launches the production-identity release app on this Mac, so it
+refuses to start unless `STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1` is set (see the
+[launch guard](#app-identity-dev-vs-release)); prefer the GitHub dry run.
 
 ### Artifacts
 
@@ -476,6 +498,10 @@ node apps/desktop/scripts/check-getting-started.mjs
 node apps/desktop/scripts/check-attention.mjs   # dev package from an agent session: DESKTOP_ATTENTION_LAUNCH=launchservices
 node apps/desktop/scripts/check-identity.mjs   # dev packages only
 ```
+
+The packaged-app checks above refuse production-identity apps (exit 1, before any fixture)
+unless `STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1`; see the
+[launch guard](#app-identity-dev-vs-release). Run them on a dev package or a `copy-dev` copy.
 
 `tests/daemon-lifecycle.test.mjs` exercises real managed and adopted servers: default
 processing, explicit CLI pause, stop/start, restart, Resume, Remove and exact

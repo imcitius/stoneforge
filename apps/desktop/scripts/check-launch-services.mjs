@@ -6,10 +6,12 @@ import { tmpdir } from 'node:os';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
-import { defaultApp, appExecutable } from './app-identity.mjs';
+import { defaultApp, requireLaunchAllowed, appExecutable } from './app-identity.mjs';
 import { mainProcessErrors, inspectMainProcess } from './main-process-errors.mjs';
 const desktop = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const bundle = defaultApp(desktop);
+// Refuses production-identity apps unless STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1 (release only, el-3qg5my).
+requireLaunchAllowed(bundle);
 const executable = appExecutable(bundle);
 const resources = join(bundle, 'Contents/Resources');
 const temp = await mkdtemp(join(tmpdir(), 'stoneforge-launch-'));

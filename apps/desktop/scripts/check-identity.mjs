@@ -19,11 +19,13 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
-import { defaultApp, appExecutable, bundleIdentifier, plistValue, IDENTITIES } from './app-identity.mjs';
+import { defaultApp, requireLaunchAllowed, appExecutable, bundleIdentifier, plistValue, IDENTITIES } from './app-identity.mjs';
 import { mainProcessErrors } from './main-process-errors.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const { _electron } = createRequire(join(root, 'apps/smithy-web/package.json'))('playwright');
 const bundle = defaultApp(join(root, 'apps/desktop'));
+// Refuses production-identity apps unless STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1 (release only, el-3qg5my).
+requireLaunchAllowed(bundle);
 const dev = IDENTITIES.dev, production = IDENTITIES.production;
 const build = JSON.parse(await readFile(join(bundle, 'Contents/Resources/app/build-info.json'), 'utf8'));
 assert.equal(bundleIdentifier(bundle), dev.bundleId, `${bundle} is not a dev-identity app; refusing to launch it next to the installed app`);

@@ -14,12 +14,14 @@ import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fixtureEnv } from '../tests/fixture-env.mjs';
-import { defaultApp, appExecutable } from './app-identity.mjs';
+import { defaultApp, requireLaunchAllowed, appExecutable } from './app-identity.mjs';
 import { mainProcessErrors } from './main-process-errors.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const { _electron } = createRequire(join(root, 'apps/smithy-web/package.json'))('playwright');
 const bundle = defaultApp(join(root, 'apps/desktop'));
+// Refuses production-identity apps unless STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1 (release only, el-3qg5my).
+requireLaunchAllowed(bundle);
 const resources = join(bundle, 'Contents/Resources');
 const node = join(resources, 'runtime/node');
 const cli = join(resources, 'backend/dist/bin/sf.js');

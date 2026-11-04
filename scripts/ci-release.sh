@@ -167,7 +167,11 @@ cmd_artifacts() {
   need VERSION
   # Creates zip/dmg/SHA256SUMS.txt, verifies codesign + inventory of the extracted zip and the
   # mounted dmg, and runs scripts/check-app.mjs (GUI smoke) on the extracted zip app.
-  node "$DESKTOP/scripts/release-artifacts.mjs" --version "$VERSION" --app "$APP" --out "$OUT"
+  # The release app has the production identity (ai.stoneforge.desktop), which check scripts refuse
+  # to launch by default (TCC grants are keyed by bundle ID, el-3qg5my). Release verification is the
+  # one path that must launch it: opt in for this step only.
+  STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1 \
+    node "$DESKTOP/scripts/release-artifacts.mjs" --version "$VERSION" --app "$APP" --out "$OUT"
 }
 
 cmd_verify() {

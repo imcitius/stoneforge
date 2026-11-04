@@ -167,6 +167,38 @@ test('workflow triggers, pins and permissions match the release contract', () =>
   assert.deepEqual([...local.matchAll(/bash "\$STEP" (\w+)/g)].map((m) => m[1]), steps);
 });
 
+// check-app refuses production-identity apps by default (el-3qg5my); release verification launches
+// the release app (ai.stoneforge.desktop), so `artifacts` alone opts in, and release-artifacts.mjs
+// hands its environment to check-app. The local rehearsal needs the caller's explicit opt-in.
+test('artifacts step opts in to launching the production-identity release app; nothing else does', async () => {
+  await withTemp(async (dir) => {
+    const bin = join(dir, 'bin'), record = join(dir, 'record');
+    await mkdir(bin);
+    await writeFile(join(bin, 'node'), `#!/bin/sh\nprintf '%s|%s\\n' "\${STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY-unset}" "$*" >> '${record}'\n`, { mode: 0o755 });
+    const r = run('artifacts', { PATH: `${bin}:${process.env.PATH}`, VERSION: '1.26.0', CI_RELEASE_DIST: join(dir, 'dist') });
+    assert.equal(r.status, 0, r.stderr);
+    const [line, ...rest] = (await readFile(record, 'utf8')).trim().split('\n');
+    assert.deepEqual(rest, []);
+    assert.match(line, /^1\|.*\/apps\/desktop\/scripts\/release-artifacts\.mjs --version 1\.26\.0 --app /);
+  });
+  const source = readFileSync(script, 'utf8');
+  assert.equal(source.match(/STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY/g).length, 1, 'only cmd_artifacts sets the opt-in');
+  assert.doesNotMatch(workflow, /STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY/, 'the workflow does not opt in globally');
+  const artifacts = readFileSync(join(desktop, 'scripts/release-artifacts.mjs'), 'utf8');
+  assert.match(artifacts, /execFileSync\(process\.execPath, \[join\(desktop, 'scripts\/check-app\.mjs'\)\], \{ stdio: 'inherit', env: \{ \.\.\.process\.env, DESKTOP_APP: zipApp \} \}\)/);
+});
+
+test('the local release rehearsal refuses to start without the explicit production-identity opt-in', () => {
+  for (const value of [undefined, '', 'true']) {
+    const env = { PATH: process.env.PATH, HOME: process.env.HOME, ...(value === undefined ? {} : { STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY: value }) };
+    const r = spawnSync('bash', [join(root, 'scripts/ci-release-local.sh')], { cwd: root, env, encoding: 'utf8' });
+    assert.equal(r.status, 2, r.stderr);
+    assert.match(r.stderr, /refusing: the artifacts step launches the release app \(bundle ID ai\.stoneforge\.desktop\)/);
+    assert.match(r.stderr, /STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1/);
+    assert.doesNotMatch(r.stdout, /cloning/);
+  }
+});
+
 // Third-party actions are pinned to full commit SHAs with the release as a comment (el-3fg1vs);
 // a retargeted tag must not change what runs, notably in the contents: write release workflow.
 test('every workflow action is pinned to a full commit SHA', () => {

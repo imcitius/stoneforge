@@ -158,7 +158,10 @@ have been refused by the sandbox and shown as a failure, and none failed.
   signing/notarization, LaunchServices launch or installed-app upgrade check.
   For those changes, follow `apps/desktop/README.md`: build/package a separate
   artifact and run `check-app.mjs` and `check-launch-services.mjs`. Never replace
-  the installed app or restart user sessions as part of this gate.
+  the installed app or restart user sessions as part of this gate. Those scripts
+  refuse production-identity (`ai.stoneforge.desktop`) apps unless
+  `STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1`, which only the release path sets
+  (el-3qg5my); the gate's Desktop tests cover the guard without launching an app.
 - No paid/live Codex, Claude, OpenCode or external-service authentication/API
   validation. Provider unit tests use mocks/fixtures. Live checks remain explicit.
 - `packages/shared-routes` has no test suite or `test` script of its own (its route

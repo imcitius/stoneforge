@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, rm, utimes, writeFile, copyFile, chmod } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, rm, utimes, writeFile, copyFile, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import {
   IDENTITIES, IDENTITY_ENV, resolveIdentity, packagedAppPath, defaultApp, bundleIdentifier, appExecutable,
   assertNotInstalledLocation, retargetToDevIdentity, copyAsDevApp, plistValue,
+  ALLOW_PRODUCTION_IDENTITY_ENV, launchIdentity, launchRefusal, assertLaunchAllowed,
 } from '../scripts/app-identity.mjs';
 import { RELEASE_VERSION_ENV } from '../scripts/release.mjs';
 
@@ -136,4 +137,106 @@ test('package:mac rejects an invalid or conflicting identity before packaging an
   result = run(['--version', 'v1.2.3'], { [IDENTITY_ENV]: 'dev' });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /package:mac: Release builds use the production identity/);
+});
+
+// Launch guard (el-3qg5my): check scripts refuse production-identity apps unless the release path opts in.
+const productionInfo = { identity: 'production', bundleId: 'ai.stoneforge.desktop', productName: 'Stoneforge Desktop' };
+const devInfo = { identity: 'dev', bundleId: 'ai.stoneforge.desktop.dev', productName: 'Stoneforge Desktop Dev' };
+const legacyInfo = { version: '0.1.0', commit: 'c'.repeat(40) }; // build-info written before el-4fxwb9
+
+test('launch guard: dev allowed, production refused with bundle ID and opt-in named, opt-in "1" allows', () => {
+  assert.equal(ALLOW_PRODUCTION_IDENTITY_ENV, 'STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY');
+  const dev = { app: '/tmp/x/Stoneforge Desktop Dev.app', bundleId: devInfo.bundleId, buildInfo: devInfo };
+  assert.equal(launchIdentity(dev).production, false);
+  assert.equal(launchRefusal({ ...dev, env: {} }), null);
+  assert.equal(launchRefusal({ ...dev, env: { [ALLOW_PRODUCTION_IDENTITY_ENV]: '1' } }), null);
+  // Other non-production IDs (e.g. the el-hdh3os .test package) do not share TCC state either.
+  assert.equal(launchRefusal({ app: '/tmp/t.app', bundleId: 'ai.stoneforge.desktop.test', buildInfo: { identity: 'test' }, env: {} }), null);
+
+  const production = { app: '/tmp/x/Stoneforge Desktop.app', bundleId: productionInfo.bundleId, buildInfo: productionInfo };
+  assert.equal(launchIdentity(production).production, true);
+  const refusal = launchRefusal({ ...production, env: {} });
+  assert.match(refusal, /^Refusing to launch \/tmp\/x\/Stoneforge Desktop\.app: it has the production identity \(bundle ID ai\.stoneforge\.desktop;/);
+  assert.match(refusal, /TCC/);
+  assert.match(refusal, /copy-dev/);
+  assert.match(refusal, /STONEFORGE_DESKTOP_ALLOW_PRODUCTION_IDENTITY=1\.$/);
+  assert.equal(launchRefusal({ ...production, env: { [ALLOW_PRODUCTION_IDENTITY_ENV]: '1' } }), null);
+  // Only exactly "1" opts in; anything else is refused and says why.
+  for (const value of ['', 'true', 'yes', '0', ' 1']) {
+    const message = launchRefusal({ ...production, env: { [ALLOW_PRODUCTION_IDENTITY_ENV]: value } });
+    assert.match(message, /^Refusing to launch/, `value ${JSON.stringify(value)}`);
+    if (value) assert.match(message, new RegExp(`it is set to "${value}", which is not "1"`));
+  }
+});
+
+test('launch guard: builds before el-4fxwb9 (no identity fields) and unreadable identities count as production', () => {
+  // Old release/package builds: production plist ID and build-info without identity fields.
+  const legacy = { app: '/tmp/old/Stoneforge Desktop.app', bundleId: 'ai.stoneforge.desktop', buildInfo: legacyInfo };
+  assert.deepEqual(launchIdentity(legacy), { production: true, bundleId: 'ai.stoneforge.desktop', reasons: [
+    'its bundle ID is ai.stoneforge.desktop', 'its build-info.json has no identity (a build before el-4fxwb9)'] });
+  assert.match(launchRefusal({ ...legacy, env: {} }), /bundle ID ai\.stoneforge\.desktop;.*before el-4fxwb9/);
+  assert.equal(launchRefusal({ ...legacy, env: { [ALLOW_PRODUCTION_IDENTITY_ENV]: '1' } }), null);
+  // Identity fields missing even though the plist was changed: cannot be shown to differ.
+  assert.equal(launchIdentity({ bundleId: devInfo.bundleId, buildInfo: legacyInfo }).production, true);
+  assert.equal(launchIdentity({ bundleId: devInfo.bundleId, buildInfo: null }).production, true);
+  // Either source saying production is enough.
+  assert.equal(launchIdentity({ bundleId: devInfo.bundleId, buildInfo: productionInfo }).production, true);
+  assert.equal(launchIdentity({ bundleId: productionInfo.bundleId, buildInfo: devInfo }).production, true);
+  // Unreadable Info.plist: the message falls back to the build-info / production bundle ID.
+  const unreadable = launchIdentity({ bundleId: null, buildInfo: devInfo });
+  assert.equal(unreadable.production, true);
+  assert.deepEqual(unreadable.reasons, ['its Info.plist bundle ID could not be read']);
+  assert.equal(launchIdentity({}).bundleId, 'ai.stoneforge.desktop');
+});
+
+test('assertLaunchAllowed reads the bundle: production and pre-el-4fxwb9 apps refused, dev copies and opt-in allowed', { skip: !darwin }, async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'sf-launch-guard-'));
+  try {
+    const production = await fakeProductionApp(dir);
+    assert.throws(() => assertLaunchAllowed(production, { env: {} }), /Refusing to launch .*bundle ID ai\.stoneforge\.desktop;/);
+    assert.equal(assertLaunchAllowed(production, { env: { [ALLOW_PRODUCTION_IDENTITY_ENV]: '1' } }).production, true);
+    const copy = join(dir, 'copy', 'Stoneforge Desktop.app');
+    await mkdir(join(dir, 'copy'));
+    copyAsDevApp(production, copy, { home: dir });
+    assert.equal(assertLaunchAllowed(copy, { env: {} }).production, false);
+    // A build before el-4fxwb9: production plist, build-info without identity fields.
+    await writeFile(join(production, 'Contents/Resources/app/build-info.json'), JSON.stringify(legacyInfo));
+    assert.throws(() => assertLaunchAllowed(production, { env: {} }), /before el-4fxwb9/);
+    assert.throws(() => assertLaunchAllowed(join(dir, 'missing.app'), { env: {} }), /could not be read/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+// Every check script that launches the packaged app guards it before doing anything else.
+// check-app is covered by the source scan only: it imports the built quarry CLI at load time.
+const unguarded = new Map([['check-clipboard.mjs', 'launches the stock Electron binary, not a packaged app']]);
+const launchesApp = (source) => /_electron\.launch\(|execFileSync\('\/usr\/bin\/open'/.test(source);
+test('every check script that launches a packaged app calls requireLaunchAllowed(bundle) right after selecting it', async () => {
+  const guarded = [];
+  for (const name of (await readdir(join(desktop, 'scripts'))).filter((n) => /^check-.*\.mjs$/.test(n)).sort()) {
+    const source = await readFile(join(desktop, 'scripts', name), 'utf8');
+    if (!launchesApp(source) || unguarded.has(name)) continue;
+    const select = source.match(/^const bundle = defaultApp\([^\n]*\);\n(?:\/\/[^\n]*\n)?requireLaunchAllowed\(bundle\);$/m);
+    assert(select, `${name}: launches an app without requireLaunchAllowed(bundle) right after defaultApp()`);
+    assert.equal(source.indexOf('defaultApp('), source.indexOf(select[0]) + 'const bundle = '.length, `${name}: selects the app only once`);
+    guarded.push(name);
+  }
+  assert.deepEqual(guarded, ['check-app.mjs', 'check-attention.mjs', 'check-getting-started.mjs', 'check-identity.mjs', 'check-launch-services.mjs', 'check-tabs.mjs']);
+});
+
+test('check scripts exit 1 with the refusal before any fixture or launch for a production-identity app', { skip: !darwin }, async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'sf-launch-guard-scripts-'));
+  try {
+    const app = await fakeProductionApp(dir);
+    for (const name of ['check-attention.mjs', 'check-getting-started.mjs', 'check-identity.mjs', 'check-launch-services.mjs', 'check-tabs.mjs']) {
+      const result = spawnSync(process.execPath, [join(desktop, 'scripts', name)], { encoding: 'utf8', timeout: 30_000,
+        env: { ...process.env, DESKTOP_APP: app, [ALLOW_PRODUCTION_IDENTITY_ENV]: '' } });
+      assert.equal(result.status, 1, `${name}: ${result.stderr}`);
+      assert.match(result.stderr, /^Refusing to launch .*Stoneforge Desktop\.app: it has the production identity \(bundle ID ai\.stoneforge\.desktop;/m, name);
+      assert.equal(result.stdout, '', `${name} did nothing before refusing`);
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
