@@ -166,12 +166,12 @@ export class GitHubMergeProvider implements MergeRequestProvider {
 
   async getMergeRequestStatus(prNumber: number): Promise<MergeRequestStatusResult> {
     const { promisify } = await import('node:util');
-    const { exec } = await import('node:child_process');
-    const execAsync = promisify(exec);
+    const { execFile } = await import('node:child_process');
 
-    // Use gh pr view to get PR status as JSON
-    const { stdout } = await execAsync(
-      `gh pr view ${prNumber} --json state,mergeCommit,url`,
+    // Use gh pr view to get PR status as JSON (argv, no shell)
+    const { stdout } = await promisify(execFile)(
+      'gh',
+      ['pr', 'view', String(prNumber), '--json', 'state,mergeCommit,url'],
       { encoding: 'utf8', timeout: 30_000, cwd: this.cwd }
     );
 

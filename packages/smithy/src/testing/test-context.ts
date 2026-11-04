@@ -16,7 +16,7 @@ import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve, delimiter } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import type { EventEmitter } from 'node:events';
 import type { EntityId, ElementId, Task, Priority } from '@stoneforge/core';
 import { createTimestamp, createTask as coreCreateTask, ElementType, asEntityId, asElementId } from '@stoneforge/core';
@@ -194,10 +194,10 @@ export async function setupTestContext(
 
     // 4b. Create bare repo as fake remote (allows workers to push branches)
     const bareRepoPath = join(tempWorkspace, '.test-remote.git');
-    execSync(`git init --bare "${bareRepoPath}"`, { stdio: 'pipe' });
-    execSync(`git remote add origin "${bareRepoPath}"`, { cwd: tempWorkspace, stdio: 'pipe' });
-    const defaultBranch = execSync('git branch --show-current', { cwd: tempWorkspace, encoding: 'utf-8' }).trim();
-    execSync(`git push -u origin ${defaultBranch}`, { cwd: tempWorkspace, stdio: 'pipe' });
+    execFileSync('git', ['init', '--bare', bareRepoPath], { stdio: 'pipe' });
+    execFileSync('git', ['remote', 'add', 'origin', bareRepoPath], { cwd: tempWorkspace, stdio: 'pipe' });
+    const defaultBranch = execFileSync('git', ['branch', '--show-current'], { cwd: tempWorkspace, encoding: 'utf-8' }).trim();
+    execFileSync('git', ['push', '-u', 'origin', defaultBranch], { cwd: tempWorkspace, stdio: 'pipe' });
     log('Created local bare remote');
 
     // 5. Initialize Stoneforge database

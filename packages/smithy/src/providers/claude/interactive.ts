@@ -21,6 +21,7 @@ import type {
   ProviderSessionId,
 } from '../types.js';
 import { shellQuote } from '../shell-quote.js';
+import { isExecutableAvailable } from '../executable-probe.js';
 
 // ============================================================================
 // Helpers
@@ -175,13 +176,7 @@ export class ClaudeInteractiveProvider implements InteractiveProvider {
   }
 
   async isAvailable(): Promise<boolean> {
-    try {
-      const { execSync } = await import('node:child_process');
-      execSync(`${this.executablePath} --version`, { stdio: 'ignore' });
-      return true;
-    } catch {
-      return false;
-    }
+    return isExecutableAvailable(this.executablePath);
   }
 
   private buildArgs(options: InteractiveSpawnOptions, sessionId: string): string[] {

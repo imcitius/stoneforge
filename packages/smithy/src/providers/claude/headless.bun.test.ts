@@ -10,6 +10,11 @@
 import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test';
 import type { HeadlessSpawnOptions } from '../types.js';
 import type { Options as SDKOptions, SpawnOptions } from '@anthropic-ai/claude-agent-sdk';
+import * as childProcess from 'node:child_process';
+
+// Snapshot the real module before mocking: bun's mock.module persists across
+// files in a single `bun test` run, so keep every export except `spawn` real.
+const realChildProcess = { ...childProcess };
 
 // ============================================================================
 // Module-level mocks
@@ -46,6 +51,7 @@ const mockChildProcess = {
 };
 
 mock.module('node:child_process', () => ({
+  ...realChildProcess,
   spawn: (command: string, args: string[], options: unknown) => {
     capturedSpawnCalls.push({ command, args, options });
     return mockChildProcess;

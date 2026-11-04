@@ -17,6 +17,7 @@ import type {
 } from '../types.js';
 import { OPENCODE_DEFAULT_MODEL } from './server-manager.js';
 import { shellQuote } from '../shell-quote.js';
+import { isExecutableAvailable } from '../executable-probe.js';
 
 // ============================================================================
 // Helpers
@@ -145,13 +146,7 @@ export class OpenCodeInteractiveProvider implements InteractiveProvider {
   }
 
   async isAvailable(): Promise<boolean> {
-    try {
-      const { execSync } = await import('node:child_process');
-      execSync(`${this.executablePath} --version`, { stdio: 'ignore' });
-      return true;
-    } catch {
-      return false;
-    }
+    return isExecutableAvailable(this.executablePath);
   }
 
   private buildArgs(options: InteractiveSpawnOptions): string[] {
